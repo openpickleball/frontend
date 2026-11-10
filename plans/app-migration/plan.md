@@ -10,7 +10,7 @@ Replace the static pages in `site/` (the teaser at `/` and the about page at `/a
 
 - [ ] Choose a host and replace `adapter-auto` in `app/` with that host's adapter.
 - [ ] Copy the `@theme` block from `site/src/input.css` into `app/src/routes/layout.css`. Any teaser markup you want to keep can be pasted into Svelte components.
-- [ ] Rebuild the about page from `site/public/about/` in the app at `/about`, in the teaser's design language.
+- [ ] Rebuild the home page from `site/public/index.html` in the app: the teaser with the about sections below it, including the scroll transition. The about sections already use the teaser's design language (`plans/about-redesign/`).
 - [ ] Deploy `app/` (root directory `app`) and test it on the host's own URL while the teaser stays live.
 - [ ] Point the custom domain at the new host. This is the actual switch. To roll back, point it back at GitHub Pages.
 - [ ] Once the app is stable, delete `site/` and `.github/workflows/deploy-pages.yml` in one PR, then turn off GitHub Pages in the repo settings.

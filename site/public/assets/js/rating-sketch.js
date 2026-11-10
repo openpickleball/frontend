@@ -1,4 +1,4 @@
-// Illustrative rating update for the homepage. This is not the OPEN engine.
+// Illustrative rating update for the sample court on the home page. This is not the OPEN engine.
 // The real formula will be published in the versioned rating spec.
 (function () {
   const PLAYERS = [

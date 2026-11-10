@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="scroll-pt-20 motion-safe:scroll-smooth">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -44,18 +44,60 @@
       crossorigin
     />
     <link rel="stylesheet" href="./assets/css/main.css" />
+    <script src="./assets/js/rating-sketch.js" defer></script>
+    <noscript>
+      <style>
+        #site-nav[data-hidden] {
+          opacity: 1;
+          translate: none;
+          pointer-events: auto;
+        }
+      </style>
+    </noscript>
   </head>
   <body class="bg-primary font-body text-secondary antialiased">
-    <div
-      class="relative isolate grid min-h-screen min-h-svh grid-rows-[43.68fr_12.32fr_44fr] overflow-hidden art-land:grid-rows-[34.32fr_9.68fr_56fr] art-wide:grid-rows-[31.2fr_8.8fr_60fr] short:art-land:grid-rows-[40.48fr_3.52fr_56fr] short:art-wide:grid-rows-[36.8fr_3.2fr_60fr]"
+    <a
+      href="#about"
+      class="fixed top-3 left-4 z-30 -translate-y-20 bg-secondary px-4 py-2.5 text-primary focus:translate-y-0"
+      >Skip to content</a
     >
-      <main class="row-start-1 self-center">
+
+    <!--
+      Hidden while the teaser fills the screen, since the teaser already shows the wordmark.
+      It starts hidden so it can't flash over the teaser on load. The script at the end of the page
+      shows and hides it, and the noscript style in the head keeps it visible without JavaScript.
+    -->
+    <header
+      id="site-nav"
+      data-hidden
+      class="fixed inset-x-0 top-0 z-20 bg-primary/80 backdrop-blur-md transition-[opacity,translate] duration-300 data-hidden:pointer-events-none data-hidden:-translate-y-2 data-hidden:opacity-0 motion-reduce:transition-none"
+    >
+      <div class="wrap flex h-16 items-center justify-between gap-6">
+        <a href="#top" class="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current">
+          <img src="./assets/img/mark.svg" alt="" width="26" height="26" class="size-[26px]" />
+          <span class="-mr-[0.1em] font-display text-[17px] leading-none tracking-[0.1em]">OPEN</span>
+        </a>
+        <nav aria-label="Main" class="flex gap-[clamp(16px,2.4vw,32px)] text-sm tracking-[0.02em] text-muted">
+          <a href="#how" class="max-md:hidden hover:text-secondary">How it works</a>
+          <a href="#promises" class="max-md:hidden hover:text-secondary">Promises</a>
+          <a href="#roadmap" class="max-md:hidden hover:text-secondary">Roadmap</a>
+          <a href="#help" class="arrow-link text-secondary hover:text-muted">Get involved</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <!-- Teaser: one screen tall, the wordmark above the ball rising out of black. -->
+      <section
+        id="top"
+        class="hero relative isolate grid min-h-screen min-h-svh grid-rows-[43.68fr_12.32fr_44fr] overflow-hidden art-land:grid-rows-[34.32fr_9.68fr_56fr] art-wide:grid-rows-[31.2fr_8.8fr_60fr] short:art-land:grid-rows-[40.48fr_3.52fr_56fr] short:art-wide:grid-rows-[36.8fr_3.2fr_60fr]"
+      >
         <!--
           Each render has the aspect ratio at the low end of its range, so wider screens only ever
           crop top and bottom, never the sides. The object-position y value is the crest's height
           in that render, which holds the horizon at the same place through the crop.
         -->
-        <picture class="absolute inset-0 -z-10">
+        <picture class="hero-art absolute inset-0 -z-10">
           <source
             media="(min-aspect-ratio: 2/1)"
             type="image/avif"
@@ -135,45 +177,517 @@
           />
         </picture>
 
-        <div class="px-6 py-3 text-center">
+        <div class="hero-copy row-start-1 self-center px-6 py-3 text-center">
           <a
             href="./"
-            class="-mr-[0.1em] inline-block font-display text-[clamp(42px,5.6vw,80px)] leading-none tracking-[0.1em] hover:text-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
-            >OPEN</a
+            class="-mr-[0.1em] inline-flex items-center gap-[0.32em] font-display text-[clamp(42px,5.6vw,80px)] leading-none tracking-[0.1em] hover:text-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+            ><img src="./assets/img/mark.svg" alt="" width="110" height="110" class="size-[1.25em]" />OPEN</a
           >
           <h1 class="mt-7 text-[clamp(20px,1.7vw,24px)] leading-[1.3] text-balance">
             Your pickleball rating, always free.
           </h1>
           <a
-            href="./about/"
+            href="#about"
+            data-glide
             class="mt-4 inline-block text-[15px] tracking-[0.02em] shimmer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
             >Learn more</a
           >
         </div>
-      </main>
+      </section>
 
-      <footer
-        class="relative row-start-3 flex flex-col items-center gap-x-8 gap-y-1 self-end bg-primary px-[clamp(20px,3vw,40px)] pt-3 pb-[18px] text-[13px] leading-[1.4] tracking-[0.02em] text-secondary before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-16 before:bg-linear-to-t before:from-primary before:to-transparent min-[520px]:flex-row min-[520px]:justify-between min-[520px]:pt-0 short:pb-0 footer-on-image:bg-transparent footer-on-image:pb-[18px] footer-on-image:text-[#d4d4d4] footer-on-image:before:hidden footer-bright:footer-on-image:text-secondary"
-      >
-        <div class="flex items-center gap-2.5">
-          <img src="./assets/img/mark.svg" alt="" width="24" height="24" class="size-6" />
-          <span><b>O</b>pen <b>P</b>ickleball <b>E</b>valuation <b>N</b>etwork</span>
-        </div>
-        <div class="flex items-center gap-0.5 footer-on-image:text-primary">
-          <span>Follow our progress</span>
-          <a
-            href="https://github.com/openpickleball/frontend"
-            aria-label="Follow OPEN on GitHub"
-            class="-mr-3 flex size-11 items-center justify-center hover:text-muted focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-current footer-on-image:hover:text-[#404040]"
+      <!-- About: everything below the teaser. -->
+      <section id="about" tabindex="-1" aria-labelledby="about-title" class="outline-none pt-[clamp(96px,13vw,176px)]">
+        <div class="wrap">
+          <p class="reveal label">About OPEN</p>
+          <h2
+            id="about-title"
+            class="reveal mt-[22px] max-w-[13ch] text-[clamp(40px,6.4vw,92px)] leading-[1.02] font-medium tracking-[-0.025em] text-balance"
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path
-                d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
-              ></path>
+            A pickleball rating anyone can check.
+          </h2>
+          <p class="reveal mt-7 max-w-[54ch] text-[clamp(17px,1.5vw,20px)] leading-normal text-pretty text-muted">
+            OPEN, the Open Pickleball Evaluation Network, is a free, open-source rating network that
+            no company owns. We are building it in public, and we need players, organizers, and
+            builders to help shape it.
+          </p>
+          <div class="reveal mt-9 flex flex-wrap gap-x-8 gap-y-3.5 text-[15px] tracking-[0.02em]">
+            <a href="#help" class="arrow-link hover:text-muted">See how you can help</a>
+            <a href="#how" class="arrow-link text-muted hover:text-secondary">Try a sample rating</a>
+          </div>
+          <p class="ring-dot mt-10 flex items-center gap-2.5 text-[13px] tracking-[0.02em] text-muted">
+            Early development. No OPEN rating is live yet.
+          </p>
+
+          <!-- The 2.0 to 8.0 scale, with made-up players as dots. -->
+          <div class="relative mt-[clamp(72px,10vw,128px)] h-[72px]" aria-hidden="true">
+            <svg class="h-full w-full overflow-visible" viewBox="0 0 1000 72" preserveAspectRatio="none">
+              <line x1="0" x2="0" y1="24" y2="40" stroke="#8a8a8a" vector-effect="non-scaling-stroke" />
+              <line x1="16.6667" x2="16.6667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="33.3333" x2="33.3333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="50" x2="50" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="66.6667" x2="66.6667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="83.3333" x2="83.3333" y1="30" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="100" x2="100" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="116.667" x2="116.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="133.333" x2="133.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="150" x2="150" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="166.667" x2="166.667" y1="24" y2="40" stroke="#8a8a8a" vector-effect="non-scaling-stroke" />
+              <line x1="183.333" x2="183.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="200" x2="200" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="216.667" x2="216.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="233.333" x2="233.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="250" x2="250" y1="30" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="266.667" x2="266.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="283.333" x2="283.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="300" x2="300" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="316.667" x2="316.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="333.333" x2="333.333" y1="24" y2="40" stroke="#8a8a8a" vector-effect="non-scaling-stroke" />
+              <line x1="350" x2="350" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="366.667" x2="366.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="383.333" x2="383.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="400" x2="400" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="416.667" x2="416.667" y1="30" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="433.333" x2="433.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="450" x2="450" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="466.667" x2="466.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="483.333" x2="483.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="500" x2="500" y1="24" y2="40" stroke="#8a8a8a" vector-effect="non-scaling-stroke" />
+              <line x1="516.667" x2="516.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="533.333" x2="533.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="550" x2="550" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="566.667" x2="566.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="583.333" x2="583.333" y1="30" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="600" x2="600" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="616.667" x2="616.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="633.333" x2="633.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="650" x2="650" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="666.667" x2="666.667" y1="24" y2="40" stroke="#8a8a8a" vector-effect="non-scaling-stroke" />
+              <line x1="683.333" x2="683.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="700" x2="700" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="716.667" x2="716.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="733.333" x2="733.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="750" x2="750" y1="30" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="766.667" x2="766.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="783.333" x2="783.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="800" x2="800" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="816.667" x2="816.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="833.333" x2="833.333" y1="24" y2="40" stroke="#8a8a8a" vector-effect="non-scaling-stroke" />
+              <line x1="850" x2="850" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="866.667" x2="866.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="883.333" x2="883.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="900" x2="900" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="916.667" x2="916.667" y1="30" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="933.333" x2="933.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="950" x2="950" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="966.667" x2="966.667" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="983.333" x2="983.333" y1="35" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
+              <line x1="1000" x2="1000" y1="24" y2="40" stroke="#8a8a8a" vector-effect="non-scaling-stroke" />
+              <line x1="0" x2="1000" y1="40" y2="40" stroke="#3d3d3d" vector-effect="non-scaling-stroke" />
             </svg>
-          </a>
+            <span class="absolute top-[50px] left-[0%] text-[11px] tracking-[0.04em] text-faint tabular-nums">2.0</span>
+            <span class="absolute top-[50px] left-[16.67%] -translate-x-1/2 text-[11px] tracking-[0.04em] text-faint tabular-nums">3.0</span>
+            <span class="absolute top-[50px] left-[33.33%] -translate-x-1/2 text-[11px] tracking-[0.04em] text-faint tabular-nums">4.0</span>
+            <span class="absolute top-[50px] left-[50%] -translate-x-1/2 text-[11px] tracking-[0.04em] text-faint tabular-nums">5.0</span>
+            <span class="absolute top-[50px] left-[66.67%] -translate-x-1/2 text-[11px] tracking-[0.04em] text-faint tabular-nums">6.0</span>
+            <span class="absolute top-[50px] left-[83.33%] -translate-x-1/2 text-[11px] tracking-[0.04em] text-faint tabular-nums">7.0</span>
+            <span class="absolute top-[50px] left-[100%] -translate-x-full text-[11px] tracking-[0.04em] text-faint tabular-nums">8.0</span>
+            <span class="absolute top-3.5 left-[18.33%] size-1.5 -translate-x-1/2 rounded-full border border-faint"></span>
+            <span class="absolute top-3.5 left-[25%] size-1.5 -translate-x-1/2 rounded-full border border-faint"></span>
+            <span class="absolute top-3.5 left-[33%] size-1.5 -translate-x-1/2 rounded-full border border-faint"></span>
+            <span class="absolute top-3.5 left-[35.67%] size-1.5 -translate-x-1/2 rounded-full border border-faint"></span>
+            <span class="absolute top-3.5 left-[37.67%] size-1.5 -translate-x-1/2 rounded-full border border-faint"></span>
+            <span class="absolute top-3.5 left-[43.33%] size-1.5 -translate-x-1/2 rounded-full border border-faint"></span>
+            <span class="absolute top-3.5 left-[53.33%] size-1.5 -translate-x-1/2 rounded-full border border-faint"></span>
+            <span class="absolute top-2 left-[28.67%] size-3 -translate-x-1/2 rounded-full bg-secondary"></span>
+          </div>
         </div>
-      </footer>
-    </div>
+      </section>
+
+      <section class="border-t border-line py-[clamp(72px,11vw,148px)]">
+        <div class="wrap">
+          <p class="reveal max-w-[30ch] text-[clamp(24px,2.6vw,36px)] leading-[1.25] tracking-[-0.01em] text-pretty">
+            A rating decides which events you can enter, who you get matched with, and how you see
+            your own progress. Something with that much influence should be open to inspection.
+          </p>
+          <ul class="mt-[clamp(48px,6vw,80px)] grid gap-10 md:grid-cols-3">
+            <li class="reveal border-t border-line pt-5">
+              <h3 class="text-[17px] font-semibold">See it.</h3>
+              <p class="mt-2.5 leading-normal text-muted">Every rating will come with a clear explanation of how it was calculated.</p>
+            </li>
+            <li class="reveal border-t border-line pt-5">
+              <h3 class="text-[17px] font-semibold">Question it.</h3>
+              <p class="mt-2.5 leading-normal text-muted">When a number looks wrong, you will be able to challenge it and the method behind it.</p>
+            </li>
+            <li class="reveal border-t border-line pt-5">
+              <h3 class="text-[17px] font-semibold">Take it with you.</h3>
+              <p class="mt-2.5 leading-normal text-muted">You will be able to export your record and bring it to a different club, league, or app.</p>
+            </li>
+          </ul>
+          <p class="mt-14 max-w-[64ch] text-[13px] leading-normal text-faint">
+            OPEN uses the familiar 2.0 to 8.0 scale and works alongside the ratings you already have,
+            so nobody has to choose. Apps, leagues, clubs, and tournaments are partners, and anything
+            they build can use OPEN for free.
+          </p>
+        </div>
+      </section>
+
+      <section id="how" aria-labelledby="how-title" class="border-t border-line py-[clamp(72px,11vw,148px)]">
+        <div class="wrap">
+          <p class="label">01 · How it works</p>
+          <h2 id="how-title" class="reveal mt-[18px] max-w-[20ch] text-[clamp(30px,3.6vw,48px)] leading-[1.08] font-medium tracking-[-0.015em] text-balance">
+            A rating should show its work
+          </h2>
+          <p class="mt-5 max-w-[56ch] text-[clamp(17px,1.4vw,19px)] leading-normal text-pretty text-muted">
+            OPEN's engine is designed as an Elo variant for doubles and singles. The engine and rating
+            spec aren't published yet, so this sample shows the idea. Drag the final score and follow
+            what happens to each player.
+          </p>
+
+          <figure class="reveal mt-[clamp(48px,6vw,72px)] rounded-[20px] border border-line bg-surface p-[clamp(20px,3vw,40px)]">
+            <div class="grid grid-cols-1 gap-[clamp(12px,2vw,32px)] md:grid-cols-[1fr_auto_1fr]">
+              <div class="grid content-start gap-3">
+                <div class="text-[13px] tracking-[0.02em] text-muted">Team 1 · rated 3.93</div>
+                <div class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-xl border border-line px-[18px] py-4" data-player="0">
+                  <span class="col-start-1 row-start-1 font-semibold">Juniper</span>
+                  <span class="col-start-1 row-start-2 text-sm text-muted tabular-nums"><span data-before>4.14</span> → <b class="font-semibold text-secondary" data-after>4.17</b></span>
+                  <span class="col-start-2 row-span-2 row-start-1 self-center font-display text-[15px] tabular-nums data-down:text-faint" data-change>+0.03</span>
+                  <span class="col-span-2 mt-2 h-0.5 bg-line" aria-hidden="true"><span class="block h-full w-[88%] bg-muted"></span></span>
+                  <span class="col-span-2 text-xs text-faint">88% reliable</span>
+                </div>
+                <div class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-xl border border-line px-[18px] py-4" data-player="1">
+                  <span class="col-start-1 row-start-1 font-semibold">Marek</span>
+                  <span class="col-start-1 row-start-2 text-sm text-muted tabular-nums"><span data-before>3.72</span> → <b class="font-semibold text-secondary" data-after>3.79</b></span>
+                  <span class="col-start-2 row-span-2 row-start-1 self-center font-display text-[15px] tabular-nums data-down:text-faint" data-change>+0.07</span>
+                  <span class="col-span-2 mt-2 h-0.5 bg-line" aria-hidden="true"><span class="block h-full w-[34%] bg-muted"></span></span>
+                  <span class="col-span-2 text-xs text-faint">34% reliable</span>
+                </div>
+              </div>
+              <div
+                class="relative flex items-center justify-center px-2 before:absolute before:inset-x-0 before:top-1/2 before:border-t before:border-dashed before:border-line md:before:inset-x-auto md:before:inset-y-0 md:before:top-0 md:before:left-1/2 md:before:border-t-0 md:before:border-l"
+              >
+                <output
+                  id="score"
+                  for="score-range"
+                  aria-live="off"
+                  class="relative flex items-center gap-3.5 bg-surface px-3.5 font-display text-[clamp(28px,3.4vw,44px)] tabular-nums md:flex-col md:gap-1 md:px-0 md:py-3"
+                  ><span id="score-1">11</span><span class="font-body text-xs tracking-[0.08em] text-faint uppercase">to</span><span id="score-2">7</span></output
+                >
+              </div>
+              <div class="grid content-start gap-3">
+                <div class="text-[13px] tracking-[0.02em] text-muted md:text-right">Team 2 · rated 4.12</div>
+                <div class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-xl border border-line px-[18px] py-4" data-player="2">
+                  <span class="col-start-1 row-start-1 font-semibold">Odalys</span>
+                  <span class="col-start-1 row-start-2 text-sm text-muted tabular-nums"><span data-before>4.26</span> → <b class="font-semibold text-secondary" data-after>4.23</b></span>
+                  <span class="col-start-2 row-span-2 row-start-1 self-center font-display text-[15px] tabular-nums data-down:text-faint" data-change data-down>&minus;0.03</span>
+                  <span class="col-span-2 mt-2 h-0.5 bg-line" aria-hidden="true"><span class="block h-full w-[91%] bg-muted"></span></span>
+                  <span class="col-span-2 text-xs text-faint">91% reliable</span>
+                </div>
+                <div class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-xl border border-line px-[18px] py-4" data-player="3">
+                  <span class="col-start-1 row-start-1 font-semibold">Theo</span>
+                  <span class="col-start-1 row-start-2 text-sm text-muted tabular-nums"><span data-before>3.98</span> → <b class="font-semibold text-secondary" data-after>3.93</b></span>
+                  <span class="col-start-2 row-span-2 row-start-1 self-center font-display text-[15px] tabular-nums data-down:text-faint" data-change data-down>&minus;0.05</span>
+                  <span class="col-span-2 mt-2 h-0.5 bg-line" aria-hidden="true"><span class="block h-full w-[67%] bg-muted"></span></span>
+                  <span class="col-span-2 text-xs text-faint">67% reliable</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-8">
+              <label for="score-range" class="text-[13px] tracking-[0.02em] text-muted">Final score</label>
+              <input
+                id="score-range"
+                class="score-range"
+                type="range"
+                min="0"
+                max="19"
+                step="1"
+                value="12"
+                aria-valuetext="Team 1 11, Team 2 7"
+              />
+              <div class="flex justify-between text-xs text-faint" aria-hidden="true">
+                <span>Team 2 wins 11–0</span><span>Team 1 wins 11–0</span>
+              </div>
+            </div>
+
+            <ol class="ledger mt-9 grid gap-7 text-[15px] leading-normal text-muted sm:grid-cols-2 lg:grid-cols-4">
+              <li><strong class="mb-1 block font-semibold text-secondary">Predict</strong> <span id="step-predict">Averaging each pair, Team 2 is rated 4.12 and Team 1 is rated 3.93, so Team 2 should win about 61% of the time.</span></li>
+              <li><strong class="mb-1 block font-semibold text-secondary">Compare</strong> <span id="step-compare">Team 1 won 11 to 7, an upset, so ratings move more than if the favorite had won.</span></li>
+              <li><strong class="mb-1 block font-semibold text-secondary">Weigh the margin</strong> <span id="step-margin">A 4-point game separates a close result from a decisive one.</span></li>
+              <li><strong class="mb-1 block font-semibold text-secondary">Update each player</strong> <span id="step-update">Marek's rating is the least established of the four, so it moves the most.</span></li>
+            </ol>
+            <figcaption class="mt-8 border-t border-line pt-5 text-[13px] leading-normal text-faint">
+              A simplified sketch with made-up players, written for this page. It is not the OPEN
+              engine, and it uses reliability as a stand-in for rating uncertainty. The real formula
+              will be published in the versioned rating spec.
+            </figcaption>
+          </figure>
+
+          <h3 class="label mt-[clamp(72px,9vw,112px)]">What the engine is designed to account for</h3>
+          <dl class="mt-6 grid border-t border-line sm:grid-cols-2 lg:grid-cols-3">
+            <div class="border-b border-line py-[22px] pr-6"><dt class="font-semibold">Team rating</dt><dd class="mt-1.5 text-[15px] leading-normal text-muted">Combines two partners' ratings to predict a match.</dd></div>
+            <div class="border-b border-line py-[22px] pr-6"><dt class="font-semibold">Individual updates</dt><dd class="mt-1.5 text-[15px] leading-normal text-muted">Gives each player their own rating change.</dd></div>
+            <div class="border-b border-line py-[22px] pr-6"><dt class="font-semibold">Point differential</dt><dd class="mt-1.5 text-[15px] leading-normal text-muted">Separates a close loss from a decisive one.</dd></div>
+            <div class="border-b border-line py-[22px] pr-6"><dt class="font-semibold">Rating uncertainty</dt><dd class="mt-1.5 text-[15px] leading-normal text-muted">Allows larger changes for new players.</dd></div>
+            <div class="border-b border-line py-[22px] pr-6"><dt class="font-semibold">Recency</dt><dd class="mt-1.5 text-[15px] leading-normal text-muted">Accounts for skill changing over time.</dd></div>
+            <div class="border-b border-line py-[22px] pr-6"><dt class="font-semibold">Match weighting</dt><dd class="mt-1.5 text-[15px] leading-normal text-muted">Can count verified tournament results differently from casual matches.</dd></div>
+          </dl>
+          <p class="mt-7 max-w-[64ch] leading-[1.55] text-muted">
+            Every rating will also carry a reliability score from 0 to 100%. It will be earned through
+            matches on OPEN, variety of opponents, and recent play. It can't be chosen.
+          </p>
+
+          <div class="mt-[clamp(72px,9vw,112px)] grid items-start gap-[clamp(32px,6vw,96px)] md:grid-cols-[1fr_1.1fr]">
+            <div class="reveal">
+              <p class="text-[clamp(28px,3.2vw,44px)] leading-[1.12] font-medium tracking-[-0.015em] text-balance">
+                A 70% favorite should win about 70% of the time.
+              </p>
+              <svg class="mt-8 w-full max-w-[360px]" viewBox="0 0 220 220" role="img" aria-label="Illustrative calibration chart: predicted win chance against how often that side actually wins, with points close to the diagonal">
+                <g stroke="#3d3d3d"><line x1="20" y1="200" x2="210" y2="200" /><line x1="20" y1="200" x2="20" y2="10" /></g>
+                <line x1="20" y1="200" x2="210" y2="10" stroke="#8a8a8a" stroke-dasharray="3 4" />
+                <g fill="#fff"><circle cx="29.5" cy="186.7" r="3" /><circle cx="48.5" cy="175.3" r="3" /><circle cx="67.5" cy="148.7" r="3" /><circle cx="86.5" cy="137.3" r="3" /><circle cx="105.5" cy="110.7" r="3" /><circle cx="124.5" cy="97.4" r="3" /><circle cx="143.5" cy="70.8" r="3" /><circle cx="153.0" cy="65.1" r="3" /><circle cx="162.5" cy="61.3" r="3" /><circle cx="181.5" cy="34.7" r="3" /><circle cx="200.5" cy="23.3" r="3" /></g>
+                <circle cx="153" cy="67" r="9" fill="none" stroke="#fff" />
+                <g fill="#8a8a8a" font-size="9" font-family="Instrument Sans, sans-serif">
+                  <text x="20" y="214">0%</text><text x="194" y="214">100%</text>
+                  <text x="115" y="214" text-anchor="middle">predicted</text>
+                  <text x="12" y="105" text-anchor="middle" transform="rotate(-90 12 105)">actual</text>
+                </g>
+              </svg>
+              <p class="mt-2.5 text-[13px] text-faint">Illustration only. No validation results exist yet.</p>
+            </div>
+            <div>
+              <p class="leading-[1.55] text-muted">
+                Match outcomes are the ground truth. We will judge the engine by how well it predicts
+                matches it hasn't seen, and new ratings will run in shadow mode before anyone relies on
+                them, so early errors cost nobody.
+              </p>
+              <ul class="mt-6 grid gap-3.5 text-[15px] leading-normal">
+                <li class="ring-dot flex gap-3.5 before:mt-[0.55em]">Predictive accuracy on future matches only, using Brier score and log loss</li>
+                <li class="ring-dot flex gap-3.5 before:mt-[0.55em]">Stability for established players and quick convergence for new ones</li>
+                <li class="ring-dot flex gap-3.5 before:mt-[0.55em]">Breakdowns by skill level, recreational and tournament play, new players, and separate groups of players</li>
+                <li class="ring-dot flex gap-3.5 before:mt-[0.55em]">Both teams will confirm a score or a verified organizer will submit it. Impossible scores will be rejected, duplicates caught, and outliers flagged.</li>
+              </ul>
+              <p class="mt-9 text-[15px] text-muted">
+                Know this kind of math?
+                <a class="text-secondary underline decoration-line underline-offset-4 hover:text-muted" href="https://github.com/openpickleball/.github/issues/new?template=rating_spec_change.yml">Challenge our assumptions</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="promises" aria-labelledby="promises-title" class="border-t border-line py-[clamp(72px,11vw,148px)]">
+        <div class="wrap">
+          <p class="label">02 · Promises</p>
+          <h2 id="promises-title" class="reveal mt-[18px] max-w-[20ch] text-[clamp(30px,3.6vw,48px)] leading-[1.08] font-medium tracking-[-0.015em] text-balance">
+            Five promises, written into a charter
+          </h2>
+          <p class="mt-5 max-w-[56ch] text-[clamp(17px,1.4vw,19px)] leading-normal text-pretty text-muted">
+            Everyone who takes part agrees to the
+            <a class="text-secondary underline decoration-line underline-offset-4 hover:text-muted" href="https://github.com/openpickleball/.github/blob/main/CHARTER.md">mission charter</a>.
+            It can be clarified or strengthened. It can't be weakened.
+          </p>
+          <dl class="mt-[clamp(40px,5vw,64px)] border-t border-line">
+            <div class="reveal grid items-baseline gap-2 border-b border-line py-6 sm:grid-cols-[minmax(140px,0.6fr)_1.4fr] sm:gap-6"><dt class="font-display text-[13px] tracking-[0.08em] uppercase">Free</dt><dd class="leading-normal text-muted">No subscriptions, paid tiers, advertisements, or premium features, ever.</dd></div>
+            <div class="reveal grid items-baseline gap-2 border-b border-line py-6 sm:grid-cols-[minmax(140px,0.6fr)_1.4fr] sm:gap-6"><dt class="font-display text-[13px] tracking-[0.08em] uppercase">Transparent</dt><dd class="leading-normal text-muted">Open-source code and a published, versioned rating spec.</dd></div>
+            <div class="reveal grid items-baseline gap-2 border-b border-line py-6 sm:grid-cols-[minmax(140px,0.6fr)_1.4fr] sm:gap-6"><dt class="font-display text-[13px] tracking-[0.08em] uppercase">Community-run</dt><dd class="leading-normal text-muted">No person, company, or sponsor owns or controls it, including the founder.</dd></div>
+            <div class="reveal grid items-baseline gap-2 border-b border-line py-6 sm:grid-cols-[minmax(140px,0.6fr)_1.4fr] sm:gap-6"><dt class="font-display text-[13px] tracking-[0.08em] uppercase">Portable data</dt><dd class="leading-normal text-muted">Players and leagues can export their data at any time.</dd></div>
+            <div class="reveal grid items-baseline gap-2 border-b border-line py-6 sm:grid-cols-[minmax(140px,0.6fr)_1.4fr] sm:gap-6"><dt class="font-display text-[13px] tracking-[0.08em] uppercase">One standard</dt><dd class="leading-normal text-muted">Anyone can read and fork the code, but only the governing board changes the official spec, and only conforming tools can show an OPEN rating.</dd></div>
+          </dl>
+
+          <div class="mt-[clamp(56px,7vw,88px)] grid gap-6 md:grid-cols-2">
+            <div class="reveal rounded-[20px] border border-line p-[clamp(24px,3vw,36px)]">
+              <h3 class="label">Players never pay</h3>
+              <ul class="mt-4 grid gap-2.5 text-muted">
+                <li class="before:mr-2.5 before:text-faint before:content-['—']">Ratings are free forever.</li>
+                <li class="before:mr-2.5 before:text-faint before:content-['—']">Players are never asked for money, in the app or at events.</li>
+                <li class="before:mr-2.5 before:text-faint before:content-['—']">Donors, grant makers, and sponsors get no say over ratings.</li>
+                <li class="before:mr-2.5 before:text-faint before:content-['—']">Every dollar in and out is published.</li>
+                <li class="before:mr-2.5 before:text-faint before:content-['—']">No advertisements.</li>
+              </ul>
+            </div>
+            <div class="reveal rounded-[20px] border border-line bg-surface p-[clamp(24px,3vw,36px)]">
+              <h3 class="label ring-dot flex items-center gap-2.5 text-secondary">Where that stands today</h3>
+              <p class="mt-3.5 leading-[1.55] text-muted">
+                Community control is the goal, and it is not true yet. The five-seat governing board has
+                not been seated, and the founder is the only administrator of the GitHub organization,
+                acting as interim steward.
+              </p>
+              <p class="mt-3.5 leading-[1.55] text-muted">
+                The steward can't declare a rating official, can't sell or transfer the project to anyone
+                but the board or an entity it controls, and must seat the first board before any OPEN
+                rating goes live. Control of every project asset then passes to the board or a legal
+                entity it controls.
+                <a class="text-secondary underline decoration-line underline-offset-4 hover:text-muted" href="https://github.com/openpickleball/.github/blob/main/GOVERNANCE.md">Read the governance plan</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="roadmap" aria-labelledby="roadmap-title" class="border-t border-line py-[clamp(72px,11vw,148px)]">
+        <div class="wrap">
+          <p class="label">03 · Roadmap</p>
+          <h2 id="roadmap-title" class="reveal mt-[18px] max-w-[20ch] text-[clamp(30px,3.6vw,48px)] leading-[1.08] font-medium tracking-[-0.015em] text-balance">
+            What comes next, in rough order
+          </h2>
+          <p class="mt-5 max-w-[56ch] text-[clamp(17px,1.4vw,19px)] leading-normal text-muted">
+            No dates, because the work depends on volunteers.
+          </p>
+          <ol class="roadmap mt-[clamp(48px,6vw,72px)] grid min-[56rem]:grid-cols-4">
+            <li class="reveal">
+              <h3 class="font-display text-xs tracking-[0.12em] uppercase">Now</h3>
+              <ul class="mt-4 grid gap-2.5 text-[15px] leading-[1.45] text-muted">
+                <li>Publish the first versioned rating spec and reference engine</li>
+                <li>Test the engine on real match results in shadow mode</li>
+              </ul>
+            </li>
+            <li class="reveal" data-gate>
+              <h3 class="font-display text-xs tracking-[0.12em] uppercase">Before ratings go live</h3>
+              <p class="mt-1.5 text-xs text-faint">Nothing goes live until these are done</p>
+              <ul class="mt-4 grid gap-2.5 text-[15px] leading-[1.45] text-muted">
+                <li>Seat the governing board and hand over control</li>
+                <li>Publish validation results</li>
+                <li>Publish a privacy and data policy</li>
+                <li>Define conformance rules and a policy for the OPEN name</li>
+              </ul>
+            </li>
+            <li class="reveal">
+              <h3 class="font-display text-xs tracking-[0.12em] uppercase">Next</h3>
+              <ul class="mt-4 grid gap-2.5 text-[15px] leading-[1.45] text-muted">
+                <li>Results API for platforms, clubs, and tournaments</li>
+                <li>Ratings and stats API, free for any app</li>
+                <li>Organizer tools to upload results, confirm starting ratings, and review flagged matches</li>
+              </ul>
+            </li>
+            <li class="reveal">
+              <h3 class="font-display text-xs tracking-[0.12em] uppercase">Later</h3>
+              <ul class="mt-4 grid gap-2.5 text-[15px] leading-[1.45] text-muted">
+                <li>Public app on web, Android, and iOS with player profiles, clubs, rankings, match history, data export, and a clear explanation of how each rating was calculated</li>
+              </ul>
+            </li>
+          </ol>
+          <p class="mt-9 text-[15px] text-muted">
+            Think something is out of order?
+            <a class="text-secondary underline decoration-line underline-offset-4 hover:text-muted" href="https://github.com/openpickleball/.github/issues/new">Question a priority</a>
+          </p>
+        </div>
+      </section>
+
+      <section id="help" aria-labelledby="help-title" class="border-t border-line py-[clamp(72px,11vw,148px)]">
+        <div class="wrap">
+          <p class="label">04 · Get involved</p>
+          <h2 id="help-title" class="reveal mt-[18px] max-w-[20ch] text-[clamp(30px,3.6vw,48px)] leading-[1.08] font-medium tracking-[-0.015em] text-balance">
+            OPEN needs you, and you don't need to write code
+          </h2>
+          <p class="mt-5 max-w-[56ch] text-[clamp(17px,1.4vw,19px)] leading-normal text-pretty text-muted">
+            It's early, so your input can shape what gets built. You don't need to apply or join the
+            organization. Pick the line that sounds like you. The links open on GitHub, which needs a
+            free account.
+          </p>
+          <ul class="mt-[clamp(40px,5vw,64px)] grid border-t border-line sm:grid-cols-2 lg:grid-cols-5">
+            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">Players</h3><p class="flex-1 text-[15px] leading-normal text-muted">Tell us what you need from a rating and what would make one easier to trust.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/issues/new?template=community_feedback.yml">Send feedback</a></li>
+            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">Clubs and organizers</h3><p class="flex-1 text-[15px] leading-normal text-muted">Share how you run events and record results.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/issues/new?template=community_feedback.yml">Share how you run events</a></li>
+            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">App and league builders</h3><p class="flex-1 text-[15px] leading-normal text-muted">Tell us what you'd need to send results to OPEN or show OPEN ratings in your product.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/issues/new?template=community_feedback.yml">Send feedback</a></li>
+            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">Statisticians and rating enthusiasts</h3><p class="flex-1 text-[15px] leading-normal text-muted">Review the methods, challenge the assumptions, and bring evidence for a better spec.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/issues/new?template=rating_spec_change.yml">Propose a spec change</a></li>
+            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">Developers and designers</h3><p class="flex-1 text-[15px] leading-normal text-muted">Help build the engine, APIs, and tools. The repositories are new, so early contributors help set their direction.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/blob/main/CONTRIBUTING.md">Read the contributing guide</a></li>
+          </ul>
+          <p class="mt-8 max-w-[70ch] text-[15px] leading-[1.55] text-muted">
+            Not sure where you fit?
+            <a class="text-secondary underline decoration-line underline-offset-4 hover:text-muted" href="https://github.com/openpickleball/.github/discussions">Ask a question on GitHub Discussions</a>.
+            OPEN is run by volunteers, so replies may take a few days. Please keep real player names,
+            contact details, and match histories out of public posts.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-line pt-12 pb-7 text-[13px] tracking-[0.02em] text-muted">
+      <div class="wrap grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
+        <div>
+          <div class="mb-3.5 flex items-center gap-2.5 text-secondary">
+            <img src="./assets/img/mark.svg" alt="" width="24" height="24" class="size-6" />
+            <span><b>O</b>pen <b>P</b>ickleball <b>E</b>valuation <b>N</b>etwork</span>
+          </div>
+          <p class="max-w-[46ch] leading-[1.6]">
+            <a class="underline underline-offset-4 hover:text-secondary" href="https://github.com/openpickleball/frontend">Source code for this site</a>,
+            licensed under
+            <a class="underline underline-offset-4 hover:text-secondary" href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0-or-later</a>.
+            The OPEN name and logo are not covered by the open licenses. See
+            <a class="underline underline-offset-4 hover:text-secondary" href="https://github.com/openpickleball/.github/blob/main/LICENSING.md">how OPEN is licensed</a>.
+          </p>
+        </div>
+        <nav aria-labelledby="footer-docs">
+          <h2 id="footer-docs" class="label mb-3.5 text-secondary">Documents</h2>
+          <ul class="grid gap-2">
+            <li><a class="hover:text-secondary" href="https://github.com/openpickleball/.github/blob/main/CHARTER.md">Mission charter</a></li>
+            <li><a class="hover:text-secondary" href="https://github.com/openpickleball/.github/blob/main/GOVERNANCE.md">Governance</a></li>
+            <li><a class="hover:text-secondary" href="https://github.com/openpickleball/.github/blob/main/ROADMAP.md">Roadmap</a></li>
+            <li><a class="hover:text-secondary" href="https://github.com/openpickleball/.github/blob/main/CONTRIBUTING.md">Contributing guide</a></li>
+            <li><a class="hover:text-secondary" href="https://github.com/openpickleball/.github/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="footer-find">
+          <h2 id="footer-find" class="label mb-3.5 text-secondary">Find us</h2>
+          <ul class="grid gap-2">
+            <li><a class="hover:text-secondary" href="https://github.com/openpickleball">GitHub organization</a></li>
+            <li><a class="hover:text-secondary" href="https://github.com/openpickleball/.github/discussions">Discussions</a></li>
+            <li><a class="hover:text-secondary" href="https://github.com/openpickleball/.github/blob/main/SUPPORT.md">Support</a></li>
+            <li><a class="hover:text-secondary" href="https://github.com/openpickleball/.github/blob/main/SECURITY.md">Report a security problem</a></li>
+            <li><a class="hover:text-secondary" href="mailto:info@openpb.org">Security email: info@openpb.org</a></li>
+          </ul>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      // Show the header once most of the teaser has scrolled away and its wordmark has faded.
+      (function () {
+        var nav = document.getElementById("site-nav");
+        var hero = document.getElementById("top");
+        if (!nav || !hero) return;
+        var queued = false;
+        function update() {
+          queued = false;
+          nav.toggleAttribute("data-hidden", hero.getBoundingClientRect().bottom > window.innerHeight * 0.4);
+        }
+        window.addEventListener("scroll", function () {
+          if (!queued) {
+            queued = true;
+            requestAnimationFrame(update);
+          }
+        }, { passive: true });
+        window.addEventListener("resize", update);
+        update();
+      })();
+
+      // "Learn more" glides down slowly enough to watch the ball sink. Reduced motion jumps.
+      (function () {
+        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+        document.querySelectorAll("a[data-glide]").forEach(function (link) {
+          link.addEventListener("click", function (event) {
+            var target = document.querySelector(link.getAttribute("href"));
+            if (!target || reduce.matches) return;
+            event.preventDefault();
+            var html = document.documentElement;
+            var start = window.scrollY;
+            var end = target.getBoundingClientRect().top + start - parseFloat(getComputedStyle(html).scrollPaddingTop || 0);
+            var duration = 1200;
+            var t0 = performance.now();
+            var previous = html.style.scrollBehavior;
+            html.style.scrollBehavior = "auto";
+            function step(now) {
+              var t = Math.min(1, (now - t0) / duration);
+              var eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+              window.scrollTo(0, start + (end - start) * eased);
+              if (t < 1) return requestAnimationFrame(step);
+              html.style.scrollBehavior = previous;
+              history.pushState(null, "", link.getAttribute("href"));
+              target.focus({ preventScroll: true });
+            }
+            requestAnimationFrame(step);
+          });
+        });
+      })();
+    </script>
   </body>
 </html>

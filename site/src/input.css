@@ -1,8 +1,5 @@
 @import "tailwindcss" source("../public");
 
-/* about/ has its own plain stylesheet, so keep its markup out of the Tailwind scan. */
-@source not "../public/about";
-
 @font-face {
   font-family: "Krona One";
   src: url("../fonts/krona-one-latin.woff2") format("woff2");
@@ -26,6 +23,10 @@
   --color-secondary: #ffffff; /* wordmark, headline, links */
   --color-muted: #bdbdbd; /* status line, footer */
   --color-line: #3d3d3d; /* rules and borders, if any */
+  --color-faint: #8a8a8a; /* captions and fine print */
+  --color-surface: #0d0d0d; /* raised panels */
+
+  --spacing-gutter: clamp(20px, 4vw, 56px); /* page side padding */
 
   --font-display: "Krona One", sans-serif; /* wordmark */
   --font-body: "Instrument Sans", sans-serif;
@@ -38,24 +39,6 @@
 @custom-variant art-land (@media (min-aspect-ratio: 1/1));
 @custom-variant art-wide (@media (min-aspect-ratio: 2/1));
 @custom-variant short (@media (max-height: 480px));
-
-/*
-  Only where the ball is reliably dark under the left text and light under the right text can
-  the footer sit directly on the image. Everywhere else it is solid black. The ranges come from
-  sampling the pixels behind the footer text: the landscape render needs a tall enough screen,
-  the wide render holds at any height until it gets wider than 13:5.
-*/
-@custom-variant footer-on-image {
-  @media (min-aspect-ratio: 3/2) and (max-aspect-ratio: 13/5) and (min-height: 481px) {
-    @slot;
-  }
-  @media (min-aspect-ratio: 2/1) and (max-aspect-ratio: 13/5) {
-    @slot;
-  }
-}
-
-/* From this ratio the left of the footer rides higher on the ball, so #d4d4d4 is not enough. */
-@custom-variant footer-bright (@media (min-aspect-ratio: 37/20));
 
 /*
   "Learn more" under the headline: a slow highlight sweeps across muted text. Hover, focus and
@@ -93,5 +76,237 @@
   }
   to {
     background-position: 0 0;
+  }
+}
+
+/* ---------- About page ---------- */
+
+/* Content column with the page gutter on each side. */
+@utility wrap {
+  margin-inline: auto;
+  max-width: calc(1240px + 2 * var(--spacing-gutter));
+  padding-inline: var(--spacing-gutter);
+}
+
+/* Small spaced capitals in the wordmark face: section labels and kickers. */
+@utility label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Text link followed by an arrow that nudges right on hover. */
+@utility arrow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  &::after {
+    content: "→";
+    transition: translate 0.2s;
+  }
+  &:hover::after {
+    translate: 4px 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      transition: none;
+    }
+  }
+}
+
+/* Hollow dot used as a bullet and a status marker. */
+@utility ring-dot {
+  &::before {
+    content: "";
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+  }
+}
+
+/* The final-score slider on the sample court: a hairline track and a white ball. */
+@layer components {
+  .score-range {
+    width: 100%;
+    height: 24px;
+    margin: 14px 0 8px;
+    appearance: none;
+    background: transparent;
+    cursor: grab;
+  }
+  .score-range::-webkit-slider-runnable-track {
+    height: 1px;
+    background: var(--color-line);
+  }
+  .score-range::-moz-range-track {
+    height: 1px;
+    background: var(--color-line);
+  }
+  .score-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-secondary);
+  }
+  .score-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-secondary);
+  }
+  .score-range:focus-visible {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 4px;
+  }
+
+  /* Numbered steps under the sample court: 01, 02, 03, 04. */
+  .ledger {
+    counter-reset: step;
+  }
+  .ledger > li {
+    counter-increment: step;
+  }
+  .ledger > li::before {
+    content: "0" counter(step);
+    display: block;
+    margin-bottom: 10px;
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--color-faint);
+  }
+
+  /*
+    Roadmap: a horizontal timeline with a dot per stage on wide screens, a vertical one on
+    phones. "Now" is filled, the launch gate is dashed.
+  */
+  .roadmap > li {
+    position: relative;
+    padding: 0 0 40px 36px;
+  }
+  .roadmap > li::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 6px;
+    width: 1px;
+    background: var(--color-line);
+  }
+  .roadmap > li:last-child::before {
+    display: none;
+  }
+  .roadmap > li::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 1px solid var(--color-muted);
+    background: var(--color-primary);
+  }
+  .roadmap > li:first-child::after {
+    border-color: var(--color-secondary);
+    background: var(--color-secondary);
+  }
+  .roadmap > li[data-gate]::after {
+    border-style: dashed;
+  }
+  @media (width >= 56rem) {
+    .roadmap > li {
+      padding: 36px 28px 0 0;
+    }
+    .roadmap > li::before,
+    .roadmap > li:last-child::before {
+      display: block;
+      top: 6px;
+      bottom: auto;
+      left: 0;
+      right: 0;
+      width: auto;
+      height: 1px;
+    }
+  }
+}
+
+/*
+  Teaser to about: scrolling down, the wordmark and headline lift away while the ball sinks and
+  dims, so the black above it carries straight on into the about sections, which fade up as they
+  arrive. Browsers without scroll-driven animations, and anyone who prefers reduced motion, get
+  the same page without the movement.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .hero {
+      view-timeline: --hero block;
+    }
+    /* Fades the ball's lower edge into the black below, so the cut at the hero's bottom never shows. */
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 -1px;
+      z-index: -1;
+      pointer-events: none;
+      background: linear-gradient(to top, var(--color-primary) 12%, transparent 70%);
+      opacity: 0;
+      animation: fade-in linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 35%;
+    }
+    .hero-copy {
+      animation: hero-copy-out linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 45%;
+    }
+    .hero-art {
+      transform-origin: 50% 100%;
+      animation: hero-art-out linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+
+@keyframes hero-copy-out {
+  to {
+    opacity: 0;
+    translate: 0 -10vh;
+  }
+}
+
+@keyframes hero-art-out {
+  to {
+    translate: 0 30%;
+    scale: 1.08;
+    filter: brightness(0.15);
+  }
+}
+
+@keyframes fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    translate: 0 32px;
   }
 }

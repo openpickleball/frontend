@@ -2,7 +2,7 @@
 
 | Folder   | What it is                                                     | Guide                              |
 | -------- | -------------------------------------------------------------- | ---------------------------------- |
-| `site/`  | Static pages live on GitHub Pages: teaser at `/`, `/about/`    | [site/AGENTS.md](site/AGENTS.md)   |
+| `site/`  | Static site live on GitHub Pages: teaser and about at `/`      | [site/AGENTS.md](site/AGENTS.md)   |
 | `app/`   | Full SvelteKit frontend, not deployed yet                      | [app/AGENTS.md](app/AGENTS.md)     |
 | `plans/` | Plans for multi-PR units of work                               | [plans/AGENTS.md](plans/AGENTS.md) |
 

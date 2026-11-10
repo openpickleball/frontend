@@ -6,7 +6,7 @@ The public app for [OPEN](https://github.com/openpickleball), the Open Picklebal
 
 | Folder  | What it is                                                        | Status                       |
 | ------- | ----------------------------------------------------------------- | ---------------------------- |
-| `site/` | Static pages: the teaser at `/` and the about page at `/about/`   | Live on GitHub Pages for now |
+| `site/` | Static site: the teaser at `/` with the about sections below it   | Live on GitHub Pages for now |
 | `app/`  | Full frontend: SvelteKit + Tailwind, needs a server                | In development, not deployed |
 
 The two are independent projects, each with its own dependencies and lockfile. Work in `app/` never affects the live site. Both use Node 26 (`.nvmrc`) and pnpm.
