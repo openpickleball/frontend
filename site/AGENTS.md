@@ -8,7 +8,7 @@ The static pages served at www.openpb.org. They are temporary: `plans/app-migrat
 - `public/assets/js/rating-sketch.js` drives the sample court in `#how`.
 - `public/about/index.html` only redirects old `/about/` links to `/#about`.
 - `public/404.html` uses the same styles.
-- The logo is `public/assets/img/mark.svg`. `favicon.svg`, `favicon-48.png` and `apple-touch-icon.png` are made from it by `design/tools/export-logo.py` and a render of `favicon.svg`. See `plans/about-redesign/`.
+- The logo is `public/assets/img/mark.svg`. `mark.svg` and `favicon.svg` come from `design/tools/export-logo.py`; `favicon-48.png` and `apple-touch-icon.png` are browser renders of `favicon.svg`. See `plans/about-redesign/`.
 
 ## Commands
 
