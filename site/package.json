@@ -1,0 +1,16 @@
+{
+  "name": "openpb-site",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@12.18.0",
+  "scripts": {
+    "dev": "tailwindcss -i src/input.css -o public/assets/css/main.css --watch",
+    "build": "tailwindcss -i src/input.css -o public/assets/css/main.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.5",
+    "tailwindcss": "4.3.5"
+  }
+}

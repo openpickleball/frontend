@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Icon spin marks · OPEN</title>
+  <link rel="icon" href="/site/public/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .wrap { max-width: calc(1280px + 2 * var(--gutter)); margin-inline: auto; padding-inline: var(--gutter); }
+    header.top { padding-block: 56px 40px; }
+    header.top h1 { margin-top: 16px; font-size: clamp(32px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02em; line-height: 1.05; }
+    header.top p { margin-top: 16px; max-width: 66ch; color: var(--color-muted); line-height: 1.55; }
+    .controls { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .controls button { font: inherit; font-size: 13px; letter-spacing: 0.02em; color: var(--color-muted); background: none; border: 1px solid var(--color-line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+    .controls button[aria-pressed="true"] { color: #000; background: #fff; border-color: #fff; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 20px; }
+    .card { border: 1px solid var(--color-line); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; background: var(--color-surface); }
+    .stage { aspect-ratio: 4 / 3; display: grid; place-items: center; background: var(--bg, #000); border-bottom: 1px solid var(--color-line); position: relative; }
+    .stage svg { width: 52%; height: auto; }
+    .stage .tag { position: absolute; top: 14px; left: 16px; }
+    body.light .stage { --bg: #fff; }
+    body.light .stage .tag { color: #666; }
+    .body { padding: 20px 22px 22px; display: grid; gap: 14px; flex: 1; align-content: start; }
+    .card h3 { font-size: 18px; font-weight: 600; }
+    .card p { color: var(--color-muted); font-size: 14px; line-height: 1.5; }
+    .sizes { display: flex; align-items: end; gap: 18px; padding-top: 14px; border-top: 1px solid var(--color-line); }
+    .tab { margin-left: auto; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 8px 8px 0 0; background: #e9e9e9; color: #222; font-size: 12px; }
+    .tab .tile { width: 16px; height: 16px; border-radius: 4px; background: #000; display: grid; place-items: center; }
+    .lockup { display: flex; align-items: center; gap: 12px; padding-top: 14px; border-top: 1px solid var(--color-line); }
+    .lockup .wordmark { font-size: 22px; }
+    .lockup.full { gap: 10px; font-size: 13px; letter-spacing: 0.02em; color: var(--color-muted); }
+    .lockup.full b { color: var(--color-secondary); font-weight: 700; }
+    .reads { font-size: 12px; color: var(--color-faint); }
+    .reads b { color: var(--color-muted); font-weight: 600; }
+    .card.ref { border-style: dashed; }
+  </style>
+</head>
+<body>
+  <header class="top wrap">
+    <p class="label">Prototype · Icon round 2</p>
+    <h1>Same O, statistical spin marks</h1>
+    <p>Every option keeps the Krona One O and the exact path of today's two spin marks, measured from <code>mark.svg</code>. Only what fills that path changes. Each card shows the mark at 200, 64, 32 and 16 px, in a browser tab, and in both lockups. At 16 px every option blurs back into the plain swoosh, so the favicon can keep today’s solid marks whichever one wins.</p>
+    <div class="controls" role="group" aria-label="Background">
+      <button type="button" aria-pressed="true" data-bg="dark">On black</button>
+      <button type="button" aria-pressed="false" data-bg="light">On white</button>
+    </div>
+  </header>
+
+  <main class="wrap"><div class="grid" id="grid"></div></main>
+  <footer class="wrap" style="padding-block:64px 40px"></footer>
+  <p class="proto-note">Prototype · not deployed</p>
+
+  <script>
+    const O = "M8 49.77Q8 41.45 11.05 34.54Q14.11 27.64 19.630 22.68Q25.15 17.72 32.88 15Q40.6 12.28 50 12.28Q59.35 12.28 67.1 15Q74.85 17.72 80.37 22.68Q85.89 27.64 88.95 34.54Q92 41.45 92 49.77Q92 58.13 88.95 65.1Q85.89 72.08 80.37 77.11Q74.85 82.13 67.1 84.93Q59.35 87.72 50 87.72Q40.6 87.72 32.88 84.93Q25.15 82.13 19.63 77.11Q14.11 72.08 11.05 65.1Q8 58.13 8 49.77ZM22.89 49.77Q22.89 55.45 24.94 60.01Q26.98 64.56 30.62 67.78Q34.26 71 39.22 72.74Q44.17 74.48 50 74.48Q55.83 74.48 60.78 72.74Q65.74 71 69.36 67.78Q72.97 64.56 75.04 60.01Q77.11 55.45 77.11 49.77Q77.11 44.08 75.04 39.57Q72.97 35.06 69.36 31.94Q65.74 28.81 60.78 27.17Q55.83 25.52 50 25.52Q44.17 25.52 39.22 27.17Q34.26 28.81 30.62 31.94Q26.98 35.06 24.94 39.57Q22.89 44.08 22.89 49.77Z";
+
+    // Today's top-right spin mark, measured from mark.svg: [angle°, inner radius, outer radius]
+    // around (50, 49.77). The bottom-left mark is the same shape turned 180° about (50, 49.99).
+    const TABLE = [[-75, 43.47, 43.47], [-72.5, 43.61, 43.72], [-70, 43.78, 44.04], [-67.5, 43.96, 44.41], [-65, 44.15, 44.81], [-62.5, 44.36, 45.23], [-60, 44.57, 45.68], [-57.5, 44.8, 46.15], [-55, 45.02, 46.64], [-52.5, 45.25, 47.14], [-50, 45.48, 47.65], [-47.5, 45.71, 48.16], [-45, 45.94, 48.67], [-42.5, 46.14, 49.18], [-40, 46.33, 49.68], [-37.5, 46.52, 50.19], [-35, 46.68, 50.67], [-32.5, 46.84, 51.15], [-30, 46.97, 51.62], [-27.5, 47.09, 52.07], [-25, 47.19, 52.53], [-22.5, 47.28, 52.96], [-20, 47.36, 53.4], [-17.5, 47.42, 53.82], [-15, 47.46, 54.05]];
+    const A0 = -75, A1 = -15, CX = 50, CY = 49.77;
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const edge = (a) => {
+      for (let i = 0; i < TABLE.length - 1; i++) {
+        const [a0, i0, o0] = TABLE[i], [a1, i1, o1] = TABLE[i + 1];
+        if (a >= a0 && a <= a1) { const t = (a - a0) / (a1 - a0); return [lerp(i0, i1, t), lerp(o0, o1, t)]; }
+      }
+      return a < A0 ? [TABLE[0][1], TABLE[0][2]] : [TABLE.at(-1)[1], TABLE.at(-1)[2]];
+    };
+    const ang = (t) => lerp(A0, A1, t); // t: 0 = thin tip, 1 = thick end
+    const P = (a, r) => { const q = (a * Math.PI) / 180; return [CX + r * Math.cos(q), CY + r * Math.sin(q)]; };
+    const f = (n) => n.toFixed(2);
+    const pts = (list) => list.map(([x, y]) => `${f(x)} ${f(y)}`).join("L");
+
+    // Band between radii fr(a) and to(a), from t0 to t1, following the measured curve.
+    function band(t0, t1, fr = (a) => edge(a)[0], to = (a) => edge(a)[1], steps = 24) {
+      const inner = [], outer = [];
+      for (let i = 0; i <= steps; i++) {
+        const a = ang(lerp(t0, t1, i / steps));
+        inner.push(P(a, fr(a)));
+        outer.push(P(a, to(a)));
+      }
+      return `M${pts(inner)}L${pts(outer.reverse())}Z`;
+    }
+    const mid = (a) => { const [i, o] = edge(a); return (i + o) / 2; };
+    const thick = (a) => { const [i, o] = edge(a); return o - i; };
+    const both = (inner) => `<g>${inner}</g><g transform="rotate(180 50 49.99)">${inner}</g>`;
+
+    const VARIANTS = [
+      {
+        id: "0", name: "Current", ref: true,
+        note: "Today's mark, rebuilt from the measured path so every option below shares its exact silhouette.",
+        reads: "Spin",
+        marks: () => `<path d="${band(0, 1)}"/>`,
+      },
+      {
+        id: "1", name: "Histogram", note: "The swoosh sliced into bars. Each bar's height is the swoosh's own thickness at that point, so the silhouette survives while it reads as a rising bar chart.",
+        reads: "Bar chart · clear at 32 px and up",
+        marks: () => { let s = ""; const n = 7; for (let i = 0; i < n; i++) { const t0 = 0.12 + (i / n) * 0.88, w = (0.88 / n) * 0.62; s += `<path d="${band(t0, t0 + w)}"/>`; } return s; },
+      },
+      {
+        id: "2", name: "Histogram, distribution", note: "Same bars, but the heights rise and fall like a distribution of ratings inside the swoosh's envelope, peaking just before the end.",
+        reads: "Distribution · busier",
+        marks: () => {
+          const h = [0.35, 0.55, 0.8, 1, 0.9, 0.7, 0.85, 1]; const n = h.length; let s = "";
+          for (let i = 0; i < n; i++) { const t0 = 0.1 + (i / n) * 0.9, w = (0.9 / n) * 0.6; const am = ang(t0 + w / 2), th = Math.max(thick(ang(1)) * 0.55, thick(am));
+            s += `<path d="${band(t0, t0 + w, (a) => edge(a)[0], (a) => edge(a)[0] + Math.max(1.4, th * h[i]))}"/>`; }
+          return s;
+        },
+      },
+      {
+        id: "3", name: "Data points", note: "The swoosh as a trail of dots that grow with the stroke, like a series of results. Spacing tightens toward the end, as if the ball is speeding up.",
+        reads: "Scatter · softest, loses taper at 16 px",
+        marks: () => { const ts = [0.14, 0.33, 0.5, 0.65, 0.78, 0.89, 0.975]; return ts.map((t) => { const a = ang(t); const [x, y] = P(a, mid(a)); return `<circle cx="${f(x)}" cy="${f(y)}" r="${f(Math.max(0.9, thick(a) / 2))}"/>`; }).join(""); },
+      },
+      {
+        id: "4", name: "Latest value", note: "The swoosh stops short and ends in one dot, the way a sparkline marks its last data point. The smallest change from today's mark.",
+        reads: "Sparkline end · the dot still separates at 32 px",
+        marks: () => { const a = ang(0.95); const [x, y] = P(a, mid(a)); return `<path d="${band(0, 0.74)}"/><circle cx="${f(x)}" cy="${f(y)}" r="${f(thick(a) / 2 + 0.3)}"/>`; },
+      },
+      {
+        id: "5", name: "Segmented", note: "Three pieces with small gaps, growing in length, like a stacked bar or a three-step progression. Calm, and the gaps stay visible down to favicon size.",
+        reads: "Stacked bar · gaps visible at 32 px",
+        marks: () => [[0, 0.3], [0.37, 0.64], [0.71, 1]].map(([a, b]) => `<path d="${band(a, b)}"/>`).join(""),
+      },
+      {
+        id: "6", name: "Area chart", note: "The outer edge becomes a jagged line, so the swoosh is an area chart wrapped around the ball. The inner edge stays smooth against the O.",
+        reads: "Line/area chart · needs ≥ 32 px",
+        marks: () => {
+          const data = [0, 0.5, 0.3, 0.8, 0.55, 0.95, 0.7, 1];
+          const outer = (a) => { const t = (a - A0) / (A1 - A0); const k = t * (data.length - 1), i = Math.floor(k), fr = k - i; const v = lerp(data[i], data[Math.min(i + 1, data.length - 1)], fr); const [ri] = edge(a); return ri + 0.4 + v * thick(ang(1)) * Math.min(1, 0.35 + t); };
+          return `<path d="${band(0, 1, (a) => edge(a)[0], outer, 70)}"/>`;
+        },
+      },
+      {
+        id: "7", name: "Trend line", note: "A thin rising line traced along the swoosh, ending in a solid point, like a rating history. Lightest of the set, closest to a chart.",
+        reads: "Line chart · fades below 32 px",
+        marks: () => {
+          const data = [0.1, 0.35, 0.25, 0.55, 0.45, 0.75, 0.65, 1]; const line = [];
+          for (let i = 0; i <= 60; i++) { const t = 0.04 + (i / 60) * 0.9; const a = ang(t); const k = (i / 60) * (data.length - 1), j = Math.floor(k), fr = k - j; const v = lerp(data[j], data[Math.min(j + 1, data.length - 1)], fr); const [ri] = edge(a); line.push(P(a, ri + 0.6 + v * 5.2)); }
+          const [ex, ey] = line.at(-1);
+          return `<path d="M${pts(line)}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${f(ex)}" cy="${f(ey)}" r="2.8"/>`;
+        },
+      },
+      {
+        id: "8", name: "Scale", note: "A hairline arc with ticks that lengthen to fill the swoosh, like the 2.0 to 8.0 rating ruler bent around the ball.",
+        reads: "Ruler/gauge · needs ≥ 32 px",
+        marks: () => { let s = `<path d="${band(0, 1, (a) => edge(a)[0], (a) => edge(a)[0] + 1.1)}"/>`; const n = 11; for (let i = 1; i < n; i++) { const t = i / (n - 1) * 0.97; const w = 0.02; s += `<path d="${band(t - w / 2, t + w / 2)}"/>`; } return s; },
+      },
+      {
+        id: "9", name: "Mixed: bars + points", note: "Top right is the histogram, bottom left is the data points. One side shows the distribution, the other the individual results.",
+        reads: "Two charts · most \"stats\", least unified",
+        marks: null,
+      },
+    ];
+    VARIANTS.at(-1).render = () => `<g>${VARIANTS[1].marks()}</g><g transform="rotate(180 50 49.99)">${VARIANTS[3].marks()}</g>`;
+
+    let uid = 0;
+    function svg(v, size, color) {
+      // Below 24 px every option falls back to the solid swoosh only if it set solidSmall.
+      const body = v.render ? v.render() : both(v.marks());
+      return `<svg viewBox="-5 -5 110 110" width="${size}" height="${size}" fill="${color}" style="color:${color}" aria-hidden="true"><path fill-rule="evenodd" d="${O}"/>${body}</svg>`;
+    }
+
+    function draw() {
+      const light = document.body.classList.contains("light");
+      const big = light ? "#000" : "#fff";
+      document.getElementById("grid").innerHTML = VARIANTS.map((v) => `
+        <article class="card${v.ref ? " ref" : ""}">
+          <div class="stage"><span class="tag label">${v.id}</span>${svg(v, 200, big)}</div>
+          <div class="body">
+            <h3>${v.id} · ${v.name}</h3>
+            <p>${v.note}</p>
+            <div class="sizes">${svg(v, 64, "#fff")}${svg(v, 32, "#fff")}${svg(v, 16, "#fff")}
+              <span class="tab"><span class="tile">${svg(v, 13, "#fff")}</span>OPEN</span></div>
+            <div class="lockup">${svg(v, 30, "#fff")}<span class="wordmark">OPEN</span></div>
+            <div class="lockup full">${svg(v, 24, "#fff")}<span><b>O</b>pen <b>P</b>ickleball <b>E</b>valuation <b>N</b>etwork</span></div>
+            <p class="reads"><b>Reads as:</b> ${v.reads}</p>
+          </div>
+        </article>`).join("");
+    }
+
+    document.querySelectorAll("[data-bg]").forEach((b) => b.addEventListener("click", () => {
+      document.querySelectorAll("[data-bg]").forEach((x) => x.setAttribute("aria-pressed", x === b));
+      document.body.classList.toggle("light", b.dataset.bg === "light");
+      draw();
+    }));
+    draw();
+  </script>
+</body>
+</html>

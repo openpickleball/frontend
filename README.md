@@ -2,15 +2,42 @@
 
 The public app for [OPEN](https://github.com/openpickleball), the Open Pickleball Evaluation Network.
 
-> **Project status:** OPEN is in early development. This repository has no code yet, and no OPEN rating is live.
+> **Project status:** OPEN is in early development, and no OPEN rating is live.
 
-## Technology
+| Folder  | What it is                                                        | Status                       |
+| ------- | ----------------------------------------------------------------- | ---------------------------- |
+| `site/` | Static site: the teaser at `/` with the about sections below it   | Live on GitHub Pages for now |
+| `app/`  | Full frontend: SvelteKit + Tailwind, needs a server                | In development, not deployed |
 
-The language and framework for this repository have not been chosen yet.
+The two are independent projects, each with its own dependencies and lockfile. Work in `app/` never affects the live site. Both use Node 26 (`.nvmrc`) and pnpm.
 
-## Setup and tests
+## Static site (`site/`)
 
-Instructions for setup and running tests will be added with the first code.
+```bash
+cd site
+pnpm install
+pnpm dev
+```
+
+`pnpm dev` rebuilds the teaser's CSS as you edit. Serve `site/public/` with any static file server to view the pages, for example `python3 -m http.server --directory site/public`. Only `site/public/` is published.
+
+Pushing changes under `site/` to `main` deploys to www.openpb.org through `.github/workflows/deploy-pages.yml`. PRs run the build only.
+
+## App (`app/`)
+
+```bash
+cd app
+pnpm install
+pnpm dev
+```
+
+`.github/workflows/ci-app.yml` checks formatting, lints, type-checks, tests and builds the app. It never deploys. `pnpm install` in `app/` also turns on a pre-commit hook that runs Prettier and ESLint on staged `app/` files.
+
+Keep `tailwindcss` on the same exact version in both projects until the static pages are removed.
+
+## Plans
+
+Larger units of work live in [`plans/`](plans/AGENTS.md), including the [move from the static pages to the full app](plans/app-migration/plan.md).
 
 ## Test data
 

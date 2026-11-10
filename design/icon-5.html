@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Icon option 5 · OPEN</title>
+  <link rel="icon" href="/site/public/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .wrap { max-width: calc(1280px + 2 * var(--gutter)); margin-inline: auto; padding-inline: var(--gutter); }
+    header.top { padding-block: 56px 32px; }
+    header.top h1 { margin-top: 16px; font-size: clamp(32px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02em; line-height: 1.05; }
+    header.top p { margin-top: 16px; max-width: 66ch; color: var(--color-muted); line-height: 1.55; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+    .card { border: 1px solid var(--color-line); border-radius: 18px; overflow: hidden; background: var(--color-surface); }
+    .card.ref { border-style: dashed; }
+    .stage { aspect-ratio: 1; display: grid; place-items: center; background: #000; border-bottom: 1px solid var(--color-line); position: relative; }
+    .stage svg { width: 62%; height: auto; }
+    .stage .tag { position: absolute; top: 12px; left: 14px; }
+    .body { padding: 16px 18px 18px; display: grid; gap: 12px; }
+    .card h3 { font-size: 16px; font-weight: 600; }
+    .card .spec { font-size: 12px; color: var(--color-faint); font-variant-numeric: tabular-nums; }
+    .sizes { display: flex; align-items: end; gap: 14px; padding-top: 12px; border-top: 1px solid var(--color-line); }
+    .tab { margin-left: auto; display: flex; align-items: center; gap: 7px; padding: 5px 10px 5px 7px; border-radius: 7px 7px 0 0; background: #e9e9e9; color: #222; font-size: 12px; }
+    .tab .tile { width: 16px; height: 16px; border-radius: 4px; background: #000; display: grid; place-items: center; }
+    .lockup { display: flex; align-items: center; gap: 11px; padding-top: 12px; border-top: 1px solid var(--color-line); }
+    .lockup .wordmark { font-size: 20px; }
+    button.use { justify-self: start; font: inherit; font-size: 12px; color: var(--color-muted); background: none; border: 1px solid var(--color-line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+    button.use:hover { color: #fff; border-color: #fff; }
+
+    .tuner { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--color-line); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
+    @media (max-width: 820px) { .tuner { grid-template-columns: 1fr; } }
+    .tuner .big { aspect-ratio: 1; border: 1px solid var(--color-line); border-radius: 18px; display: grid; place-items: center; background: var(--bg, #000); }
+    .tuner .big svg { width: 70%; height: auto; }
+    .tuner.light .big { --bg: #fff; }
+    .controls { display: grid; gap: 22px; }
+    .controls label { display: grid; gap: 8px; font-size: 14px; }
+    .controls .row { display: flex; justify-content: space-between; color: var(--color-muted); }
+    .controls output { color: #fff; font-variant-numeric: tabular-nums; }
+    .controls input[type=range] { width: 100%; accent-color: #fff; }
+    .controls .check { display: flex; align-items: center; gap: 10px; color: var(--color-muted); grid-template-columns: none; }
+    .controls .sizes { border-top: 1px solid var(--color-line); }
+    pre { margin: 0; padding: 12px 14px; border: 1px solid var(--color-line); border-radius: 10px; font-size: 12px; color: var(--color-muted); white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <header class="top wrap">
+    <p class="label">Prototype · Icon option 5</p>
+    <h1>Segmented: smaller O, bigger segments</h1>
+    <p>The O shrinks around its own center, and the segments move in with it so the gap between them stays the same as today's. The segments then get thicker outward. Card A is option 5 as it was. Use the sliders below to tune any card further.</p>
+  </header>
+
+  <main class="wrap">
+    <div class="grid" id="grid"></div>
+
+    <section class="tuner" id="tuner">
+      <div class="big" id="big"></div>
+      <div class="controls">
+        <p class="label">Tune</p>
+        <label><span class="row">O size <output id="o-s"></output></span><input id="s" type="range" min="0.75" max="1" step="0.01" value="0.9"></label>
+        <label><span class="row">Segment thickness <output id="o-k"></output></span><input id="k" type="range" min="1" max="2.2" step="0.05" value="1.45"></label>
+        <label><span class="row">Gap from O <output id="o-g"></output></span><input id="g" type="range" min="0.5" max="2" step="0.05" value="1"></label>
+        <label><span class="row">Gap between segments <output id="o-sg"></output></span><input id="sg" type="range" min="0.03" max="0.14" step="0.005" value="0.07"></label>
+        <label class="check"><input id="light" type="checkbox"> On white</label>
+        <div class="sizes" id="tuner-sizes"></div>
+        <pre id="spec"></pre>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap" style="padding-block:64px 40px"></footer>
+  <p class="proto-note">Prototype · not deployed</p>
+
+  <script>
+    const O = "M8 49.77Q8 41.45 11.05 34.54Q14.11 27.64 19.63 22.68Q25.15 17.72 32.88 15Q40.6 12.28 50 12.28Q59.35 12.28 67.1 15Q74.85 17.72 80.37 22.68Q85.89 27.64 88.95 34.54Q92 41.45 92 49.77Q92 58.13 88.95 65.1Q85.89 72.08 80.37 77.11Q74.85 82.13 67.1 84.93Q59.35 87.72 50 87.72Q40.6 87.72 32.88 84.93Q25.15 82.13 19.63 77.11Q14.11 72.08 11.05 65.1Q8 58.13 8 49.77ZM22.89 49.77Q22.89 55.45 24.94 60.01Q26.98 64.56 30.62 67.78Q34.26 71 39.22 72.74Q44.17 74.48 50 74.48Q55.83 74.48 60.78 72.74Q65.74 71 69.36 67.78Q72.97 64.56 75.04 60.01Q77.11 55.45 77.11 49.77Q77.11 44.08 75.04 39.57Q72.97 35.06 69.36 31.94Q65.74 28.81 60.78 27.17Q55.83 25.52 50 25.52Q44.17 25.52 39.22 27.17Q34.26 28.81 30.62 31.94Q26.98 35.06 24.94 39.57Q22.89 44.08 22.89 49.77Z";
+    // Today's top-right spin mark, measured from mark.svg: [angle°, inner radius, outer radius] around (50, 49.77).
+    const TABLE = [[-75, 43.47, 43.47], [-72.5, 43.61, 43.72], [-70, 43.78, 44.04], [-67.5, 43.96, 44.41], [-65, 44.15, 44.81], [-62.5, 44.36, 45.23], [-60, 44.57, 45.68], [-57.5, 44.8, 46.15], [-55, 45.02, 46.64], [-52.5, 45.25, 47.14], [-50, 45.48, 47.65], [-47.5, 45.71, 48.16], [-45, 45.94, 48.67], [-42.5, 46.14, 49.18], [-40, 46.33, 49.68], [-37.5, 46.52, 50.19], [-35, 46.68, 50.67], [-32.5, 46.84, 51.15], [-30, 46.97, 51.62], [-27.5, 47.09, 52.07], [-25, 47.19, 52.53], [-22.5, 47.28, 52.96], [-20, 47.36, 53.4], [-17.5, 47.42, 53.82], [-15, 47.46, 54.05]];
+    const A0 = -75, A1 = -15, CX = 50, CY = 49.77;
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const f = (n) => n.toFixed(2);
+    const edge = (a) => {
+      for (let i = 0; i < TABLE.length - 1; i++) {
+        const [a0, i0, o0] = TABLE[i], [a1, i1, o1] = TABLE[i + 1];
+        if (a >= a0 && a <= a1) { const t = (a - a0) / (a1 - a0); return [lerp(i0, i1, t), lerp(o0, o1, t)]; }
+      }
+      return [TABLE.at(-1)[1], TABLE.at(-1)[2]];
+    };
+    // Radius of the O's outer edge (ellipse rx 42, ry 37.72) at a given angle.
+    const oR = (a) => { const q = (a * Math.PI) / 180; return 1 / Math.hypot(Math.cos(q) / 42, Math.sin(q) / 37.72); };
+    const P = (a, r) => { const q = (a * Math.PI) / 180; return [CX + r * Math.cos(q), CY + r * Math.sin(q)]; };
+
+    function mark({ s, k, g, sg }, size, color) {
+      // Segment radii: keep (or scale) the original gap to the O, then thicken outward by k.
+      const radii = (a) => {
+        const [ri, ro] = edge(a);
+        const gap = ri - oR(a);
+        const inner = s * oR(a) + gap * g;
+        return [inner, inner + (ro - ri) * k];
+      };
+      const band = (t0, t1) => {
+        const inner = [], outer = [];
+        for (let i = 0; i <= 20; i++) { const a = lerp(A0, A1, lerp(t0, t1, i / 20)); const [r0, r1] = radii(a); inner.push(P(a, r0)); outer.push(P(a, r1)); }
+        return `M${inner.map((p) => p.map(f).join(" ")).join("L")}L${outer.reverse().map((p) => p.map(f).join(" ")).join("L")}Z`;
+      };
+      // Three segments with equal gaps, same length split as option 5 in icon.html.
+      const w = [0.3, 0.27, 0.29], total = 1 - 2 * sg, sum = w.reduce((a, b) => a + b);
+      let t = 0, segs = "";
+      w.forEach((x) => { const len = (x / sum) * total; segs += `<path d="${band(t, t + len)}"/>`; t += len + sg; });
+      // Fit everything back into the original box so the icon doesn't shrink overall.
+      let maxR = 0; for (let a = A0; a <= A1; a += 1) maxR = Math.max(maxR, radii(a)[1]);
+      const fit = Math.min(1, 54.05 / maxR);
+      const oT = `translate(${CX} ${CY}) scale(${f(s)}) translate(${-CX} ${-CY})`;
+      return `<svg viewBox="-5 -5 110 110" width="${size}" height="${size}" fill="${color}" aria-hidden="true"><g transform="translate(${CX} ${CY}) scale(${fit.toFixed(4)}) translate(${-CX} ${-CY})"><path fill-rule="evenodd" d="${O}" transform="${oT}"/><g>${segs}</g><g transform="rotate(180 50 49.99)">${segs}</g></g></svg>`;
+    }
+
+    const PRESETS = [
+      { id: "A", name: "Option 5 as it was", s: 1, k: 1, g: 1, sg: 0.07, ref: true },
+      { id: "B", name: "A touch", s: 0.94, k: 1.3, g: 1, sg: 0.07 },
+      { id: "C", name: "Balanced", s: 0.9, k: 1.5, g: 1, sg: 0.065 },
+      { id: "D", name: "Bold segments", s: 0.86, k: 1.8, g: 1.1, sg: 0.06 },
+      { id: "E", name: "Bold, airy", s: 0.86, k: 1.7, g: 1.6, sg: 0.08 },
+      { id: "F", name: "Equal weight", s: 0.82, k: 2.1, g: 1.2, sg: 0.06 },
+    ];
+    const spec = (p) => `O ${Math.round(p.s * 100)}% · segments ×${p.k.toFixed(2)} · gap ×${p.g.toFixed(2)}`;
+
+    document.getElementById("grid").innerHTML = PRESETS.map((p, i) => `
+      <article class="card${p.ref ? " ref" : ""}">
+        <div class="stage"><span class="tag label">${p.id}</span>${mark(p, 200, "#fff")}</div>
+        <div class="body">
+          <h3>${p.id} · ${p.name}</h3>
+          <p class="spec">${spec(p)}</p>
+          <div class="sizes">${mark(p, 64, "#fff")}${mark(p, 32, "#fff")}${mark(p, 16, "#fff")}<span class="tab"><span class="tile">${mark(p, 13, "#fff")}</span>OPEN</span></div>
+          <div class="lockup">${mark(p, 28, "#fff")}<span class="wordmark">OPEN</span></div>
+          <button class="use" type="button" data-i="${i}">Tune this one</button>
+        </div>
+      </article>`).join("");
+
+    const ids = ["s", "k", "g", "sg"];
+    const el = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
+    const light = document.getElementById("light");
+    function tune() {
+      const p = Object.fromEntries(ids.map((id) => [id, +el[id].value]));
+      document.getElementById("o-s").textContent = Math.round(p.s * 100) + "%";
+      document.getElementById("o-k").textContent = "×" + p.k.toFixed(2);
+      document.getElementById("o-g").textContent = "×" + p.g.toFixed(2);
+      document.getElementById("o-sg").textContent = p.sg.toFixed(3);
+      document.getElementById("tuner").classList.toggle("light", light.checked);
+      document.getElementById("big").innerHTML = mark(p, 400, light.checked ? "#000" : "#fff");
+      document.getElementById("tuner-sizes").innerHTML = `${mark(p, 64, "#fff")}${mark(p, 32, "#fff")}${mark(p, 16, "#fff")}<span class="tab"><span class="tile">${mark(p, 13, "#fff")}</span>OPEN</span>`;
+      document.getElementById("spec").textContent = JSON.stringify(p);
+    }
+    ids.forEach((id) => el[id].addEventListener("input", tune));
+    light.addEventListener("change", tune);
+    document.querySelectorAll("button.use").forEach((b) => b.addEventListener("click", () => {
+      const p = PRESETS[+b.dataset.i]; ids.forEach((id) => (el[id].value = p[id])); tune();
+      document.getElementById("tuner").scrollIntoView({ behavior: "smooth" });
+    }));
+    tune();
+  </script>
+</body>
+</html>

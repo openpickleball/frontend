@@ -1,0 +1,3 @@
+# @parcel/watcher ships prebuilt binaries, so its install script isn't needed.
+allowBuilds:
+  "@parcel/watcher": false

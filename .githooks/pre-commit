@@ -1,0 +1,39 @@
+#!/bin/sh
+# Runs Prettier and ESLint on staged app/ files. Type-checks, tests and builds are left to CI.
+# Enabled by `pnpm install` in app/. Skip once with `git commit --no-verify`.
+
+# Paths are relative to app/. Stays NUL-separated so filenames with spaces survive.
+staged() {
+	git diff --cached --name-only --diff-filter=ACMR -z --relative=app -- "$@"
+}
+
+formattable() {
+	staged 'app/*'
+}
+
+lintable() {
+	staged 'app/*.js' 'app/*.ts' 'app/*.svelte'
+}
+
+[ -n "$(formattable | tr -d '\0')" ] || exit 0
+
+if [ ! -x app/node_modules/.bin/prettier ] || [ ! -x app/node_modules/.bin/eslint ]; then
+	echo "pre-commit: app/node_modules is missing, skipping format and lint checks. CI will still run them." >&2
+	exit 0
+fi
+
+status=0
+
+formattable | (cd app && xargs -0 node_modules/.bin/prettier --check --ignore-unknown) || {
+	echo "pre-commit: formatting problems found. Run 'pnpm format' in app/ and stage the result." >&2
+	status=1
+}
+
+if [ -n "$(lintable | tr -d '\0')" ]; then
+	lintable | (cd app && xargs -0 node_modules/.bin/eslint --no-warn-ignored) || {
+		echo "pre-commit: lint errors found. Fix them and stage the result." >&2
+		status=1
+	}
+fi
+
+exit $status

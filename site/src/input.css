@@ -1,0 +1,385 @@
+@import "tailwindcss" source("../public");
+
+@font-face {
+  font-family: "Krona One";
+  src: url("../fonts/krona-one-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Variable subset covering 400 to 700, so bold text is real bold. */
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("../fonts/instrument-sans-latin-var.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+  Copy this block into app/src/routes/layout.css at swap time. Each color is light-dark(ivory
+  theme, black theme). Which one applies follows color-scheme on the root, set below.
+*/
+@theme {
+  --color-primary: light-dark(#f7f3e8, #000000); /* page background */
+  --color-secondary: light-dark(#17150f, #ffffff); /* wordmark, headline, links */
+  --color-muted: light-dark(#4d493f, #bdbdbd); /* status line, footer */
+  --color-line: light-dark(#d8d1bf, #3d3d3d); /* rules and borders, if any */
+  --color-faint: light-dark(#6c6658, #8a8a8a); /* captions and fine print */
+  --color-surface: light-dark(#fcfaf3, #0d0d0d); /* raised panels */
+
+  --spacing-gutter: clamp(20px, 4vw, 56px); /* page side padding */
+
+  --font-display: "Krona One", sans-serif; /* wordmark */
+  --font-body: "Instrument Sans", sans-serif;
+}
+
+/*
+  The horizon image is art-directed by aspect ratio. These must stay in step with the <source>
+  media queries in index.html. Portrait is the base; these two override it.
+*/
+@custom-variant art-land (@media (min-aspect-ratio: 1/1));
+@custom-variant art-wide (@media (min-aspect-ratio: 2/1));
+@custom-variant short (@media (max-height: 480px));
+
+/*
+  Theme: the system setting by default. The toggle stores a choice and the script in the head puts
+  it on <html data-theme> before first paint. `light:` targets the ivory theme either way.
+*/
+@custom-variant light {
+  &:where([data-theme="light"], [data-theme="light"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: light) {
+    &:where(:root:not([data-theme="dark"]), :root:not([data-theme="dark"]) *) {
+      @slot;
+    }
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}
+
+/* Theme switch: the toggle wraps the change in a view transition, and the page crossfades. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.5s;
+  animation-timing-function: ease-in-out;
+}
+
+/* The logo as a mask, so it takes the text color in both themes. */
+@utility mark {
+  display: inline-block;
+  flex: none;
+  background-color: currentColor;
+  mask: url("../img/mark.svg") center / contain no-repeat;
+}
+
+/*
+  The horizon render is a light ball on black. The ivory theme runs it through #ball-green in
+  index.html, a gradient map from black to pickleball green, and masks it to the ball so the black
+  around it shows the page instead. Each mask is the ball's outline in that render (circles fitted
+  to the lit crest by design/tools/fit-ball-mask.py), positioned like the image: keep the mask positions in step with the
+  object-position classes on the <img> in index.html.
+*/
+@utility hero-green {
+  @variant light {
+    & img {
+      filter: url("#ball-green");
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2048' height='5120' viewBox='0 0 2048 5120'%3E%3Ccircle cx='962.0' cy='5068.0' r='2199.6'/%3E%3C/svg%3E") 47% 56% / cover no-repeat;
+      @variant art-land {
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3840' height='3840' viewBox='0 0 3840 3840'%3E%3Ccircle cx='1804.3' cy='5817.6' r='4126.6'/%3E%3C/svg%3E");
+        mask-position: 50% 44%;
+      }
+      @variant art-wide {
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3840' height='1920' viewBox='0 0 3840 1920'%3E%3Ccircle cx='1813.7' cy='4291.3' r='3521.9'/%3E%3C/svg%3E");
+        mask-position: 50% 40%;
+      }
+    }
+  }
+}
+
+/*
+  "Learn more" under the headline: a slow highlight sweeps across muted text. Hover, focus and
+  reduced motion all drop to plain text.
+*/
+@utility shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-muted) 40%,
+    var(--color-secondary) 50%,
+    var(--color-muted) 60%
+  );
+  background-size: 250% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 3.2s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background-image: none;
+    color: var(--color-muted);
+  }
+
+  &:hover,
+  &:focus-visible {
+    animation: none;
+    background-image: none;
+    color: var(--color-secondary);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* ---------- About page ---------- */
+
+/* Content column with the page gutter on each side. */
+@utility wrap {
+  margin-inline: auto;
+  max-width: calc(1240px + 2 * var(--spacing-gutter));
+  padding-inline: var(--spacing-gutter);
+}
+
+/* Small spaced capitals in the wordmark face: section labels and kickers. */
+@utility label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Text link followed by an arrow that nudges right on hover. */
+@utility arrow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  &::after {
+    content: "→";
+    transition: translate 0.2s;
+  }
+  &:hover::after {
+    translate: 4px 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      transition: none;
+    }
+  }
+}
+
+/* Hollow dot used as a bullet and a status marker. */
+@utility ring-dot {
+  &::before {
+    content: "";
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+  }
+}
+
+/* The final-score slider on the sample court: a hairline track and a white ball. */
+@layer components {
+  .score-range {
+    width: 100%;
+    height: 24px;
+    margin: 14px 0 8px;
+    appearance: none;
+    background: transparent;
+    cursor: grab;
+  }
+  .score-range::-webkit-slider-runnable-track {
+    height: 1px;
+    background: var(--color-line);
+  }
+  .score-range::-moz-range-track {
+    height: 1px;
+    background: var(--color-line);
+  }
+  .score-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-secondary);
+  }
+  .score-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-secondary);
+  }
+  .score-range:focus-visible {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 4px;
+  }
+
+  /* Numbered steps under the sample court: 01, 02, 03, 04. */
+  .ledger {
+    counter-reset: step;
+  }
+  .ledger > li {
+    counter-increment: step;
+  }
+  .ledger > li::before {
+    content: "0" counter(step);
+    display: block;
+    margin-bottom: 10px;
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--color-faint);
+  }
+
+  /*
+    Roadmap: a horizontal timeline with a dot per stage on wide screens, a vertical one on
+    phones. "Now" is filled, the launch gate is dashed.
+  */
+  .roadmap > li {
+    position: relative;
+    padding: 0 0 40px 36px;
+  }
+  .roadmap > li::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 6px;
+    width: 1px;
+    background: var(--color-line);
+  }
+  .roadmap > li:last-child::before {
+    display: none;
+  }
+  .roadmap > li::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 1px solid var(--color-muted);
+    background: var(--color-primary);
+  }
+  .roadmap > li:first-child::after {
+    border-color: var(--color-secondary);
+    background: var(--color-secondary);
+  }
+  .roadmap > li[data-gate]::after {
+    border-style: dashed;
+  }
+  @media (width >= 56rem) {
+    .roadmap > li {
+      padding: 36px 28px 0 0;
+    }
+    .roadmap > li::before,
+    .roadmap > li:last-child::before {
+      display: block;
+      top: 6px;
+      bottom: auto;
+      left: 0;
+      right: 0;
+      width: auto;
+      height: 1px;
+    }
+  }
+}
+
+/*
+  Teaser to about: scrolling down, the wordmark and headline lift away while the ball sinks and
+  dims, so the black above it carries straight on into the about sections, which fade up as they
+  arrive. Browsers without scroll-driven animations, and anyone who prefers reduced motion, get
+  the same page without the movement.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .hero {
+      view-timeline: --hero block;
+    }
+    /* Fades the ball's lower edge into the black below, so the cut at the hero's bottom never shows. */
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 -1px;
+      z-index: -1;
+      pointer-events: none;
+      background: linear-gradient(to top, var(--color-primary) 12%, transparent 70%);
+      opacity: 0;
+      animation: fade-in linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 35%;
+    }
+    .hero-copy {
+      animation: hero-copy-out linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 45%;
+    }
+    .hero-art {
+      --hero-art-dim: brightness(0.15);
+      @variant light {
+        --hero-art-dim: opacity(0.15);
+      }
+      transform-origin: 50% 100%;
+      animation: hero-art-out linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+
+@keyframes hero-copy-out {
+  to {
+    opacity: 0;
+    translate: 0 -10vh;
+  }
+}
+
+@keyframes hero-art-out {
+  to {
+    translate: 0 30%;
+    scale: 1.08;
+    filter: var(--hero-art-dim, brightness(0.15));
+  }
+}
+
+@keyframes fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    translate: 0 32px;
+  }
+}

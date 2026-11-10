@@ -24,3 +24,7 @@ node_modules/
 build/
 dist/
 coverage/
+
+# Local Claude Code state
+.claude/worktrees/
+.claude/settings.local.json

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Icon D, spin · OPEN</title>
+  <link rel="icon" href="/site/public/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .wrap { max-width: calc(1280px + 2 * var(--gutter)); margin-inline: auto; padding-inline: var(--gutter); }
+    header.top { padding-block: 56px 32px; }
+    header.top h1 { margin-top: 16px; font-size: clamp(32px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02em; line-height: 1.05; }
+    header.top p { margin-top: 16px; max-width: 70ch; color: var(--color-muted); line-height: 1.55; }
+    .controls { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
+    .controls .group { display: flex; gap: 6px; align-items: center; }
+    .controls .group > span { font-size: 12px; color: var(--color-faint); margin-right: 4px; }
+    .controls button { font: inherit; font-size: 13px; color: var(--color-muted); background: none; border: 1px solid var(--color-line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+    .controls button[aria-pressed="true"] { color: #000; background: #fff; border-color: #fff; }
+    .controls input[type="range"] { width: 120px; accent-color: #fff; }
+    .controls output { font-size: 12px; color: var(--color-muted); min-width: 4ch; }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 18px; }
+    .card { border: 1px solid var(--color-line); border-radius: 18px; overflow: hidden; background: var(--color-surface); display: flex; flex-direction: column; }
+    .card.ref { border-style: dashed; }
+    .stage { aspect-ratio: 4 / 3; display: grid; place-items: center; background: var(--bg); border-bottom: 1px solid var(--color-line); position: relative; }
+    .stage > svg, .stage > img { width: 50%; height: auto; }
+    .stage .tag { position: absolute; top: 12px; left: 14px; }
+    .body { padding: 18px 20px 20px; display: grid; gap: 12px; align-content: start; flex: 1; }
+    .card h3 { font-size: 17px; font-weight: 600; }
+    .card p { color: var(--color-muted); font-size: 14px; line-height: 1.5; }
+    .row { display: flex; align-items: center; gap: 16px; padding: 12px; border-radius: 10px; background: var(--bg); color: var(--fg); }
+    .sizes { align-items: end; }
+    .tab { margin-left: auto; display: flex; align-items: center; gap: 7px; padding: 5px 10px 5px 7px; border-radius: 7px 7px 0 0; background: #e9e9e9; color: #222; font-size: 12px; }
+    .lockup .wordmark { font-size: 22px; display: flex; align-items: center; gap: 0.4em; }
+    .reads { font-size: 12px; color: var(--color-faint); }
+
+    body { --bg: #000; --fg: #fff; }
+    body.light { --bg: #fff; --fg: #000; }
+    body.light .stage img.current { filter: invert(1); }
+  </style>
+</head>
+<body>
+  <header class="top wrap">
+    <p class="label">Prototype · Icon round 4</p>
+    <h1>D, with the spin marks back</h1>
+    <p>Round 3's D (the 26-hole indoor ball, seen straight down the pole) inside the spin marks from today's logo. The marks are redrawn to follow a round ball instead of the wider Krona O, keeping the same three segments (0.30 : 0.27 : 0.29 of the arc, even gaps) and the same taper from a point to a flat end. The ball shrinks to make room, so the holes get a little bigger to stay readable.</p>
+    <div class="controls">
+      <div class="group" role="group" aria-label="Background">
+        <span>Background</span>
+        <button type="button" aria-pressed="true" data-bg="dark">Black</button>
+        <button type="button" aria-pressed="false" data-bg="light">White</button>
+      </div>
+      <div class="group" role="group" aria-label="Ball">
+        <span>Ball</span>
+        <button type="button" aria-pressed="true" data-ball="mono">Mono</button>
+        <button type="button" aria-pressed="false" data-ball="green"><i class="swatch" style="background:#c8f23c"></i>Green ball</button>
+        <button type="button" aria-pressed="false" data-ball="greenmarks"><i class="swatch" style="background:#c8f23c"></i>Green marks</button>
+      </div>
+      <label class="group"><span>Hole size</span><input type="range" data-key="size" min="10" max="18" step="0.5" value="15"><output>15°</output></label>
+      <label class="group"><span>Mark weight</span><input type="range" data-key="weight" min="0.6" max="1.6" step="0.05" value="1"><output>1×</output></label>
+      <label class="group"><span>Gap to ball</span><input type="range" data-key="gap" min="2" max="9" step="0.5" value="4.5"><output>4.5</output></label>
+    </div>
+  </header>
+  <main class="wrap"><div class="grid" id="grid"></div></main>
+  <footer class="wrap" style="padding-block:64px 40px"></footer>
+  <p class="proto-note">Prototype · not deployed</p>
+
+  <script>
+    const C = 50, GREEN = "#c8f23c";
+    const rad = (d) => d * Math.PI / 180;
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const f = (n) => +n.toFixed(2);
+
+    // ---- Ball: indoor 26-hole layout projected on a sphere (from icon-u.html, D) ----
+    const INDOOR = [[0, 1, 0], [45, 6, 0], [90, 12, 15], [135, 6, 30], [180, 1, 0]];
+    const indoorPoints = () => INDOOR.flatMap(([polar, n, off]) =>
+      Array.from({ length: n }, (_, i) => {
+        const p = rad(polar), a = rad(off + (360 / n) * i);
+        return [Math.sin(p) * Math.cos(a), Math.sin(p) * Math.sin(a), Math.cos(p)];
+      }));
+    function sphereHoles(R, alpha, { tilt = 0, spin = 0, dir = 0 } = {}) {
+      const s = rad(spin), t = rad(tilt), d = rad(dir);
+      return indoorPoints().map(([x, y, z]) => {
+        [x, y] = [x * Math.cos(s) - y * Math.sin(s), x * Math.sin(s) + y * Math.cos(s)];
+        [y, z] = [y * Math.cos(t) - z * Math.sin(t), y * Math.sin(t) + z * Math.cos(t)];
+        [x, y] = [x * Math.cos(d) - y * Math.sin(d), x * Math.sin(d) + y * Math.cos(d)]; // turn the tilt direction
+        return [x, y, z];
+      }).filter(([, , z]) => z > 0.18).map(([x, y, z]) => {
+        const r = R * Math.sin(rad(alpha)), k = Math.cos(rad(alpha));
+        return { cx: C + R * x * k, cy: C - R * y * k, rx: r, ry: Math.max(r * z, 0.6), rot: Math.atan2(-y, x) * 180 / Math.PI + 90 };
+      });
+    }
+
+    // ---- Spin marks: a tapered band from A0 (a point) to A1 (flat end), top right, plus its 180° twin ----
+    const A0 = -78, A1 = -12;
+    const SEG = [0.30, 0.27, 0.29], SEG_GAP = 0.065;
+    function bandPath(R, gap, tmax, t0, t1) {
+      const ri = R + gap, inner = [], outer = [];
+      for (let i = 0; i <= 24; i++) {
+        const u = lerp(t0, t1, i / 24), a = rad(lerp(A0, A1, u));
+        const th = tmax * Math.pow(u, 0.85);
+        inner.push([C + ri * Math.cos(a), C + ri * Math.sin(a)]);
+        outer.push([C + (ri + th) * Math.cos(a), C + (ri + th) * Math.sin(a)]);
+      }
+      return `M${inner.map((p) => p.map(f).join(" ")).join("L")}L${outer.reverse().map((p) => p.map(f).join(" ")).join("L")}Z`;
+    }
+    function marks(R, gap, tmax, { segmented = true, gapSize = SEG_GAP, roundGaps = false }) {
+      if (!segmented) return [bandPath(R, gap, tmax, 0, 1)];
+      const sg = roundGaps ? 0.012 : gapSize, total = 1 - 2 * sg, sum = SEG.reduce((a, b) => a + b);
+      let t = 0; const out = [];
+      SEG.forEach((w) => { const len = (w / sum) * total; out.push(bandPath(R, gap, tmax, t, t + len)); t += len + sg; });
+      return out;
+    }
+    // Round cuts at the segment joints, for the "round gaps" variant.
+    function roundCuts(R, gap, tmax, k = 1.8) {
+      const sum = SEG.reduce((a, b) => a + b), total = 1 - 2 * 0.012;
+      let t = 0; const cuts = [];
+      SEG.slice(0, 2).forEach((w) => { t += (w / sum) * total + 0.006; cuts.push(t); t += 0.006; });
+      return cuts.map((u) => {
+        const a = rad(lerp(A0, A1, u)), th = tmax * Math.pow(u, 0.85), r = R + gap + th / 2;
+        return { x: C + r * Math.cos(a), y: C + r * Math.sin(a), r: Math.max(2.4, (th / 2) * k) };
+      });
+    }
+
+    const VARIANTS = [
+      {
+        id: "D1", name: "Segmented spin",
+        note: "The direct swap: today's three-segment spin marks with D's ball where the O was.",
+        reads: "Keeps the brand's motion and adds a ball you can't mistake.",
+        o: { segmented: true },
+      },
+      {
+        id: "D2", name: "Solid spin",
+        note: "One unbroken swoosh each side, like the first version of the logo. Calmer, so the holes carry all the texture.",
+        reads: "Cleanest at small sizes. Loses some of the speed the segments give.",
+        o: { segmented: false },
+      },
+      {
+        id: "D3", name: "Round gaps",
+        note: "The cuts between segments become round holes, the same shape as the ball's holes, so the spin marks look perforated too.",
+        reads: "Most cohesive: one hole shape everywhere. Busiest of the four.",
+        o: { segmented: true, roundGaps: true },
+      },
+      {
+        id: "D4", name: "Ball turning with the spin",
+        note: "D1 with the ball tipped 14° so its centre hole drifts down and right, across the line of the marks, as if they're spinning it. Holes at the top left start to wrap round the edge.",
+        reads: "Adds motion inside the ball. Less symmetric than D1.",
+        o: { segmented: true, tilt: 14, dir: 45 },
+      },
+    ];
+
+    const state = { bg: "dark", ball: "mono", size: 15, weight: 1, gap: 4.5 };
+    let uid = 0;
+
+    function markSVG(v, { size = null, favicon = false } = {}) {
+      const id = `m${uid++}`;
+      const mono = state.bg === "dark" || favicon ? "#fff" : "#000";
+      const ballFill = state.ball === "green" ? GREEN : mono;
+      const markFill = state.ball === "greenmarks" ? GREEN : mono;
+      // Favicon: heavier marks and wider gaps so they survive 16 px, like today's favicon.
+      const tmax = 9.5 * state.weight * (favicon ? 1.2 : 1);
+      const gap = state.gap * (favicon ? 1.15 : 1);
+      const R = 49 - gap - tmax; // ball radius fills what the marks leave
+      const holes = sphereHoles(R, state.size, v.o).map(({ cx, cy, rx, ry, rot }) =>
+        `<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx)}" ry="${f(ry)}" transform="rotate(${f(rot)} ${f(cx)} ${f(cy)})"/>`).join("");
+      const segs = marks(R, gap, tmax, { ...v.o, gapSize: favicon ? 0.09 : SEG_GAP }).map((d) => `<path d="${d}"/>`).join("");
+      let cuts = "";
+      if (v.o.roundGaps) cuts = roundCuts(R, gap, tmax).map(({ x, y, r }) => `<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}"/><circle cx="${f(100 - x)}" cy="${f(100 - y)}" r="${f(r)}"/>`).join("");
+      const inner = `<defs>
+          <mask id="${id}b"><rect x="-10" y="-10" width="120" height="120" fill="#fff"/><g fill="#000">${holes}</g></mask>
+          <mask id="${id}s"><rect x="-10" y="-10" width="120" height="120" fill="#fff"/><g fill="#000">${cuts}</g></mask>
+        </defs>
+        <circle cx="${C}" cy="${C}" r="${f(R)}" fill="${ballFill}" mask="url(#${id}b)"/>
+        <g fill="${markFill}" mask="url(#${id}s)">${segs}<g transform="rotate(180 50 50)">${segs}</g></g>`;
+      if (favicon) {
+        return `<svg viewBox="0 0 110 110" width="${size}" height="${size}" aria-hidden="true"><rect width="110" height="110" rx="24" fill="#000"/><g transform="translate(8 8) scale(.94)">${inner}</g></svg>`;
+      }
+      const dim = size ? ` width="${size}" height="${size}"` : "";
+      return `<svg viewBox="0 0 100 100"${dim} aria-hidden="true">${inner}</svg>`;
+    }
+
+    function card(v) {
+      return `<article class="card">
+        <div class="stage"><span class="label tag">${v.id}</span>${markSVG(v)}</div>
+        <div class="body">
+          <h3>${v.id}. ${v.name}</h3>
+          <p>${v.note}</p>
+          <div class="row sizes">${markSVG(v, { size: 64 })}${markSVG(v, { size: 32 })}${markSVG(v, { size: 20 })}
+            <span class="tab">${markSVG(v, { size: 16, favicon: true })}OPEN</span></div>
+          <div class="row lockup"><span class="wordmark">${markSVG(v, { size: 30 })}OPEN</span></div>
+          <p class="reads">${v.reads}</p>
+        </div>
+      </article>`;
+    }
+
+    function current() {
+      return `<article class="card ref">
+        <div class="stage"><span class="label tag">Now</span><img class="current" src="/site/public/assets/img/mark.svg" alt=""></div>
+        <div class="body">
+          <h3>Today: C, Balanced</h3>
+          <p>The Krona One O with the same segmented spin marks, live on the site. Shown for comparison.</p>
+        </div>
+      </article>`;
+    }
+
+    function render() {
+      uid = 0;
+      document.body.classList.toggle("light", state.bg === "light");
+      document.getElementById("grid").innerHTML = current() + VARIANTS.map(card).join("");
+    }
+
+    document.querySelectorAll(".controls [role=group]").forEach((group) => {
+      group.addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        group.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+        Object.assign(state, b.dataset);
+        render();
+      });
+    });
+    document.querySelectorAll(".controls input[type=range]").forEach((input) => {
+      const out = input.nextElementSibling, key = input.dataset.key;
+      input.addEventListener("input", () => {
+        state[key] = +input.value;
+        out.textContent = key === "size" ? `${input.value}°` : key === "weight" ? `${input.value}×` : input.value;
+        render();
+      });
+    });
+    render();
+  </script>
+</body>
+</html>
