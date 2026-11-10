@@ -14,9 +14,9 @@
 - [x] Replace `pages.yml` with open-ui's `deploy-pages.yml`, which builds the CSS before publishing, and add `ci-app.yml`.
 - [x] Open the PR from a branch on this repository. The first attempt came from a fork and was closed once write access was granted.
 - [ ] After the PR has run once, add `app-checks` and `teaser-build` as required checks in the "Protect main" ruleset. This needs a repository admin.
-- [ ] Turn on "Enforce HTTPS" under Settings → Pages. This needs a repository admin.
+- [x] Turn on "Enforce HTTPS" under Settings → Pages. It was already on, and http://www.openpb.org redirects to https.
 - [ ] After the deploy, check that `/` and `/about/` load on www.openpb.org and that the bare openpb.org redirects to www.
-- [ ] Archive `ccirrincione/open-ui` with a README that points here.
+- [x] Archive `ccirrincione/open-ui` with a README that points here.
 
 ## Decisions
 
