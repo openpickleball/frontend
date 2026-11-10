@@ -12,7 +12,7 @@
 - [x] Move frontend's page to `site/public/about/` and point its canonical, `og:url` and `og:image` at `/about/`.
 - [x] Add a shimmering "Learn more" link under the teaser headline.
 - [x] Replace `pages.yml` with open-ui's `deploy-pages.yml`, which builds the CSS before publishing, and add `ci-app.yml`.
-- [ ] Open the PR from a fork, since contributors without write access can't push branches here.
+- [x] Open the PR from a branch on this repository. The first attempt came from a fork and was closed once write access was granted.
 - [ ] After the PR has run once, add `app-checks` and `teaser-build` as required checks in the "Protect main" ruleset. This needs a repository admin.
 - [ ] Turn on "Enforce HTTPS" under Settings → Pages. This needs a repository admin.
 - [ ] After the deploy, check that `/` and `/about/` load on www.openpb.org and that the bare openpb.org redirects to www.
