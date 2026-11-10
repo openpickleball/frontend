@@ -1,6 +1,6 @@
 # site/
 
-The static pages served at www.openpb.org. They are temporary: `plans/app-migration/` ends with deleting this folder.
+The static pages served at openpb.org. They are temporary: `plans/app-migration/` ends with deleting this folder.
 
 - `public/` is the only folder that gets published.
 - `public/index.html` is the whole site: the one-screen teaser at the top, then the about sections below it (`#about`, `#how`, `#promises`, `#roadmap`, `#help`). It is styled with the Tailwind CLI. `src/input.css` compiles to `public/assets/css/main.css`. The output is generated, so edit the input.

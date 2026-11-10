@@ -17,7 +17,7 @@ Replace the static pages in `site/` (the teaser at `/` and the about page at `/a
 
 ## Custom domain
 
-www.openpb.org is already set as the custom domain under Settings → Pages, and the bare openpb.org redirects to it. Moving to a new host means pointing both DNS names there.
+openpb.org is set as the custom domain under Settings → Pages, and www.openpb.org redirects to it. Moving to a new host means pointing both DNS names there.
 
 ## Decisions
 

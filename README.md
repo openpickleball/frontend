@@ -21,7 +21,7 @@ pnpm dev
 
 `pnpm dev` rebuilds the teaser's CSS as you edit. Serve `site/public/` with any static file server to view the pages, for example `python3 -m http.server --directory site/public`. Only `site/public/` is published.
 
-Pushing changes under `site/` to `main` deploys to www.openpb.org through `.github/workflows/deploy-pages.yml`. PRs run the build only.
+Pushing changes under `site/` to `main` deploys to openpb.org through `.github/workflows/deploy-pages.yml`. PRs run the build only.
 
 ## App (`app/`)
 
