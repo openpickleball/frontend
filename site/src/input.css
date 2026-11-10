@@ -17,14 +17,17 @@
   font-display: swap;
 }
 
-/* Copy this block into app/src/routes/layout.css at swap time. */
+/*
+  Copy this block into app/src/routes/layout.css at swap time. Each color is light-dark(ivory
+  theme, black theme). Which one applies follows color-scheme on the root, set below.
+*/
 @theme {
-  --color-primary: #000000; /* page background */
-  --color-secondary: #ffffff; /* wordmark, headline, links */
-  --color-muted: #bdbdbd; /* status line, footer */
-  --color-line: #3d3d3d; /* rules and borders, if any */
-  --color-faint: #8a8a8a; /* captions and fine print */
-  --color-surface: #0d0d0d; /* raised panels */
+  --color-primary: light-dark(#f7f3e8, #000000); /* page background */
+  --color-secondary: light-dark(#17150f, #ffffff); /* wordmark, headline, links */
+  --color-muted: light-dark(#4d493f, #bdbdbd); /* status line, footer */
+  --color-line: light-dark(#d8d1bf, #3d3d3d); /* rules and borders, if any */
+  --color-faint: light-dark(#6c6658, #8a8a8a); /* captions and fine print */
+  --color-surface: light-dark(#fcfaf3, #0d0d0d); /* raised panels */
 
   --spacing-gutter: clamp(20px, 4vw, 56px); /* page side padding */
 
@@ -39,6 +42,72 @@
 @custom-variant art-land (@media (min-aspect-ratio: 1/1));
 @custom-variant art-wide (@media (min-aspect-ratio: 2/1));
 @custom-variant short (@media (max-height: 480px));
+
+/*
+  Theme: the system setting by default. The toggle stores a choice and the script in the head puts
+  it on <html data-theme> before first paint. `light:` targets the ivory theme either way.
+*/
+@custom-variant light {
+  &:where([data-theme="light"], [data-theme="light"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: light) {
+    &:where(:root:not([data-theme="dark"]), :root:not([data-theme="dark"]) *) {
+      @slot;
+    }
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}
+
+/* Theme switch: the toggle wraps the change in a view transition, and the page crossfades. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.5s;
+  animation-timing-function: ease-in-out;
+}
+
+/* The logo as a mask, so it takes the text color in both themes. */
+@utility mark {
+  display: inline-block;
+  flex: none;
+  background-color: currentColor;
+  mask: url("../img/mark.svg") center / contain no-repeat;
+}
+
+/*
+  The horizon render is a light ball on black. The ivory theme runs it through #ball-green in
+  index.html, a gradient map from black to pickleball green, and masks it to the ball so the black
+  around it shows the page instead. Each mask is the ball's outline in that render (circles fitted
+  to the lit crest by design/tools/fit-ball-mask.py), positioned like the image: keep the mask positions in step with the
+  object-position classes on the <img> in index.html.
+*/
+@utility hero-green {
+  @variant light {
+    & img {
+      filter: url("#ball-green");
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2048' height='5120' viewBox='0 0 2048 5120'%3E%3Ccircle cx='962.0' cy='5068.0' r='2199.6'/%3E%3C/svg%3E") 47% 56% / cover no-repeat;
+      @variant art-land {
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3840' height='3840' viewBox='0 0 3840 3840'%3E%3Ccircle cx='1804.3' cy='5817.6' r='4126.6'/%3E%3C/svg%3E");
+        mask-position: 50% 44%;
+      }
+      @variant art-wide {
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3840' height='1920' viewBox='0 0 3840 1920'%3E%3Ccircle cx='1813.7' cy='4291.3' r='3521.9'/%3E%3C/svg%3E");
+        mask-position: 50% 40%;
+      }
+    }
+  }
+}
 
 /*
   "Learn more" under the headline: a slow highlight sweeps across muted text. Hover, focus and
@@ -270,6 +339,10 @@
       animation-range: exit 0% exit 45%;
     }
     .hero-art {
+      --hero-art-dim: brightness(0.15);
+      @variant light {
+        --hero-art-dim: opacity(0.15);
+      }
       transform-origin: 50% 100%;
       animation: hero-art-out linear both;
       animation-timeline: --hero;
@@ -294,7 +367,7 @@
   to {
     translate: 0 30%;
     scale: 1.08;
-    filter: brightness(0.15);
+    filter: var(--hero-art-dim, brightness(0.15));
   }
 }
 
