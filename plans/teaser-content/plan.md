@@ -63,7 +63,7 @@ The promise behind the headline: a pickleball rating that is always free for the
 
 **Follow row:** Follow our progress, with a GitHub icon. This link is where players go for status updates. More accounts can join the row later.
 
-**Footer:** Open Pickleball Evaluation Network, with the first letter of each word in bold so the initials spell OPEN.
+**Footer:** The icon and the OPEN wordmark. (It used to spell out Open Pickleball Evaluation Network with bold initials; that was dropped for now.)
 
 The copy deliberately never names DUPR. The contrast works without it and avoids making claims about a specific company.
 
@@ -80,12 +80,12 @@ The copy deliberately never names DUPR. The contrast works without it and avoids
 - The icon is the wordmark's O with two spin swooshes. It's kept deliberately simple. Net versions were rejected because they looked like tennis rackets.
 - The Horizon image follows the hole layout of the Life Time LT Pro 48 (48 holes, per patent application US 2026/0034410), rotated so no hole crosses the horizon. It carries no Life Time branding.
 - OPEN is always set in capitals, with wide letter spacing.
-- The full name, Open Pickleball Evaluation Network, appears only in the footer.
+- The full name, Open Pickleball Evaluation Network, appears only in the page title, social previews and about copy.
 - The follow row sits in the footer, at the bottom right, and the rendered image ships.
 - The image is art-directed into three renders of the same scene, with only the framing changed: portrait (below 1:1, 2:5 image, crest at 56%), landscape (1:1 up to 2:1, square image, crest at 44%, and at 16:10 it matches the approved frame) and wide (2:1 and up, 2:1 image, crest at 40%). Each render's aspect ratio is the low end of its range, so wider screens crop only the top and bottom and never the sides. The `object-position` y value equals the crest height, which holds the horizon in place through that crop.
 - The hole check uses each hole's real projected outline. In these framings no hole crosses the horizon and none is cut by a side edge. Two holes are near the limb in the rotation (|z| of about 0.16), but they sit fully behind it and outside the frames used.
 - The footer sits on the image from 3:2 to 13:5 where the screen allows it (at least 481px tall on the landscape render, any height on the wide render), because that is where sampled contrast holds. Left text is #d4d4d4 up to 37:20 and white above it. Everywhere else the footer is solid black with white text and a short fade above it, so its edge doesn't slice the holes in the shaded part of the ball. On phones it stacks.
 - Very wide screens (past about 3:1) can trim the bottom of the center hole. That edge is at the bottom of the page and the footer is solid there.
 - The favicon's swooshes are thicker than the footer icon (peak 8.5 instead of 6.8) so they hold at 16px. This is the only difference between the two marks.
-- Instrument Sans ships as a variable Latin subset (400 to 700), so the bold initials are real bold rather than synthesized.
+- Instrument Sans ships as a variable Latin subset (400 to 700), so bold text is real bold rather than synthesized.
 - Absolute URLs in the page head use https://www.openpb.org/, the custom domain set on GitHub Pages.

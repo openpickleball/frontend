@@ -8,7 +8,7 @@
   font-display: swap;
 }
 
-/* Variable subset covering 400 to 700, so the bold initials in the footer are real bold. */
+/* Variable subset covering 400 to 700, so bold text is real bold. */
 @font-face {
   font-family: "Instrument Sans";
   src: url("../fonts/instrument-sans-latin-var.woff2") format("woff2");
