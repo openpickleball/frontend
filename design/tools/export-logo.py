@@ -75,9 +75,9 @@ def mark(alpha=15, weight=1.0, gap=4.5, favicon=False):
 with open(ROOT + "/design/assets/mark.svg", "w") as fh:
     fh.write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 104 104" fill="#fff">{mark()}</svg>\n')
 
-# Favicon: the same mark on a black tile, marks heavier and gaps wider so they hold at 16 px.
+# Favicon: the same mark in ivory (#f7f3e8, the ivory theme background) on a black tile, marks heavier and gaps wider so they hold at 16 px.
 with open(ROOT + "/design/assets/favicon.svg", "w") as fh:
     fh.write(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110"><rect width="110" height="110" rx="24" fill="#000"/>'
-        f'<g transform="translate(12.5 12.5) scale(.85)" fill="#fff">{mark(favicon=True)}</g></svg>\n'
+        f'<g transform="translate(12.5 12.5) scale(.85)" fill="#f7f3e8">{mark(favicon=True)}</g></svg>\n'
     )
