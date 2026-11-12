@@ -186,18 +186,6 @@
   }
 }
 
-/* Hollow dot used as a bullet and a status marker. */
-@utility ring-dot {
-  &::before {
-    content: "";
-    flex: none;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    border: 1px solid currentColor;
-  }
-}
-
 /*
   Teaser to about: scrolling down, the wordmark and headline lift away while the ball sinks and
   dims, so the black above it carries straight on into the about sections, which fade up as they
