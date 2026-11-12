@@ -1,6 +1,6 @@
 # Simpler, plainer home page
 
-**Status:** active
+**Status:** done
 
 ## Goal
 
@@ -16,8 +16,11 @@ All four PRs change `site/public/index.html`, so land them one after another, no
 - [x] **PR 1, removals:** delete `#how` (sample court, factor list, calibration chart, validation list) and `rating-sketch.js`, the about ruler graphic, the "Where that stands today" block, and `#roadmap`. Add `target="_blank" rel="noopener"` and a visually hidden "(opens in a new tab)" to every external link. Update the header nav and `site/AGENTS.md`.
 - [x] **PR 2, What we stand for:** merge `#about` and `#promises` into one numbered section using the approved copy.
 - [x] **PR 3, Get involved:** merge `#roadmap` and `#help` into one section with a single "Get involved" button. The button opens the Tally interest form `Kp50eD` as a modal: load `https://tally.so/widgets/embed.js` in the `<head>` and add `data-tally-open="Kp50eD" data-tally-layout="modal" data-tally-width="500"`. Make the button a link to `https://tally.so/r/Kp50eD` (new tab) so it still works without JS. Check that the modal follows the ivory and black themes well enough.
-- [ ] **PR 4, footer:** brand and tagline, a Follow us row of icons, Contact, and a one-line legal bar. Drop the Documents column.
-- [ ] Bring `#how` back once the rating spec is published, from git history or a new design.
+- [x] **PR 4, footer:** brand and tagline, a Follow us row of icons, Contact, and a one-line legal bar. Drop the Documents column.
+
+## Follow-ups
+
+- Bring How it works back once the rating spec is published, either from git history or as a new design. Start a new plan for it.
 
 ## Decisions
 
