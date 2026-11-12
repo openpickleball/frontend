@@ -58,6 +58,7 @@
       })();
     </script>
     <link rel="stylesheet" href="./assets/css/main.css" />
+    <script async src="https://tally.so/widgets/embed.js"></script>
     <noscript>
       <style>
         #site-nav[data-hidden] {
@@ -275,26 +276,22 @@
         <div class="wrap">
           <p class="label">02 · Get involved</p>
           <h2 id="help-title" class="reveal mt-[18px] max-w-[20ch] text-[clamp(30px,3.6vw,48px)] leading-[1.08] font-medium tracking-[-0.015em] text-balance">
-            OPEN needs you, and you don't need to write code
+            Be part of it from the start
           </h2>
           <p class="mt-5 max-w-[56ch] text-[clamp(17px,1.4vw,19px)] leading-normal text-pretty text-muted">
-            It's early, so your input can shape what gets built. You don't need to apply or join the
-            organization. Pick the line that sounds like you. The links open on GitHub, which needs a
-            free account.
+            OPEN is at the very beginning: no app and no ratings yet, just volunteers and a set of
+            promises. Want a say in what OPEN becomes, or just want to follow along? We'd love to
+            hear from you.
           </p>
-          <ul class="mt-[clamp(40px,5vw,64px)] grid border-t border-line sm:grid-cols-2 lg:grid-cols-5">
-            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">Players</h3><p class="flex-1 text-[15px] leading-normal text-muted">Tell us what you need from a rating and what would make one easier to trust.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/issues/new?template=community_feedback.yml" target="_blank" rel="noopener">Send feedback<span class="sr-only"> (opens in a new tab)</span></a></li>
-            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">Clubs and organizers</h3><p class="flex-1 text-[15px] leading-normal text-muted">Share how you run events and record results.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/issues/new?template=community_feedback.yml" target="_blank" rel="noopener">Share how you run events<span class="sr-only"> (opens in a new tab)</span></a></li>
-            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">App and league builders</h3><p class="flex-1 text-[15px] leading-normal text-muted">Tell us what you'd need to send results to OPEN or show OPEN ratings in your product.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/issues/new?template=community_feedback.yml" target="_blank" rel="noopener">Send feedback<span class="sr-only"> (opens in a new tab)</span></a></li>
-            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">Statisticians and rating enthusiasts</h3><p class="flex-1 text-[15px] leading-normal text-muted">Review the methods, challenge the assumptions, and bring evidence for a better spec.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/issues/new?template=rating_spec_change.yml" target="_blank" rel="noopener">Propose a spec change<span class="sr-only"> (opens in a new tab)</span></a></li>
-            <li class="reveal flex flex-col gap-2.5 border-b border-line py-6 pr-6"><h3 class="text-[17px] font-semibold">Developers and designers</h3><p class="flex-1 text-[15px] leading-normal text-muted">Help build the engine, APIs, and tools. The repositories are new, so early contributors help set their direction.</p><a class="arrow-link text-sm hover:text-muted" href="https://github.com/openpickleball/.github/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Read the contributing guide<span class="sr-only"> (opens in a new tab)</span></a></li>
-          </ul>
-          <p class="mt-8 max-w-[70ch] text-[15px] leading-[1.55] text-muted">
-            Not sure where you fit?
-            <a class="text-secondary underline decoration-line underline-offset-4 hover:text-muted" href="https://github.com/openpickleball/.github/discussions" target="_blank" rel="noopener">Ask a question on GitHub Discussions<span class="sr-only"> (opens in a new tab)</span></a>.
-            OPEN is run by volunteers, so replies may take a few days. Please keep real player names,
-            contact details, and match histories out of public posts.
-          </p>
+          <!-- Opens the Tally interest form as a popup. Without the Tally script, it opens the form in a new tab. -->
+          <a
+            href="https://tally.so/r/Kp50eD"
+            target="_blank"
+            rel="noopener"
+            data-tally-form="Kp50eD"
+            class="reveal arrow-link mt-9 rounded-full bg-secondary px-7 py-3.5 text-base font-semibold text-primary hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-secondary"
+            >Get involved<span class="sr-only"> (opens a form)</span></a
+          >
         </div>
       </section>
     </main>
@@ -398,6 +395,16 @@
         window.addEventListener("resize", update);
         update();
       })();
+
+      // "Get involved" opens the Tally form as a popup once Tally's script has loaded.
+      // Until then, or if it never loads, the link opens the form in a new tab.
+      document.querySelectorAll("a[data-tally-form]").forEach(function (link) {
+        link.addEventListener("click", function (event) {
+          if (!window.Tally) return;
+          event.preventDefault();
+          window.Tally.openPopup(link.dataset.tallyForm, { layout: "modal", width: 500 });
+        });
+      });
 
       // "Learn more" glides down slowly enough to watch the ball sink. Reduced motion jumps.
       (function () {
