@@ -19,7 +19,7 @@ Replace the placeholder teaser in `site/` with a real page for OPEN, an open sou
 - [x] Build the page in `site/public/index.html` and add the image at a size suited to phones as well as desktops.
 - [x] Update the page title, description and social preview image. Restyle `404.html` and replace the favicon.
 - [x] Check phone width, keyboard focus and text contrast over the image. The footer's left side sits on dark and its right side on light grey, so the follow link uses black text on wide screens. On phones the image crops differently, so give the footer a solid background there.
-- [x] Connect openpb.org. Handled by `plans/consolidate-repos/`: the teaser moved into `openpickleball/frontend`, whose GitHub Pages already serves www.openpb.org.
+- [x] Connect openpb.org. Handled by `plans/consolidate-repos/`: the teaser moved into `openpickleball/frontend`, whose GitHub Pages serves openpb.org.
 
 Merging changes under `site/` to `main` deploys to production, so the token change and the page should ship together.
 
@@ -88,4 +88,4 @@ The copy deliberately never names DUPR. The contrast works without it and avoids
 - Very wide screens (past about 3:1) can trim the bottom of the center hole. That edge is at the bottom of the page and the footer is solid there.
 - The favicon's swooshes are thicker than the footer icon (peak 8.5 instead of 6.8) so they hold at 16px. This is the only difference between the two marks.
 - Instrument Sans ships as a variable Latin subset (400 to 700), so bold text is real bold rather than synthesized.
-- Absolute URLs in the page head use https://www.openpb.org/, the custom domain set on GitHub Pages.
+- Absolute URLs in the page head use https://openpb.org/, the custom domain set on GitHub Pages.
