@@ -401,7 +401,7 @@
         link.addEventListener("click", function (event) {
           if (!window.Tally) return;
           event.preventDefault();
-          window.Tally.openPopup(link.dataset.tallyForm, { layout: "modal", width: 500 });
+          window.Tally.openPopup(link.dataset.tallyForm, { layout: "modal", width: 500, hideTitle: true });
         });
       });
 
