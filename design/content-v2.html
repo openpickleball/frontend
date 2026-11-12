@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Content v2 prototype · OPEN</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="shared.css">
+  <script async src="https://tally.so/widgets/embed.js"></script>
+  <style>
+    .wrap { max-width: calc(1100px + 2 * var(--gutter)); margin-inline: auto; padding-inline: var(--gutter); }
+    section { padding-block: clamp(64px, 9vw, 120px); border-top: 1px solid var(--color-line); }
+    h1 { font-size: clamp(28px, 3.4vw, 44px); font-weight: 500; margin-top: 20px; }
+    h2 { font-size: clamp(30px, 3.6vw, 48px); font-weight: 500; line-height: 1.08; letter-spacing: -0.015em; max-width: 20ch; text-wrap: balance; margin-top: 18px; }
+    h3 { font-size: 18px; font-weight: 600; line-height: 1.3; }
+    p { line-height: 1.55; }
+    .intro { margin-top: 20px; max-width: 58ch; font-size: clamp(17px, 1.4vw, 19px); color: var(--color-muted); text-wrap: pretty; }
+    .fine { font-size: 13px; color: var(--color-faint); }
+    .status { margin-top: 28px; display: inline-flex; gap: 10px; align-items: center; font-size: 14px; color: var(--color-muted); }
+    .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #c8e64b; }
+    a.ext::after { content: " ↗"; font-size: 0.85em; color: var(--color-faint); }
+
+    /* Header */
+    .nav { position: sticky; top: 0; z-index: 20; background: rgb(0 0 0 / 0.85); backdrop-filter: blur(12px); }
+    .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .nav-links { display: flex; gap: 28px; font-size: 14px; }
+    .nav-links a { text-decoration: none; color: var(--color-muted); }
+    .hero { min-height: 60vh; display: grid; place-content: center; text-align: center; }
+    .hero .wordmark { font-size: clamp(42px, 5.6vw, 80px); }
+
+    /* Values */
+    .values { margin-top: 56px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .values li { border: 1px solid var(--color-line); border-radius: 16px; padding: 28px; }
+    .values p { margin-top: 10px; color: var(--color-muted); }
+    .values .k { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.14em; color: var(--color-faint); }
+
+    /* Get involved */
+    .paths { margin-top: 56px; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .card { border: 1px solid var(--color-line); border-radius: 16px; padding: 32px; background: var(--color-surface); display: flex; flex-direction: column; gap: 14px; }
+    .card p { color: var(--color-muted); }
+    .signup { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .signup input { flex: 1 1 200px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--color-line); background: var(--color-primary); color: var(--color-secondary); font: inherit; }
+    .btn { display: inline-block; padding: 12px 18px; border-radius: 10px; background: var(--color-secondary); color: var(--color-primary); font-weight: 600; text-decoration: none; border: 0; font: inherit; font-weight: 600; cursor: pointer; }
+    .btn:hover { color: var(--color-primary); opacity: 0.85; }
+    .roles { display: grid; gap: 8px; margin-top: 4px; font-size: 15px; }
+    .roles li { color: var(--color-muted); }
+    .roles b { color: var(--color-secondary); font-weight: 600; }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--color-line); padding-block: 48px 28px; font-size: 14px; color: var(--color-muted); }
+    .foot { display: grid; gap: 40px; grid-template-columns: 1.6fr 1fr 1fr; }
+    @media (max-width: 720px) { .foot { grid-template-columns: 1fr; } }
+    .foot h4 { margin: 0 0 14px; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-faint); font-weight: 400; }
+    .foot li + li { margin-top: 10px; }
+    .social { display: flex; gap: 14px; }
+    .social a { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--color-line); border-radius: 50%; }
+    .social svg { width: 18px; height: 18px; fill: currentColor; }
+    .legal { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--color-line); display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--color-faint); }
+
+    /* Editor notes: not part of the site */
+    .note { margin-top: 28px; max-width: 72ch; padding: 14px 16px; border-left: 3px solid #c8e64b; background: #10140a; color: #d9e6a6; font-size: 14px; line-height: 1.55; border-radius: 0 8px 8px 0; }
+    .note b { color: #f0f7cf; }
+    .note ol, .note ul { list-style: disc; padding-left: 20px; margin-top: 6px; }
+    body.clean .note { display: none; }
+    .toggle { position: fixed; left: 12px; bottom: 12px; z-index: 50; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-primary); color: var(--color-muted); font: inherit; font-size: 13px; cursor: pointer; }
+  </style>
+</head>
+<body>
+<button class="toggle" onclick="document.body.classList.toggle('clean')">Show or hide notes</button>
+<span class="proto-note">Copy prototype. Not the final design.</span>
+
+<header class="nav">
+  <div class="wrap">
+    <a href="#top" class="wordmark" style="text-decoration:none">OPEN</a>
+    <nav class="nav-links">
+      <a href="#stand">What we stand for</a>
+      <a href="#involved">Get involved</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="note">
+    <b>What changed overall.</b> Five sections become two. <b>About</b> and <b>Promises</b> merge into "What we stand for". <b>Roadmap</b> and <b>Get involved</b> merge into one section that asks people to follow along or help. <b>How it works</b> is gone until there's a published rating spec, and so are the rating ruler, the sample court and the calibration chart. The hero stays as it is. Every link that leaves openpb.org opens in a new tab (marked ↗ here).
+  </div>
+</div>
+
+<div class="hero" id="top">
+  <div class="wordmark">OPEN</div>
+  <h1>Your pickleball rating, always free.</h1>
+  <p style="margin-top:16px;color:var(--color-muted)"><a href="#stand">Learn more</a></p>
+</div>
+
+<!-- 01 · WHAT WE STAND FOR -->
+<section id="stand">
+  <div class="wrap">
+    <p class="label">01 · What we stand for</p>
+    <h2>A rating that belongs to the players</h2>
+    <p class="intro">OPEN, the Open Pickleball Evaluation Network, is a free pickleball rating system driven by the community instead of a company. Here's what we're building it on.</p>
+
+    <ul class="values">
+      <li>
+        <h3>Free</h3>
+        <p>No subscriptions, paid upgrades, or ads. Players are never asked for money, in the app or at events.</p>
+      </li>
+      <li>
+        <h3>Transparent</h3>
+        <p>The rules behind every rating will be public. You'll be able to see how your number was worked out, and question it when it looks wrong.</p>
+      </li>
+      <li>
+        <h3>Community-driven</h3>
+        <p>No company, sponsor, or individual will ever own OPEN, and sponsors get no say over ratings. Your ratings and match history are yours to download any time.</p>
+      </li>
+    </ul>
+
+    <div class="note">
+      <b>Notes.</b>
+      <ul>
+        <li><b>Three pillars instead of five.</b> Each one has a single title. Portable is folded into Community-driven as the last sentence. One standard is dropped, and with it the line saying OPEN works alongside the ratings you already have. That line reassures players, so it could come back in the intro if you want it.</li>
+        <li><b>"Rating system"</b> is the usual way to say it. DUPR and UTR both call themselves rating systems, and it fixes the cut-off feeling of "a free pickleball rating".</li>
+        <li><b>Removed:</b> the line linking the mission charter. It sent visitors to GitHub. The "Just getting started" status line is gone too. Get involved still says OPEN is at the very beginning.</li>
+        <li><b>Still removed:</b> "open-source", the governance status block, and the 2.0–8.0 ruler and scale line.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 02 · GET INVOLVED -->
+<section id="involved">
+  <div class="wrap">
+    <p class="label">02 · Get involved</p>
+    <h2>Be part of it from the start</h2>
+    <p class="intro">OPEN is at the very beginning: no app and no ratings yet, just volunteers and a set of promises. Want a say in what OPEN becomes, or just want to follow along? We'd love to hear from you.</p>
+    <p style="margin-top:32px"><button class="btn" data-tally-open="Kp50eD" data-tally-layout="modal" data-tally-width="500">Get involved</button></p>
+
+    <div class="note">
+      <b>Notes.</b>
+      <ul>
+        <li><b>Just a call to action.</b> The card, the role list and the fine print are gone. The form explains itself once it opens.</li>
+        <li><b>One way in.</b> The button opens your Tally form (Kp50eD) as a popup. GitHub appears only in the footer, so players never have to choose between two forms.</li>
+        <li>When we build it, the button will also link to tally.so/r/Kp50eD so it still works if the popup script doesn't load.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <div class="wordmark" style="font-size:18px;color:var(--color-secondary)">OPEN</div>
+        <p style="margin-top:12px;max-width:36ch">Open Pickleball Evaluation Network. A free pickleball rating system, driven by the community.</p>
+      </div>
+      <div>
+        <h4>Follow us</h4>
+        <div class="social">
+          <a href="https://github.com/openpickleball" aria-label="OPEN on GitHub (opens in a new tab)" target="_blank" rel="noopener">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+        </div>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a class="ext" href="https://github.com/openpickleball/.github/issues/new/choose">Contact us or report a problem</a></li>
+          <li><a href="mailto:info@openpb.org">info@openpb.org</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="legal">
+      <span>© 2026 OPEN contributors</span>
+      <a class="ext" href="https://github.com/openpickleball/frontend">Site source (AGPL-3.0)</a>
+      <a class="ext" href="https://github.com/openpickleball/.github/blob/main/LICENSING.md">Licensing and trademark</a>
+    </div>
+
+    <div class="note">
+      <b>Footer notes.</b> This follows the usual footer pattern: brand and tagline on the left, a few short link groups, social icons together, and a thin bottom bar for legal text.
+      <ul>
+        <li><b>Documents column removed.</b> "Find us" becomes <b>Contact</b>. Discussions, Support and Security are dropped because the GitHub chooser already links to each of them.</li>
+        <li><b>Socials</b> show as icons. GitHub is the only one for now, and more icons can go in the same row later.</li>
+        <li><b>The license paragraph</b> becomes one line in the bottom bar. Short legal lines like this are common in footers, but a full paragraph is unusual. The trademark sentence moves behind the "Licensing and trademark" link. Keep a visible source link: it's the AGPL source link the consolidation plan relies on.</li>
+        <li><b>Email:</b> info@openpb.org is the general contact address now, not only the security one. It's for people who'd rather not use GitHub.</li>
+      </ul>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
