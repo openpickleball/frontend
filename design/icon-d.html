@@ -72,7 +72,7 @@
     const lerp = (a, b, t) => a + (b - a) * t;
     const f = (n) => +n.toFixed(2);
 
-    // ---- Ball: indoor 26-hole layout projected on a sphere (from icon-u.html, D) ----
+    // ---- Ball: indoor 26-hole layout projected on a sphere (from the round 3 prototype icon-u.html, D, now in git history) ----
     const INDOOR = [[0, 1, 0], [45, 6, 0], [90, 12, 15], [135, 6, 30], [180, 1, 0]];
     const indoorPoints = () => INDOOR.flatMap(([polar, n, off]) =>
       Array.from({ length: n }, (_, i) => {

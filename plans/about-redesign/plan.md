@@ -21,6 +21,8 @@ The about content uses the same design system as the teaser (black and white, Kr
 
 `design/` holds prototypes only. It is not under `site/public/`, so nothing in it deploys.
 
+The finished prototypes (`design/about.html`, `icon.html`, `icon-5.html`, `icon-c.html` and `icon-u.html`) and the pre-merge `logos/` folder were removed once this round was done. They are in git history.
+
 ## Follow-ups
 
 This round is done, but more changes to the logo and to the about and information content are likely. Pick them up here, or start a new plan if they grow into their own project.
