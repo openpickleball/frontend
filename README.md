@@ -1,5 +1,7 @@
 # OPEN frontend
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/openpickleball/frontend/badge)](https://scorecard.dev/viewer/?uri=github.com/openpickleball/frontend)
+
 The public app for [OPEN](https://github.com/openpickleball), the Open Pickleball Evaluation Network.
 
 > **Project status:** OPEN is in early development, and no OPEN rating is live.
