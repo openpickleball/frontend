@@ -65,7 +65,7 @@ The promise behind the headline: a pickleball rating that is always free for the
 
 **Footer:** The icon and the OPEN wordmark. (It used to spell out Open Pickleball Evaluation Network with bold initials; that was dropped for now.)
 
-The copy deliberately never names DUPR. The contrast works without it and avoids making claims about a specific company.
+The copy deliberately never names an external rating system. The contrast works without it and avoids making claims about a specific company.
 
 ## Naming note
 

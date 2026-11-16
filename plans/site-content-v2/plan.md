@@ -27,7 +27,7 @@ All four PRs change `site/public/index.html`, so land them one after another, no
 - Interest and update opt-ins go through one Tally form (`Kp50eD`), which is friendlier than GitHub for older players. The Get involved section has only that button. GitHub links live in the footer, for contact, bug reports and developers, so visitors never have to choose between two forms.
 - The merged About and Promises section is called "What we stand for" (nav label and `01 · What we stand for` eyebrow). It keeps the `#about` id so "Learn more", the skip link, the scroll animation and the `/about/` redirect keep working. It covers both the old sections, and it reads warmer than "About".
 - What we stand for has three pillars, each with one title: Free, Transparent and Community-driven. Portable is folded into Community-driven ("Your ratings and match history are yours to download any time"). One standard is dropped because it doesn't mean much to players yet. The charter link is dropped because it sends players to GitHub. "Including the founder" is dropped.
-- OPEN is described as "a free pickleball rating system", the usual wording (DUPR and UTR both call themselves rating systems). The site says "community-driven", not "community-run".
+- OPEN is described as "a free pickleball rating system", the usual wording (standard external rating systems call themselves rating systems too). The site says "community-driven", not "community-run".
 - What we stand for has no status line. The early-stage message lives only in the Get involved intro.
 - Get involved is a short intro and one button. The form explains itself, so there's no role list or fine print.
 - The 2.0 to 8.0 scale isn't mentioned, in the text or as a graphic, until the rating spec defines it.
