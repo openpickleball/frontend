@@ -15,14 +15,25 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request cancels its older run. Each push to main
+# gets its own group (its commit SHA), so no main run is cancelled.
+concurrency:
+  group: ci-app-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# app-checks is a required status check on main, so renaming the job
+# must also update the main ruleset.
 jobs:
   app-checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: app
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           package_json_file: app/package.json
