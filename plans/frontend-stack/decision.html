@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OpenPB Frontend Stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Krona+One&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~70ch) with wide breakout for the scorecard; ivory/black like openpb.org, ball green as the only accent. */
+:root {
+  --bg: #f7f3e8;
+  --surface: #fcfaf3;
+  --fg: #17150f;
+  --muted: #4d493f;
+  --faint: #6c6658;
+  --line: #d8d1bf;
+  --accent: #2f6b1f;
+  --accent-soft: #e4ecd3;
+  --warn: #8a5a00;
+  --dot-off: #d8d1bf;
+  --font-display: "Krona One", "Instrument Sans", system-ui, sans-serif;
+  --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --surface: #0d0d0d; --fg: #ffffff; --muted: #bdbdbd; --faint: #8a8a8a;
+    --line: #3d3d3d; --accent: #a6d86f; --accent-soft: #16210d; --warn: #e5b45a; --dot-off: #333333;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --surface: #0d0d0d; --fg: #ffffff; --muted: #bdbdbd; --faint: #8a8a8a;
+  --line: #3d3d3d; --accent: #a6d86f; --accent-soft: #16210d; --warn: #e5b45a; --dot-off: #333333;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.6;
+  padding-block: 56px 96px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+section { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 5vw, 40px); letter-spacing: -0.01em; }
+h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 18px; font-weight: 600; }
+p, ul, ol { margin: 0; }
+ul, ol { padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+strong { font-weight: 600; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); font-weight: 600; }
+.lede { font-size: 19px; color: var(--muted); }
+
+header { display: flex; flex-direction: column; gap: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--faint); }
+.meta span { display: inline-flex; gap: 6px; }
+.meta b { color: var(--muted); font-weight: 600; }
+
+.verdict {
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 10px;
+  padding: 22px 24px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.verdict .eyebrow { color: var(--accent); }
+.verdict p.big { font-size: 20px; font-weight: 600; line-height: 1.4; }
+
+.note { font-size: 15px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 14px; }
+
+/* Scorecard */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 15px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+thead th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); font-weight: 600; }
+td.crit { font-weight: 500; }
+td.crit small { display: block; font-weight: 400; color: var(--faint); font-size: 13px; }
+td.w { font-family: var(--font-mono); color: var(--faint); font-size: 13px; white-space: nowrap; }
+.score { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dots { display: inline-flex; gap: 3px; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--dot-off); display: block; }
+.dots i.on { background: var(--fg); }
+.score.top .dots i.on { background: var(--accent); }
+.score b { font-family: var(--font-mono); font-weight: 500; font-size: 13px; color: var(--muted); }
+tfoot td { font-weight: 700; border-top: 2px solid var(--line); font-variant-numeric: tabular-nums; }
+tfoot td.tot { font-family: var(--font-mono); font-size: 15px; }
+tfoot td.tot.top { color: var(--accent); }
+
+/* Option cards */
+.options { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.opt { border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.opt.pick { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.opt-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.pill { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill.pick { border-color: var(--accent); color: var(--accent); }
+.pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pros-cons > div { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pros-cons ul { font-size: 15px; }
+.pros-cons .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--faint); }
+.opt .later { font-size: 15px; color: var(--muted); }
+.opt .later b { color: var(--fg); }
+@media (max-width: 560px) { .pros-cons { grid-template-columns: 1fr; } }
+
+/* Mobile ladder */
+.ladder { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0; counter-reset: rung; }
+.ladder li { counter-increment: rung; display: grid; grid-template-columns: 36px 1fr; gap: 4px 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+.ladder li:last-child { border-bottom: 1px solid var(--line); }
+.ladder li::before { content: counter(rung); font-family: var(--font-mono); font-size: 13px; color: var(--accent); grid-row: span 3; padding-top: 2px; }
+.ladder .t { font-weight: 600; }
+.ladder .d { font-size: 15px; color: var(--muted); }
+.ladder .c { font-size: 13px; color: var(--faint); font-family: var(--font-mono); }
+.ladder li.now .t::after { content: "Start here"; margin-left: 10px; font-size: 11px; font-family: var(--font-body); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 8px; vertical-align: 2px; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 28px; }
+.two-col > div { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 560px) { .two-col { grid-template-columns: 1fr; } }
+
+.qs { counter-reset: q; }
+footer { font-size: 13px; color: var(--faint); border-top: 1px solid var(--line); padding-top: 18px; }
+</style>
+</head>
+<body>
+
+<main>
+  <header>
+    <div class="eyebrow">Decision proposal · Frontend</div>
+    <h1>OpenPB frontend stack</h1>
+    <p class="lede">React Native, SvelteKit or Flutter for the player-facing app: what each one costs us now, what each one makes possible later, and which one to start with.</p>
+    <div class="meta">
+      <span><b>Status</b> Proposed, not decided</span>
+      <span><b>Date</b> 16 Nov 2026</span>
+      <span><b>Scope</b> Web app first, mobile later</span>
+    </div>
+  </header>
+
+  <div class="verdict">
+    <div class="eyebrow">Recommendation</div>
+    <p class="big">Build a responsive web app in SvelteKit, ship it as an installable PWA, and keep the data layer in plain TypeScript so a mobile app can reuse it later.</p>
+    <p>Most of what OpenPB does is pages people open from a link: a player profile, a rating history, a club leaderboard, a score to enter after a game. That work is what the web is best at, and SvelteKit is the fastest and simplest way to do it of the three options. If we later need to be in the app stores, we can wrap the same app with Capacitor for very little effort. If we eventually want a fully native app, we can build it in Expo and reuse our TypeScript API client and domain logic. Flutter is the weakest fit because its web output is the part we need most and the part it does worst.</p>
+  </div>
+
+  <section>
+    <div class="eyebrow">Context</div>
+    <h2>What we're building</h2>
+    <p>Your read is right: most of the app is reading data and entering it, and the heavy logic (rating calculation, match validation) belongs on the server, where it can be published and audited. The screens we can foresee:</p>
+    <ul>
+      <li><strong>Read:</strong> player profiles, rating history charts, match lists, club and event leaderboards, player search.</li>
+      <li><strong>Write:</strong> sign up and claim a profile, enter a match score, confirm or dispute a score someone else entered, manage a club or event.</li>
+    </ul>
+    <p>A few needs aren't obvious from "display plus entry", and they affect the choice:</p>
+    <div class="two-col">
+      <div>
+        <h3>Shareable public pages</h3>
+        <p>Players will paste profile and leaderboard links into group chats. Those links need server-rendered HTML so that previews show a name and rating, and so that search engines can index them. This favors a real web framework.</p>
+      </div>
+      <div>
+        <h3>Score entry at the court</h3>
+        <p>Scores get entered on a phone, often with weak signal. Entry should be quick, work one-handed, and queue the submission when offline. A PWA with a small sync queue covers this. We don't need a native app for it.</p>
+      </div>
+      <div>
+        <h3>Older, non-technical players</h3>
+        <p>Large text, real form controls, screen reader support and the browser's own zoom matter. Native HTML gives us all of these for free. A canvas renderer does not.</p>
+      </div>
+      <div>
+        <h3>Live event days</h3>
+        <p>Tournament brackets and leaderboards may update while people watch. That calls for websockets or server-sent events, which all three options handle. It doesn't change the decision.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Framing</div>
+    <h2>These aren't three versions of the same thing</h2>
+    <p>The options start from different places, and that matters more than any feature list:</p>
+    <ul>
+      <li><strong>SvelteKit</strong> is a web framework. It reaches mobile through the browser (PWA) or through a native wrapper (Capacitor).</li>
+      <li><strong>React Native</strong> is a mobile framework. In practice that means Expo, which can also target the web through React Native Web. The web output works, but it's a translation layer: you write <code>&lt;View&gt;</code> and <code>&lt;Text&gt;</code>, not HTML.</li>
+      <li><strong>Flutter</strong> is a mobile framework that draws every pixel itself. On the web it paints to a canvas with a WebAssembly engine, so the page isn't really HTML.</li>
+    </ul>
+    <p>So the real question is which platform we want to be excellent on first, and how much the second platform costs. Since we're starting with web, a web-native framework has the advantage, as long as the path to mobile stays open.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Evaluation</div>
+    <h2>Scorecard</h2>
+    <p>Your three criteria come first. I added five more that matter for this product. Scores run from 1 to 5 and are judgment calls, not benchmarks. The weights show how much each criterion counts today, during the web-first phase.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Criterion</th><th>Weight</th><th>SvelteKit</th><th>React Native (Expo)</th><th>Flutter</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="crit">Fast, responsive UI<small>Load time and feel on a mid-range phone browser</small></td><td class="w">×3</td>
+            <td><span class="score top"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><b>5</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><b>3</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><b>2</b></span></td>
+          </tr>
+          <tr>
+            <td class="crit">Path to mobile<small>Effort and code reuse when we add apps</small></td><td class="w">×2</td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><b>3</b></span></td>
+            <td><span class="score top"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><b>5</b></span></td>
+            <td><span class="score top"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><b>5</b></span></td>
+          </tr>
+          <tr>
+            <td class="crit">Developer experience<small>Tooling, simplicity, speed of iteration</small></td><td class="w">×3</td>
+            <td><span class="score top"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><b>5</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><b>4</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><b>4</b></span></td>
+          </tr>
+          <tr>
+            <td class="crit">Shareable, searchable pages<small>Server rendering, link previews, SEO</small></td><td class="w">×3</td>
+            <td><span class="score top"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><b>5</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><b>2</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></span><b>1</b></span></td>
+          </tr>
+          <tr>
+            <td class="crit">Time to first release<small>Overhead before real users can use it</small></td><td class="w">×3</td>
+            <td><span class="score top"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><b>5</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><b>3</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><b>3</b></span></td>
+          </tr>
+          <tr>
+            <td class="crit">Accessibility on web<small>Screen readers, zoom, text selection, autofill</small></td><td class="w">×2</td>
+            <td><span class="score top"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><b>5</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><b>3</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><b>2</b></span></td>
+          </tr>
+          <tr>
+            <td class="crit">Contributor and hiring pool<small>Matters for an open, community-driven project</small></td><td class="w">×2</td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><b>3</b></span></td>
+            <td><span class="score top"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><b>5</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><b>3</b></span></td>
+          </tr>
+          <tr>
+            <td class="crit">Ecosystem<small>Charts, forms, components, auth libraries</small></td><td class="w">×1</td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><b>4</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><b>4</b></span></td>
+            <td><span class="score"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><b>3</b></span></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr><td>Weighted total</td><td class="w">of 95</td><td class="tot top">86</td><td class="tot">66</td><td class="tot">53</td></tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="note">If mobile apps became the top priority and the weights flipped (path to mobile ×3, shareable pages ×1), the totals become 79, 67 and 56. React Native narrows the gap but still trails on the web criteria. The ranking only flips if we decide the native app is the main product and the web is secondary.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Options</div>
+    <h2>Each option in detail</h2>
+    <div class="options">
+
+      <article class="opt pick">
+        <div class="opt-head"><h3>SvelteKit</h3><span class="pill pick">Recommended</span></div>
+        <div class="pros-cons">
+          <div>
+            <div class="label">Strengths</div>
+            <ul>
+              <li>Compiles to small bundles with little runtime, so pages load fast on cheap phones and slow connections.</li>
+              <li>Server rendering, form actions and data loading are built in. Forms work before JavaScript loads and get better once it does.</li>
+              <li>Writing it feels like writing HTML and CSS. New contributors can read a component on day one.</li>
+              <li>Real HTML means accessibility, autofill, zoom and link previews work without extra effort.</li>
+              <li>Installable PWA with offline support and push notifications, including on iPhone from the home screen.</li>
+            </ul>
+          </div>
+          <div>
+            <div class="label">Weaknesses</div>
+            <ul>
+              <li>A smaller community than React: fewer ready-made components and fewer developers who already know it.</li>
+              <li>Svelte 5's runes changed how components are written, so some older tutorials and libraries are out of date.</li>
+              <li>No direct route to a truly native app. Mobile means a PWA, a Capacitor wrapper, or a second app in another framework.</li>
+              <li>AI coding tools are somewhat better at React than at Svelte 5, though the gap has narrowed.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="later"><b>Adding mobile later:</b> the PWA is free from the start. A Capacitor wrapper puts the same code in the App Store and Play Store, typically in days to a couple of weeks, with native plugins for push, camera and sharing. A fully native app would be a new Expo codebase that reuses our TypeScript API client, validation and domain types but not our UI.</p>
+      </article>
+
+      <article class="opt">
+        <div class="opt-head"><h3>React Native with Expo</h3><span class="pill">Strong for mobile-first</span></div>
+        <div class="pros-cons">
+          <div>
+            <div class="label">Strengths</div>
+            <ul>
+              <li>One codebase for iOS, Android and web, with truly native screens on phones.</li>
+              <li>Expo has removed most of the old pain: managed builds (EAS), over-the-air updates, file-based routing and a good set of native modules.</li>
+              <li>The largest pool of developers and contributors of the three, since most frontend developers know React.</li>
+              <li>The best choice if a polished native app is required within the first year.</li>
+            </ul>
+          </div>
+          <div>
+            <div class="label">Weaknesses</div>
+            <ul>
+              <li>The web build goes through React Native Web. It works, but it isn't idiomatic HTML: most React web libraries won't run, and styling uses React Native's subset of CSS.</li>
+              <li>Server rendering and SEO on the web are weaker than in a web framework, and they're the newest, least proven part of Expo.</li>
+              <li>Mobile overhead starts on day one: simulators, device testing, native builds, SDK upgrades and store releases.</li>
+              <li>Web pages carry more JavaScript than SvelteKit pages, which shows on slow phones.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="later"><b>Adding mobile later:</b> already done. That's the point of choosing it. The cost is paying for mobile from the start even while we ship web only.</p>
+      </article>
+
+      <article class="opt">
+        <div class="opt-head"><h3>Flutter</h3><span class="pill">Not recommended</span></div>
+        <div class="pros-cons">
+          <div>
+            <div class="label">Strengths</div>
+            <ul>
+              <li>Excellent mobile apps that look the same everywhere, with great hot reload and tooling.</li>
+              <li>Dart is pleasant and strongly typed, and the built-in widget set is large and consistent.</li>
+              <li>Strong for apps with lots of custom animation or drawing.</li>
+            </ul>
+          </div>
+          <div>
+            <div class="label">Weaknesses</div>
+            <ul>
+              <li>On the web it draws to a canvas, so the first load is large (often several megabytes) and slow on mobile data.</li>
+              <li>Pages aren't real HTML. Search engines and link previews see very little, and text selection, browser find and autofill behave differently.</li>
+              <li>Screen reader support on the web relies on a separate semantics layer, which is harder to get right for older players.</li>
+              <li>Dart sits outside the JavaScript ecosystem, so we can't share code with a TypeScript backend or tooling, and fewer web developers can contribute.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="later"><b>Adding mobile later:</b> easy, since mobile is Flutter's home. But we'd be accepting a weak version of the web app, which is the part we're building first.</p>
+      </article>
+
+    </div>
+    <p class="note">One alternative worth naming: React for the web (Next.js or React Router) with an Expo app later. You get React's contributor pool and could share hooks and logic with a future native app, at the cost of a heavier, more complex web stack than SvelteKit. If a large contributor pool turns out to matter more than speed and simplicity, this is the runner-up.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Mobile</div>
+    <h2>The path to mobile, one step at a time</h2>
+    <p>You're right to worry about mobile overhead. Each step below adds cost, and we only take the next one when there's a clear reason. Steps 1 to 3 all use the same SvelteKit code.</p>
+    <ol class="ladder">
+      <li class="now">
+        <span class="t">Responsive web app</span>
+        <span class="d">Designed for phones first, since that's where most scores get entered.</span>
+        <span class="c">Cost: none beyond the web app</span>
+      </li>
+      <li>
+        <span class="t">Installable PWA</span>
+        <span class="d">Home screen icon, full-screen view, offline score queue, push notifications ("your rating changed"). On iPhone, push only works once the app is added to the home screen.</span>
+        <span class="c">Cost: a manifest, a service worker, a few days</span>
+      </li>
+      <li>
+        <span class="t">Store listing with Capacitor</span>
+        <span class="d">The same web app in a native shell, for people who look for apps in the store, plus native push, sharing and camera plugins.</span>
+        <span class="c">Cost: Apple developer program ($99/yr), Google Play ($25 once), store review, a device test pass per release</span>
+      </li>
+      <li>
+        <span class="t">Native app in Expo</span>
+        <span class="d">Only if the wrapped app feels limiting: widgets, background work, heavy offline use, or a UI that has to feel fully native.</span>
+        <span class="c">Cost: a second UI codebase that shares our TypeScript data layer</span>
+      </li>
+    </ol>
+    <p class="note">Store overhead to plan for: Apple reviews every release, usually within a day or two but sometimes with rejections to fix. New personal Google Play accounts must run a closed test with at least 12 testers for 14 days before going public. An organization account avoids that, so register OpenPB as an organization when the time comes.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Keeping options open</div>
+    <h2>Choices that make the later steps cheap</h2>
+    <p>Mobile code reuse depends less on the UI framework and more on how we structure the code from the start:</p>
+    <ul>
+      <li><strong>API first.</strong> The backend publishes an OpenAPI spec, and we generate a typed TypeScript client from it. Every frontend, current or future, talks to the same contract.</li>
+      <li><strong>A shared core package.</strong> Domain types, validation schemas (for example Zod or Valibot), score formatting and the offline submission queue live in plain TypeScript with no Svelte imports. An Expo app could use it unchanged.</li>
+      <li><strong>Thin components.</strong> Svelte components handle display and input. Rules such as "a game to 11, win by 2" live in the core package, not in a component.</li>
+      <li><strong>Design tokens as data.</strong> Colors, type scale and spacing are defined once (we already have the <code>@theme</code> block from the site) so a native app can reuse them.</li>
+      <li><strong>Auth that works outside a browser.</strong> Choose an auth approach that supports both cookies for the web and tokens for a native app, so adding mobile doesn't mean redoing login.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="eyebrow">Revisit</div>
+    <h2>When we'd reconsider</h2>
+    <p>This decision is about how we start, not a permanent commitment. We'd revisit it if:</p>
+    <ul>
+      <li>Partners or clubs require a native app in the stores sooner than a Capacitor wrapper can deliver one.</li>
+      <li>We need native features a wrapper handles poorly: home screen widgets, background location, or Apple Watch scoring.</li>
+      <li>We can't find enough Svelte contributors, and the lack of React is the reason.</li>
+      <li>Usage data shows most players stay on mobile and the share links aren't driving traffic.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="eyebrow">Open questions</div>
+    <h2>What would change this recommendation</h2>
+    <ol class="qs">
+      <li>Is there a date by which we must be in the App Store or Play Store? If it's within six months of launch, Expo becomes more attractive.</li>
+      <li>Who is writing the frontend: one or two core developers, or a wider volunteer community? A wider community favors React.</li>
+      <li>What is the backend written in? If it's TypeScript, we can share more code between server and client.</li>
+      <li>Do we expect any feature that needs the phone itself, such as Bluetooth scoring devices or court check-in by location?</li>
+    </ol>
+  </section>
+
+  <footer>Scores and weights are judgment calls meant to start a discussion. Prices and store rules are as of November 2026 and should be checked before we register accounts.</footer>
+</main>
+</body>
+</html>
