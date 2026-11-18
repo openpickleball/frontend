@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import type { Component } from 'svelte';
+import { buildCode } from '../lib/domain/codes';
 import appHtml from '../app.html?raw';
 
 // Every route page, keyed by its path under src/routes.
@@ -19,6 +20,14 @@ const expected: Record<string, string> = {
 	'./account/password/reset/key/[key]/+page.svelte': 'Choose a new password'
 };
 
+// Real props for each page, as SvelteKit passes them. The match pages need their load data.
+const MATCH_CODE = buildCode('match', '7QK2H9WD3NF');
+const propsFor = (path: string): Record<string, unknown> => {
+	if (path === './matches/+page.svelte') return { data: { page: 1 } };
+	if (path === './matches/[code]/+page.svelte') return { params: { code: MATCH_CODE } };
+	return { params: { key: 'example-key' } };
+};
+
 describe('route stubs', () => {
 	it('covers every route the shell links to or the auth task will fill in', () => {
 		expect(Object.keys(pages).sort()).toEqual(Object.keys(expected).sort());
@@ -26,18 +35,27 @@ describe('route stubs', () => {
 
 	for (const [path, heading] of Object.entries(expected)) {
 		it(`${path} has one h1 and a title`, () => {
-			const { body, head } = render(pages[path].default, {
-				props: { params: { key: 'example-key' } }
-			});
+			const { body, head } = render(pages[path].default, { props: propsFor(path) });
 			expect(body.match(/<h1[\s>]/g)).toHaveLength(1);
 			expect(body).toMatch(new RegExp(`<h1[^>]*>${heading}</h1>`));
 			expect(head).toMatch(/<title>[^<]*OPEN Pickleball<\/title>/);
 		});
 	}
 
+	it('puts the page number in the matches title, and the code in the match title', () => {
+		const history = render(pages['./matches/+page.svelte'].default, {
+			props: propsFor('./matches/+page.svelte')
+		});
+		expect(history.head).toContain('<title>Matches, page 1 · OPEN Pickleball</title>');
+		const detail = render(pages['./matches/[code]/+page.svelte'].default, {
+			props: propsFor('./matches/[code]/+page.svelte')
+		});
+		expect(detail.head).toContain(`<title>Match ${MATCH_CODE} · OPEN Pickleball</title>`);
+	});
+
 	it('keeps copy plain: no em dashes in any page', () => {
 		for (const [path, page] of Object.entries(pages)) {
-			const { body, head } = render(page.default, { props: { params: { key: 'example-key' } } });
+			const { body, head } = render(page.default, { props: propsFor(path) });
 			expect(body + head, path).not.toContain('\u2014');
 		}
 	});

@@ -1,7 +1,10 @@
-<svelte:head>
-	<title>Match · OPEN Pickleball</title>
-</svelte:head>
+<script lang="ts">
+	import { MatchView } from '#lib/features/matches/index.js';
+	import type { PageProps } from './$types';
+
+	let { params }: PageProps = $props();
+</script>
 
 <div class="pt-4">
-	<h1 class="page-title">Match</h1>
+	<MatchView code={params.code} />
 </div>

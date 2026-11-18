@@ -1,7 +1,10 @@
-<svelte:head>
-	<title>Matches · OPEN Pickleball</title>
-</svelte:head>
+<script lang="ts">
+	import { HistoryView } from '#lib/features/matches/index.js';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
+</script>
 
 <div class="pt-4">
-	<h1 class="page-title">Matches</h1>
+	<HistoryView page={data.page} />
 </div>
