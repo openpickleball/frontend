@@ -104,8 +104,8 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - [x] A Playwright check for installability and the offline shell.
 
 ### T11 · Local dev docs and a live happy path — frontend#47
-- [ ] `app/README.md`: running the backend locally, `.env` values, a shell snippet that verifies the seeded accounts and prints their logins (until backend issue B5), and the mock modes.
-- [ ] `pnpm e2e:live`: one happy path against the local backend. Local only, not run in CI.
+- [x] `app/README.md`: running the backend locally, `.env` values, a shell snippet that verifies the seeded accounts and prints their logins (until backend issue B5), and the mock modes.
+- [x] `pnpm e2e:live`: one happy path against the local backend. Local only, not run in CI.
 
 ## Blockers
 
