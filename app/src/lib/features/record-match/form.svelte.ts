@@ -26,6 +26,19 @@ export type Slot = { code: PlayerCode | null; text: string; error: string };
 /** One game's scores as typed. */
 export type GameRow = { a: string; b: string };
 
+/** The values a server error is matched against, as they were at one moment. */
+type FormView = {
+	playedOn: string;
+	format: string;
+	gameTarget: number;
+	scoringType: string;
+	games: GameRow[];
+	own: string;
+	partner: string;
+	opponents: string[];
+	input: string;
+};
+
 /** An entry in the error summary. `target` is the id of the field to focus, if there is one. */
 export type SummaryEntry = { key: string; message: string; target: string | null };
 
@@ -187,26 +200,37 @@ export class RecordForm {
 	}
 
 	/** The value a server error key answered, so the error can go when that value changes. */
-	#valueOf(key: string): string {
-		const slot = (s: Slot) => s.code ?? '';
-		if (key === 'played_on') return this.playedOn;
-		if (key === 'format') return this.format;
-		if (key === 'game_target') return String(this.gameTarget);
-		if (key === 'scoring_type') return this.scoringType;
-		if (key === 'games') return JSON.stringify(this.games);
+	/** The values the error matching reads, copied so a later edit cannot change them. */
+	#view(): FormView {
+		return {
+			playedOn: this.playedOn,
+			format: this.format,
+			gameTarget: this.gameTarget,
+			scoringType: this.scoringType,
+			games: this.games.map((g) => ({ ...g })),
+			own: this.own,
+			partner: this.partner.code ?? '',
+			opponents: [this.opponents[0].code ?? '', this.opponents[1].code ?? ''],
+			input: JSON.stringify(this.input)
+		};
+	}
+
+	#valueOf(key: string, v: FormView = this.#view()): string {
+		if (key === 'played_on') return v.playedOn;
+		if (key === 'format') return v.format;
+		if (key === 'game_target') return String(v.gameTarget);
+		if (key === 'scoring_type') return v.scoringType;
+		if (key === 'games') return JSON.stringify(v.games);
 		const game = /^games\.(\d+)(?:\.|$)/.exec(key);
-		if (game) return JSON.stringify(this.games[Number(game[1])] ?? null);
+		if (game) return JSON.stringify(v.games[Number(game[1])] ?? null);
 		const team = /^team_([ab])(?:\.(\d+))?$/.exec(key);
 		if (team) {
-			const side =
-				team[1] === 'a'
-					? [this.own, this.partner.code ?? '']
-					: [slot(this.opponents[0]), slot(this.opponents[1])];
+			const side = team[1] === 'a' ? [v.own, v.partner] : v.opponents;
 			const value = team[2] === undefined ? side : [side[Number(team[2])] ?? ''];
-			return `${this.format}:${value.join(',')}`;
+			return `${v.format}:${value.join(',')}`;
 		}
 		// A key we do not know goes when anything changes.
-		return JSON.stringify(this.input);
+		return v.input;
 	}
 
 	/** The server's errors, each kept while its own field is still what the server answered. */
@@ -332,17 +356,19 @@ export class RecordForm {
 		if (this.summary.length > 0) return null;
 
 		this.sending = true;
+		// What was sent. A 422 belongs to these values, not to edits made while it was in flight.
+		const sent = this.#view();
 		try {
 			return await submit(this.input, this.own);
 		} catch (cause) {
-			this.#fail(cause);
+			this.#fail(cause, sent);
 			return null;
 		} finally {
 			this.sending = false;
 		}
 	}
 
-	#fail(cause: unknown): void {
+	#fail(cause: unknown, sent: FormView): void {
 		if (!isAppError(cause)) {
 			this.failure = { kind: 'other', message: 'Something went wrong. Please try again.' };
 			return;
@@ -362,7 +388,9 @@ export class RecordForm {
 			case 'validation': {
 				this.#server = {
 					fields: error.fields,
-					values: Object.fromEntries(Object.keys(error.fields).map((k) => [k, this.#valueOf(k)]))
+					values: Object.fromEntries(
+						Object.keys(error.fields).map((k) => [k, this.#valueOf(k, sent)])
+					)
 				};
 				// A 422 with no field we can show still has to say something.
 				if (Object.keys(error.fields).length === 0) {

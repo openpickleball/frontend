@@ -46,6 +46,18 @@ test('records a doubles match and lands on its page', async ({ page }) => {
 	await expect(page.getByText('Match recorded')).toBeVisible();
 });
 
+test('opens the new match from the cache, waiting for the other team', async ({ page }) => {
+	await openRecord(page);
+	await fillDoublesMatch(page);
+	await page.getByRole('button', { name: 'Record and confirm score' }).click();
+
+	await expect(page).toHaveURL(MATCH_URL);
+	await expect(page.getByRole('heading', { name: 'Waiting for the other team' })).toBeVisible();
+	await expect(page.getByText('You confirmed this score.').first()).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Confirm score' })).toHaveCount(0);
+	await expect(page.getByText(/not found|couldn't find/i)).toHaveCount(0);
+});
+
 test('accepts a code in any spelling and shows the canonical one', async ({ page }) => {
 	await openRecord(page);
 	const field = page.getByLabel("Your partner's OPEN code");

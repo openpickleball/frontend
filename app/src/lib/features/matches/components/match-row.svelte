@@ -41,7 +41,7 @@
 		if (!isPending(match) || !myTeam(match, you)) return null;
 		return acted === 'confirm'
 			? 'You confirmed this score. Waiting for the other team.'
-			: 'Waiting on a confirmation';
+			: 'Waiting on a confirmation.';
 	});
 </script>
 

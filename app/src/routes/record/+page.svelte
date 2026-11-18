@@ -8,6 +8,7 @@
 		recordedToast,
 		type SubmitResult
 	} from '#lib/features/record-match/index.js';
+	import { matchCache, rememberMatch } from '#lib/features/matches/index.js';
 	import { CodeEntry, myCode } from '#lib/features/players/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 
@@ -22,6 +23,10 @@
 			// The match exists. Only the player's own confirmation is missing, so give it time to be read.
 			duration: result.confirmError ? 10_000 : undefined
 		});
+		// Hand the match to its page so it opens from the cache. When the player's own confirmation
+		// failed, keep the match but do not note it as confirmed, so Confirm stays on the page.
+		if (result.confirmError) matchCache.remember(result.match);
+		else rememberMatch(result.match);
 		await goto(resolve('/matches/[code]', { code: result.match.code }));
 	}
 </script>

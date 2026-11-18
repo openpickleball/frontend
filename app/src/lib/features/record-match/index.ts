@@ -4,8 +4,9 @@
  * For pages:
  * - `RecordMatchForm`: the whole form. Give it the player's own code (`myCode.code`) and an
  *   `onrecorded` callback, and optionally `onchangecode`, which the "Change my code" button calls
- *   when the backend refuses the saved code. This feature never imports players, so the page wires it. It validates inline, maps the server's 422 errors onto its fields, and
- *   shows the offline and duplicate notices itself. It never queues a match (Decision Q1).
+ *   when the backend refuses the saved code. This feature never imports players, so the page
+ *   wires it. It validates inline, maps the server's 422 errors onto its fields, and shows the
+ *   offline and duplicate notices itself. It never queues a match (Decision Q1).
  * - `submitMatch(draft, myCode)`: create the match, then confirm it for the player's team (Q4).
  *   Resolves to `{ match, confirmError }`. `match` is the domain `Match` as the API last returned
  *   it, ready to put in a match cache. `confirmError` is set when the match exists but the
