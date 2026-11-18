@@ -1,6 +1,6 @@
 # Show the hidden header when keyboard focus reaches it (issue #16)
 
-**Status:** active
+**Status:** done
 
 Risk tier: Medium. One class list in `site/public/index.html`, but it changes existing interactive behavior (focus, a scroll-driven show and hide) that `site/` has no automated test for, so only a browser drive proves it. The change goes live on openpb.org when merged.
 
@@ -219,9 +219,9 @@ openpb.org writes the term two ways. "Open-source software publishes it" is hyph
 ### Steps
 
 - [x] Red: run the criterion (a) checks on the current page and record them below.
-- [ ] Change the three visible strings and the comment in `site/public/index.html`, and update `plans/open-source-explainer/plan.md`.
-- [ ] Gate: `pnpm build` in `site/`.
-- [ ] Live drive: the criterion (a) check at both widths, screenshots of the nav (wide) and the section label in both themes, and a Tab into the header at the top to confirm the issue 16 fix still shows it.
+- [x] Change the three visible strings and the comment in `site/public/index.html`, and update `plans/open-source-explainer/plan.md`.
+- [x] Gate: `pnpm build` in `site/`.
+- [x] Live drive: the criterion (a) check at both widths, screenshots of the nav (wide) and the section label in both themes, and a Tab into the header at the top to confirm the issue 16 fix still shows it.
 
 ### Proof
 
@@ -253,3 +253,38 @@ Line 98 is the nav link, 278 the HTML comment, 281 the section label and 294 the
 ```
 
 At 390 wide the nav link is hidden (`max-md:hidden`), so it is not in `innerText`. The label is uppercased by CSS, which `innerText` reflects.
+
+Green, after the change (commit message "Spell open-source with a hyphen in all visible text").
+
+Grep:
+
+```
+site/public/index.html: 0 unhyphenated
+site/public/404.html: 0 unhyphenated
+```
+
+`document.body.innerText`, after a cache-bypassing reload:
+
+```
+1280x800: 0 unhyphenated, 4 hyphenated
+  "e stand for\nOpen-source\nGet invol"
+  "load.\n\n02 · OPEN-SOURCE\n\nBuilt in"
+  "ipe secret. Open-source software "
+  "already use open-source every day"
+390x844: 0 unhyphenated, 3 hyphenated (nav link hidden below md)
+```
+
+Criterion (b): the explainer plan's Label line, acceptance criteria 1 and 2 and the second-paragraph quote now read "Open-source" / "open-source", matching the page. Its recorded check output from issue #23 is left as it ran, with a note on what a rerun should now expect. A Decision records the spelling.
+
+Criterion (c): `pnpm build` in `site/` passed (tailwindcss v4.3.5, "Done in 32ms").
+
+Nav fit at 768 wide (the `md` breakpoint, where the nav links first show), since the label is one character longer: "What we stand for" 323 to 446, "Open-source" 464 to 552, "Get involved" 570 to 678, each one line (20 px high). The theme toggle sits at 694 to 730, so nothing overlaps, and `scrollWidth` 753 is within the 768 viewport.
+
+Issue 16 check: at 1280x800, black, top of the page, Tab x4 put keyboard focus on the "Open-source" nav link (`:focus-visible` true). `#site-nav` was shown: `data-hidden` set, opacity `1`, pointer-events `auto`, translate `0px`.
+
+Screenshots (1280x800), reviewed:
+
+- Nav, black, keyboard focus on "Open-source" at the top: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/os52-wide-black-nav.png`
+- Nav, ivory, scrolled to 720: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/os52-wide-ivory-nav.png`
+- Section label "02 · OPEN-SOURCE" and the "open-source every day" sentence, black: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/os52-wide-black-label.png`
+- Same, ivory: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/os52-wide-ivory-label.png`
