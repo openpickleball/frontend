@@ -1,6 +1,6 @@
 # Show the hidden header when keyboard focus reaches it (issue #16)
 
-**Status:** done
+**Status:** active
 
 Risk tier: Medium. One class list in `site/public/index.html`, but it changes existing interactive behavior (focus, a scroll-driven show and hide) that `site/` has no automated test for, so only a browser drive proves it. The change goes live on openpb.org when merged.
 
@@ -33,6 +33,8 @@ Finding 2 (the arrow after "Get involved" is read aloud) is a separate pull requ
 
 - `site/public/index.html`: add the keyboard focus override classes to the `<header id="site-nav">` class list, and update the comment above the header to say it also shows while one of its links has keyboard focus.
 - `plans/teaser-header-focus/plan.md`: this plan; tick the steps and set the status to done at the end.
+
+- For issue #52 (see the section at the end): `site/public/index.html` (visible text of the nav link, the section label, one sentence, and one HTML comment) and `plans/open-source-explainer/plan.md` (its recorded copy and a new Decision).
 
 `site/public/assets/css/main.css` is generated and not committed. `site/AGENTS.md` does not describe the header, so it needs no change.
 
@@ -193,3 +195,61 @@ Criterion 4, keyboard-focused header at the top against the scrolled header (wid
 In both pairs the links sit in the same places. The only visible differences are the focus ring on the focused link and the page content showing through the 80 percent background (the teaser wordmark at the top, section text when scrolled).
 
 Criterion 6: `pnpm build` in `site/` passed (tailwindcss v4.3.5, "Done in 41ms").
+
+## Issue #52: one spelling of "open-source"
+
+This plan also covers issue #52, folded into this branch at the user's request (2026-11-17). The issue 16 sections above are unchanged.
+
+### Goal
+
+openpb.org writes the term two ways. "Open-source software publishes it" is hyphenated, but the nav link, the section label and "You already use open source every day" are not. The site should use one form.
+
+### Decision
+
+- Visible text spells the term "open-source", with a hyphen, as noun and adjective (user, 2026-11-17, issue #52). Ids, anchors and `aria-labelledby` values (`#open-source`, `open-source-title`) stay as they are.
+- The HTML comment above the section changes too, for consistency, though visitors don't read it.
+- `plans/site-content-v2/plan.md` Decisions were read first. They name "the Open source section" in plan prose only and set no spelling for visible text, so nothing there conflicts.
+
+### Acceptance criteria
+
+- (a) No visible text on the page contains "open source" without a hyphen. Checked in the browser with `document.body.innerText` at 1280x800 and 390x844 (this covers the nav link, which is hidden below `md`, and the uppercase label), and by a grep of `site/public/index.html` and `site/public/404.html` for `open\s+source` (case-insensitive, across line breaks). Ids and anchors already use the hyphen, so the grep doesn't match them.
+- (b) The recorded copy in `plans/open-source-explainer/plan.md` matches the page.
+- (c) `pnpm build` in `site/` passes.
+
+### Steps
+
+- [x] Red: run the criterion (a) checks on the current page and record them below.
+- [ ] Change the three visible strings and the comment in `site/public/index.html`, and update `plans/open-source-explainer/plan.md`.
+- [ ] Gate: `pnpm build` in `site/`.
+- [ ] Live drive: the criterion (a) check at both widths, screenshots of the nav (wide) and the section label in both themes, and a Tab into the header at the top to confirm the issue 16 fix still shows it.
+
+### Proof
+
+Red, before the change (2026-11-17, Chrome, black theme, page at the top).
+
+Grep (`python3` regex `open\s+source`, case-insensitive, over the whole file, scratch script):
+
+```
+site/public/index.html: 4 unhyphenated
+  line 98: 'Open source'
+  line 278: 'Open source'
+  line 281: 'Open source'
+  line 294: 'open source'
+site/public/404.html: 0 unhyphenated
+```
+
+Line 98 is the nav link, 278 the HTML comment, 281 the section label and 294 the sentence.
+
+`document.body.innerText` (matches of `/open\s+source/gi`, with context):
+
+```
+1280x800: 3 unhyphenated, 1 hyphenated
+  "e stand for\nOpen source\nGet invol"
+  "load.\n\n02 · OPEN SOURCE\n\nBuilt in"
+  "already use open source every day"
+390x844: 2 unhyphenated, 1 hyphenated
+  "load.\n\n02 · OPEN SOURCE\n\nBuilt in"
+  "already use open source every day"
+```
+
+At 390 wide the nav link is hidden (`max-md:hidden`), so it is not in `innerText`. The label is uppercased by CSS, which `innerText` reflects.
