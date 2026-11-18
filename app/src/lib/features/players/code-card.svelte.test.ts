@@ -1,0 +1,73 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { render } from 'vitest-browser-svelte';
+import { buildCode, type PlayerCode } from '#lib/domain/index.js';
+import CodeCard from './code-card.svelte';
+
+const CODE = buildCode('player', '4RWN8TQ') as PlayerCode;
+
+type Fakes = { share?: unknown; writeText?: (text: string) => Promise<void> };
+
+/** Put fakes on the real navigator. Stubbing the whole object breaks its methods. */
+function fakeNavigator({ share, writeText }: Fakes) {
+	Object.defineProperty(navigator, 'share', { value: share, configurable: true });
+	Object.defineProperty(navigator, 'clipboard', {
+		value: { writeText: writeText ?? (async () => {}) },
+		configurable: true
+	});
+}
+
+describe('CodeCard', () => {
+	afterEach(() => {
+		// Dropping the own property uncovers the browser's own again.
+		Reflect.deleteProperty(navigator, 'share');
+		Reflect.deleteProperty(navigator, 'clipboard');
+	});
+
+	it('shows the code and copies it', async () => {
+		const writeText = vi.fn(async () => {});
+		fakeNavigator({ writeText });
+		const screen = await render(CodeCard, { code: CODE });
+		await expect.element(screen.getByTestId('my-code')).toHaveTextContent(CODE);
+		await screen.getByRole('button', { name: 'Copy code' }).click();
+		expect(writeText).toHaveBeenCalledWith(CODE);
+		await expect.element(screen.getByRole('status')).toHaveTextContent('Code copied');
+	});
+
+	it('shares through the share sheet when there is one', async () => {
+		const share = vi.fn(async () => {});
+		const writeText = vi.fn(async () => {});
+		fakeNavigator({ share, writeText });
+		const screen = await render(CodeCard, { code: CODE });
+		await screen.getByRole('button', { name: 'Share' }).click();
+		expect(share).toHaveBeenCalledOnce();
+		expect(JSON.stringify(share.mock.calls[0])).toContain(CODE);
+		expect(writeText).not.toHaveBeenCalled();
+	});
+
+	it('copies instead when there is no share sheet', async () => {
+		const writeText = vi.fn(async () => {});
+		fakeNavigator({ share: undefined, writeText });
+		const screen = await render(CodeCard, { code: CODE });
+		await screen.getByRole('button', { name: 'Share' }).click();
+		expect(writeText).toHaveBeenCalledWith(CODE);
+		await expect.element(screen.getByRole('status')).toHaveTextContent('Code copied');
+	});
+
+	it('does not copy, or complain, when the player closes the share sheet', async () => {
+		const writeText = vi.fn(async () => {});
+		const share = vi.fn(async () => Promise.reject(new DOMException('closed', 'AbortError')));
+		fakeNavigator({ share, writeText });
+		const screen = await render(CodeCard, { code: CODE });
+		await screen.getByRole('button', { name: 'Share' }).click();
+		expect(share).toHaveBeenCalledOnce();
+		expect(writeText).not.toHaveBeenCalled();
+		await expect.element(screen.getByRole('status')).toHaveTextContent('');
+	});
+
+	it('says so when copying fails', async () => {
+		fakeNavigator({ writeText: async () => Promise.reject(new Error('denied')) });
+		const screen = await render(CodeCard, { code: CODE });
+		await screen.getByRole('button', { name: 'Copy code' }).click();
+		await expect.element(screen.getByText(/Couldn't copy/)).toBeVisible();
+	});
+});
