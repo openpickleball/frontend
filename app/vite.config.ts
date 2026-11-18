@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -27,10 +28,42 @@ export default defineConfig({
 		}
 	},
 	test: {
-		include: ['src/**/*.{test,spec}.{js,ts}'],
-		environment: 'node',
 		// Vitest blanks CSS imports by default. Let `?raw` imports through, so tests can read
 		// stylesheet source (see src/routes/layout.test.ts).
-		css: { include: [/\.css\?raw$/] }
+		css: { include: [/\.css\?raw$/] },
+		coverage: {
+			provider: 'v8',
+			include: ['src/**/*.{ts,svelte}'],
+			exclude: ['src/**/*.test.ts', 'src/lib/api/generated/**', 'src/lib/mocks/**'],
+			// A summary only, with no threshold (plans/frontend-v1/proposal.md section 9).
+			reporter: ['text-summary']
+		},
+		// Two projects. `*.svelte.test.ts` files render components in a real browser; every
+		// other test file runs in node.
+		projects: [
+			{
+				extends: true,
+				test: {
+					name: 'node',
+					include: ['src/**/*.{test,spec}.{js,ts}'],
+					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+					environment: 'node'
+				}
+			},
+			{
+				extends: true,
+				test: {
+					name: 'browser',
+					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+					setupFiles: ['vitest-browser-svelte'],
+					browser: {
+						enabled: true,
+						headless: true,
+						provider: playwright(),
+						instances: [{ browser: 'chromium' }]
+					}
+				}
+			}
+		]
 	}
 });

@@ -1,4 +1,5 @@
-# Checks formatting, lints, type-checks, tests and builds the SvelteKit app (app/). Never deploys.
+# Checks formatting, lints, type-checks, tests and builds the SvelteKit app (app/), and runs its
+# Playwright e2e tests. Never deploys.
 name: App CI
 
 on:
@@ -22,7 +23,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # app-checks is a required status check on main, so renaming the job
-# must also update the main ruleset.
+# must also update the main ruleset. app-e2e is not required yet: the owner makes it
+# required once it is on main (plans/frontend-v1/plan.md, Q5).
 jobs:
   app-checks:
     runs-on: ubuntu-latest
@@ -43,6 +45,13 @@ jobs:
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - name: Cache the Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('app/pnpm-lock.yaml') }}
+      - name: Install Chromium for the browser-mode component tests
+        run: pnpm exec playwright install --with-deps chromium
       - name: Check the generated API types match the schema snapshots
         run: |
           pnpm api:gen
@@ -50,5 +59,41 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm check
-      - run: pnpm test
+      # Both Vitest projects (node and browser), then a coverage summary with no threshold.
+      - run: pnpm test:coverage
       - run: pnpm build
+
+  app-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: app/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Cache the Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('app/pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps chromium
+      # playwright.config.ts builds the app, serves it with `vite preview`, and sets PUBLIC_API_MOCK=all.
+      - run: pnpm e2e
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: app/playwright-report/
+          retention-days: 7
