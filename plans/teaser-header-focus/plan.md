@@ -1,4 +1,4 @@
-# Show the hidden header when keyboard focus reaches it (issue #16)
+# Show the hidden header when keyboard focus reaches it (issue #16), and spell open-source with a hyphen (issue #52)
 
 **Status:** done
 
@@ -33,10 +33,9 @@ Finding 2 (the arrow after "Get involved" is read aloud) is a separate pull requ
 
 - `site/public/index.html`: add the keyboard focus override classes to the `<header id="site-nav">` class list, and update the comment above the header to say it also shows while one of its links has keyboard focus.
 - `plans/teaser-header-focus/plan.md`: this plan; tick the steps and set the status to done at the end.
-
 - For issue #52 (see the section at the end): `site/public/index.html` (visible text of the nav link, the section label, one sentence, and one HTML comment) and `plans/open-source-explainer/plan.md` (its recorded copy and a new Decision).
 
-`site/public/assets/css/main.css` is generated and not committed. `site/AGENTS.md` does not describe the header, so it needs no change.
+`site/public/assets/css/main.css` is generated and not committed. `site/AGENTS.md` does not describe the header. For issue #52 it gets the spelling rule, so future copy keeps the hyphen.
 
 ## Steps
 
@@ -57,7 +56,7 @@ Finding 2 (the arrow after "Get involved" is read aloud) is a separate pull requ
 - The theme toggle sits in a separate fixed layer (`z-30`) over the header area. Showing the header must not cover it or change its tab position. The header's right padding already leaves room for it.
 - The skip link (`z-30`, top left) and the header's "OPEN" link share the top left corner. When focus moves from the skip link to "OPEN", the skip link slides away, so they should not overlap. Check it in the drive.
 - `:focus-visible` after scripted focus depends on the last input: Chrome treats `element.focus()` as `:focus-visible` when there has been no pointer input yet, and not after a mouse click. The drive for criterion 5 therefore clicks first, then focuses.
-- What this does not do: it does not change the scroll threshold, the nav links, or finding 2.
+- What this does not do: it does not change the scroll threshold, the nav links, or finding 2. (Issue #52, at the end of this plan, changes one nav link's text.)
 
 ## Proof
 
