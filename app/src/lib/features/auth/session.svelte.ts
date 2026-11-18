@@ -1,0 +1,54 @@
+/**
+ * The session: who is signed in, if anyone. One store for the whole app, filled once
+ * from `GET auth/session` (see `bootstrap()` in services.ts) and kept current by the
+ * auth services.
+ */
+
+/**
+ * - `unknown`: the session has not been read yet. Only before the first load.
+ * - `signed_out`: nobody is signed in.
+ * - `pending_verification`: a sign-up or login is waiting for the player to open the
+ *   link we emailed. They are not signed in yet.
+ * - `signed_in`: signed in, and `email` is the account's address.
+ */
+export type SessionStatus = 'unknown' | 'signed_out' | 'pending_verification' | 'signed_in';
+
+/** What the backend says the session is. `email` is only known when it is signed in. */
+export type SessionState =
+	| { status: 'signed_out' }
+	| { status: 'pending_verification' }
+	| { status: 'signed_in'; email: string };
+
+class Session {
+	status = $state<SessionStatus>('unknown');
+	/**
+	 * Signed in: the account's address. Pending verification: the address the player
+	 * just typed, when this page knows it (a page reload forgets it). Otherwise null.
+	 */
+	email = $state<string | null>(null);
+
+	get isSignedIn(): boolean {
+		return this.status === 'signed_in';
+	}
+
+	/** Take the backend's answer. `typedEmail` is kept while verification is pending. */
+	apply(state: SessionState, typedEmail?: string): void {
+		this.status = state.status;
+		if (state.status === 'signed_in') this.email = state.email;
+		else if (state.status === 'pending_verification') this.email = typedEmail ?? this.email;
+		else this.email = null;
+	}
+
+	/** Forget a pending verification on this device, such as "Use a different email". */
+	clearPending(): void {
+		if (this.status === 'pending_verification') this.apply({ status: 'signed_out' });
+	}
+
+	/** Back to the start. For tests. */
+	reset(): void {
+		this.status = 'unknown';
+		this.email = null;
+	}
+}
+
+export const session = new Session();

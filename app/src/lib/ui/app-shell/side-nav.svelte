@@ -1,11 +1,12 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { ThemeToggle } from '#lib/ui/theme-toggle/index.js';
 	import NavIcon from './nav-icon.svelte';
 	import Wordmark from './wordmark.svelte';
 	import { NAV_ITEMS, isCurrent } from './nav.js';
 
-	let { pathname }: { pathname: string } = $props();
+	let { pathname, account }: { pathname: string; account?: Snippet } = $props();
 </script>
 
 <!-- From 960px. Below that, the top bar and the tab bar take over. -->
@@ -29,8 +30,11 @@
 			{/each}
 		</ul>
 	</nav>
-	<div class="mt-auto flex items-center justify-between text-[13px] text-faint">
-		<span>Theme</span>
-		<ThemeToggle />
+	<div class="mt-auto grid gap-4">
+		{#if account}<div class="flex">{@render account()}</div>{/if}
+		<div class="flex items-center justify-between text-[13px] text-faint">
+			<span>Theme</span>
+			<ThemeToggle />
+		</div>
 	</div>
 </div>

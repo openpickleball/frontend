@@ -76,9 +76,9 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Owns:** `app/src/lib/mocks/**`, `app/src/hooks.client.ts`, `app/src/lib/api/provisional.ts`, `app/src/lib/domain/mappers.ts`.
 
 ### T6 · Auth — frontend#42
-- [ ] `features/auth`: a session store filled from `GET auth/session`, and services for signup, login, logout, verify email, resend, password reset request and reset with key.
-- [ ] Pages at the backend's email paths (`/account/signup`, `/account/verify-email/[key]`, `/account/password/reset`, `/account/password/reset/key/[key]`) plus `/account/login`. A route guard on the signed-in routes.
-- [ ] Every state in `mockups/auth.html`. Component tests and an e2e test of signup → verify → login on mocks.
+- [x] `features/auth`: a session store filled from `GET auth/session`, and services for signup, login, logout, verify email, password reset request and reset with key. There is no resend service: this backend confirms by link and its resend call always answers 409. The "check your email" screen tells players to sign in again, which sends a new link.
+- [x] Pages at the backend's email paths (`/account/signup`, `/account/verify-email/[key]`, `/account/password/reset`, `/account/password/reset/key/[key]`) plus `/account/login`. A route guard on the signed-in routes.
+- [x] Every state in `mockups/auth.html`, adjusted to the real backend (verifying an email or resetting a password does not sign anyone in). Component tests and an e2e test of signup → verify → login on mocks.
 
 ### T9 · Profile and own code — frontend#43
 - [ ] `features/players`: the "my OPEN code" store, filled from `me/player` when it exists (mock) and otherwise from a one-time entry kept in localStorage.

@@ -26,7 +26,9 @@ describe('route stubs', () => {
 
 	for (const [path, heading] of Object.entries(expected)) {
 		it(`${path} has one h1 and a title`, () => {
-			const { body, head } = render(pages[path].default);
+			const { body, head } = render(pages[path].default, {
+				props: { params: { key: 'example-key' } }
+			});
 			expect(body.match(/<h1[\s>]/g)).toHaveLength(1);
 			expect(body).toMatch(new RegExp(`<h1[^>]*>${heading}</h1>`));
 			expect(head).toMatch(/<title>[^<]*OPEN Pickleball<\/title>/);
@@ -35,7 +37,7 @@ describe('route stubs', () => {
 
 	it('keeps copy plain: no em dashes in any page', () => {
 		for (const [path, page] of Object.entries(pages)) {
-			const { body, head } = render(page.default);
+			const { body, head } = render(page.default, { props: { params: { key: 'example-key' } } });
 			expect(body + head, path).not.toContain('\u2014');
 		}
 	});
