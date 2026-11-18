@@ -20,7 +20,7 @@ describe('Scoreboard', () => {
 
 	it('names the winner in words, not only in bold', async () => {
 		const screen = await render(Scoreboard, { match: sampleMatch(), you: TAMSIN });
-		await expect.element(screen.getByText('Won 2-1')).toBeVisible();
+		await expect.element(screen.getByText('Won 2–1')).toBeVisible();
 	});
 
 	it('shows no winner tag while the match has none', async () => {
@@ -45,20 +45,32 @@ describe('MatchRow', () => {
 		await expect
 			.element(link)
 			.toHaveAccessibleName(
-				'14 Nov 2026, Doubles, best of 3. Tamsin Vale (you) and Oren Quill beat Bea Marlowe and Kit Ashdown, 11-7, 9-11, 11-4. Pending.'
+				'14 Nov 2026, Doubles, best of 3. Tamsin Vale (you) and Oren Quill beat Bea Marlowe and Kit Ashdown, 11-7, 9-11, 11-4. Pending. Waiting on a confirmation'
 			);
 		await expect.element(link).toHaveAttribute('href', expect.stringContaining('/matches/M-'));
 	});
 
-	it('only says "waiting for the other team" after the player confirmed here', async () => {
+	it('says "waiting on a confirmation" until the player acts here', async () => {
 		const unknown = await render(MatchRow, { match: sampleMatch(), you: TAMSIN });
 		await expect.element(unknown.getByText(/Waiting for the other team/)).not.toBeInTheDocument();
+		await expect.element(unknown.getByText('Waiting on a confirmation')).toBeVisible();
+	});
+
+	it('says "waiting for the other team" after the player confirmed here', async () => {
 		const confirmed = await render(MatchRow, {
 			match: sampleMatch(),
 			you: TAMSIN,
 			acted: 'confirm'
 		});
 		await expect.element(confirmed.getByText(/Waiting for the other team/)).toBeVisible();
+		await expect.element(confirmed.getByText('Waiting on a confirmation')).not.toBeInTheDocument();
+	});
+
+	it('writes the weekday, and "You" for the player\'s own team', async () => {
+		const screen = await render(MatchRow, { match: sampleMatch(), you: TAMSIN });
+		await expect.element(screen.getByText(/Sat 14 Nov/)).toBeInTheDocument();
+		await expect.element(screen.getByText('You & Oren Quill')).toBeInTheDocument();
+		await expect.element(screen.getByText('Bea Marlowe & Kit Ashdown')).toBeInTheDocument();
 	});
 
 	it('does not say it for a match that already counts', async () => {
@@ -68,5 +80,6 @@ describe('MatchRow', () => {
 			acted: 'confirm'
 		});
 		await expect.element(screen.getByText(/Waiting for the other team/)).not.toBeInTheDocument();
+		await expect.element(screen.getByText('Waiting on a confirmation')).not.toBeInTheDocument();
 	});
 });

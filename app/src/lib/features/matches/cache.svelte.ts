@@ -1,9 +1,18 @@
 import { SvelteMap } from 'svelte/reactivity';
 import type { Match, MatchCode, PlayerCode } from '#lib/domain/index.js';
+import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
 
 /** What the player did to a match in this session. */
 export type MatchAction = 'confirm' | 'dispute';
+
+/**
+ * Who the cache belongs to: the account's email and the player's code together. Two accounts that
+ * enter the same code are still two owners. Null when either is missing, so nothing is cached.
+ */
+export function ownerKey(email: string | null, code: PlayerCode | null): string | null {
+	return email && code ? `${email.toLowerCase()}|${code}` : null;
+}
 
 /**
  * Matches by code, plus what the player did to them in this session.
@@ -13,7 +22,7 @@ export type MatchAction = 'confirm' | 'dispute';
  * Dispute, or recorded the match (recording confirms for the submitter's team). A match that
  * arrives in a list has no entry, and the screens do not guess.
  *
- * The cache belongs to one player. When the signed-in player's code changes, or is gone,
+ * The cache belongs to one account and player (`ownerKey`). When either changes, or is gone,
  * everything in it is dropped, so one account never sees another's matches. Reads are safe in a
  * `$derived` or a template. Writes drop the old player's data first, so they must not run in one.
  */
@@ -21,11 +30,11 @@ export class MatchCache {
 	#matches = new SvelteMap<MatchCode, Match>();
 	#acted = new SvelteMap<MatchCode, MatchAction>();
 	// Reactive, so a read that found nothing (no owner yet) reruns once the first write sets it.
-	#owner = $state<PlayerCode | null>(null);
-	#currentOwner: () => PlayerCode | null;
+	#owner = $state<string | null>(null);
+	#currentOwner: () => string | null;
 
-	/** `currentOwner` is the signed-in player's code. It defaults to the app-wide `myCode`. */
-	constructor(currentOwner: () => PlayerCode | null = () => myCode.code) {
+	/** `currentOwner` says who is signed in. It defaults to the session email and `myCode`. */
+	constructor(currentOwner: () => string | null = () => ownerKey(session.email, myCode.code)) {
 		this.#currentOwner = currentOwner;
 	}
 

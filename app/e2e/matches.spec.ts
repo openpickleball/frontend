@@ -37,19 +37,19 @@ function rowFor(page: Page, code: string) {
 }
 
 test.describe('home', () => {
-	test('lists the matches that need confirming first, then the recent ones', async ({ page }) => {
+	test('lists the pending matches first, then the recent ones', async ({ page }) => {
 		await expect(page).toHaveTitle('OPEN Pickleball');
 		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 		await expect(page.getByRole('link', { name: 'Record a match' })).toBeVisible();
 
-		const needs = page.getByRole('heading', { level: 2, name: 'Needs your confirmation' });
+		const needs = page.getByRole('heading', { level: 2, name: 'Pending matches' });
 		const recent = page.getByRole('heading', { level: 2, name: 'Recent matches' });
 		await expect(needs).toBeVisible();
 		await expect(recent).toBeVisible();
 		const [needsBox, recentBox] = [await needs.boundingBox(), await recent.boundingBox()];
 		expect(needsBox!.y).toBeLessThan(recentBox!.y);
 
-		const needsList = page.getByRole('list', { name: 'Matches that need your confirmation' });
+		const needsList = page.getByRole('list', { name: 'Pending matches' });
 		await expect(needsList.getByTestId('match-row')).toHaveCount(3);
 		await expect(needsList.getByTestId('match-row').first()).toHaveAttribute(
 			'data-status',
@@ -71,7 +71,7 @@ test.describe('home', () => {
 	});
 
 	test('has no WCAG 2.1 AA violations', async ({ page }) => {
-		await expect(page.getByRole('heading', { name: 'Needs your confirmation' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Pending matches' })).toBeVisible();
 		await expectNoAxeViolations(page);
 	});
 });
@@ -153,14 +153,15 @@ test.describe('match detail', () => {
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'pending');
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toHaveCount(0);
 
-		// Back on home, the match no longer asks for her.
+		// Back on home, the match is still pending, and the row says she confirmed it here.
 		await page.locator('#main').getByRole('link', { name: 'Matches', exact: true }).click();
 		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
-		await expect(
-			page
-				.getByRole('list', { name: 'Matches that need your confirmation' })
-				.getByTestId('match-row')
-		).toHaveCount(2);
+		const pending = page.getByRole('list', { name: 'Pending matches' });
+		await expect(pending.getByTestId('match-row')).toHaveCount(3);
+		await expect(rowFor(page, ALREADY_CONFIRMED_BY_ME)).toContainText(
+			'You confirmed this score. Waiting for the other team.'
+		);
+		await expect(rowFor(page, WAITING_ON_ME)).toContainText('Waiting on a confirmation');
 	});
 
 	test('disputes a match through the dialog, with Cancel focused first', async ({ page }) => {

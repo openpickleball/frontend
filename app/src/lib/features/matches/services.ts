@@ -45,14 +45,15 @@ export async function listMatches(
  * Find a match by code. There is no `GET matches/{code}` (backend#194), so this checks the cache,
  * then scans the player's list a page at a time, up to `SCAN_LIMIT` matches. Resolves to null when
  * the match is not one of theirs, or is further back than the scan goes. Throws an `AppError` when
- * the API cannot be reached.
+ * the API cannot be reached. Pass `fresh` to skip the cache and read the list again.
  */
 export async function findMatch(
 	code: MatchCode,
 	player: PlayerCode,
-	{ cache = matchCache }: { cache?: MatchCache } = {}
+	{ cache = matchCache, fresh = false }: { cache?: MatchCache; fresh?: boolean } = {}
 ): Promise<Match | null> {
-	const cached = cache.get(code);
+	// `fresh` skips the cache, to see where a match stands after the API said it changed.
+	const cached = fresh ? undefined : cache.get(code);
 	if (cached) return cached;
 	for (let offset = 0; offset < SCAN_LIMIT; offset += PAGE_SIZE) {
 		const page = await listMatches(player, offset, { cache });

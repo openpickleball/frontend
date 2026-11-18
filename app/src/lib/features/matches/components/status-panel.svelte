@@ -33,7 +33,7 @@
 			case 'confirmed':
 				return {
 					title: 'Confirmed',
-					text: "Players on both teams agreed on this score. It's part of your match history.",
+					text: 'This score is confirmed. It counts in your match history.',
 					actions: false
 				};
 			case 'disputed':
@@ -95,11 +95,14 @@
 		<p class="mt-3 max-w-[56ch] text-[15px] text-danger" role="alert">{error}</p>
 	{/if}
 	{#if panel.actions && isPending(match)}
+		<p class="mt-3 text-[15px] text-muted">Already confirmed? Confirming again changes nothing.</p>
 		<div class="mt-[18px] flex flex-wrap gap-3">
 			<Button onclick={onconfirm} disabled={busy !== null}>
 				{busy === 'confirm' ? 'Confirming…' : 'Confirm score'}
 			</Button>
-			<Button variant="destructive" onclick={ondispute} disabled={busy !== null}>Dispute</Button>
+			<Button id="dispute-button" variant="destructive" onclick={ondispute} disabled={busy !== null}
+				>Dispute</Button
+			>
 		</div>
 	{/if}
 </section>

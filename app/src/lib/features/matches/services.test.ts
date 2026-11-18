@@ -115,6 +115,14 @@ describe('findMatch', () => {
 		expect(calls).toEqual([]);
 	});
 
+	it('reads the list again with `fresh`, even when the cache has the match', async () => {
+		cache.remember(sampleMatch({ code: CONFIRMED, status: 'pending' }));
+		const found = await findMatch(CONFIRMED, TAMSIN, { cache, fresh: true });
+		expect(calls).toHaveLength(1);
+		expect(found?.status).toBe('confirmed');
+		expect(cache.get(CONFIRMED)?.status).toBe('confirmed');
+	});
+
 	it('finds a match on the first page with one request', async () => {
 		const found = await findMatch(CONFIRMED, TAMSIN, { cache });
 		expect(found?.code).toBe(CONFIRMED);

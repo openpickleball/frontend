@@ -12,6 +12,8 @@ import {
 	scoringName,
 	sideScores,
 	teamNames,
+	rowTeamNames,
+	formatShortDate,
 	viewpoint,
 	wonTag
 } from './format.js';
@@ -19,6 +21,7 @@ import {
 	BEA,
 	TAMSIN,
 	bea,
+	kit,
 	games,
 	oren,
 	privatePlayer,
@@ -70,8 +73,8 @@ describe('per-side helpers', () => {
 	});
 
 	it('tags the winner with the games won and lost', () => {
-		expect(wonTag(match, 'a')).toBe('Won 2-1');
-		expect(wonTag(match, 'b')).toBe('Won 1-2');
+		expect(wonTag(match, 'a')).toBe('Won 2–1');
+		expect(wonTag(match, 'b')).toBe('Won 1–2');
 	});
 });
 
@@ -153,5 +156,20 @@ describe('rowLabel and viewpoint', () => {
 
 	it('falls back to team A for someone who did not play', () => {
 		expect(viewpoint(sampleMatch(), null)).toBe('a');
+	});
+});
+
+describe('rowTeamNames', () => {
+	it('writes "You" for the player and joins with an ampersand, as the mockups do', () => {
+		expect(rowTeamNames(team('a', tamsin, oren), TAMSIN)).toBe('You & Oren Quill');
+		expect(rowTeamNames(team('b', bea, kit), TAMSIN)).toBe('Bea Marlowe & Kit Ashdown');
+		expect(rowTeamNames(team('b', bea), null)).toBe('Bea Marlowe');
+	});
+});
+
+describe('formatShortDate', () => {
+	it('has the weekday and no year', () => {
+		expect(formatShortDate('2026-11-14')).toBe('Sat 14 Nov');
+		expect(formatShortDate('nope')).toBe('nope');
 	});
 });

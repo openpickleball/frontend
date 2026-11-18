@@ -13,6 +13,9 @@ describe('StatusPanel', () => {
 			await expect
 				.element(screen.getByRole('heading', { name: 'Is this the right score?' }))
 				.toBeVisible();
+			await expect
+				.element(screen.getByText('Already confirmed? Confirming again changes nothing.'))
+				.toBeVisible();
 			await screen.getByRole('button', { name: 'Confirm score' }).click();
 			expect(h.onconfirm).toHaveBeenCalledOnce();
 			await screen.getByRole('button', { name: 'Dispute' }).click();
@@ -97,7 +100,7 @@ describe('StatusPanel', () => {
 	});
 
 	for (const [status, title, text] of [
-		['confirmed', 'Confirmed', /Players on both teams agreed/],
+		['confirmed', 'Confirmed', /This score is confirmed\. It counts in your match history/],
 		['disputed', 'Disputed', /No one can confirm it while it is disputed/],
 		['voided', 'Voided', /This match was voided/]
 	] as const) {

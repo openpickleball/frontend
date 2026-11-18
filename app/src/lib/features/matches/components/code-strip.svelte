@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import type { PlayerCode } from '#lib/domain/index.js';
+	import CopyIcon from '@lucide/svelte/icons/copy';
 	import { Button } from '#lib/ui/button/index.js';
 
 	let { code }: { code: PlayerCode } = $props();
@@ -25,5 +26,8 @@
 			>{code}</span
 		>
 	</p>
-	<Button variant="outline" size="sm" onclick={copy}>Copy code</Button>
+	<Button variant="outline" size="sm" onclick={copy}>
+		<CopyIcon aria-hidden="true" />
+		Copy code
+	</Button>
 </div>

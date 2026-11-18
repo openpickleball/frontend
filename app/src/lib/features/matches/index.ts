@@ -28,7 +28,7 @@
  * - `format.ts` helpers (`scoreLine`, `teamNames`, `formatDate`, ...) are exported for other
  *   screens that show a match.
  */
-export { MatchCache, matchCache, type MatchAction } from './cache.svelte.js';
+export { MatchCache, matchCache, ownerKey, type MatchAction } from './cache.svelte.js';
 export {
 	PAGE_SIZE,
 	SCAN_LIMIT,

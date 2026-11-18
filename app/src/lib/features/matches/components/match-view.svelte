@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, tick, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import { resolve } from '$app/paths';
 	import { isAppError } from '#lib/api/index.js';
 	import { parseMatchCode } from '#lib/domain/index.js';
@@ -29,6 +30,7 @@
 	const parsed = $derived(parseMatchCode(raw));
 	const code = $derived(parsed.ok ? parsed.value : null);
 	const match = $derived(code ? matchCache.get(code) : undefined);
+	const title = $derived(code ? `Match ${code} · OPEN Pickleball` : 'Match · OPEN Pickleball');
 	const acted = $derived(code ? matchCache.actedOn(code) : undefined);
 
 	// Looking the match up. The cache answers when the player came from a list. A deep link has to
@@ -63,7 +65,7 @@
 	function problem(cause: unknown, action: MatchAction): string {
 		if (isAppError(cause)) {
 			if (cause.kind === 'conflict') {
-				return "This match can't be changed any more. Reload the page to see where it stands.";
+				return "This match can't be changed any more. Check where it stands, then try again.";
 			}
 			if (cause.kind === 'not_found' || cause.kind === 'forbidden') {
 				return 'You can only confirm or dispute a match you played in.';
@@ -75,20 +77,39 @@
 			: "We couldn't dispute the score. Try again.";
 	}
 
-	/** After the buttons go away, put focus on the new status so it is read out. */
-	async function focusStatus() {
+	/** Move focus to an element once the dispute dialog is gone, because the dialog traps focus. */
+	async function focusAfterDialog(id: string) {
 		await tick();
 		// A dialog that is closing still traps focus, so wait until it is gone (about a second at most).
 		for (let frame = 0; frame < 60 && document.querySelector('[role="alertdialog"]'); frame++) {
 			await new Promise((done) => requestAnimationFrame(() => done(null)));
 		}
-		document.getElementById('status-heading')?.focus();
+		document.getElementById(id)?.focus();
+	}
+
+	/**
+	 * The API said the match can't take this action, so the page is out of date. Read the match
+	 * again, skipping the cache, and show where it stands. Returns false when that did not work.
+	 */
+	async function refresh(): Promise<boolean> {
+		const you = myCode.code;
+		if (!code || !you) return false;
+		try {
+			const found = await findMatch(code, you, { fresh: true });
+			if (!found) return false;
+			toast('This match changed. Here is where it stands.');
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	async function act(action: MatchAction) {
 		if (!code || busy) return;
 		busy = action;
 		error = null;
+		// Where focus goes once the buttons are enabled again. A disabled button can't take focus.
+		let focusId = 'status-heading';
 		try {
 			if (action === 'confirm') {
 				const updated = await confirmMatch(code);
@@ -101,21 +122,29 @@
 				await disputeMatch(code);
 				toast('Score disputed');
 			}
-			await focusStatus();
 		} catch (cause) {
-			error = problem(cause, action);
+			if (!(isAppError(cause) && cause.kind === 'conflict' && (await refresh()))) {
+				error = problem(cause, action);
+				// The dialog closed on Dispute and the button is still here, so put focus back on it.
+				focusId = action === 'dispute' ? 'dispute-button' : '';
+			}
 		} finally {
 			busy = null;
 		}
+		if (focusId) await focusAfterDialog(focusId);
 	}
 </script>
+
+<svelte:head>
+	<title>{title}</title>
+</svelte:head>
 
 {#if match && myCode.code}
 	{@const you = myCode.code}
 	<a
 		href={resolve('/matches')}
-		class="mt-2 inline-block text-[15px] text-muted underline underline-offset-4 hover:text-secondary"
-		>Matches</a
+		class="mt-2 inline-flex items-center gap-2.5 text-[15px] text-muted underline underline-offset-4 hover:text-secondary"
+		><ArrowLeftIcon class="size-4" aria-hidden="true" />Matches</a
 	>
 	<div class="pt-4">
 		<p class="label">{formatLongDate(match.playedOn)}</p>
@@ -176,8 +205,8 @@
 	<h1 class="page-title">We couldn't find this match</h1>
 	<div class="mt-4 grid max-w-[46ch] justify-items-start gap-5">
 		<p class="text-muted">
-			It may not be one of yours, or the link may be wrong. Matches you played in are in your
-			history.
+			It may not be one of yours, the link may be wrong, or it's older than your last 100 matches.
+			Matches you played in are in your history.
 		</p>
 		<Button href={resolve('/matches')} variant="outline">Matches</Button>
 	</div>

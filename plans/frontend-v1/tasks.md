@@ -95,7 +95,8 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Overrides the mockups** (plan.md Q1, Q4): a match the user just submitted waits only on the other team, so the "recorded" state in `match.html` must not ask the submitter to confirm; no offline queue (frontend#33).
 - [x] `features/matches`: list service with "load more", and a cache by code.
 - [x] Home (needs confirmation first, then recent), `/matches` paged per `mockups/history.html`, `/matches/[code]` per `mockups/match.html`. Cold deep links fall back to scanning the user's list.
-- [x] Confirm, and dispute through an AlertDialog (its content is already a bottom sheet under 640px). Empty and error states.
+- [x] Confirm, and dispute through an AlertDialog (a Sheet on mobile). Empty and error states.
+  - Note: a single AlertDialog meets "a Sheet on mobile". Its content is a bottom sheet under 640px and a centered dialog above, so one component serves both and keeps the alert dialog's focus and Escape behavior.
 
 ### T10 · PWA shell — frontend#46
 - [ ] `manifest.webmanifest` and icons rendered from the favicon (192, 512, 512 maskable).

@@ -5,11 +5,11 @@
 	import type { MatchAction } from '../cache.svelte.js';
 	import {
 		STATUS_LABELS,
-		formatDate,
 		formatName,
+		formatShortDate,
 		rowLabel,
+		rowTeamNames,
 		sideScores,
-		teamNames,
 		viewpoint
 	} from '../format.js';
 
@@ -29,17 +29,20 @@
 	const rows = $derived(
 		(mine === 'a' ? (['a', 'b'] as const) : (['b', 'a'] as const)).map((side) => ({
 			side,
-			names: teamNames(side === 'a' ? match.teamA : match.teamB),
+			names: rowTeamNames(side === 'a' ? match.teamA : match.teamB, you),
 			scores: sideScores(match, side),
 			won: winner(match) === side
 		}))
 	);
 	const games = $derived(match.games.length === 1 ? '1 game' : `${match.games.length} games`);
-	const note = $derived(
-		isPending(match) && myTeam(match, you) && acted === 'confirm'
+	// The API cannot say whether the player already confirmed (backend#193), so before they act in
+	// this session the row only says the match is waiting on a confirmation.
+	const note = $derived.by(() => {
+		if (!isPending(match) || !myTeam(match, you)) return null;
+		return acted === 'confirm'
 			? 'You confirmed this score. Waiting for the other team.'
-			: null
-	);
+			: 'Waiting on a confirmation';
+	});
 </script>
 
 <a
@@ -54,7 +57,7 @@
 		class="mb-2.5 flex items-center justify-between gap-3 text-[14px] text-muted"
 		aria-hidden="true"
 	>
-		<span>{formatDate(match.playedOn)} · {formatName(match.format)}, {games}</span>
+		<span>{formatShortDate(match.playedOn)} · {formatName(match.format)}, {games}</span>
 		<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
 	</div>
 	<div

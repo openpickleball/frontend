@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlayerCode } from '#lib/domain/index.js';
-import { MatchCache } from './cache.svelte.js';
+import { MatchCache, ownerKey } from './cache.svelte.js';
 import { BEA, TAMSIN, sampleMatch } from './testing.js';
 
 function cacheFor(initial: PlayerCode | null) {
@@ -80,6 +80,31 @@ describe('MatchCache', () => {
 		expect(cache.get(match.code)).toBeUndefined();
 		cache.reset();
 		signInAs(TAMSIN);
+		expect(cache.get(match.code)).toBeUndefined();
+	});
+});
+
+describe('ownerKey', () => {
+	it('is the account and the code together, so one code under two accounts is two owners', () => {
+		expect(ownerKey('a@example.com', TAMSIN)).not.toBe(ownerKey('b@example.com', TAMSIN));
+		expect(ownerKey('A@Example.com', TAMSIN)).toBe(ownerKey('a@example.com', TAMSIN));
+	});
+
+	it('is null when the email or the code is missing', () => {
+		expect(ownerKey(null, TAMSIN)).toBeNull();
+		expect(ownerKey('a@example.com', null)).toBeNull();
+	});
+
+	it('empties the cache when only the account changes and the code stays', () => {
+		let email: string | null = 'a@example.com';
+		const cache = new MatchCache(() => ownerKey(email, TAMSIN));
+		const match = sampleMatch();
+		cache.remember(match);
+		expect(cache.get(match.code)).toBe(match);
+		email = 'b@example.com';
+		expect(cache.get(match.code)).toBeUndefined();
+		cache.remember(sampleMatch({ status: 'confirmed' }));
+		email = 'a@example.com';
 		expect(cache.get(match.code)).toBeUndefined();
 	});
 });

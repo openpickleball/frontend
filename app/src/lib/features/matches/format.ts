@@ -49,6 +49,13 @@ export function formatDate(playedOn: string): string {
 	return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()].slice(0, 3)} ${date.getUTCFullYear()}`;
 }
 
+/** "Sat 14 Nov", for list rows. Falls back to the text it was given. */
+export function formatShortDate(playedOn: string): string {
+	const date = parseDay(playedOn);
+	if (!date) return playedOn;
+	return `${WEEKDAYS[date.getUTCDay()].slice(0, 3)} ${date.getUTCDate()} ${MONTHS[date.getUTCMonth()].slice(0, 3)}`;
+}
+
 /** "Saturday 14 November 2026". */
 export function formatLongDate(playedOn: string): string {
 	const date = parseDay(playedOn);
@@ -78,10 +85,10 @@ export function sideScores(
 	}));
 }
 
-/** "Won 2-1": the games `side` won, then the games it lost. */
+/** "Won 2–1" (with an en dash): the games `side` won, then the games it lost. */
 export function wonTag(match: Pick<Match, 'games'>, side: Side): string {
 	const won = gamesWon(match);
-	return side === 'a' ? `Won ${won.a}-${won.b}` : `Won ${won.b}-${won.a}`;
+	return side === 'a' ? `Won ${won.a}–${won.b}` : `Won ${won.b}–${won.a}`;
 }
 
 /**
@@ -94,6 +101,14 @@ export function teamNames(team: Team, you?: PlayerCode | null): string {
 	);
 	if (names.length <= 2) return names.join(' and ');
 	return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+}
+
+/** Team names for a list row, as in the mockups: "You & Oren Quill" and "Bea Marlowe & Kit Ashdown". */
+export function rowTeamNames(team: Team, you: PlayerCode | null): string {
+	const names = team.players.map((player) =>
+		you && player.code === you ? 'You' : player.displayName
+	);
+	return names.join(' & ');
 }
 
 export function formatName(format: Match['format']): string {

@@ -27,11 +27,26 @@
 		return target <= 1 ? resolve('/matches') : `${resolve('/matches')}?page=${target}`;
 	}
 
+	// The title changes with the page, so a screen reader hears that a new page loaded. The total is
+	// known once a page has loaded.
+	const totalPages = $derived(
+		view.status === 'ready' && view.count > 0 ? Math.ceil(view.count / PAGE_SIZE) : null
+	);
+	const title = $derived(
+		totalPages === null
+			? `Matches, page ${page} · OPEN Pickleball`
+			: `Matches, page ${page} of ${totalPages} · OPEN Pickleball`
+	);
+
 	const hasNewer = $derived(view.offset > 0);
 	const hasOlder = $derived(view.offset + view.items.length < view.count);
 	const newerPage = $derived(Math.floor(view.offset / PAGE_SIZE));
 	const olderPage = $derived(Math.floor(view.offset / PAGE_SIZE) + 2);
 </script>
+
+<svelte:head>
+	<title>{title}</title>
+</svelte:head>
 
 <h1 class="page-title">Matches</h1>
 
