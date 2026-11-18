@@ -1,6 +1,6 @@
 # Design language audit
 
-Paths are relative to `/Users/carlo/OpenPB/frontend`. `css:N` = `site/src/input.css`, `idx:N` = `site/public/index.html`.
+Paths are relative to the frontend repo root. `css:N` = `site/src/input.css`, `idx:N` = `site/public/index.html`.
 
 ## Summary
 
@@ -140,7 +140,7 @@ Verdict: one language. `/about/` has no UI of its own anymore (it redirects to `
 
 | Path | Why it is stale | Suggested action |
 |---|---|---|
-| `plans/consolidate-repos/plan.md` | Status `active`, and the Goal says the pages "keep their own design languages" and that "Learn more" goes to `/about/`. Steps and decisions describe `about/` as a live page with its own CSS (last decision line), which `plans/about-redesign` removed. 3 admin items are still unchecked (required checks, custom domain, post-deploy check), and the `www.openpb.org` custom domain was already switched to the bare domain in commit `ae39c50`. | Rewrite the Goal and decisions for one page. Verify the open items, then set `done`. |
+| `plans/consolidate-repos/plan.md` | Status `active`, and the Goal says the pages "keep their own design languages" and that "Learn more" goes to `/about/`. Steps and decisions describe `about/` as a live page with its own CSS (last decision line), which `plans/about-redesign` removed. 3 admin items are still unchecked (required checks, custom domain, post-deploy check), and the `www.openpb.org` custom domain was already switched to the bare domain in commit `ae39c50` (not done yet: Pages still uses www.openpb.org; see consolidate-repos). | Rewrite the Goal and decisions for one page. Verify the open items, then set `done`. |
 | `plans/app-migration/plan.md:7` | Says the static pages are "the teaser at `/` and the about page at `/about/`". The about page is merged into `/`. | Edit the goal to one home page with a redirect stub. |
 | `plans/teaser-content/plan.md` | `done`, but the Tailwind block shows the old four-token dark-only `@theme`. It also keeps footer-on-image decisions that were removed, and the Life Time LT Pro 48 and patent note, which you may not want in the repo. | Add a "superseded by `site/src/input.css`" note, and drop or move the footer-on-image decisions and the patent line. |
 | `plans/site-content-v2/plan.md` | Step 3 describes `data-tally-open`, `data-tally-layout` attributes. The shipped code uses `data-tally-form` with `Tally.openPopup` (`idx:290, 399-405`). It also says "standard external rating systems" and mentions the engine. | Correct step 3, and re-check the external-name wording against the commit that removed DUPR mentions (`3ce4569`). |
@@ -160,8 +160,8 @@ Verdict: one language. `/about/` has no UI of its own anymore (it redirects to `
 | `site/AGENTS.md:3` | Calls the site "temporary", and the `design/tools/export-logo.py` reference is correct. No stale facts found. | None. |
 | `site/public/about/index.html` | Redirect stub kept for old links, which is useful until the domain has no inbound `/about/` links. | Keep. Add a `<link rel="icon">` and fonts only if you care about the flash. |
 | `.claude/worktrees/*` (3 git worktrees: `browser-tab-title-2ce835`, `open-tagline-redundancy-953a64`, `transparent-copy`) | Ignored by `.gitignore` but still registered with `git worktree list`. They are copies of the repo, including `design/about.html`, and they will show up in greps. | Prune with `git worktree remove` once the branches are merged. |
-| `/Users/carlo/OpenPB/open-ui` | Archived (README says so). HEAD is `e3ef0cc` (2026-11-10), with the remote `main` in sync. Nothing is newer than `frontend`: the only files that exist only there are the ignored generated `main.css` and `app/.vscode/` (deliberately not imported). It also has a local `.claude/worktrees/agent-tooling-6d5bd0`. | Safe to delete locally after confirming the GitHub repo is archived. |
-| `/Users/carlo/OpenPB/brand-assets` | `git init` only: no commits, empty working tree, branch `main`. There are no logos, colors or fonts in it. | Either populate it or remove it. The real brand assets are in `site/public/assets/` and `design/`. |
+| `../open-ui` | Archived (README says so). HEAD is `e3ef0cc` (2026-11-10), with the remote `main` in sync. Nothing is newer than `frontend`: the only files that exist only there are the ignored generated `main.css` and `app/.vscode/` (deliberately not imported). It also has a local `.claude/worktrees/agent-tooling-6d5bd0`. | Safe to delete locally after confirming the GitHub repo is archived. |
+| `../brand-assets` | `git init` only: no commits, empty working tree, branch `main`. There are no logos, colors or fonts in it. | Either populate it or remove it. The real brand assets are in `site/public/assets/` and `design/`. |
 
 ---
 

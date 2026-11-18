@@ -1,6 +1,8 @@
 # Frontend v1 proposal
 
-**Status:** proposed, awaiting owner sign-off · 17 Nov 2026
+**Status:** approved 2026-11-17
+
+> Owner answers in `plan.md` override this doc. The offline queue (Q1) is deferred to frontend#33.
 
 Inputs: `plan.md`, `research/backend-api.md`, `research/design.md`, `research/app-and-ci.md`, `plans/frontend-stack/decision.md`, frontend#22, backend source on `main`. Library versions were checked with `npm view` on 17 Nov 2026.
 
@@ -12,7 +14,7 @@ Scope:
 - **Record a match:** singles or doubles, teams entered as OPEN codes, 1 to 5 games, client-side score rules that mirror the backend, then `POST /matches/`.
 - **My matches:** a paged list from `GET /players/{code}/matches`, match detail built from list data, and confirm or dispute.
 - **Profile and ratings against mocks:** `me/player` (backend#124) and ratings (backend#53) don't exist yet. We build the screens against MSW handlers that only run in mock mode. With the real backend they show "Coming soon".
-- **Installable PWA:** a manifest, a service worker that caches the app shell, and the site's design tokens and theme toggle. The offline match queue comes last in v1 if the owner agrees (Q1).
+- **Installable PWA:** a manifest, a service worker that caches the app shell, and the site's design tokens and theme toggle. The offline match queue was proposed as the last v1 item (Q1), and is deferred to frontend#33.
 
 ### Decisions at a glance
 
@@ -25,7 +27,7 @@ Scope:
 | 5 | Data and rendering | SPA: `adapter-static` with a fallback page, `ssr = false`. Load functions plus small runes stores. No TanStack Query yet | n |
 | 6 | Validation and forms | Zod 4 for form input and domain rules. Plain runes forms, no Superforms | n |
 | 7 | Mocking | MSW 3 + openapi-msw. Modes `off`, `missing` and `all`. The same handlers serve tests, demos and missing endpoints | n |
-| 8 | PWA | SvelteKit's built-in service worker and a static manifest. API is network-only. Offline queue last in v1 | y (Q1) |
+| 8 | PWA | SvelteKit's built-in service worker and a static manifest. API is network-only. Offline queue (deferred to frontend#33) | y (Q1) |
 | 9 | Testing | Vitest for unit tests, Vitest browser mode for components, Playwright at phone size against MSW, axe in e2e | n |
 | 10 | CI hardening | Concurrency, timeouts, fail on warnings, e2e job, coverage, schema drift check. Two settings need an admin | y (Q5) |
 | 11 | Cleanup | One housekeeping PR: stale plans, `design/` prototypes, the old app favicon, launch.json | n |
@@ -46,7 +48,7 @@ Scope:
 | Match detail | **Build now** | from list data | Cached by code from the list and from mutation responses. A cold deep link scans my list (up to 100) and otherwise shows "not found" |
 | Confirm / dispute | **Build now** | `/confirm`, `/dispute` | Dispute asks first in an alert dialog. Repeats do nothing on the backend, so the buttons show on every pending match |
 | Another player's confirmed matches | **Build now** | same list endpoint | Page `/players/{code}`. Their name comes from the participant data. Private players return 404, and we show "not available" |
-| Offline match queue | **Build now (last)** | `POST /matches/` | Q1. IndexedDB, flushed when the app opens and on `online` |
+| Offline match queue | **Deferred to frontend#33** (was: build last) | `POST /matches/` | Q1. IndexedDB, flushed when the app opens and on `online` |
 | Create/view my Player profile, onboarding | **Build against mock** | backend#124 `POST/GET/PATCH /me/player` | Without it a new account can't submit matches (403) |
 | Public player profile header | **Build against mock** | backend#124 `GET /players/{code}` | |
 | Ratings card and history | **Build against mock** | backend#53 (needs #45) | Labeled as demonstration ratings, as #53 requires. Real mode shows "Coming soon" |
@@ -80,7 +82,7 @@ src/lib/
     auth/       session.svelte.ts, services (allauth calls), components (LoginForm…), index.ts
     matches/    services, matches.svelte.ts (cache by code), components (MatchCard, ScoreEntry…), index.ts
     players/    profile + ratings (mock-backed), index.ts
-    offline/    queue (IndexedDB), index.ts
+    offline/    queue (IndexedDB), index.ts   # (deferred to frontend#33), not built in v1
   ui/           shadcn-copied primitives, layout pieces, theme toggle, cn()
   mocks/        MSW handlers, fixtures (made-up), browser.ts / node.ts setup
 routes/         thin: load functions call feature services, pages compose feature and ui components
@@ -127,7 +129,7 @@ type AppError = {
 
   - **Ninja errors** are `{code, message, errors[{field, code, message}]}`. We strip the `body.` prefix from `field`. A 403 whose message names CSRF becomes `csrf`, and we retry it once after refetching the token.
   - **allauth errors** are `{status, errors[{code, param, message}]}`, or a 401 with `data.flows`. A 401 with flows is handed back as session state, not shown as an error.
-  - **Non-JSON responses** (a 405 in plain text, Django's HTML 404, a 500) become `server` or `not_found` with a generic message. A `fetch` rejection becomes `network`, which the offline queue keys on.
+  - **Non-JSON responses** (a 405 in plain text, Django's HTML 404, a 500) become `server` or `not_found` with a generic message. A `fetch` rejection becomes `network`, which the offline queue keys on (deferred to frontend#33).
 - **CSRF:** at startup, `GET /_allauth/browser/v1/config` sets the `csrftoken` cookie (we confirm this in the first auth task). Middleware on both clients copies the cookie into `X-CSRFToken` on POST, PATCH and DELETE. The cookie name is a constant, because backend#102 may add a `__Host-` prefix. The Vite proxy for `/api` and `/_allauth` → `127.0.0.1:8000` keeps `changeOrigin: false`. The `Host` header then stays `localhost:5173` and matches `Origin`, so Django's origin check passes without `CSRF_TRUSTED_ORIGINS`. The backend `.env` needs `FRONTEND_URL=http://localhost:5173`.
 
 ## 5. Data fetching and rendering
@@ -165,7 +167,7 @@ type AppError = {
 
 - **Manifest:** name and short name "OPEN", `display: standalone`, `start_url` and `scope` `/`, and black theme and background colors (the dark base). Icons are 192, 512 and 512 maskable. `brand-assets` is empty, so we render the icons from `site/public/assets/img/favicon.svg` with `design/tools/export-logo.py`. `app.html` gets the theme-color metas and the no-flash theme script.
 - **Service worker:** scope `/`. It precaches `$service-worker` `build` and `files` under a cache keyed by `version`. Navigations fall back to the cached `index.html`. `/api/` and `/_allauth/` are network-only: we never cache authenticated responses. An "Update available" toast prompts `skipWaiting`. The worker isn't registered in MSW modes.
-- **Offline match queue (Q1):** a submission that fails with `network` is stored in IndexedDB through `idb-keyval` 6.3. The app retries it when it opens, on `online`, and when the user taps "Retry". iOS has no Background Sync, as frontend#22 notes.
+- **Offline match queue (Q1), (deferred to frontend#33); not built in v1. Design kept for reference:** a submission that fails with `network` is stored in IndexedDB through `idb-keyval` 6.3. The app retries it when it opens, on `online`, and when the user taps "Retry". iOS has no Background Sync, as frontend#22 notes.
   - A 409 `duplicate_match` naming the player's own match counts as sent.
   - A 401 keeps the item and asks the player to log in.
   - A 422 moves the item to "Needs fixing".
@@ -177,8 +179,8 @@ type AppError = {
 | --- | --- | --- |
 | Unit | Vitest 5.1 (node) | domain rules, code parsing, mappers, `toAppError`, queue logic (with `fake-indexeddb` if needed) |
 | Component | Vitest browser mode: `@vitest/browser-playwright` 5.1 + `vitest-browser-svelte` 3.1, Chromium | forms, score entry, dialogs. Bits UI needs real focus and pointer events, which jsdom fakes badly |
-| E2E | `@playwright/test` 1.65, projects for Pixel 7 (Chromium, required) and iPhone 15 (WebKit, local or nightly) | auth flows, record → confirm, list paging, theme, offline queue. Runs against `vite build` + `preview` with `PUBLIC_API_MOCK=all` |
-| PWA | Playwright, real service worker build, `page.route` for the API | installability (manifest), offline shell, queue flush |
+| E2E | `@playwright/test` 1.65, projects for Pixel 7 (Chromium, required) and iPhone 15 (WebKit, local or nightly) | auth flows, record → confirm, list paging, theme (offline queue e2e (deferred to frontend#33)). Runs against `vite build` + `preview` with `PUBLIC_API_MOCK=all` |
+| PWA | Playwright, real service worker build, `page.route` for the API | installability (manifest), offline shell (queue flush (deferred to frontend#33)) |
 | Live | `pnpm e2e:live`, local only | one happy path against the real local backend with a seeded login. Not in CI, because CI has no backend |
 | A11y | `@axe-core/playwright` 4.14 on every e2e page, `svelte-check --fail-on-warnings` | WCAG 2.1 AA, with no exemptions unless they're written down |
 
@@ -235,7 +237,7 @@ The starter files (`+page.svelte`, `layout.css`, `app.html`, `adapter-auto`) are
 
 **Frontend (`openpickleball/frontend`):**
 
-- **F1** Offline match queue, if Q1 = defer.
+- **F1** Offline match queue: filed as frontend#33 (Q1 = defer).
 - **F2** Revisit SSR (adapter-node) for public profile and leaderboard pages once #124 and #53 ship and a host is chosen.
 - **F3** Swap the mocks for real endpoints when #124 and #53 land: regenerate the schema, delete `provisional.ts`.
 - **F4** Keep `tailwindcss` in step across `app/` and `site/` in Dependabot (one group across directories, or a CI check that the versions match).
@@ -243,7 +245,7 @@ The starter files (`+page.svelte`, `layout.css`, `app.html`, `adapter-auto`) are
 
 ## 13. Open questions for the owner
 
-1. **Offline match queue:** build it last in v1, or defer it to F1? (*v1* / *defer*). Recommended: **v1**.
+1. **Offline match queue:** build it last in v1, or defer it to F1? (*v1* / *defer*). Recommended: **v1**. Answered: defer, frontend#33.
 2. **Ratings against the real backend:** "Coming soon" card, or hide it entirely? (*card* / *hide*). Recommended: **card**.
 3. **Until backend#124:** have players type their own OPEN code once (stored on the device) so "my matches" works? (*yes* / *no*). Recommended: **yes**.
 4. **After submitting a match:** should the app confirm for the submitter's team automatically? (*yes* / *no*). Recommended: **yes**, with "you're confirming this score" shown on the submit button.

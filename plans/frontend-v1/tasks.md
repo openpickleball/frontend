@@ -30,7 +30,7 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - [x] Cleanup per `proposal.md` §11: replace `app/src/lib/assets/favicon.svg` with the site favicon. Delete `design/content-v2.html`, `design/shared.css` and `design/marks.html`. Update the stale plans (`consolidate-repos`, `app-migration`, `frontend-stack`, `about-redesign`, `teaser-content`, `site-content-v2`). Rename `teaser` to `site` in `.claude/launch.json` if that file is tracked.
 - [x] `ci-app.yml`: `concurrency` that cancels in-progress PR runs, `timeout-minutes: 15`, and `svelte-check --fail-on-warnings` (through `pnpm check` or a CI flag).
 - **Owns:** `plans/**`, `design/**`, `.github/workflows/ci-app.yml`, `app/src/lib/assets/favicon.svg`.
-- **Accept:** CI is green. No reference to the deleted files remains (grep).
+- **Accept:** CI is green. No live link or instruction points at a deleted file.
 
 ### T1 · App shell and design system — `feat/v1-app-shell`
 - [ ] SPA mode: `@sveltejs/adapter-static` with `fallback: 'index.html'`, and `ssr = false` in the root `+layout.ts`.
@@ -83,11 +83,13 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - [ ] The one-time code entry prompt, shown when signed in with no code.
 
 ### T7 · Record a match — `feat/v1-record-match`
+- **Overrides the mockups** (plan.md Q1, Q4): the record button says the player is confirming the score; after submit the match waits only on the other team (the "recorded" state in `match.html` must not ask the submitter to confirm); no offline queue (frontend#33).
 - [ ] `/record` per `mockups/record.html`: singles or doubles, players entered by code as chips (the user's own code prefilled), date, game settings, add and remove games, and inline validation from T2.
 - [ ] Submit → `POST /matches/` → confirm for the user's own team (Q4) → match detail with a toast. The button says the user is confirming the score.
 - [ ] 422 errors mapped onto their fields, and a 409 duplicate linked to the existing match. Offline shows an error (no queue, Q1).
 
 ### T8 · My matches, detail, confirm and dispute — `feat/v1-matches`
+- **Overrides the mockups** (plan.md Q1, Q4): a match the user just submitted waits only on the other team, so the "recorded" state in `match.html` must not ask the submitter to confirm; no offline queue (frontend#33).
 - [ ] `features/matches`: list service with "load more", and a cache by code.
 - [ ] Home (needs confirmation first, then recent), `/matches` paged per `mockups/history.html`, `/matches/[code]` per `mockups/match.html`. Cold deep links fall back to scanning the user's list.
 - [ ] Confirm, and dispute through an AlertDialog (a Sheet on mobile). Empty and error states.
@@ -103,4 +105,4 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 
 ## Blockers
 
-- **Schema snapshot (T3):** exporting the backend's OpenAPI schema needs Python 3.13 and the backend's dependencies. `uv` isn't installed on the dev machine. Options: the owner installs `uv` (`brew install uv`), or T3 hand-writes provisional types and the snapshot comes later.
+- **Schema snapshot (T3):** cleared. `uv` is installed (0.13.9). T3 runs `uv sync` in `../backend` and exports the schema with ninja's `export_openapi_schema` or from a local `runserver`.

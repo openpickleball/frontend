@@ -1,6 +1,6 @@
 # Backend API research (as of 2026-11-17, backend `main`)
 
-Source: `/Users/carlo/OpenPB/backend` (read-only). Paths below are relative to it.
+Source: `../backend` (read-only). Paths below are relative to it.
 
 ## Summary
 

@@ -21,7 +21,7 @@
 
 ## Decisions
 
-- The canonical domain is the bare openpb.org, because it is shorter and reads better in link previews. It is the custom domain under Settings → Pages, so GitHub redirects www.openpb.org to it. www was the custom domain before the switch.
+- The canonical domain will be the bare openpb.org, because it is shorter and reads better in link previews. Once it is the custom domain under Settings → Pages, GitHub redirects www.openpb.org to it. Switching the custom domain is the step above; www is still the custom domain today.
 - The old page lived at `/about/`. Its content now sits under the teaser on `/`, and `/about/` redirects to `/#about` (see `plans/about-redesign/`).
 - `.vscode/` stays ignored, so open-ui's `app/.vscode/` settings were not brought over.
 - The teaser's GitHub link points to `openpickleball/frontend`. It doubles as the visible source link the AGPL requires on the home page.

@@ -4,7 +4,7 @@
 
 ## Decision
 
-SvelteKit, shipped as a responsive web app that works as an installable PWA. Capacitor is deferred and Expo is not planned. The project owner settled this on 2026-11-17, and `plans/frontend-v1/` builds it. The sections below are the analysis behind it.
+SvelteKit, shipped as a responsive web app that works as an installable PWA. Capacitor first if app stores are needed; Expo only if a fully native app is needed. Neither is in v1. The project owner settled this on 2026-11-17, and `plans/frontend-v1/` builds it. The sections below are the analysis behind it.
 
 ## Recommendation
 
@@ -144,10 +144,10 @@ Mobile code reuse depends less on the UI framework than on how we structure the 
 
 Answered on 2026-11-17 (see `plans/frontend-v1/plan.md`):
 
-1. No store deadline. Capacitor and app stores are out of scope for v1 and deferred.
-2. The v1 frontend is built by a few core developers working with coding agents. Contributor pool did not outweigh speed and simplicity.
-3. The backend is Python (Django with django-ninja), so there is no code to share with it. The frontend generates a typed client from its OpenAPI schema.
-4. No phone-only features are needed for v1. Offline score queueing is deferred to a follow-up issue.
+1. Capacitor and app-store builds are out of scope for v1; the frontend is SvelteKit + PWA. No store date was given.
+2. Not answered; didn't change the decision.
+3. Not answered directly. The backend research (`plans/frontend-v1/research/backend-api.md`) found Django with django-ninja, so the frontend generates a typed client from its OpenAPI schema.
+4. Not answered; didn't change the decision. The offline match queue is deferred to frontend#33.
 
 The original questions:
 

@@ -5,6 +5,12 @@ Static, clickable HTML mockups of the v1 screens. They use the site's design lan
 `site/public/assets/fonts/`, the mark from `site/public/assets/img/mark.svg`, and the same
 `data-theme` switch. All names, codes, emails and scores are made up.
 
+**Decisions that override these mockups** (`plans/frontend-v1/plan.md`, Q1 and Q4):
+
+- The record button says the player is confirming the score. Submitting confirms for the submitter's team.
+- After submit, the match waits only on the other team. The "recorded" state in `match.html` must not ask the submitter to confirm.
+- There is no offline queue (deferred to frontend#33). Offline shows an error.
+
 ## Viewing
 
 Serve the repo root with the `design` entry in `.claude/launch.json` (port 4174) and open
