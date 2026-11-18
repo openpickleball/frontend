@@ -1,6 +1,6 @@
 # app/
 
-The full frontend, built with SvelteKit and Tailwind. It is not deployed yet: `plans/app-migration/` covers choosing a host and going live.
+The full frontend, built with SvelteKit and Tailwind. It is not deployed yet: `plans/frontend-v1/` builds it, and hosting is tracked in frontend#22.
 
 ## Commands
 

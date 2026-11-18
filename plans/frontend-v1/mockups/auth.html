@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Sign in · OPEN mockup</title>
+    <link rel="icon" href="../../../site/public/assets/img/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="mockup.css" />
+    <script src="mockup.js"></script>
+  </head>
+  <body data-page="auth">
+    <nav class="mock-bar" aria-label="Mockup states">
+      <a href="index.html">All screens</a>
+      <span class="mock-title">Sign in and sign up</span>
+      <a href="#sign-in">Sign in</a>
+      <a href="#sign-in-error">Sign in, wrong password</a>
+      <a href="#sign-up">Create account</a>
+      <a href="#check-email">Check your email</a>
+      <a href="#verified">Email confirmed</a>
+      <a href="#link-expired">Link expired</a>
+    </nav>
+
+    <div class="auth">
+      <header class="topbar">
+        <span></span>
+        <button type="button" class="theme-toggle" aria-label="Switch theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.25" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" /></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg>
+        </button>
+      </header>
+
+      <main class="auth-main" id="main">
+        <div class="auth-brand">
+          <span class="wordmark"><span class="mark" aria-hidden="true"></span>OPEN</span>
+          <p>Your pickleball rating, always free.</p>
+        </div>
+
+        <!-- Sign in -->
+        <section class="auth-form" aria-labelledby="signin-title" data-show="sign-in sign-in-error">
+          <h1 id="signin-title">Sign in</h1>
+          <div class="banner banner--error" role="alert" style="margin-top: 20px" data-show="sign-in-error">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.75"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.25" r="0.75" fill="currentColor"/></svg>
+            <div class="banner-body"><strong>That email and password don't match.</strong><p>Check both and try again, or reset your password.</p></div>
+          </div>
+          <form novalidate onsubmit="event.preventDefault(); location.href = 'home.html';">
+            <div class="field">
+              <label class="field-label" for="si-email">Email</label>
+              <input class="input" id="si-email" type="email" autocomplete="email" value="tamsin.vale@example.com" />
+            </div>
+            <div class="field">
+              <label class="field-label" for="si-pw">Password</label>
+              <div class="password-wrap">
+                <input class="input" id="si-pw" type="password" autocomplete="current-password" value="not-a-real-pw" />
+                <button type="button" aria-pressed="false" onclick="var i=this.previousElementSibling;var s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'Hide':'Show';this.setAttribute('aria-pressed',s)">Show</button>
+              </div>
+              <a class="inline-link small" href="#sign-in" style="justify-self: start; font-weight: 500">Forgot your password?</a>
+            </div>
+            <button class="btn btn--primary btn--block" type="submit">Sign in</button>
+          </form>
+          <p class="auth-switch">New to OPEN? <a href="#sign-up">Create an account</a></p>
+        </section>
+
+        <!-- Sign up -->
+        <section class="auth-form" aria-labelledby="signup-title" data-show="sign-up">
+          <h1 id="signup-title">Create your account</h1>
+          <p>It's free. We'll send you an email to confirm your address.</p>
+          <form novalidate onsubmit="event.preventDefault(); location.hash = 'check-email';">
+            <div class="field">
+              <label class="field-label" for="su-email">Email</label>
+              <input class="input" id="su-email" type="email" autocomplete="email" placeholder="you@example.com" />
+            </div>
+            <div class="field">
+              <label class="field-label" for="su-pw">Password</label>
+              <div class="password-wrap">
+                <input class="input" id="su-pw" type="password" autocomplete="new-password" aria-describedby="su-pw-hint" />
+                <button type="button" aria-pressed="false" onclick="var i=this.previousElementSibling;var s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'Hide':'Show';this.setAttribute('aria-pressed',s)">Show</button>
+              </div>
+              <p class="field-hint" id="su-pw-hint">At least 8 characters. Avoid one you use somewhere else.</p>
+            </div>
+            <button class="btn btn--primary btn--block" type="submit">Create account</button>
+          </form>
+          <p class="auth-switch">Already have an account? <a href="#sign-in">Sign in</a></p>
+        </section>
+
+        <!-- Check your email -->
+        <section class="auth-form" aria-labelledby="check-title" data-show="check-email">
+          <svg class="mail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="1.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>
+          <h1 id="check-title" style="margin-top: 16px">Check your email</h1>
+          <p>We sent a link to <strong style="color: var(--color-secondary)">tamsin.vale@example.com</strong>. Open it to confirm your address, then sign in.</p>
+          <p class="small faint" style="margin-top: 16px">Nothing there after a few minutes? Check your spam folder.</p>
+          <div class="btn-row" style="margin-top: 24px">
+            <button type="button" class="btn btn--outline" data-toast="Email sent again">Send it again</button>
+          </div>
+          <p class="auth-switch" style="text-align: left">Wrong address? <a href="#sign-up">Start over</a></p>
+        </section>
+
+        <!-- Link opened: email confirmed -->
+        <section class="auth-form" aria-labelledby="verified-title" data-show="verified">
+          <div class="banner banner--success" role="status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.75" stroke-width="1.5"/><path d="m8 12.25 2.75 2.75L16 9.5"/></svg>
+            <div class="banner-body"><strong id="verified-title">Your email is confirmed.</strong><p>Sign in to record your first match.</p></div>
+          </div>
+          <a class="btn btn--primary btn--block arrow-link" href="#sign-in" style="margin-top: 24px">Sign in</a>
+        </section>
+
+        <!-- Link opened: expired or already used -->
+        <section class="auth-form" aria-labelledby="expired-title" data-show="link-expired">
+          <h1 id="expired-title">This link doesn't work anymore</h1>
+          <p>It may have expired or been used already. Sign in, and if your email still needs confirming, we'll send a new link.</p>
+          <a class="btn btn--primary btn--block" href="#sign-in" style="margin-top: 24px">Sign in</a>
+        </section>
+      </main>
+
+      <footer class="auth-foot">
+        <span>© 2026 OPEN contributors</span>
+      </footer>
+    </div>
+  </body>
+</html>

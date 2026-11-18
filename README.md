@@ -39,7 +39,7 @@ Keep `tailwindcss` on the same exact version in both projects until the static p
 
 ## Plans
 
-Larger units of work live in [`plans/`](plans/AGENTS.md), including the [move from the static pages to the full app](plans/app-migration/plan.md).
+Larger units of work live in [`plans/`](plans/AGENTS.md), including the [frontend v1 plan](plans/frontend-v1/plan.md).
 
 ## Test data
 

@@ -1,6 +1,6 @@
 # site/
 
-The static pages served at openpb.org. They are temporary: `plans/app-migration/` ends with deleting this folder.
+The public page at openpb.org. It stays when the app ships at app.openpb.org (frontend#22).
 
 - `public/` is the only folder that gets published.
 - `public/index.html` is the whole site: the one-screen teaser at the top, then the about sections below it (`#about`, which is "What we stand for", then `#open-source`, which explains open source in plain words, then `#help`, which is "Get involved"). It is styled with the Tailwind CLI. `src/input.css` compiles to `public/assets/css/main.css`. The output is generated, so edit the input.
@@ -18,7 +18,7 @@ The static pages served at openpb.org. They are temporary: `plans/app-migration/
 - `pnpm dev` rebuilds the CSS on change.
 - `pnpm build` produces the minified CSS.
 
-To view the site, serve `public/` (the `teaser` entry in `.claude/launch.json` does this) and open `/`.
+To view the site, serve `public/` (the `site` entry in `.claude/launch.json` does this) and open `/`.
 
 ## Deployment
 

@@ -2,9 +2,11 @@
 
 **Status:** done
 
+> Superseded for design tokens and the page layout: `site/src/input.css` and `site/public/index.html` are the source of truth. The token block below is the original, and the page now also carries the about content (`plans/about-redesign/`, `plans/site-content-v2/`).
+
 ## Goal
 
-Replace the placeholder teaser in `site/` with a real page for OPEN, an open source rating system for pickleball, served at openpb.org. The page is monochrome and nearly wordless: one striking image, the wordmark, one line and links to follow along. The colors and fonts live in one `@theme` block that the app inherits later through `plans/app-migration/`.
+Replace the placeholder teaser in `site/` with a real page for OPEN, an open source rating system for pickleball, served at openpb.org. The page is monochrome and nearly wordless: one striking image, the wordmark, one line and links to follow along. The colors and fonts live in one `@theme` block that the app inherits later through `plans/frontend-v1/`.
 
 ## Steps
 
@@ -45,7 +47,7 @@ Tailwind 4 has no config file here. The `@theme` block in `site/src/input.css` i
 }
 ```
 
-Keep a single block so the copy step in `plans/app-migration/plan.md` stays one paste. An accent color can be added later if the app needs one.
+Keep a single block so the app can copy it in one paste (`plans/frontend-v1/` T1). An accent color can be added later if the app needs one.
 
 ## Page copy
 
@@ -78,7 +80,7 @@ The copy deliberately never names an external rating system. The contrast works 
 - Copy says plainly what players get, because players span a wide age range. Phrases like "out in the open" were too vague.
 - Status updates happen on linked accounts, so the page has no separate status line. GitHub is the only link for now.
 - The icon is the wordmark's O with two spin swooshes. It's kept deliberately simple. Net versions were rejected because they looked like tennis rackets.
-- The Horizon image follows the hole layout of the Life Time LT Pro 48 (48 holes, per patent application US 2026/0034410), rotated so no hole crosses the horizon. It carries no Life Time branding.
+- The Horizon image is an original render of a pickleball's surface, rotated so no hole crosses the horizon.
 - OPEN is always set in capitals, with wide letter spacing.
 - The full name, Open Pickleball Evaluation Network, appears only in the page title, social previews and about copy.
 - The follow row sits in the footer, at the bottom right, and the rendered image ships.

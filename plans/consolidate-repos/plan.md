@@ -4,7 +4,7 @@
 
 ## Goal
 
-`openpickleball/frontend` is the one repository for OPEN's web frontend. It serves the Horizon teaser from open-ui as the home page at openpb.org, with a "Learn more" link to the page frontend served before, now at `/about/`. It also carries open-ui's SvelteKit app, plans and agent tooling. The two pages keep their own design languages for now. Unifying them is later work.
+`openpickleball/frontend` is the one repository for OPEN's web frontend. It serves one page at openpb.org: the Horizon teaser with the about content below it (`/about/` redirects to `/#about`). It also carries the SvelteKit app in `app/`, plans and agent tooling. The app is not deployed yet; `plans/frontend-v1/` covers building it.
 
 ## Steps
 
@@ -13,16 +13,15 @@
 - [x] Add a shimmering "Learn more" link under the teaser headline.
 - [x] Replace `pages.yml` with open-ui's `deploy-pages.yml`, which builds the CSS before publishing, and add `ci-app.yml`.
 - [x] Open the PR from a branch on this repository. The first attempt came from a fork and was closed once write access was granted.
-- [ ] After the PR has run once, add `app-checks` and `teaser-build` as required checks in the "Protect main" ruleset. This needs a repository admin.
+- [x] After the PR has run once, add `app-checks` and `teaser-build` as required checks in the "Protect main" ruleset. This needs a repository admin.
 - [x] Turn on "Enforce HTTPS" under Settings → Pages. It was already on, and http://www.openpb.org redirects to https.
 - [ ] When this merges, change the custom domain under Settings → Pages from www.openpb.org to openpb.org, then check that "Enforce HTTPS" is still on once GitHub reissues the certificate. This needs a repository admin.
-- [ ] After the deploy, check that `/` and `/about/` load on openpb.org and that www.openpb.org redirects to it.
+- [ ] After the deploy, check that `/` and `/about/` load on openpb.org and that www.openpb.org redirects to it. (Still open on 2026-11-17: Pages still reports www.openpb.org as the custom domain, openpb.org answers with a redirect and www serves the site.)
 - [x] Archive `ccirrincione/open-ui` with a README that points here.
 
 ## Decisions
 
-- The canonical domain is the bare openpb.org, because it is shorter and reads better in link previews. It is the custom domain under Settings → Pages, so GitHub redirects www.openpb.org to it. www was the custom domain before the switch.
-- The old page lives at `/about/`.
+- The canonical domain will be the bare openpb.org, because it is shorter and reads better in link previews. Once it is the custom domain under Settings → Pages, GitHub redirects www.openpb.org to it. Switching the custom domain is the step above; www is still the custom domain today.
+- The old page lived at `/about/`. Its content now sits under the teaser on `/`, and `/about/` redirects to `/#about` (see `plans/about-redesign/`).
 - `.vscode/` stays ignored, so open-ui's `app/.vscode/` settings were not brought over.
 - The teaser's GitHub link points to `openpickleball/frontend`. It doubles as the visible source link the AGPL requires on the home page.
-- `about/` keeps its own plain CSS and JS, and the Tailwind scan skips it.

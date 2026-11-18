@@ -11,9 +11,9 @@
 
 `.claude/launch.json` has three entries:
 
-- `teaser` serves `site/public/` on port 4173. Run `pnpm build` (or `pnpm dev`) in `site/` first, because `public/assets/css/main.css` is generated and not committed.
+- `site` serves `site/public/` on port 4173. Run `pnpm build` (or `pnpm dev`) in `site/` first, because `public/assets/css/main.css` is generated and not committed.
 - `app` runs the SvelteKit dev server on port 5173.
-- `design` serves the repo root on port 4174, for prototypes such as `/design/content-v2.html`.
+- `design` serves the repo root on port 4174, for prototypes such as `/design/icon-d.html`.
 
 ## Before you finish
 

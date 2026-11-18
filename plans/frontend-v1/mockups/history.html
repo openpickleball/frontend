@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Matches · OPEN mockup</title>
+    <link rel="icon" href="../../../site/public/assets/img/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="mockup.css" />
+    <script src="mockup.js"></script>
+  </head>
+  <body data-page="history">
+    <nav class="mock-bar" aria-label="Mockup states">
+      <a href="index.html">All screens</a>
+      <span class="mock-title">Match history</span>
+      <a href="#page-1">Page 1</a>
+      <a href="#page-3">Last page</a>
+      <a href="#empty">No matches yet</a>
+      <a href="#offline">Offline</a>
+    </nav>
+
+    <main class="main" id="main">
+      <div class="banner" role="status" data-show="offline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 4.2-2.5M19 13a10 10 0 0 0-3-2M2 9.5a15 15 0 0 1 4.5-2.9M22 9.5A15 15 0 0 0 11 5.6"/><circle cx="12" cy="19.5" r="0.75" fill="currentColor"/></svg>
+        <div class="banner-body">
+          <strong>You're offline.</strong>
+          <p>Showing the first page from your last visit. Older pages need a connection.</p>
+        </div>
+      </div>
+
+      <div class="page-head">
+        <h1 class="page-title">Matches</h1>
+        <p class="lead" data-show="page-1 page-3 offline">47 matches, newest first. Other signed-in players see only your confirmed matches.</p>
+      </div>
+
+      <section style="margin-top: 28px" aria-label="Page 1 of 3" data-show="page-1 offline">
+        <ul class="match-list" data-matches="all" data-page="1"></ul>
+        <nav class="pagination" aria-label="Pages">
+          <span class="range">1–20 of 47</span>
+          <div class="pages">
+            <span class="btn btn--outline btn--sm" aria-disabled="true">Newer</span>
+            <a class="btn btn--outline btn--sm" href="#page-3" data-show="page-1">Older</a>
+            <span class="btn btn--outline btn--sm" aria-disabled="true" data-show="offline">Older</span>
+          </div>
+        </nav>
+      </section>
+
+      <section style="margin-top: 28px" aria-label="Page 3 of 3" data-show="page-3">
+        <ul class="match-list" data-matches="all" data-page="3"></ul>
+        <nav class="pagination" aria-label="Pages">
+          <span class="range">41–47 of 47</span>
+          <div class="pages">
+            <a class="btn btn--outline btn--sm" href="#page-1">Newer</a>
+            <span class="btn btn--outline btn--sm" aria-disabled="true">Older</span>
+          </div>
+        </nav>
+      </section>
+
+      <section class="section" aria-labelledby="empty-title" data-show="empty" style="margin-top: 28px">
+        <div class="empty">
+          <span class="mark" aria-hidden="true"></span>
+          <h2 id="empty-title">No matches yet</h2>
+          <p>Matches you record, and matches other players record with you in them, show up here.</p>
+          <a class="btn btn--primary arrow-link" href="record.html#new">Record a match</a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
