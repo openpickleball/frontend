@@ -11,7 +11,12 @@
  *   Pass it in with either of these, because `features/auth` is built separately and this
  *   feature does not import it:
  *     1. `myCode.load(email)`, when the caller has the session at hand, or
- *     2. `setAccountEmailSource(() => session.user?.email ?? null)`, once, in the root layout.
+ *     2. `setAccountEmailSource(async () => (await session.ready, session.user?.email ?? null))`,
+ *        once, at the top level of the root layout's `<script>`, not in `onMount` (a child's
+ *        `onMount` runs first). It must resolve only once the session is known: `null` means
+ *        signed out, never "still loading".
+ *   Call `myCode.reset()` on every sign-in and sign-out, so the next account never sees the
+ *   previous one's code.
  *   With neither, the default asks allauth's `GET auth/session` itself.
  *   T7 (record) and T8 (matches) need the code only: wait for `myCode.status === 'ready'`,
  *   then use `myCode.code`. They should call `myCode.load()` if the status is still `'idle'`.
@@ -24,7 +29,13 @@
  * `services.ts` to the generated types. Nothing else here changes.
  */
 export { myCode, createMyCode, MyCode } from './my-code.svelte.js';
-export type { MyCodeDeps, MyCodeSource, MyCodeStatus, SaveResult } from './my-code.svelte.js';
+export type {
+	MyCodeDeps,
+	MyCodeSource,
+	MyCodeStatus,
+	SaveError,
+	SaveResult
+} from './my-code.svelte.js';
 export { setAccountEmailSource, currentAccountEmail } from './account.js';
 export type { AccountEmailSource } from './account.js';
 export { createCodeStore, storageKey } from './storage.js';

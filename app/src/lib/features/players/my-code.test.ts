@@ -180,6 +180,83 @@ describe('myCode without me/player', () => {
 	});
 });
 
+describe('myCode reset and server codes', () => {
+	it('never shows account A code to account B after a reset', async () => {
+		const storage = memoryStorage();
+		const store = createCodeStore(() => storage);
+		store.write('a@example.com', CODE_A);
+		const mine = createMyCode({
+			fetchMyPlayer: async () => null,
+			accountEmail: async () => null,
+			store
+		});
+		await mine.load('a@example.com');
+		expect(mine.code).toBe(CODE_A);
+
+		mine.reset();
+		expect(mine.status).toBe('idle');
+		expect(mine.code).toBeNull();
+		expect(mine.email).toBeNull();
+
+		await mine.load('b@example.com');
+		expect(mine.code).toBeNull();
+		expect(mine.status).toBe('needs-entry');
+	});
+
+	it('drops a load that was in flight when reset ran', async () => {
+		let release: (player: MyPlayer | null) => void = () => {};
+		const mine = createMyCode({
+			fetchMyPlayer: () => new Promise<MyPlayer | null>((resolve) => (release = resolve)),
+			accountEmail: async () => 'a@example.com',
+			store: createCodeStore(() => memoryStorage())
+		});
+		const pending = mine.load();
+		mine.reset();
+		release(SERVER_PLAYER);
+		await pending;
+		expect(mine.status).toBe('idle');
+		expect(mine.code).toBeNull();
+	});
+
+	it('does not carry the email from a previous load onto a server code', async () => {
+		const mine = createMyCode({
+			fetchMyPlayer: async () => SERVER_PLAYER,
+			accountEmail: async () => null,
+			store: createCodeStore(() => memoryStorage())
+		});
+		await mine.load('a@example.com');
+		expect(mine.email).toBe('a@example.com');
+		await mine.load();
+		expect(mine.email).toBeNull();
+	});
+
+	it('refuses to overwrite a server code', async () => {
+		const storage = memoryStorage();
+		const mine = createMyCode({
+			fetchMyPlayer: async () => SERVER_PLAYER,
+			accountEmail: async () => 'a@example.com',
+			store: createCodeStore(() => storage)
+		});
+		await mine.load();
+		const result = mine.save(CODE_B);
+		expect(result.ok).toBe(false);
+		expect(mine.code).toBe(CODE_A);
+		expect(storage.data.size).toBe(0);
+	});
+
+	it('shows the error state when the account cannot be found out (offline)', async () => {
+		const mine = createMyCode({
+			fetchMyPlayer: async () => null,
+			accountEmail: async () => {
+				throw appError('network', null);
+			},
+			store: createCodeStore(() => memoryStorage())
+		});
+		await mine.load();
+		expect(mine.status).toBe('error');
+	});
+});
+
 describe('myCode when me/player fails', () => {
 	it('is signed out on a 401', async () => {
 		const mine = createMyCode({

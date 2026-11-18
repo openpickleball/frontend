@@ -25,7 +25,8 @@ export type MyCodeDeps = {
 	store: CodeStore;
 };
 
-export type SaveResult = { ok: true; code: PlayerCode } | { ok: false; error: CodeError };
+export type SaveError = CodeError | { reason: 'server_code'; message: string };
+export type SaveResult = { ok: true; code: PlayerCode } | { ok: false; error: SaveError };
 
 /**
  * The signed-in player's own OPEN code (Decision Q3, plans/frontend-v1/plan.md).
@@ -33,7 +34,11 @@ export type SaveResult = { ok: true; code: PlayerCode } | { ok: false; error: Co
  * `load()` asks `GET me/player` first. If the backend has no such endpoint (404 or 405), or the
  * account has no player yet, it reads the code the player typed in earlier, kept in
  * localStorage under a key for their account email. If there is none, `status` becomes
- * `needs-entry`. Once `me/player` ships the first branch always wins and the prompt never shows.
+ * `needs-entry`. Once `me/player` ships, an account that has a player always gets its code from
+ * the server. An account with no player yet (a 404) is still prompted.
+ *
+ * It is a singleton, so call `reset()` on sign-in and sign-out: it must never hold the previous
+ * account's code.
  */
 export class MyCode {
 	status = $state<MyCodeStatus>('idle');
@@ -80,7 +85,7 @@ export class MyCode {
 			if (run !== this.#run) return;
 			if (player) {
 				this.#set(player.code, 'server', player.displayName);
-				this.email = email ?? this.email;
+				this.email = email ?? null;
 				return;
 			}
 		} catch (error) {
@@ -92,7 +97,14 @@ export class MyCode {
 			failed = true;
 		}
 
-		const account = email ?? (await this.#deps.accountEmail());
+		let account: string | null;
+		try {
+			account = email ?? (await this.#deps.accountEmail());
+		} catch {
+			if (run !== this.#run) return;
+			this.#clear('error');
+			return;
+		}
 		if (run !== this.#run) return;
 		this.email = account;
 		if (!account) {
@@ -106,11 +118,29 @@ export class MyCode {
 
 	/** Check what the player typed. On success, keep the code on this device and show it. */
 	save(raw: string): SaveResult {
+		if (this.source === 'server') {
+			return {
+				ok: false,
+				error: { reason: 'server_code', message: 'Your OPEN code comes from your account.' }
+			};
+		}
 		const parsed = parsePlayerCode(raw);
 		if (!parsed.ok) return { ok: false, error: parsed.error };
 		this.storageFailed = !this.email || !this.#deps.store.write(this.email, parsed.value);
 		this.#set(parsed.value, 'device', null);
 		return { ok: true, code: parsed.value };
+	}
+
+	/** Forget everything, including the account, and drop loads still in flight. */
+	reset(): void {
+		this.#run++;
+		this.code = null;
+		this.source = null;
+		this.displayName = null;
+		this.email = null;
+		this.editing = false;
+		this.storageFailed = false;
+		this.status = 'idle';
 	}
 
 	/** Start replacing the code. `cancel()` goes back to the old one. */

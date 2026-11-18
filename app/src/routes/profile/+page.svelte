@@ -23,7 +23,8 @@
 	let ratingsLoading = $state(false);
 
 	onMount(() => {
-		// T6 wires the signed-in email in through setAccountEmailSource (see features/players).
+		// The root layout supplies the signed-in email through setAccountEmailSource, set at the
+		// top level of its script so it is in place before this runs (see features/players).
 		void myCode.load();
 	});
 

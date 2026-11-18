@@ -10,6 +10,12 @@ describe('storage key', () => {
 	});
 });
 
+describe('storage key folding', () => {
+	it('folds look-alike forms of the email into one key (NFKC)', () => {
+		expect(storageKey('Ａ@example.com')).toBe(storageKey('a@example.com'));
+	});
+});
+
 describe('code store', () => {
 	it('never throws when storage is missing or blocked', () => {
 		const none = createCodeStore(() => null);

@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 
 	let { code }: { code: PlayerCode } = $props();
 
 	let message = $state('');
+	onDestroy(() => clearTimeout(timer));
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	function say(text: string) {

@@ -21,7 +21,7 @@ export type CodeStore = {
 };
 
 export function storageKey(email: string): string {
-	return PREFIX + email.trim().toLowerCase();
+	return PREFIX + email.normalize('NFKC').trim().toLowerCase();
 }
 
 function browserStorage(): CodeStorage | null {
