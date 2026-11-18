@@ -21,6 +21,9 @@ export default defineConfig({
 	],
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}'],
-		environment: 'node'
+		environment: 'node',
+		// Vitest blanks CSS imports by default. Let `?raw` imports through, so tests can read
+		// stylesheet source (see src/routes/layout.test.ts).
+		css: { include: [/\.css\?raw$/] }
 	}
 });
