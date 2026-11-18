@@ -13,6 +13,7 @@ The full frontend, built with SvelteKit and Tailwind. It is not deployed yet: `p
 - `pnpm test:coverage` runs the same tests and prints a v8 coverage summary, with no threshold.
 - `pnpm e2e` runs the Playwright tests in `e2e/` on the Pixel 7 project. It builds the app, serves it with `vite preview` on port 4183 (not 4173, which the `site` preview in `.claude/launch.json` uses) and sets `PUBLIC_API_MOCK=all`. Set `E2E_PORT` to use another port, for example `E2E_PORT=4184 pnpm e2e` when another checkout is running e2e. It never reuses a server that is already listening, so a port clash fails the run.
 - `pnpm e2e:webkit` runs the iPhone 15 (WebKit) project instead. It needs `pnpm exec playwright install webkit`.
+- `pnpm e2e:live` runs one happy path against `pnpm dev` and the real local backend (`playwright.live.config.ts`, `e2e-live/`). Local only: CI never runs it, and it skips unless the backend and the `LIVE_*` values are set. See [README.md](README.md).
 - `pnpm build` produces a production build.
 
 CI runs `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test:coverage` and `pnpm build` (job `app-checks`) and `pnpm e2e` (job `app-e2e`) on every PR, and on pushes to `main` that change `app/`. Both jobs install Chromium, from a cached Playwright browser directory.
