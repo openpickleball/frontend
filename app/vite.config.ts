@@ -19,6 +19,14 @@ export default defineConfig({
 			adapter: adapter()
 		})
 	],
+	server: {
+		// Same-origin API in dev, so the session cookie and CSRF work. changeOrigin stays
+		// false: Host then matches Origin (localhost:5173), which Django's origin check needs.
+		proxy: {
+			'/api': { target: 'http://127.0.0.1:8000', changeOrigin: false },
+			'/_allauth': { target: 'http://127.0.0.1:8000', changeOrigin: false }
+		}
+	},
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}'],
 		environment: 'node',

@@ -53,11 +53,11 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Accept:** no Svelte imports. Every backend validation case has a matching test.
 
 ### T3 · API layer — frontend#39
-- [ ] Commit the schema snapshots `src/lib/api/schema/open.json` and `allauth.json`. This needs a running backend or ninja's `export_openapi_schema`. See "Blockers".
-- [ ] Scripts `api:pull` and `api:gen` (openapi-typescript) → `src/lib/api/generated/`.
-- [ ] openapi-fetch clients for `/api/v1` and `/_allauth/browser/v1`, CSRF middleware, and `toAppError()` with the `AppError` type (`proposal.md` §4). Unit tests for every error shape.
-- [ ] Vite dev proxy for `/api` and `/_allauth` → `127.0.0.1:8000`, with `changeOrigin: false`.
-- [ ] CI: run `api:gen`, then `git diff --exit-code src/lib/api/generated`.
+- [x] Commit the schema snapshots `src/lib/api/schema/open.json` and `allauth.json`. This needs a running backend or ninja's `export_openapi_schema`. See "Blockers".
+- [x] Scripts `api:pull` and `api:gen` (openapi-typescript) → `src/lib/api/generated/`.
+- [x] openapi-fetch clients for `/api/v1` and `/_allauth/browser/v1`, CSRF middleware, and `toAppError()` with the `AppError` type (`proposal.md` §4). Unit tests for every error shape.
+- [x] Vite dev proxy for `/api` and `/_allauth` → `127.0.0.1:8000`, with `changeOrigin: false`.
+- [x] CI: run `api:gen`, then `git diff --exit-code src/lib/api/generated`.
 - **Owns:** `app/src/lib/api/**`, the proxy block in `app/vite.config.ts`, the drift step in `ci-app.yml`.
 - **Accept:** the generated types are committed and CI catches drift. `toAppError` covers ninja 422, 403 CSRF, 409 duplicate, the allauth 401 with flows, non-JSON responses and network errors.
 

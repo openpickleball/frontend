@@ -43,6 +43,10 @@ jobs:
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - name: Check the generated API types match the schema snapshots
+        run: |
+          pnpm api:gen
+          git diff --exit-code src/lib/api/generated
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm check
