@@ -33,7 +33,7 @@ Finding 2 (the arrow after "Get involved" is read aloud) is a separate pull requ
 
 - `site/public/index.html`: add the keyboard focus override classes to the `<header id="site-nav">` class list, and update the comment above the header to say it also shows while one of its links has keyboard focus.
 - `plans/teaser-header-focus/plan.md`: this plan; tick the steps and set the status to done at the end.
-- For issue #52 (see the section at the end): `site/public/index.html` (visible text of the nav link, the section label, one sentence, and one HTML comment) and `plans/open-source-explainer/plan.md` (its recorded copy and a new Decision).
+- For issue #52 (see the section at the end): `site/public/index.html` (visible text of the nav link, the section label, one sentence, and one HTML comment) and `plans/open-source-explainer/plan.md` (its recorded copy and a new Decision), and `site/AGENTS.md` (the spelling rule).
 
 `site/public/assets/css/main.css` is generated and not committed. `site/AGENTS.md` does not describe the header. For issue #52 it gets the spelling rule, so future copy keeps the hyphen.
 
@@ -197,7 +197,7 @@ Criterion 6: `pnpm build` in `site/` passed (tailwindcss v4.3.5, "Done in 41ms")
 
 ## Issue #52: one spelling of "open-source"
 
-This plan also covers issue #52, folded into this branch at the user's request (2026-11-17). The issue 16 sections above are unchanged.
+This plan also covers issue #52, folded into this branch at the user's request (2026-11-17). The issue 16 sections above change only to point to this section (the title, "Files that change" and Risks). Their proof records quote the nav link as "Open source", the text when they ran; a rerun now expects "Open-source".
 
 ### Goal
 
@@ -219,6 +219,7 @@ openpb.org writes the term two ways. "Open-source software publishes it" is hyph
 
 - [x] Red: run the criterion (a) checks on the current page and record them below.
 - [x] Change the three visible strings and the comment in `site/public/index.html`, and update `plans/open-source-explainer/plan.md`.
+- [x] Add the spelling rule to `site/AGENTS.md`, so later copy edits keep the hyphen.
 - [x] Gate: `pnpm build` in `site/`.
 - [x] Live drive: the criterion (a) check at both widths, screenshots of the nav (wide) and the section label in both themes, and a Tab into the header at the top to confirm the issue 16 fix still shows it.
 
