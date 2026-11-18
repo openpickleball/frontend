@@ -45,10 +45,10 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Accept:** the shell matches `mockups/home.html` at 390px and 1280px in both themes (screenshot in the PR). The theme toggle persists. The build output is static.
 
 ### T2 · Domain layer — frontend#38
-- [ ] `src/lib/domain/`: branded `PlayerCode` and `MatchCode`, with normalization and the check character copied from backend `apps/public_ids/codes.py`.
-- [ ] Score rules mirroring backend `apps/matches/services.py`: no ties, the winner reaches the target, win by 2, and past the target the game ends at exactly +2. Games to 11, 15 or 21; 1–5 games.
-- [ ] Zod schemas: `matchInputSchema` and the auth forms. Domain models `Match`, `Team` and `Player`, with derived fields (`winner`, `myTeam`, `isPending`).
-- [ ] Unit tests ported from the backend's score and code tests (cite them).
+- [x] `src/lib/domain/`: branded `PlayerCode` and `MatchCode`, with normalization and the check character copied from backend `apps/public_ids/codes.py`.
+- [x] Score rules mirroring backend `apps/matches/services.py`: no ties, the winner reaches the target, win by 2, and past the target the game ends at exactly +2. Games to 11, 15 or 21; 1–5 games.
+- [x] Zod schemas: `matchInputSchema` and the auth forms. Domain models `Match`, `Team` and `Player`, with derived fields (`winner`, `myTeam`, `isPending`).
+- [x] Unit tests ported from the backend's score and code tests (cite them).
 - **Owns:** `app/src/lib/domain/**`.
 - **Accept:** no Svelte imports. Every backend validation case has a matching test.
 
