@@ -8,7 +8,7 @@ Domain skills: chrome-devtools-mcp:a11y-debugging: invoke (implementer, live dri
 
 ## Goal
 
-Issue #16 is an accessibility check of the teaser. Its findings are recorded on the issue. This plan fixes finding 1: while the teaser fills the screen, the header is hidden with `opacity: 0` and `pointer-events: none`, but its links ("OPEN" and "Get involved", plus "What we stand for" and "Open source" on wide screens) stay in the tab order. A keyboard player presses Tab and focus lands on links nobody can see (WCAG 2.4.7, focus visible).
+Issue #16 is an accessibility check of the teaser. Its findings are recorded on the issue. This plan fixes finding 1: while the teaser fills the screen, the header is hidden with `opacity: 0` and `pointer-events: none`, but its links ("OPEN" and "Get involved", plus "What we stand for" and "Open-source" on wide screens) stay in the tab order. A keyboard player presses Tab and focus lands on links nobody can see (WCAG 2.4.7, focus visible).
 
 Finding 2 (the arrow after "Get involved" is read aloud) is a separate pull request, as the issue asks for one pull request per kind of fix.
 
@@ -33,9 +33,9 @@ Finding 2 (the arrow after "Get involved" is read aloud) is a separate pull requ
 
 - `site/public/index.html`: add the keyboard focus override classes to the `<header id="site-nav">` class list, and update the comment above the header to say it also shows while one of its links has keyboard focus.
 - `plans/teaser-header-focus/plan.md`: this plan; tick the steps and set the status to done at the end.
-- For issue #52 (see the section at the end): `site/public/index.html` (visible text of the nav link, the section label, one sentence, and one HTML comment) and `plans/open-source-explainer/plan.md` (its recorded copy and a new Decision), and `site/AGENTS.md` (the spelling rule).
+- For issue #52 (see the section at the end): `site/public/index.html` (visible text of the nav link, the section label, one sentence, and one HTML comment) and `plans/open-source-explainer/plan.md` (its recorded copy and a new Decision), `site/AGENTS.md` (the spelling rule, and "open-source" in the `#open-source` description).
 
-`site/public/assets/css/main.css` is generated and not committed. `site/AGENTS.md` does not describe the header. For issue #52 it gets the spelling rule, so future copy keeps the hyphen.
+`site/public/assets/css/main.css` is generated and not committed. `site/AGENTS.md` does not describe the header. For issue #52 it gets the spelling rule, so future copy keeps the hyphen, and its `#open-source` description uses the same spelling.
 
 ## Steps
 
@@ -197,7 +197,7 @@ Criterion 6: `pnpm build` in `site/` passed (tailwindcss v4.3.5, "Done in 41ms")
 
 ## Issue #52: one spelling of "open-source"
 
-This plan also covers issue #52, folded into this branch at the user's request (2026-11-17). The issue 16 sections above change only to point to this section (the title, "Files that change" and Risks). Their proof records quote the nav link as "Open source", the text when they ran; a rerun now expects "Open-source".
+This plan also covers issue #52, folded into this branch at the user's request (2026-11-17). The issue 16 sections above change only to point to this section (the title, the Goal's link list, "Files that change" and Risks). Their proof records quote the nav link as "Open source", the text when they ran; a rerun now expects "Open-source".
 
 ### Goal
 
