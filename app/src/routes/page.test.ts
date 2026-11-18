@@ -14,19 +14,10 @@ describe('+page.svelte', () => {
 		expect(head).toContain('content="Your pickleball rating, always free."');
 	});
 
-	it('names OPEN in the heading', () => {
+	it('has one heading, for the home screen', () => {
 		const { body } = render(Page);
-		expect(body).toMatch(/<h1[^>]*>OPEN<\/h1>/);
-	});
-
-	it('names the Open Pickleball Evaluation Network', () => {
-		const { body } = render(Page);
-		expect(body).toContain('Open Pickleball Evaluation Network');
-	});
-
-	it('links to openpb.org', () => {
-		const { body } = render(Page);
-		expect(body).toContain('href="https://openpb.org/"');
+		expect(body.match(/<h1[\s>]/g)).toHaveLength(1);
+		expect(body).toMatch(/<h1[^>]*>Home<\/h1>/);
 	});
 
 	it('drops the SvelteKit starter text', () => {

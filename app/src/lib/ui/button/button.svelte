@@ -1,0 +1,86 @@
+<script lang="ts" module>
+	import { type VariantProps, tv } from 'tailwind-variants';
+	import { cn, type WithElementRef } from '#lib/ui/utils.js';
+	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
+
+	export const buttonVariants = tv({
+		base: "inline-flex shrink-0 items-center justify-center gap-2.5 rounded-full border border-transparent font-semibold leading-tight whitespace-nowrap transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[18px]",
+		variants: {
+			variant: {
+				// The site call to action: solid text color on the page color.
+				default: 'bg-secondary text-primary hover:bg-muted',
+				outline: 'border-line text-secondary hover:border-muted',
+				// Outline in the danger color. Use destructive-solid only inside a confirm dialog.
+				destructive: 'border-current text-danger hover:bg-danger-wash focus-visible:outline-danger',
+				'destructive-solid':
+					'bg-danger text-primary hover:bg-[color-mix(in_srgb,var(--color-danger)_80%,var(--color-secondary))] focus-visible:outline-danger',
+				ghost: 'px-1 font-medium text-secondary hover:text-muted',
+				link: 'px-0 font-medium text-secondary underline underline-offset-4 hover:text-muted'
+			},
+			size: {
+				default: 'min-h-12 px-7 py-3 text-base',
+				sm: 'min-h-10 px-[18px] py-2 text-[15px]',
+				icon: 'size-9 p-0'
+			}
+		},
+		compoundVariants: [
+			{ variant: ['ghost', 'link'], size: ['default', 'sm'], class: 'min-h-0 px-1 py-1' }
+		],
+		defaultVariants: {
+			variant: 'default',
+			size: 'default'
+		}
+	});
+
+	export type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
+	export type ButtonSize = VariantProps<typeof buttonVariants>['size'];
+
+	export type ButtonProps = WithElementRef<HTMLButtonAttributes> &
+		WithElementRef<HTMLAnchorAttributes> & {
+			variant?: ButtonVariant;
+			size?: ButtonSize;
+		};
+</script>
+
+<script lang="ts">
+	let {
+		class: className,
+		variant = 'default',
+		size = 'default',
+		ref = $bindable(null),
+		href = undefined,
+		type = 'button',
+		disabled,
+		children,
+		...restProps
+	}: ButtonProps = $props();
+</script>
+
+{#if href}
+	<!-- The caller resolves the link: pass href={resolve(...)} for app routes. -->
+	<!-- eslint-disable svelte/no-navigation-without-resolve -->
+	<a
+		bind:this={ref}
+		data-slot="button"
+		class={cn(buttonVariants({ variant, size }), className)}
+		href={disabled ? undefined : href}
+		aria-disabled={disabled}
+		role={disabled ? 'link' : undefined}
+		tabindex={disabled ? -1 : undefined}
+		{...restProps}
+	>
+		{@render children?.()}
+	</a>
+	<!-- eslint-enable svelte/no-navigation-without-resolve -->
+{:else}
+	<button
+		bind:this={ref}
+		data-slot="button"
+		class={cn(buttonVariants({ variant, size }), className)}
+		{type}
+		{disabled}
+		{...restProps}
+	>
+		{@render children?.()}
+	</button>
+{/if}

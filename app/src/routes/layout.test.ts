@@ -5,7 +5,7 @@ import tailwindIndexCss from 'tailwindcss/index.css?raw';
 
 // Vite lists the files that exist, so the test needs no file system access.
 // Glob keys are relative to this file and url() values to layout.css, so both must share a folder.
-const fontFiles = import.meta.glob('../lib/assets/fonts/*', { query: '?url', eager: true });
+const assetFiles = import.meta.glob('../lib/assets/**/*', { query: '?url', eager: true });
 
 const candidates = [
 	'bg-primary',
@@ -16,7 +16,21 @@ const candidates = [
 	'bg-surface',
 	'px-gutter',
 	'font-display',
-	'font-body'
+	'font-body',
+	'bg-surface',
+	'text-confirmed',
+	'text-disputed',
+	'text-danger',
+	'text-pending',
+	'text-voided',
+	'border-field',
+	'bg-confirmed-wash',
+	'bg-danger-wash',
+	'shell:hidden',
+	'light:hidden',
+	'mark',
+	'label',
+	'page-title'
 ];
 
 const tokens: Record<string, string> = {
@@ -31,6 +45,20 @@ const tokens: Record<string, string> = {
 	'--font-body': '"Instrument Sans", sans-serif'
 };
 
+// Additions for the app (plans/frontend-v1/mockups/README.md, "Token additions").
+const appTokens: Record<string, string> = {
+	'--color-confirmed': 'light-dark(#3b5c12, #bad446)',
+	'--color-disputed': 'light-dark(#a3301b, #ff8b73)',
+	'--color-danger': 'light-dark(#a3301b, #ff8b73)',
+	'--color-pending': 'var(--color-muted)',
+	'--color-voided': 'var(--color-faint)',
+	'--color-field': 'var(--color-faint)',
+	'--color-confirmed-wash': 'light-dark(#e9ecd2, #141a06)',
+	'--color-danger-wash': 'light-dark(#f6e2d9, #1f0d09)',
+	'--header-height': '64px',
+	'--tabbar-height': '64px'
+};
+
 const utilities: [selector: string, declaration: string][] = [
 	['.bg-primary', 'background-color: var(--color-primary)'],
 	['.text-secondary', 'color: var(--color-secondary)'],
@@ -40,7 +68,15 @@ const utilities: [selector: string, declaration: string][] = [
 	['.bg-surface', 'background-color: var(--color-surface)'],
 	['.px-gutter', 'padding-inline: var(--spacing-gutter)'],
 	['.font-display', 'font-family: var(--font-display)'],
-	['.font-body', 'font-family: var(--font-body)']
+	['.font-body', 'font-family: var(--font-body)'],
+	['.text-confirmed', 'color: var(--color-confirmed)'],
+	['.text-disputed', 'color: var(--color-disputed)'],
+	['.text-danger', 'color: var(--color-danger)'],
+	['.text-pending', 'color: var(--color-pending)'],
+	['.text-voided', 'color: var(--color-voided)'],
+	['.border-field', 'border-color: var(--color-field)'],
+	['.bg-confirmed-wash', 'background-color: var(--color-confirmed-wash)'],
+	['.bg-danger-wash', 'background-color: var(--color-danger-wash)']
 ];
 
 async function buildLayoutCss(): Promise<string> {
@@ -82,6 +118,9 @@ describe('layout.css', () => {
 		for (const [name, value] of Object.entries(tokens)) {
 			expect(css).toContain(`${name}: ${value};`);
 		}
+		for (const [name, value] of Object.entries(appTokens)) {
+			expect(css).toContain(`${name}: ${value};`);
+		}
 		for (const [selector, declaration] of utilities) {
 			expect(ruleBody(css, selector), selector).toContain(declaration);
 		}
@@ -110,16 +149,34 @@ describe('layout.css', () => {
 		expect(ruleBody(base ?? '', ':root[data-theme="dark"]')).toContain('color-scheme: dark;');
 	});
 
-	it('points every url() at a font file that exists', () => {
+	it('switches to the side nav at 960px', async () => {
+		const css = await buildLayoutCss();
+		expect(css).toMatch(/@media \(width >= 960px\)\s*\{[^@]*\.shell\\:hidden/);
+	});
+
+	it('has a light: variant that follows data-theme, then the system setting', async () => {
+		const css = await buildLayoutCss();
+		// The stored choice: data-theme="light" on the root or an ancestor.
+		expect(css).toContain(':where([data-theme="light"], [data-theme="light"] *)');
+		// No stored choice: the system setting, unless the root says dark.
+		expect(css).toContain('@media (prefers-color-scheme: light)');
+		expect(css).toContain(
+			':where(:root:not([data-theme="dark"]), :root:not([data-theme="dark"]) *)'
+		);
+		expect(css).toContain('.light\\:hidden');
+	});
+
+	it('points every url() at an asset that exists', () => {
 		const urls = [...layoutCss.matchAll(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g)].map((m) => m[1]);
 		expect(urls).toEqual(
 			expect.arrayContaining([
 				'../lib/assets/fonts/krona-one-latin.woff2',
-				'../lib/assets/fonts/instrument-sans-latin-var.woff2'
+				'../lib/assets/fonts/instrument-sans-latin-var.woff2',
+				'../lib/assets/mark.svg'
 			])
 		);
 		for (const url of urls) {
-			expect(Object.keys(fontFiles), url).toContain(url);
+			expect(Object.keys(assetFiles), url).toContain(url);
 		}
 	});
 });
