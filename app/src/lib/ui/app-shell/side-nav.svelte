@@ -9,7 +9,7 @@
 </script>
 
 <!-- From 960px. Below that, the top bar and the tab bar take over. -->
-<aside
+<div
 	class="sticky top-0 hidden h-svh flex-col gap-10 border-r border-line pt-7 pr-6 pb-6 pl-8 shell:flex"
 >
 	<Wordmark />
@@ -33,4 +33,4 @@
 		<span>Theme</span>
 		<ThemeToggle />
 	</div>
-</aside>
+</div>

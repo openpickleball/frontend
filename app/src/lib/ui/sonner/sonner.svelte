@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { WIDE_QUERY, toastPlacement } from './position.js';
 	import { Toaster as Sonner, type ToasterProps as SonnerProps } from 'svelte-sonner';
 	import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
@@ -7,16 +9,28 @@
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 
 	let { ...restProps }: SonnerProps = $props();
+
+	// Below 960px toasts sit above the tab bar. From 960px they go bottom right.
+	let wide = $state(false);
+	onMount(() => {
+		const query = window.matchMedia(WIDE_QUERY);
+		const sync = () => (wide = query.matches);
+		sync();
+		query.addEventListener('change', sync);
+		return () => query.removeEventListener('change', sync);
+	});
+	const placement = $derived(toastPlacement(wide));
 </script>
 
 <!--
   Toasts are inverted pills (secondary on primary). The tokens follow color-scheme on the root, so
-  no theme prop is needed. On mobile the offset keeps them above the bottom tab bar.
+  no theme prop is needed. See position.ts for where they go.
 -->
 <Sonner
 	class="toaster group"
-	position="bottom-center"
-	mobileOffset={{ bottom: 'calc(var(--tabbar-height) + 16px + env(safe-area-inset-bottom))' }}
+	position={placement.position}
+	offset={placement.offset}
+	mobileOffset={placement.mobileOffset}
 	style="--normal-bg: var(--color-secondary); --normal-text: var(--color-primary); --normal-border: var(--color-secondary); --border-radius: 999px;"
 	toastOptions={{
 		classes: {

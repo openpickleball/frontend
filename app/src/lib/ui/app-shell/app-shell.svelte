@@ -21,7 +21,7 @@
 		<!-- One column, 720px wide, with the site gutter. Room below for the tab bar on mobile. -->
 		<main
 			id="main"
-			class="mx-auto w-full max-w-[calc(720px+2*var(--spacing-gutter))] px-gutter pt-2 pb-[calc(var(--tabbar-height)+56px+env(safe-area-inset-bottom))] shell:pt-12 shell:pb-24"
+			class="mx-auto w-full max-w-[calc(720px+2*var(--spacing-gutter))] pr-[max(var(--spacing-gutter),env(safe-area-inset-right))] pl-[max(var(--spacing-gutter),env(safe-area-inset-left))] pt-2 pb-[calc(var(--tabbar-height)+56px+env(safe-area-inset-bottom))] shell:pt-12 shell:pb-24"
 		>
 			{@render children()}
 		</main>

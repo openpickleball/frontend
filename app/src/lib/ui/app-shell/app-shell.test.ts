@@ -71,7 +71,7 @@ describe('AppShell', () => {
 		const body = shell('/');
 		expect(body).toMatch(/<header[^>]*shell:hidden/);
 		expect(body).toMatch(/<nav[^>]*fixed[^>]*shell:hidden/);
-		expect(body).toMatch(/<aside[^>]*hidden[^>]*shell:flex/);
+		expect(body).toMatch(/<div[^>]*hidden[^>]*shell:flex/);
 	});
 
 	it('puts the page in one main landmark, with a skip link to it', () => {
@@ -79,6 +79,21 @@ describe('AppShell', () => {
 		expect(body).toContain('href="#main"');
 		expect(body.match(/<main[\s>]/g)).toHaveLength(1);
 		expect(body).toMatch(/<main[^>]*id="main"[^>]*>\s*<h1>Stub<\/h1>/);
+	});
+
+	it('has no extra landmark besides the Main navs, the header and main', () => {
+		expect(shell('/')).not.toContain('<aside');
+	});
+
+	it('clears landscape notches on the top bar and main', () => {
+		const body = shell('/');
+		for (const side of ['left', 'right']) {
+			expect(
+				body.match(
+					new RegExp(`max\\(var\\(--spacing-gutter\\),env\\(safe-area-inset-${side}\\)\\)`, 'g')
+				)
+			).toHaveLength(2);
+		}
 	});
 
 	it('has a theme toggle in the top bar and in the side nav', () => {
