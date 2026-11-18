@@ -53,3 +53,5 @@ Hosting, Capacitor and app-store builds are out of scope.
 - Q4 Submitting a match confirms for the submitter's team; the submit button says so. Raise it with the backend team too. (2026-11-17)
 - Q5 Merge ruleset: yes. Once the `app-e2e` job exists on `main`, the owner turns on "require branches to be up to date" and makes `app-e2e` required. (2026-11-17)
 - Engineering decisions in `proposal.md` §2–§11 approved, except the offline queue (Q1, deferred to frontend#33). (2026-11-17)
+- Merging: for v1, the orchestrator merges a PR once CI is green and an Opus review approves. This is an owner-approved exception to `CONTRIBUTING.md` and the `CLAUDE.md` git rules, which say a human merges. (2026-11-17)
+- Coordination: each v1 task gets its own GitHub issue, claimed by comment when work starts, with `issue-<N>-<slug>` branches, so other contributors can see what's taken. T1 builds on the theme work already merged in frontend#14 and #15. (2026-11-17)
