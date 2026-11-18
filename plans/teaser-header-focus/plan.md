@@ -60,3 +60,15 @@ Finding 2 (the arrow after "Get involved" is read aloud) is a separate pull requ
 - Criterion 3: scroll down past the threshold and back, with focus outside the header; record `data-hidden` and computed opacity at each end.
 - Criterion 4: screenshots of the focused header at the top in both themes, and the computed `transition-duration` (or `transition: none`) with reduced motion emulated.
 - Criterion 5: the `pnpm build` output.
+
+### Red (before the change)
+
+Chrome, viewport 1280x800, black theme, page at the top (`scrollY` 0), served from `site/public/` after `pnpm build`. Values from `getComputedStyle(#site-nav)` after each Tab, read 400 ms later:
+
+| Key | `document.activeElement` | `data-hidden` | `opacity` | `pointer-events` | `translate` |
+| --- | --- | --- | --- | --- | --- |
+| (none) | `body` | yes | `0` | `none` | `0px -8px` |
+| Tab | `A` "Skip to content" | yes | `0` | `none` | `0px -8px` |
+| Tab | `A` "OPEN", inside `#site-nav` | yes | `0` | `none` | `0px -8px` |
+
+Focus is on a link inside the header while the header is invisible. This is the defect.
