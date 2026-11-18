@@ -18,8 +18,9 @@
 }
 
 /*
-  Copy this block into app/src/routes/layout.css at swap time. Each color is light-dark(ivory
-  theme, black theme). Which one applies follows color-scheme on the root, set below.
+  This block is mirrored in app/src/routes/layout.css. Keep the two in step until site/ is
+  deleted. Each color is light-dark(ivory theme, black theme). Which one applies follows
+  color-scheme on the root, set below.
 */
 @theme {
   --color-primary: light-dark(#f7f3e8, #000000); /* page background */

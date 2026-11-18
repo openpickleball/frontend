@@ -1,6 +1,6 @@
 # Bring the teaser's theme into the app (issue #14)
 
-**Status:** active
+**Status:** done
 
 Risk tier: Medium. CSS and font files only, and the change only adds things. A build and a unit test cover the generated CSS, but font loading and the switch between the black and ivory themes can only be confirmed in a browser. About six files change.
 
@@ -15,6 +15,8 @@ The SvelteKit app in `app/` has the teaser's design tokens, fonts and color-sche
 - Scope (asked on 2026-11-17): copy the `@theme` block, the two `@font-face` rules with their font files, and the `:root` `color-scheme` base rules. On its own, the `@theme` block would leave the app always ivory (`light-dark()` needs `color-scheme`) and on fallback fonts. The theme toggle, the `light:` variant, the `data-theme` head script, and the teaser's custom utilities (`mark`, `hero-green`, `shimmer`, `wrap`, `label`, `arrow-link`, scroll animations) are not copied. They belong to the home page rebuild (step 3).
 - The `:root[data-theme=...]` rules are copied along with `:root { color-scheme: light dark; }`, since they are part of the same base block and cost nothing. Nothing sets `data-theme` in the app yet, so the system setting decides.
 - Fonts live in `app/src/lib/assets/fonts/` and are referenced from `layout.css` by relative URL, so Vite fingerprints them. The OFL license files go with them, as the OFL requires when the fonts are redistributed. No `<link rel="preload">` yet. The home page rebuild can add one.
+- The test reads `layout.css` and Tailwind's `index.css` with Vite `?raw` imports, not `node:fs`, because the app has no `@types/node` and adding it would be a new dependency. Vitest replaces every CSS import with an empty string by default, so `app/vite.config.ts` sets `test.css.include` to `/\.css\?raw$/`. That only lets raw source reads through. The file-exists test uses `import.meta.glob` on the fonts folder for the same reason. (Recorded 2026-11-17, during implementation.)
+- Prettier writes CSS strings with single quotes, so `layout.css` has `'Krona One'` where the teaser has `"Krona One"`. CSS treats the two the same. The test turns single quotes into double quotes in the compiled output before it compares values.
 - `app/src/app.html`'s `<body>` gets the teaser's body classes (`bg-primary font-body text-secondary antialiased`), so the app shell uses the theme. This shows the tokens work in a real page.
 
 ## Acceptance criteria
@@ -34,6 +36,7 @@ The SvelteKit app in `app/` has the teaser's design tokens, fonts and color-sche
 - `app/src/lib/assets/fonts/` (new): two woff2 files and two OFL license files, copied from `site/public/assets/fonts/`.
 - `app/src/app.html`: body classes.
 - `app/src/routes/layout.test.ts` (new): the compile test for criterion 4.
+- `app/vite.config.ts`: let Vitest read `?raw` CSS imports (see Decisions).
 - `site/src/input.css`: the comment above `@theme` only.
 - `plans/app-migration/plan.md`: tick step 2.
 - `plans/app-theme/plan.md`: this file. Set the status to `done` at the end.

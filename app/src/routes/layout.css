@@ -1,1 +1,50 @@
 @import 'tailwindcss';
+
+@font-face {
+	font-family: 'Krona One';
+	src: url('../lib/assets/fonts/krona-one-latin.woff2') format('woff2');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* Variable subset covering 400 to 700, so bold text is real bold. */
+@font-face {
+	font-family: 'Instrument Sans';
+	src: url('../lib/assets/fonts/instrument-sans-latin-var.woff2') format('woff2');
+	font-weight: 400 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+/*
+  This block mirrors the @theme block in site/src/input.css. Keep the two in step until site/ is
+  deleted. Each color is light-dark(ivory theme, black theme). Which one applies follows
+  color-scheme on the root, set below.
+*/
+@theme {
+	--color-primary: light-dark(#f7f3e8, #000000); /* page background */
+	--color-secondary: light-dark(#17150f, #ffffff); /* wordmark, headline, links */
+	--color-muted: light-dark(#4d493f, #bdbdbd); /* status line, footer */
+	--color-line: light-dark(#d8d1bf, #3d3d3d); /* rules and borders, if any */
+	--color-faint: light-dark(#6c6658, #8a8a8a); /* captions and fine print */
+	--color-surface: light-dark(#fcfaf3, #0d0d0d); /* raised panels */
+
+	--spacing-gutter: clamp(20px, 4vw, 56px); /* page side padding */
+
+	--font-display: 'Krona One', sans-serif; /* wordmark */
+	--font-body: 'Instrument Sans', sans-serif;
+}
+
+/* Theme: the system setting decides. Nothing sets data-theme in the app yet. */
+@layer base {
+	:root {
+		color-scheme: light dark;
+	}
+	:root[data-theme='light'] {
+		color-scheme: light;
+	}
+	:root[data-theme='dark'] {
+		color-scheme: dark;
+	}
+}
