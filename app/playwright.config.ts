@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4183;
+// Set E2E_PORT to run e2e from two checkouts at the same time.
+const PORT = Number(process.env.E2E_PORT ?? 4183);
 
 export default defineConfig({
 	testDir: 'e2e',
@@ -23,7 +24,8 @@ export default defineConfig({
 		command: `pnpm build && pnpm preview --port ${PORT} --strictPort`,
 		url: `http://localhost:${PORT}`,
 		env: { PUBLIC_API_MOCK: 'all' },
-		reuseExistingServer: !process.env.CI,
+		// Never reuse a server: one from another checkout would test the wrong build.
+		reuseExistingServer: false,
 		timeout: 120_000
 	}
 });
