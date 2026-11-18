@@ -81,9 +81,9 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - [x] Every state in `mockups/auth.html`, adjusted to the real backend (verifying an email or resetting a password does not sign anyone in). Component tests and an e2e test of signup → verify → login on mocks.
 
 ### T9 · Profile and own code — frontend#43
-- [ ] `features/players`: the "my OPEN code" store, filled from `me/player` when it exists (mock) and otherwise from a one-time entry kept in localStorage.
-- [ ] `/profile`: the code with Copy and Share, the match count, and a "Ratings aren't live yet" card. In mock mode, a sample rating card labelled as sample data. Never call it an "OPEN rating" (`CONTRIBUTING.md`).
-- [ ] The one-time code entry prompt, shown when signed in with no code.
+- [x] `features/players`: the "my OPEN code" store, filled from `me/player` when it exists (mock) and otherwise from a one-time entry kept in localStorage.
+- [x] `/profile`: the code with Copy and Share, the match count, and a "Ratings aren't live yet" card. In mock mode, a sample rating card labelled as sample data. Never call it an "OPEN rating" (`CONTRIBUTING.md`).
+- [x] The one-time code entry prompt, shown when signed in with no code.
 
 ### T7 · Record a match — frontend#44
 - **Overrides the mockups** (plan.md Q1, Q4): the record button says the player is confirming the score; after submit the match waits only on the other team (the "recorded" state in `match.html` must not ask the submitter to confirm); no offline queue (frontend#33).
