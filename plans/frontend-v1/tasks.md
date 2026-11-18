@@ -69,10 +69,11 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Accept:** `app-e2e` passes on the PR. Afterwards, the owner makes it required and turns on "require up to date".
 
 ### T5 · Mocks — frontend#41
-- [ ] MSW 3 and openapi-msw handlers for every endpoint in use, plus `api/provisional.ts` types for `me/player`, `players/{code}` and ratings (shapes from backend#124 and #53).
-- [ ] Hand-written fixtures: fictional players and matches in every status. Code formats match the backend.
-- [ ] Modes `PUBLIC_API_MOCK=off|missing|all`, set up in `hooks.client.ts`. `msw/node` setup for Vitest.
-- **Owns:** `app/src/lib/mocks/**`, `app/src/hooks.client.ts`, `app/src/lib/api/provisional.ts`.
+- [x] MSW 3 and openapi-msw handlers for every endpoint in use, plus `api/provisional.ts` types for `me/player`, `players/{code}` and ratings (shapes from backend#124 and #53).
+- [x] Hand-written fixtures: fictional players and matches in every status. Code formats match the backend.
+- [x] Modes `PUBLIC_API_MOCK=off|missing|all`, set up in `hooks.client.ts`. `msw/node` setup for Vitest.
+- [x] DTO to domain mappers (`domain/mappers.ts` and its test), moved here from T2 because they were left over there.
+- **Owns:** `app/src/lib/mocks/**`, `app/src/hooks.client.ts`, `app/src/lib/api/provisional.ts`, `app/src/lib/domain/mappers.ts`.
 
 ### T6 · Auth — frontend#42
 - [ ] `features/auth`: a session store filled from `GET auth/session`, and services for signup, login, logout, verify email, resend, password reset request and reset with key.
