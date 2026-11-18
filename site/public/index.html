@@ -80,12 +80,13 @@
       Hidden while the teaser fills the screen, since the teaser already shows the wordmark.
       It starts hidden so it can't flash over the teaser on load. The script at the end of the page
       shows and hides it, and the noscript style in the head keeps it visible without JavaScript.
-      It also shows while one of its links has keyboard focus, so a keyboard player can see where they are.
+      It also shows while one of its links has keyboard focus (:focus-visible), so a keyboard player can see
+      where they are. Focus from a mouse click or a script does not keep it shown.
     -->
     <header
       id="site-nav"
       data-hidden
-      class="fixed inset-x-0 top-0 z-20 bg-primary/80 backdrop-blur-md transition-[opacity,translate] duration-300 data-hidden:pointer-events-none data-hidden:-translate-y-2 data-hidden:opacity-0 data-hidden:focus-within:pointer-events-auto data-hidden:focus-within:translate-y-0 data-hidden:focus-within:opacity-100 motion-reduce:transition-none"
+      class="fixed inset-x-0 top-0 z-20 bg-primary/80 backdrop-blur-md transition-[opacity,translate] duration-300 data-hidden:pointer-events-none data-hidden:-translate-y-2 data-hidden:opacity-0 data-hidden:has-focus-visible:pointer-events-auto data-hidden:has-focus-visible:translate-y-0 data-hidden:has-focus-visible:opacity-100 motion-reduce:transition-none"
     >
       <div class="wrap flex h-16 items-center justify-between gap-6 pr-[calc(var(--spacing-gutter)+44px)]">
         <a href="#top" class="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current">
