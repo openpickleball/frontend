@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
 	import { SignOutButton, isAccountPath, session, sessionEmail } from '#lib/features/auth/index.js';
+	import { matchCache } from '#lib/features/matches/index.js';
 	import { myCode, setAccountEmailSource } from '#lib/features/players/index.js';
 	import { AppShell } from '#lib/ui/app-shell/index.js';
 	import { Toaster } from '#lib/ui/sonner/index.js';
@@ -22,7 +23,12 @@
 	$effect(() => {
 		if (session.status === 'unknown') return;
 		const account = `${session.status}|${session.email}`;
-		if (lastAccount !== null && lastAccount !== account) untrack(() => myCode.reset());
+		if (lastAccount !== null && lastAccount !== account) {
+			untrack(() => {
+				myCode.reset();
+				matchCache.reset();
+			});
+		}
 		lastAccount = account;
 	});
 </script>
