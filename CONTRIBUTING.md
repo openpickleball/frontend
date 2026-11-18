@@ -42,7 +42,8 @@ Every pull request links an issue, so if none exists for your change, open one f
 
 A pull request merges only when these checks pass:
 
-- `app-checks`: `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test`, and `pnpm build` in `app/`.
+- `app-checks`: `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test:coverage` (the tests with a coverage summary, in the node and browser projects), and `pnpm build` in `app/`.
+- `app-e2e`: `pnpm e2e` in `app/`, the Playwright end-to-end tests at phone size, with axe accessibility checks.
 - `teaser-build`: `pnpm build` in `site/`.
 - `sign-off`: every commit carries a DCO sign-off.
 
@@ -90,3 +91,15 @@ These conventions are the ones a tool cannot check:
 ## Tests
 
 Every change to app behavior needs tests that would fail without it. A bug fix needs a test that reproduces the bug. Write them with [Vitest](https://vitest.dev/) next to the code they test, as in `app/src/routes/page.test.ts`, and run them with `pnpm test` in `app/`.
+
+Vitest runs two projects. A file named `*.svelte.test.ts` renders components in a real headless browser (Chromium), and every other test file runs in node. The first run needs `pnpm exec playwright install chromium`. `pnpm test:coverage` runs the same tests and prints a coverage summary.
+
+End-to-end tests live in `app/e2e/`. Run them with `pnpm e2e` in `app/`: it builds the app, serves it on port 4183 and runs Playwright at phone size with axe accessibility checks.
+
+For local development, the `PUBLIC_API_MOCK` environment variable controls the mock API (`app/src/lib/mocks`):
+
+- `off` (the default): no mocks. Requests go to the backend.
+- `missing`: mocks only the endpoints the backend does not have yet.
+- `all`: mocks every endpoint, so you need no backend. The e2e tests use this.
+
+Any other value counts as `off`. Use made-up data in mocks, as everywhere else.

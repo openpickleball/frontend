@@ -40,6 +40,8 @@ export default defineConfig({
 		},
 		// Two projects. `*.svelte.test.ts` files render components in a real browser; every
 		// other test file runs in node.
+		// A future global msw/node setup file goes in the `node` project's `setupFiles`, not the
+		// root, because the browser project inherits root settings via `extends: true`.
 		projects: [
 			{
 				extends: true,
