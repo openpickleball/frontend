@@ -1,6 +1,6 @@
 # Frontend v1: from zero to a working player app
 
-**Status:** active
+**Status:** done
 
 ## Goal
 
@@ -24,8 +24,8 @@ Hosting, Capacitor and app-store builds are out of scope.
 - [x] Mockups → `mockups/`
 - [x] Review page published and signed off (https://claude.ai/artifact/DutKgygg1Dodvq38PXJ2dL)
 - [x] Task breakdown → `tasks.md`
-- [ ] CI hardening, if the proposal calls for it (T0 does the basics; the rest is in T3 and T4)
-- [ ] Implementation tasks (tracked in `tasks.md`)
+- [x] CI hardening: T0 (concurrency, timeouts, fail on warnings), T3 (schema drift check), T4 (`app-e2e`), T10 (`e2e:pwa` in `app-e2e`)
+- [x] Implementation tasks T0 to T11 (tracked in `tasks.md`)
 
 ## Research findings (2026-11-17)
 
@@ -55,3 +55,16 @@ Hosting, Capacitor and app-store builds are out of scope.
 - Engineering decisions in `proposal.md` §2–§11 approved, except the offline queue (Q1, deferred to frontend#33). (2026-11-17)
 - Merging: for v1, the orchestrator merges a PR once CI is green and an Opus review approves. This is an owner-approved exception to `CONTRIBUTING.md` and the `CLAUDE.md` git rules, which say a human merges. (2026-11-17)
 - Coordination: each v1 task gets its own GitHub issue, claimed by comment when work starts, with `issue-<N>-<slug>` branches, so other contributors can see what's taken. T1 builds on the theme work already merged in frontend#14 and #15. (2026-11-17)
+
+## Outcome (2026-11-18)
+
+All tasks T0 to T11 merged (frontend#32, #50, #51, #53, #55, #56, #60, #61, #62, #63, #67, #68, plus chores #49, #59, #66). Each PR passed CI and an Opus review before merge.
+
+`app/` now has sign up, verify, sign in and password reset, the profile with the player's own code, record a match (which confirms for the submitter's team), match history, match detail with confirm and dispute, and an installable offline shell. It runs on mock data or against the local backend (`app/README.md`), and `pnpm e2e:live` covers one real happy path.
+
+Still open:
+
+- Owner action: require up-to-date branches and make `app-e2e` required (frontend#64).
+- Frontend follow-ups: frontend#33 (offline queue), #34 (SSR for public pages), #35 (swap mocks for real endpoints), #36 (Tailwind in Dependabot), #57 (strip mocks from non-mock builds), #22 (hosting).
+- Backend gaps that limit v1: backend#124 (players can't see their own code, so the app asks once), #193 (which teams confirmed; until then home says "Pending matches"), #195 (seed logins), #196 (local dev defaults), #199 (structured duplicate match code).
+
