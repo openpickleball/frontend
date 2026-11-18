@@ -1,6 +1,5 @@
 import { SvelteMap } from 'svelte/reactivity';
 import type { Match, MatchCode, PlayerCode } from '#lib/domain/index.js';
-import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
 
 /** What the player did to a match in this session. */
@@ -32,10 +31,23 @@ export class MatchCache {
 	// Reactive, so a read that found nothing (no owner yet) reruns once the first write sets it.
 	#owner = $state<string | null>(null);
 	#currentOwner: () => string | null;
+	#ownerSource: (() => string | null) | null = null;
 
-	/** `currentOwner` says who is signed in. It defaults to the session email and `myCode`. */
-	constructor(currentOwner: () => string | null = () => ownerKey(session.email, myCode.code)) {
-		this.#currentOwner = currentOwner;
+	/**
+	 * `currentOwner` says who is signed in. By default it asks the source set with
+	 * `setOwnerSource`, and with none set it is the player's code alone.
+	 */
+	constructor(currentOwner?: () => string | null) {
+		this.#currentOwner = currentOwner ?? (() => (this.#ownerSource ?? (() => myCode.code))());
+	}
+
+	/**
+	 * Say who the cache belongs to, for example `ownerKey(session.email, myCode.code)`. This
+	 * feature does not import the auth feature, so the root layout wires it. Pass null to go back
+	 * to the player's code alone.
+	 */
+	setOwnerSource(source: (() => string | null) | null): void {
+		this.#ownerSource = source;
 	}
 
 	/** Drop everything when the player changed, and say whether there is a player to cache for. */

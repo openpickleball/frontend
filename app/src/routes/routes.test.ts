@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import type { Component } from 'svelte';
-import { buildCode } from '../lib/domain/codes';
+import { buildCode } from '#lib/domain/index.js';
 import appHtml from '../app.html?raw';
 
 // Every route page, keyed by its path under src/routes.
