@@ -97,7 +97,7 @@
 	{#if panel.actions && isPending(match)}
 		<p class="mt-3 text-[15px] text-muted">Already confirmed? Confirming again changes nothing.</p>
 		<div class="mt-[18px] flex flex-wrap gap-3">
-			<Button onclick={onconfirm} disabled={busy !== null}>
+			<Button id="confirm-button" onclick={onconfirm} disabled={busy !== null}>
 				{busy === 'confirm' ? 'Confirming…' : 'Confirm score'}
 			</Button>
 			<Button id="dispute-button" variant="destructive" onclick={ondispute} disabled={busy !== null}

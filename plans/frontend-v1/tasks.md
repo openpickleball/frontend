@@ -87,9 +87,9 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 
 ### T7 · Record a match — frontend#44
 - **Overrides the mockups** (plan.md Q1, Q4): the record button says the player is confirming the score; after submit the match waits only on the other team (the "recorded" state in `match.html` must not ask the submitter to confirm); no offline queue (frontend#33).
-- [ ] `/record` per `mockups/record.html`: singles or doubles, players entered by code as chips (the user's own code prefilled), date, game settings, add and remove games, and inline validation from T2.
-- [ ] Submit → `POST /matches/` → confirm for the user's own team (Q4) → match detail with a toast. The button says the user is confirming the score.
-- [ ] 422 errors mapped onto their fields, and a 409 duplicate linked to the existing match. Offline shows an error (no queue, Q1).
+- [x] `/record` per `mockups/record.html`: singles or doubles, players entered by code as chips (the user's own code prefilled), date, game settings, add and remove games, and inline validation from T2.
+- [x] Submit → `POST /matches/` → confirm for the user's own team (Q4) → match detail with a toast. The button says the user is confirming the score.
+- [x] 422 errors mapped onto their fields, and a 409 duplicate linked to the existing match. Offline shows an error (no queue, Q1).
 
 ### T8 · My matches, detail, confirm and dispute — frontend#45
 - **Overrides the mockups** (plan.md Q1, Q4): a match the user just submitted waits only on the other team, so the "recorded" state in `match.html` must not ask the submitter to confirm; no offline queue (frontend#33).

@@ -95,9 +95,11 @@
 		const you = myCode.code;
 		if (!code || !you) return false;
 		try {
+			// What the page shows now. The fresh read replaces it in the cache.
+			const shown = matchCache.get(code)?.status;
 			const found = await findMatch(code, you, { fresh: true });
 			if (!found) return false;
-			toast('This match changed. Here is where it stands.');
+			if (found.status !== shown) toast('This match changed. Here is where it stands.');
 			return true;
 		} catch {
 			return false;
@@ -125,8 +127,8 @@
 		} catch (cause) {
 			if (!(isAppError(cause) && cause.kind === 'conflict' && (await refresh()))) {
 				error = problem(cause, action);
-				// The dialog closed on Dispute and the button is still here, so put focus back on it.
-				focusId = action === 'dispute' ? 'dispute-button' : '';
+				// The button the player pressed is still here, so put focus back on it.
+				focusId = action === 'dispute' ? 'dispute-button' : 'confirm-button';
 			}
 		} finally {
 			busy = null;

@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
 	import { SignOutButton, isAccountPath, session, sessionEmail } from '#lib/features/auth/index.js';
-	import { matchCache } from '#lib/features/matches/index.js';
+	import { matchCache, ownerKey } from '#lib/features/matches/index.js';
 	import { myCode, setAccountEmailSource } from '#lib/features/players/index.js';
 	import { AppShell } from '#lib/ui/app-shell/index.js';
 	import { Toaster } from '#lib/ui/sonner/index.js';
@@ -16,6 +16,9 @@
 	// script, not in onMount: a child's onMount runs first. sessionEmail() waits for the session,
 	// so it never says "signed out" while the session is still loading.
 	setAccountEmailSource(sessionEmail);
+	// The match cache belongs to one account and one player code. session.email is read straight
+	// off the session store, because the cache needs the answer now, not a promise.
+	matchCache.setOwnerSource(() => ownerKey(session.email, myCode.code));
 
 	// A sign out or an account switch must never leave the last account's code in the store. The
 	// first read of the session (from unknown) is not a change.
