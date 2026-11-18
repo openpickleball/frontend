@@ -11,7 +11,7 @@ The full frontend, built with SvelteKit and Tailwind. It is not deployed yet: `p
 - `pnpm lint` runs ESLint.
 - `pnpm test` runs the Vitest tests in two projects. Name a component test `*.svelte.test.ts` and it runs in headless Chromium (Vitest browser mode, rendered with `vitest-browser-svelte`). Every other `*.test.ts` runs in node. The first run needs `pnpm exec playwright install chromium`.
 - `pnpm test:coverage` runs the same tests and prints a v8 coverage summary, with no threshold.
-- `pnpm e2e` runs the Playwright tests in `e2e/` on the Pixel 7 project. It builds the app, serves it with `vite preview` on port 4183 (not 4173, which the `site` preview in `.claude/launch.json` uses) and sets `PUBLIC_API_MOCK=all`.
+- `pnpm e2e` runs the Playwright tests in `e2e/` on the Pixel 7 project. It builds the app, serves it with `vite preview` on port 4183 (not 4173, which the `site` preview in `.claude/launch.json` uses) and sets `PUBLIC_API_MOCK=all`. Set `E2E_PORT` to use another port, for example `E2E_PORT=4184 pnpm e2e` when another checkout is running e2e. It never reuses a server that is already listening, so a port clash fails the run.
 - `pnpm e2e:webkit` runs the iPhone 15 (WebKit) project instead. It needs `pnpm exec playwright install webkit`.
 - `pnpm build` produces a production build.
 
