@@ -4,6 +4,9 @@
  * Field keys in the issues follow the backend's 422 `fields` once `body.` is
  * stripped (`team_a.0`, `games.1`, `played_on`), so a form can show a client-side
  * issue and a server-side one under the same key. Use `zodFieldErrors` to read them.
+ *
+ * A game's key can be `games.<i>` (a score rule) or `games.<i>.team_a` (the server's
+ * schema check on one score), so a form groups game errors by the `games.<i>` prefix.
  */
 import { z } from 'zod';
 import { type BestOf, type GameTarget, type MatchFormat, type ScoringType } from './models';
@@ -40,11 +43,6 @@ export function zodFieldErrors(error: z.ZodError): FieldErrors {
 	);
 }
 
-const gameInputSchema = z.object({
-	teamA: z.number('Enter each score as a whole number.').int('Enter each score as a whole number.'),
-	teamB: z.number('Enter each score as a whole number.').int('Enter each score as a whole number.')
-});
-
 /**
  * The form's shape, before the rules run. `bestOf`, `gameTarget` and `scoringType`
  * may be left out: the target defaults to 11, the scoring type to side-out and the
@@ -72,9 +70,10 @@ export const matchInputSchema = z
 		// The choices are checked by `validateMatch`, so their messages are the backend's.
 		format: z.unknown().optional(),
 		playedOn: z.string('Enter the date played as a date.'),
-		teamA: z.array(z.string('Enter a player code.'), 'Enter Team A as a list of players.'),
-		teamB: z.array(z.string('Enter a player code.'), 'Enter Team B as a list of players.'),
-		games: z.array(gameInputSchema, 'Enter the games as a list of scores.'),
+		// Also checked by `validateMatch`, so one bad value never hides the other issues.
+		teamA: z.unknown().optional(),
+		teamB: z.unknown().optional(),
+		games: z.unknown().optional(),
 		bestOf: z.unknown().optional(),
 		gameTarget: z.unknown().optional(),
 		scoringType: z.unknown().optional()
@@ -113,8 +112,11 @@ export function normalizeEmail(email: string): string {
 }
 
 // Django's EmailValidator, reduced to what a browser can check.
-const EMAIL_FORMAT =
-	/^[-!#$%&'*+/=?^_`{}|~0-9a-z]+(\.[-!#$%&'*+/=?^_`{}|~0-9a-z]+)*@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])$/i;
+const LOCAL_PART = String.raw`[-!#$%&'*+/=?^_\`{}|~0-9a-z]+(?:\.[-!#$%&'*+/=?^_\`{}|~0-9a-z]+)*`;
+const LABEL = String.raw`[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?`;
+// The last label: letters or hyphens, 2 to 63, no leading or trailing hyphen, or `xn--`.
+const TLD = String.raw`(?:[a-z](?:[a-z-]{0,61}[a-z])|xn--[a-z0-9-]{1,57}[a-z0-9])`;
+const EMAIL_FORMAT = new RegExp(`^${LOCAL_PART}@(?:(?:${LABEL}\\.)+${TLD}|localhost)$`, 'i');
 
 /** The first rule an already-normalized address breaks, in the backend's order: ASCII, length, format. */
 export function emailError(normalized: string): string | null {
@@ -129,7 +131,7 @@ export function emailError(normalized: string): string | null {
 	return null;
 }
 
-/** An address for sign-up or a password reset: normalized as the backend does, then checked. */
+/** A new address for sign-up: normalized as the backend does (NFKC, strip, lowercase), then checked. */
 export const emailSchema = z
 	.string('Enter your email address.')
 	.transform(normalizeEmail)
@@ -139,12 +141,12 @@ export const emailSchema = z
 	});
 
 /**
- * An address for logging in. The backend only recognizes a canonical address
+ * An address for logging in or requesting a password reset. The backend only recognizes a canonical address
  * (`is_canonical_email`): ASCII once stripped, so a lookalike that NFKC would fold
  * onto an account's address does not log in. This strips and lowercases but does
  * not apply NFKC.
  */
-export const loginEmailSchema = z
+export const canonicalEmailSchema = z
 	.string('Enter your email address.')
 	.transform((email) => email.trim())
 	.superRefine((email, ctx) => {
@@ -162,8 +164,8 @@ export const newPasswordSchema = z
 export const loginPasswordSchema = z.string('Enter your password.').min(1, 'Enter your password.');
 
 export const signupSchema = z.object({ email: emailSchema, password: newPasswordSchema });
-export const loginSchema = z.object({ email: loginEmailSchema, password: loginPasswordSchema });
-export const passwordResetRequestSchema = z.object({ email: emailSchema });
+export const loginSchema = z.object({ email: canonicalEmailSchema, password: loginPasswordSchema });
+export const passwordResetRequestSchema = z.object({ email: canonicalEmailSchema });
 export const passwordResetSchema = z.object({
 	key: z.string('The reset link is not valid.').min(1, 'The reset link is not valid.'),
 	password: newPasswordSchema

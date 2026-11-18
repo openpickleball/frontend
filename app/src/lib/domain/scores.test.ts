@@ -245,7 +245,7 @@ describe('teams', () => {
 	});
 });
 
-// test_malformed_containers
+// backend: test_validation_malformed_containers.py
 describe('malformed teams and games', () => {
 	// test_a_team_that_is_not_a_list_or_tuple_fails
 	it.each([
@@ -554,6 +554,7 @@ describe('date played', () => {
 		['2026-6-1'],
 		['2026-02-30'],
 		['2026-13-01'],
+		['0000-01-01'],
 		[''],
 		[null],
 		[undefined],

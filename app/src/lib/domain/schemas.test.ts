@@ -100,8 +100,29 @@ describe('matchInputSchema', () => {
 		const result = matchInputSchema.safeParse({ ...matchInput(), playedOn: 20260601 });
 		expect(!result.success && Object.keys(zodFieldErrors(result.error))).toEqual(['played_on']);
 		const floats = matchInputSchema.safeParse(matchInput({ games: [{ teamA: 11.5, teamB: 5 }] }));
-		expect(!floats.success && Object.keys(zodFieldErrors(floats.error))).toEqual([
-			'games.0.team_a'
+		expect(!floats.success && zodFieldErrors(floats.error)).toEqual({
+			'games.0': ['Game 1: enter each score as a whole number.']
+		});
+	});
+
+	it('reports a NaN score and a bad code together', () => {
+		const result = matchInputSchema.safeParse(
+			matchInput({ teamA: ['P-7K3M-QX9J'], games: [{ teamA: NaN, teamB: 5 }] })
+		);
+		expect(!result.success && Object.keys(zodFieldErrors(result.error)).sort()).toEqual([
+			'games.0',
+			'team_a.0'
+		]);
+	});
+
+	it('reports a non-string team entry with the other issues', () => {
+		const result = matchInputSchema.safeParse({
+			...matchInput({ playedOn: '2999-01-01' }),
+			teamB: [5]
+		});
+		expect(!result.success && Object.keys(zodFieldErrors(result.error)).sort()).toEqual([
+			'played_on',
+			'team_b'
 		]);
 	});
 
@@ -254,7 +275,38 @@ describe('signupSchema and password rules', () => {
 	});
 });
 
+describe('email format', () => {
+	it.each(['sam@localhost', 'sam@example.co', 'sam@example.xn--p1ai', 'sam@my-host.example.org'])(
+		'accepts %j',
+		(email) => {
+			expect(emailSchema.safeParse(email).success).toBe(true);
+		}
+	);
+
+	it.each([
+		'sam@example.c',
+		'sam@example.123',
+		'sam@example.-com',
+		'sam@example.com-',
+		'sam@-example.com',
+		'sam@example..com'
+	])('refuses %j', (email) => {
+		expect(emailSchema.safeParse(email).success).toBe(false);
+	});
+});
+
 describe('password reset schemas', () => {
+	// ADR 0003: the reset request finds the account by canonical address only.
+	it('refuses a fullwidth address, which NFKC would fold onto an account', () => {
+		const email = 'sam@\uff45\uff58\uff41\uff4d\uff50\uff4c\uff45.org';
+		expect(passwordResetRequestSchema.safeParse({ email }).success).toBe(false);
+	});
+
+	it('strips and lowercases a canonical address', () => {
+		const result = passwordResetRequestSchema.safeParse({ email: ' Sam@Example.ORG ' });
+		expect(result.success && result.data.email).toBe('sam@example.org');
+	});
+
 	it('takes an email to request a reset', () => {
 		expect(passwordResetRequestSchema.safeParse({ email: 'sam@example.org' }).success).toBe(true);
 		expect(passwordResetRequestSchema.safeParse({ email: 'x' }).success).toBe(false);
