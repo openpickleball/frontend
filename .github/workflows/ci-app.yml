@@ -90,10 +90,15 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       # playwright.config.ts builds the app, serves it with `vite preview`, and sets PUBLIC_API_MOCK=all.
       - run: pnpm e2e
+      # The PWA check needs a build with the mocks off (the worker never registers in mock modes),
+      # so it builds again and serves on its own port.
+      - run: pnpm e2e:pwa
       - name: Upload the Playwright report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report-${{ github.run_attempt }}
-          path: app/playwright-report/
+          path: |
+            app/playwright-report/
+            app/playwright-report-pwa/
           retention-days: 7

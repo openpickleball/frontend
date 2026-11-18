@@ -14,7 +14,7 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''; git config core.hooksPath .githooks || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && tsc -p src/service-worker --noEmit",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
@@ -22,6 +22,8 @@
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"e2e": "playwright test",
+		"e2e:pwa": "playwright test --config playwright.pwa.config.ts",
+		"icons": "node scripts/render-icons.mjs",
 		"e2e:webkit": "E2E_WEBKIT=1 playwright test --project=\"iPhone 15\"",
 		"api:pull": "curl -fsS http://127.0.0.1:8000/api/v1/openapi.json -o src/lib/api/schema/open.json && curl -fsS http://127.0.0.1:8000/_allauth/openapi.json -o src/lib/api/schema/allauth.json && prettier --write src/lib/api/schema",
 		"api:gen": "openapi-typescript src/lib/api/schema/open.json -o src/lib/api/generated/open.d.ts && openapi-typescript src/lib/api/schema/allauth.json -o src/lib/api/generated/allauth.d.ts && prettier --write src/lib/api/generated"

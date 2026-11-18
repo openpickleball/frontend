@@ -3,5 +3,13 @@
 	"compilerOptions": {
 		"strict": true
 	},
-	"include": ["src", "e2e", "vite.config.ts", "playwright.config.ts"]
+	"include": [
+		"src",
+		"e2e",
+		"e2e-pwa",
+		"vite.config.ts",
+		"playwright.config.ts",
+		"playwright.pwa.config.ts"
+	],
+	"exclude": ["src/service-worker"]
 }
