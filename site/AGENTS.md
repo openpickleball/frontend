@@ -18,7 +18,7 @@ The static pages served at openpb.org. They are temporary: `plans/app-migration/
 - `pnpm dev` rebuilds the CSS on change.
 - `pnpm build` produces the minified CSS.
 
-To view the site, serve `public/` (the `teaser` entry in `.claude/launch.json` does this) and open `/`.
+To view the site, serve `public/` (the `site` entry in `.claude/launch.json` does this) and open `/`.
 
 ## Deployment
 
