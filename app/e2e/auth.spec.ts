@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { MOCK_KEYS, MOCK_PASSWORD, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
+import { MOCK_KEYS, MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
+import { signIn, signOut, submitSignIn } from './helpers';
 
 // Runs against PUBLIC_API_MOCK=all (see playwright.config.ts). Every test gets a new browser
 // context, so the mock backend starts from its seed data each time.
@@ -25,12 +26,6 @@ async function keyFor(page: Page, kind: string, to: string): Promise<string> {
 	return key as string;
 }
 
-async function signIn(page: Page, email: string, password: string) {
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Password', { exact: true }).fill(password);
-	await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-}
-
 test('sign up, confirm the email from the link, sign in, then sign out', async ({ page }) => {
 	const email = 'new.player@example.com';
 	const password = 'a-long-enough-pass';
@@ -51,12 +46,11 @@ test('sign up, confirm the email from the link, sign in, then sign out', async (
 	await page.getByRole('link', { name: 'Sign in' }).click();
 	await expect(page).toHaveURL(/\/account\/login$/);
 
-	await signIn(page, email, password);
+	await submitSignIn(page, email, password);
 	await expect(page).toHaveURL(/\/$/);
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
-	await page.getByRole('button', { name: 'Sign out' }).filter({ visible: true }).click();
-	await expect(page).toHaveURL(/\/account\/login$/);
+	await signOut(page);
 	// Signed out for real: a signed-in page sends us back to sign in.
 	await page.goto('/record');
 	await expect(page).toHaveURL(/\/account\/login\?next=%2Frecord$/);
@@ -73,7 +67,7 @@ test('signing up with an address that has an account looks the same', async ({ p
 
 test('a wrong password shows an error and stays on sign in', async ({ page }) => {
 	await page.goto('/account/login');
-	await signIn(page, VERIFIED_EMAIL, 'not-the-password');
+	await submitSignIn(page, VERIFIED_EMAIL, 'not-the-password');
 	await expect(page.getByRole('alert')).toContainText("That email and password don't match.");
 	await expect(page).toHaveURL(/\/account\/login$/);
 });
@@ -93,23 +87,68 @@ test('the form names what is missing', async ({ page }) => {
 test('a signed-out visit to a signed-in page goes to sign in, then back', async ({ page }) => {
 	await page.goto('/matches');
 	await expect(page).toHaveURL(/\/account\/login\?next=%2Fmatches$/);
-	await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+	await submitSignIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
 	await expect(page).toHaveURL(/\/matches$/);
 });
 
 test('next never sends the player to another site', async ({ page, baseURL }) => {
 	for (const next of ['https://evil.example/', '//evil.example', '/\\evil.example']) {
 		await page.goto(`/account/login?next=${encodeURIComponent(next)}`);
-		await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+		await submitSignIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
 		await expect(page).toHaveURL(`${baseURL}/`);
-		await page.getByRole('button', { name: 'Sign out' }).filter({ visible: true }).click();
-		await expect(page).toHaveURL(/\/account\/login$/);
+		await signOut(page);
 	}
+});
+
+test('next that cannot be opened, or hides a second slash, still ends on a real page', async ({
+	page,
+	baseURL
+}) => {
+	// A path with dot segments that resolve to //evil.example is not trusted.
+	await page.goto('/account/login?next=' + encodeURIComponent('/..//evil.example'));
+	await submitSignIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+	await expect(page).toHaveURL(`${baseURL}/`);
+	await signOut(page);
+
+	// Encoded slashes: the value is `/%2F%2Fevil.com`.
+	await page.goto('/account/login?next=/%252F%252Fevil.com');
+	await submitSignIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+	await expect(page).not.toHaveURL(/account\/login/);
+	expect(new URL(page.url()).origin).toBe(new URL(baseURL!).origin);
+	await page.goto('/');
+	await signOut(page);
+
+	// A mistyped page: the player leaves Sign in and stays on this site.
+	await page.goto('/account/login?next=/recrod');
+	await submitSignIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+	await expect(page).not.toHaveURL(/account\/login/);
+	expect(new URL(page.url()).origin).toBe(new URL(baseURL!).origin);
+});
+
+test('another account never sees the last account code on the profile', async ({ page }) => {
+	const tamsin = PLAYERS.find((p) => p.key === 'tamsin')!;
+	const oren = PLAYERS.find((p) => p.key === 'oren')!;
+
+	await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+	await page.goto('/profile');
+	await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
+
+	// Sign out from the profile page, where it is in the Account section.
+	await page
+		.getByRole('region', { name: 'Account' })
+		.getByRole('button', { name: 'Sign out' })
+		.click();
+	await expect(page).toHaveURL(/\/account\/login/);
+
+	await signIn(page, oren.accountEmail!, MOCK_PASSWORD);
+	await page.getByRole('link', { name: 'Profile' }).filter({ visible: true }).click();
+	await expect(page.getByTestId('my-code')).toHaveText(oren.code);
+	await expect(page.getByText(tamsin.code)).toHaveCount(0);
 });
 
 test('a signed-in player on an account page is sent home', async ({ page, baseURL }) => {
 	await page.goto('/account/login');
-	await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+	await submitSignIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
 	await expect(page).toHaveURL(`${baseURL}/`);
 	await page.goto('/account/signup');
 	await expect(page).toHaveURL(`${baseURL}/`);
@@ -138,7 +177,7 @@ test('reset a password from the emailed link, then sign in with the new one', as
 	await expect(page.getByRole('heading', { level: 1, name: 'Password changed' })).toBeVisible();
 	// A reset does not sign anyone in.
 	await page.getByRole('link', { name: 'Sign in' }).click();
-	await signIn(page, VERIFIED_EMAIL, 'a-brand-new-pass-77');
+	await submitSignIn(page, VERIFIED_EMAIL, 'a-brand-new-pass-77');
 	await expect(page).toHaveURL(/\/$/);
 });
 
@@ -173,7 +212,7 @@ for (const scheme of ['dark', 'light'] as const) {
 		await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 		await expect(page.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true');
 		await expectNoViolations(page);
-		await signIn(page, VERIFIED_EMAIL, 'not-the-password');
+		await submitSignIn(page, VERIFIED_EMAIL, 'not-the-password');
 		await expect(page.getByRole('alert')).toBeVisible();
 		await expectNoViolations(page);
 

@@ -42,6 +42,11 @@ describe('safeNext (no open redirect)', () => {
 			'\\/evil.example',
 			'/\t/evil.example',
 			'/\n/evil.example',
+			'/..//evil.com',
+			'/%2e%2e//evil.com',
+			'/a/../..//evil.com',
+			'/.//evil.com',
+			'/./%2e//evil.com',
 			'/\u0000//evil.example',
 			'javascript:alert(1)',
 			'data:text/html,hi',
@@ -75,6 +80,7 @@ describe('loginUrl', () => {
 	it('leaves next off for home and for anything unsafe', () => {
 		expect(loginUrl('/')).toBe('/account/login');
 		expect(loginUrl('//evil.example')).toBe('/account/login');
+		expect(loginUrl('/..//evil.com')).toBe('/account/login');
 	});
 });
 
@@ -94,10 +100,16 @@ describe('redirectFor', () => {
 		expect(redirectFor(at('/account/verify-email/abc'), false)).toBeNull();
 	});
 
-	it('sends a signed-in player from an account page home', () => {
+	it('sends a signed-in player from sign in, sign up and reset request home', () => {
 		expect(redirectFor(at('/account/login'), true)).toBe('/');
 		expect(redirectFor(at('/account/signup'), true)).toBe('/');
-		expect(redirectFor(at('/account/password/reset/key/abc'), true)).toBe('/');
+		expect(redirectFor(at('/account/password/reset'), true)).toBe('/');
+		expect(redirectFor(at('/account/login/'), true)).toBe('/');
+	});
+
+	it('lets a signed-in player open a verify or reset link (change email is on)', () => {
+		expect(redirectFor(at('/account/verify-email/abc'), true)).toBeNull();
+		expect(redirectFor(at('/account/password/reset/key/abc'), true)).toBeNull();
 	});
 
 	it('lets a signed-in player see the signed-in pages', () => {

@@ -11,13 +11,14 @@
  *   Pass it in with either of these, because `features/auth` is built separately and this
  *   feature does not import it:
  *     1. `myCode.load(email)`, when the caller has the session at hand, or
- *     2. `setAccountEmailSource(async () => (await session.ready, session.user?.email ?? null))`,
+ *     2. `setAccountEmailSource(sessionEmail)` (from `features/auth`),
  *        once, at the top level of the root layout's `<script>`, not in `onMount` (a child's
  *        `onMount` runs first). It must resolve only once the session is known: `null` means
  *        signed out, never "still loading".
  *   Call `myCode.reset()` on every sign-in and sign-out, so the next account never sees the
  *   previous one's code.
- *   With neither, the default asks allauth's `GET auth/session` itself.
+ *   With neither, `load()` shows the error state. The root layout does 2, and calls
+ *   `myCode.reset()` when the account changes.
  *   T7 (record) and T8 (matches) need the code only: wait for `myCode.status === 'ready'`,
  *   then use `myCode.code`. They should call `myCode.load()` if the status is still `'idle'`.
  * - `myCode.status === 'signed-out'` means nobody is signed in. The route guard owns that.

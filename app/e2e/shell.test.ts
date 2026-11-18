@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { MOCK_PASSWORD, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
+import { signIn } from './helpers';
 
 const TABS = [
 	{ name: 'Home', path: '/' },
@@ -9,22 +10,18 @@ const TABS = [
 ];
 
 // The signed-in pages send a signed-out visitor to sign in, so sign in to the mock backend first.
-async function signIn(page: Page) {
-	await page.goto('/account/login');
-	await page.getByLabel('Email').fill(VERIFIED_EMAIL);
-	await page.getByLabel('Password', { exact: true }).fill(MOCK_PASSWORD);
-	await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-	await expect(page).toHaveURL(/\/$/);
+function signInAsPlayer(page: Page) {
+	return signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
 }
 
 test('the home page loads with the app title', async ({ page }) => {
-	await signIn(page);
+	await signInAsPlayer(page);
 	await expect(page).toHaveTitle(/OPEN Pickleball/);
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
 test('the tab bar navigates to each tab and aria-current follows', async ({ page }) => {
-	await signIn(page);
+	await signInAsPlayer(page);
 	const tabBar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
 
 	for (const { name, path } of TABS) {

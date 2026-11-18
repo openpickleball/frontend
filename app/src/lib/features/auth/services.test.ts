@@ -1,11 +1,9 @@
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createApi, isAppError, type AppError } from '#lib/api/index.js';
-/* eslint-disable boundaries/dependencies -- tests may use the mocks (proposal.md section 7); the boundaries config has no rule for that yet */
 import { MOCK_KEYS, MOCK_PASSWORD, UNVERIFIED_EMAIL, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
 import { mockStore } from '#lib/mocks/store.js';
-/* eslint-enable boundaries/dependencies */
 import { isThrottled } from './forms';
 import { session } from './session.svelte';
 import {
@@ -151,26 +149,35 @@ describe('login', () => {
 		expect(lastMail()).toMatchObject({ kind: 'verify_email', to: UNVERIFIED_EMAIL });
 	});
 
-	it('surfaces a 429 as a throttled error with its own message', async () => {
+	it('treats a 429 as throttled, with the app message', async () => {
+		// allauth's rate limit answers a bare {"status":429}, with no errors.
+		server.use(
+			http.post(`${AUTH}/login`, () => HttpResponse.json({ status: 429 }, { status: 429 }))
+		);
+		const error = await failure(login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD }));
+		expect(error.code).toBe('throttled');
+		expect(isThrottled(error)).toBe(true);
+		expect(error.message).toBe('Too many attempts. Wait a moment and try again.');
+		expect(session.isSignedIn).toBe(false);
+	});
+
+	it('treats a login lockout (400 too_many_login_attempts) as throttled', async () => {
 		server.use(
 			http.post(`${AUTH}/login`, () =>
 				HttpResponse.json(
-					{ status: 429, errors: [{ message: 'Too many requests.', code: 'rate_limit_exceeded' }] },
-					{ status: 429 }
+					{
+						status: 400,
+						errors: [
+							{ code: 'too_many_login_attempts', message: 'Too many failed login attempts.' }
+						]
+					},
+					{ status: 400 }
 				)
 			)
 		);
 		const error = await failure(login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD }));
 		expect(isThrottled(error)).toBe(true);
-		expect(error.message).toBe('Too many requests.');
-		expect(session.isSignedIn).toBe(false);
-	});
-
-	it('treats a plain 429 as throttled too', async () => {
-		server.use(http.post(`${AUTH}/login`, () => new HttpResponse('slow down', { status: 429 })));
-		const error = await failure(login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD }));
-		expect(error.code).toBe('throttled');
-		expect(isThrottled(error)).toBe(true);
+		expect(error.message).toBe('Too many failed login attempts.');
 	});
 
 	it('reports a network failure', async () => {

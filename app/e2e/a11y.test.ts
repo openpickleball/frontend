@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { MOCK_PASSWORD, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
+import { signIn } from './helpers';
 
 // Every route. Dynamic segments get made-up values.
 const ROUTES = [
@@ -25,19 +26,15 @@ const SIGNED_IN_ROUTES = new Set([
 	'/profile'
 ]);
 
-async function signIn(page: Page) {
-	await page.goto('/account/login');
-	await page.getByLabel('Email').fill(VERIFIED_EMAIL);
-	await page.getByLabel('Password', { exact: true }).fill(MOCK_PASSWORD);
-	await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-	await expect(page).toHaveURL(/\/$/);
+function signInAsPlayer(page: Page) {
+	return signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
 }
 
 for (const scheme of ['dark', 'light'] as const) {
 	for (const route of ROUTES) {
 		test(`${route} has no WCAG 2.1 AA violations (${scheme})`, async ({ page }) => {
 			await page.emulateMedia({ colorScheme: scheme });
-			if (SIGNED_IN_ROUTES.has(route)) await signIn(page);
+			if (SIGNED_IN_ROUTES.has(route)) await signInAsPlayer(page);
 			await page.goto(route);
 			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 

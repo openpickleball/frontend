@@ -49,7 +49,7 @@
 					detail: 'Check both and try again, or reset your password.'
 				};
 			} else if (isThrottled(error)) {
-				// Too many tries: show the backend wait message as it is.
+				// Too many tries (a 429, or a 400 lockout): show the message the error carries.
 				problem = { title: error.message };
 			} else {
 				const fields = serverMessages(error);
@@ -74,7 +74,7 @@
 		{#if problem}
 			<Banner kind="error" title={problem.title} detail={problem.detail} />
 		{/if}
-		<form onsubmit={submit} novalidate class="grid gap-5">
+		<form method="post" onsubmit={submit} novalidate class="grid gap-5">
 			<TextField
 				id="login-email"
 				name="email"

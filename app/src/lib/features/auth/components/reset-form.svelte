@@ -81,7 +81,7 @@
 		{#if problem}
 			<Banner kind="error" title={problem} />
 		{/if}
-		<form onsubmit={submit} novalidate class="grid gap-5">
+		<form method="post" onsubmit={submit} novalidate class="grid gap-5">
 			<TextField
 				id="newpw-password"
 				name="password"

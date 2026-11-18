@@ -16,6 +16,16 @@ export function isAccountPath(pathname: string): boolean {
 	return under(pathname, '/account');
 }
 
+/**
+ * The account pages a signed-in player has no use for. The verify and reset-key pages are
+ * left out: the backend allows changing an email, so a signed-in player can get a verify link.
+ */
+const SIGNED_OUT_ONLY = ['/account/login', '/account/signup', '/account/password/reset'];
+
+export function isSignedOutOnlyPath(pathname: string): boolean {
+	return SIGNED_OUT_ONLY.includes(pathname.replace(/\/+$/, ''));
+}
+
 /** Does this page need a signed-in player? Home, record, matches (and one match) and profile do. */
 export function isGuardedPath(pathname: string): boolean {
 	return pathname === '/' || GUARDED_BASES.some((base) => under(pathname, base));
@@ -41,6 +51,9 @@ export function safeNext(raw: string | null | undefined): string | null {
 		return null;
 	}
 	if (parsed.origin !== 'http://open.invalid') return null;
+	// URL parsing resolves dot segments, so `/..//host` becomes `//host`, which a browser reads
+	// as another site. Check the path after parsing, not only the raw string.
+	if (/^\/[/\\]/.test(parsed.pathname)) return null;
 	if (isAccountPath(parsed.pathname)) return null;
 	return parsed.pathname + parsed.search + parsed.hash;
 }
@@ -54,13 +67,13 @@ export function loginUrl(next: string): string {
 /**
  * Where a visit should go instead, or null to show the page.
  * - Signed out on a signed-in page: the sign-in page, with `next`.
- * - Signed in on an account page: home.
+ * - Signed in on the sign-in, sign-up or reset-request page: home.
  */
 export function redirectFor(
 	url: Pick<URL, 'pathname' | 'search'>,
 	signedIn: boolean
 ): string | null {
-	if (signedIn) return isAccountPath(url.pathname) ? '/' : null;
+	if (signedIn) return isSignedOutOnlyPath(url.pathname) ? '/' : null;
 	if (isGuardedPath(url.pathname)) return loginUrl(url.pathname + url.search);
 	return null;
 }

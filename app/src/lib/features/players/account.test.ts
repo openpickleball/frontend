@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { currentAccountEmail, setAccountEmailSource } from './account.js';
 
 describe('account email source', () => {
-	it('the default source rethrows a failure that is not a 401 (offline is not signed out)', async () => {
-		// Node has no origin, so the session request fails like a network error.
+	it('with no source set it throws, so a missing setup is an error and not "signed out"', async () => {
 		setAccountEmailSource(null);
-		await expect(currentAccountEmail()).rejects.toMatchObject({ kind: 'network' });
+		await expect(currentAccountEmail()).rejects.toThrow(/setAccountEmailSource/);
 	});
 
 	it('uses a source that is set, and treats an empty answer as signed out', async () => {

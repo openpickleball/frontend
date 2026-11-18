@@ -40,7 +40,13 @@ export function focusFirstError(errors: Record<string, string>, order: string[],
 	queueMicrotask(() => document.getElementById(`${prefix}-${name}`)?.focus());
 }
 
-/** Too many attempts: a 429, whatever code the backend gave it (`toAppError` uses `throttled` when it gave none). */
+/**
+ * Too many attempts. allauth answers a rate limit with a bare `{"status":429}`, which
+ * `toAppError` maps to code `throttled` with the app's message. A login lockout is a 400 with
+ * code `too_many_login_attempts`.
+ */
 export function isThrottled(error: AppError): boolean {
-	return error.status === 429 || error.code === 'throttled';
+	return (
+		error.status === 429 || error.code === 'throttled' || error.code === 'too_many_login_attempts'
+	);
 }
