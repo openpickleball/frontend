@@ -62,9 +62,9 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Accept:** the generated types are committed and CI catches drift. `toAppError` covers ninja 422, 403 CSRF, 409 duplicate, the allauth 401 with flows, non-JSON responses and network errors.
 
 ### T4 · Test infrastructure and the e2e job — frontend#40
-- [ ] Vitest browser mode (`@vitest/browser-playwright`, `vitest-browser-svelte`) as a second project next to node, with one example component test.
-- [ ] Playwright: a Pixel 7 project that runs against `vite preview` with `PUBLIC_API_MOCK=all`, axe on every page, and a shell smoke test.
-- [ ] A new `app-e2e` job in CI with a cached browser and the report uploaded on failure. Add coverage (v8) to the summary, with no threshold.
+- [x] Vitest browser mode (`@vitest/browser-playwright`, `vitest-browser-svelte`) as a second project next to node, with one example component test.
+- [x] Playwright: a Pixel 7 project that runs against `vite preview` with `PUBLIC_API_MOCK=all`, axe on every page, and a shell smoke test.
+- [x] A new `app-e2e` job in CI with a cached browser and the report uploaded on failure. Add coverage (v8) to the summary, with no threshold.
 - **Owns:** `app/playwright.config.ts`, `app/e2e/**`, the test sections of `app/vite.config.ts`, the `app-e2e` job.
 - **Accept:** `app-e2e` passes on the PR. Afterwards, the owner makes it required and turns on "require up to date".
 

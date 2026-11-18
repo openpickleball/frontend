@@ -9,10 +9,13 @@ The full frontend, built with SvelteKit and Tailwind. It is not deployed yet: `p
 - `pnpm format` formats the code with Prettier.
 - `pnpm format:check` checks formatting without writing.
 - `pnpm lint` runs ESLint.
-- `pnpm test` runs the Vitest tests.
+- `pnpm test` runs the Vitest tests in two projects. Name a component test `*.svelte.test.ts` and it runs in headless Chromium (Vitest browser mode, rendered with `vitest-browser-svelte`). Every other `*.test.ts` runs in node. The first run needs `pnpm exec playwright install chromium`.
+- `pnpm test:coverage` runs the same tests and prints a v8 coverage summary, with no threshold.
+- `pnpm e2e` runs the Playwright tests in `e2e/` on the Pixel 7 project. It builds the app, serves it with `vite preview` on port 4173 and sets `PUBLIC_API_MOCK=all`.
+- `pnpm e2e:webkit` runs the iPhone 15 (WebKit) project instead. It needs `pnpm exec playwright install webkit`.
 - `pnpm build` produces a production build.
 
-CI runs `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test` and `pnpm build` on every PR, and on pushes to `main` that change `app/`.
+CI runs `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test:coverage` and `pnpm build` (job `app-checks`) and `pnpm e2e` (job `app-e2e`) on every PR, and on pushes to `main` that change `app/`. Both jobs install Chromium, from a cached Playwright browser directory.
 
 ## Pre-commit hook
 
