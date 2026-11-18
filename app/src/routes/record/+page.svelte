@@ -3,7 +3,11 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { RecordMatchForm, type SubmitResult } from '#lib/features/record-match/index.js';
+	import {
+		RecordMatchForm,
+		recordedToast,
+		type SubmitResult
+	} from '#lib/features/record-match/index.js';
 	import { CodeEntry, myCode } from '#lib/features/players/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 
@@ -12,15 +16,12 @@
 	});
 
 	async function recorded(result: SubmitResult) {
-		if (result.confirmError) {
-			// The match exists. Only the player's own confirmation is missing, and the match page can redo it.
-			toast('Match recorded, but your score is not confirmed yet', {
-				description: 'Open the match to confirm the score for your team.',
-				duration: 10_000
-			});
-		} else {
-			toast('Match recorded');
-		}
+		const message = recordedToast(result);
+		toast(message.title, {
+			description: message.description,
+			// The match exists. Only the player's own confirmation is missing, so give it time to be read.
+			duration: result.confirmError ? 10_000 : undefined
+		});
 		await goto(resolve('/matches/[code]', { code: result.match.code }));
 	}
 </script>
@@ -59,7 +60,11 @@
 		<CodeEntry onsave={(code) => myCode.save(code)} />
 	{:else}
 		{#key myCode.code}
-			<RecordMatchForm own={myCode.code} onrecorded={recorded} />
+			<RecordMatchForm
+				own={myCode.code}
+				onrecorded={recorded}
+				onchangecode={() => myCode.change()}
+			/>
 		{/key}
 	{/if}
 </div>

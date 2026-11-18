@@ -147,7 +147,7 @@ describe('RecordForm', () => {
 		await screen.getByRole('link', { name: "Add your partner's OPEN code." }).click();
 		await vi.waitFor(() => expect(document.activeElement?.id).toBe('partner'));
 
-		await screen.getByRole('link', { name: /Game 1: enter each score/ }).click();
+		await screen.getByRole('link', { name: /Game 1: enter both scores/ }).click();
 		await vi.waitFor(() => expect(document.activeElement?.id).toBe('game-0-a'));
 	});
 
@@ -225,8 +225,9 @@ describe('RecordForm', () => {
 		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 
 		await expect
-			.element(screen.getByText("You're offline. Your match was not saved."))
+			.element(screen.getByText('We lost the connection. Your match may not have been saved.'))
 			.toBeVisible();
+		await expect.element(screen.getByText(/Check your matches before you try again/)).toBeVisible();
 		await expect.element(screen.getByLabelText("Game 1, your team's points")).toHaveValue('11');
 		await expect
 			.element(screen.getByRole('button', { name: `Remove ${code('oren')}` }))
@@ -256,5 +257,131 @@ describe('RecordForm', () => {
 		await expect
 			.element(screen.getByRole('link', { name: 'See the match' }))
 			.toHaveAttribute('href', expect.stringContaining(`/matches/${matchCode}`));
+		await expect.element(screen.getByText('You may still need to confirm it.')).toBeVisible();
+	});
+
+	it('keeps a server error on its own field until that field changes', async () => {
+		const submit = vi.fn().mockRejectedValue(
+			appError({
+				fields: { 'team_b.1': ['No player has this OPEN Code.'] }
+			})
+		);
+		const { screen } = await setup(submit);
+		await fillDoubles(screen);
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+		await expect.element(screen.getByText('No player has this OPEN Code.').first()).toBeVisible();
+
+		// An unrelated edit leaves it.
+		await screen.getByLabelText('Date played').fill('2026-01-02');
+		await expect.element(screen.getByText('No player has this OPEN Code.').first()).toBeVisible();
+		await screen.getByLabelText("Game 1, opponents' points").fill('6');
+		await expect.element(screen.getByText('No player has this OPEN Code.').first()).toBeVisible();
+
+		// Editing that opponent clears it.
+		await screen.getByRole('button', { name: `Remove ${code('bea')}` }).click();
+		await expect.element(screen.getByText('No player has this OPEN Code.')).not.toBeInTheDocument();
+	});
+
+	it('offers to change the saved code when the backend refuses the submitter', async () => {
+		const submit = vi.fn().mockRejectedValue(
+			appError({
+				kind: 'forbidden',
+				status: 403,
+				code: 'forbidden',
+				message: 'You are not allowed to submit this match.'
+			})
+		);
+		const onchangecode = vi.fn();
+		const onrecorded = vi.fn();
+		const screen = await render(RecordForm, { own: tamsin, onrecorded, onchangecode, submit });
+		await fillDoubles(screen);
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+
+		await expect.element(screen.getByText(/saved on this device may not be yours/)).toBeVisible();
+		await screen.getByRole('button', { name: 'Change my code' }).click();
+		expect(onchangecode).toHaveBeenCalledOnce();
+	});
+
+	it('does not offer a code change for a CSRF refusal', async () => {
+		const submit = vi
+			.fn()
+			.mockRejectedValue(
+				appError({ kind: 'csrf', status: 403, code: 'forbidden', message: 'Please reload.' })
+			);
+		const screen = await render(RecordForm, {
+			own: tamsin,
+			onrecorded: vi.fn(),
+			onchangecode: vi.fn(),
+			submit
+		});
+		await fillDoubles(screen);
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+		await expect.element(screen.getByText('We could not record this match')).toBeVisible();
+		await expect
+			.element(screen.getByRole('button', { name: 'Change my code' }))
+			.not.toBeInTheDocument();
+	});
+
+	it('says to enter both scores when one is blank', async () => {
+		const { screen } = await setup();
+		await addPlayer(screen, "Your partner's OPEN code", code('oren'));
+		await addPlayer(screen, "First opponent's OPEN code", code('kit'));
+		await addPlayer(screen, "Second opponent's OPEN code", code('bea'));
+		await screen.getByLabelText("Game 1, your team's points").fill('11');
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+		await expect.element(screen.getByText('Game 1: enter both scores.').first()).toBeVisible();
+
+		await screen.getByLabelText("Game 1, opponents' points").fill('x');
+		await expect
+			.element(screen.getByText('Game 1: enter each score as a whole number.').first())
+			.toBeVisible();
+	});
+
+	it('refuses a date after the local today', async () => {
+		const { screen, submit } = await setup();
+		await fillDoubles(screen);
+		await screen.getByLabelText('Date played').fill('2999-01-01');
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+		await expect
+			.element(screen.getByText('The date played cannot be in the future.').first())
+			.toBeVisible();
+		expect(submit).not.toHaveBeenCalled();
+	});
+
+	it('does not count a hidden partner when checking for repeats in singles', async () => {
+		const { screen } = await setup();
+		await addPlayer(screen, "Your partner's OPEN code", code('oren'));
+		await screen.getByText('Singles', { exact: true }).click();
+		await addPlayer(screen, "Your opponent's OPEN code", code('oren'));
+		await expect
+			.element(screen.getByRole('button', { name: `Remove ${code('oren')}` }))
+			.toBeVisible();
+		await expect
+			.element(screen.getByText('This player is already in the match.'))
+			.not.toBeInTheDocument();
+	});
+
+	it('keeps focus in the games when a game is added or removed', async () => {
+		const { screen } = await setup();
+		const add = () => screen.getByRole('button', { name: 'Add a game' });
+		await add().click();
+		await expect.element(screen.getByLabelText("Game 2, your team's points")).toHaveFocus();
+		await add().click();
+		await expect.element(screen.getByLabelText("Game 3, your team's points")).toHaveFocus();
+
+		// Removing a middle game focuses the game now in its place.
+		await screen.getByRole('button', { name: 'Remove game 2' }).click();
+		await expect.element(screen.getByLabelText("Game 2, your team's points")).toHaveFocus();
+		// Removing the last game focuses the one before.
+		await screen.getByRole('button', { name: 'Remove game 2' }).click();
+		await expect.element(screen.getByLabelText("Game 1, your team's points")).toHaveFocus();
+	});
+
+	it('focuses the next game after removing the first', async () => {
+		const { screen } = await setup();
+		await screen.getByRole('button', { name: 'Add a game' }).click();
+		await screen.getByRole('button', { name: 'Remove game 1' }).click();
+		// Game 2 became game 1, so focus follows it.
+		await expect.element(screen.getByLabelText("Game 1, your team's points")).toHaveFocus();
 	});
 });

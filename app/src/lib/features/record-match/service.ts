@@ -108,6 +108,9 @@ export async function submitMatch(
  * The earlier match a 409 `duplicate_match` points at. The backend puts its OPEN code in the
  * message ("This match was already submitted as M-...") when the submitter may know it, and
  * names no code otherwise. Null when the error is not a duplicate or names no match.
+ *
+ * This reads the code out of the message text. Replace it with a structured `existing_code` field
+ * once openpickleball/backend#199 ships.
  */
 export function duplicateMatchCode(error: AppError): MatchCode | null {
 	if (error.kind !== 'duplicate' || error.code !== 'duplicate_match') return null;

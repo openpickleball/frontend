@@ -15,12 +15,18 @@
 	let {
 		own,
 		onrecorded,
+		onchangecode,
 		submit = submitMatch
 	}: {
 		/** The signed-in player's own OPEN code. */
 		own: PlayerCode;
 		/** Called once the match is saved. `result.confirmError` is set if the confirmation failed. */
 		onrecorded: (result: SubmitResult) => void;
+		/**
+		 * Lets the player replace the OPEN code saved on this device. The page supplies it, because
+		 * this feature does not import players. Without it, the refusal notice has no button.
+		 */
+		onchangecode?: () => void;
 		/** The service that sends the match. Tests pass a stand-in. */
 		submit?: typeof submitMatch;
 	} = $props();
@@ -34,10 +40,12 @@
 
 	const errors = $derived(form.errors);
 	const summary = $derived(form.submitted ? form.summary : []);
-	const maxDate = todayLocal();
+	// Read again on focus and on submit, so a form left open past midnight does not allow tomorrow.
+	let maxDate = $state(todayLocal());
 
 	async function onsubmit(event: SubmitEvent) {
 		event.preventDefault();
+		maxDate = todayLocal();
 		const result = await form.send(submit);
 		if (result) {
 			onrecorded(result);
@@ -56,7 +64,28 @@
 	/** Show a game's errors once focus has left its whole row, not on the way from one score to the next. */
 	function leaveRow(event: FocusEvent, index: number) {
 		const row = event.currentTarget as HTMLElement;
-		if (!row.contains(event.relatedTarget as Node | null)) form.touch(`games.${index}`);
+		if (row.contains(event.relatedTarget as Node | null)) return;
+		// A row left empty says nothing until the player submits. Otherwise the message would push
+		// the "Add a game" button away as it is pressed.
+		const game = form.games[index];
+		if (game && (game.a.trim() !== '' || game.b.trim() !== '')) form.touch(`games.${index}`);
+	}
+
+	async function addGame() {
+		if (!form.addGame()) return;
+		await tick();
+		document.getElementById(`game-${form.games.length - 1}-a`)?.focus();
+	}
+
+	/** Keep focus in the games: the row now in this place, else the one before, else the add button. */
+	async function removeGame(index: number) {
+		form.removeGame(index);
+		await tick();
+		const target =
+			document.getElementById(`game-${index}-a`) ??
+			document.getElementById(`game-${index - 1}-a`) ??
+			document.getElementById('add-game');
+		target?.focus();
 	}
 
 	const first = (key: string) => errors[key]?.[0] ?? '';
@@ -73,9 +102,9 @@
 					? 'Fix 1 thing to record this match'
 					: `Fix ${summary.length} things to record this match`}
 			>
-				<ul class="grid gap-1 pl-5">
+				<ul class="grid gap-1">
 					{#each summary as entry (entry.key)}
-						<li class="list-disc">
+						<li>
 							{#if entry.target}
 								{@const target = entry.target}
 								<a
@@ -97,7 +126,8 @@
 		<div class="mt-6">
 			<Notice bind:element={failureBox} title={form.failure.message}>
 				<p class="text-muted">
-					Everything you entered is still here. Connect to the internet and try again.
+					Everything you entered is still here. Check your matches before you try again, so the same
+					match is not recorded twice. Then connect to the internet and send it again.
 				</p>
 			</Notice>
 		</div>
@@ -111,12 +141,26 @@
 							class="font-semibold underline underline-offset-4">See the match</a
 						>
 					</p>
+					<p class="text-muted">You may still need to confirm it.</p>
 				{:else}
 					<p class="text-muted">
 						Look in <a href={resolve('/matches')} class="font-semibold underline underline-offset-4"
 							>your matches</a
-						> to find it.
+						> to find it. You may still need to confirm it.
 					</p>
+				{/if}
+			</Notice>
+		</div>
+	{:else if form.failure?.kind === 'forbidden'}
+		<div class="mt-6">
+			<Notice bind:element={failureBox} title={form.failure.message}>
+				<p class="text-muted">Everything you entered is still here.</p>
+				{#if onchangecode}
+					<div>
+						<Button type="button" variant="outline" size="sm" onclick={onchangecode}>
+							Change my code
+						</Button>
+					</div>
 				{/if}
 			</Notice>
 		</div>
@@ -128,8 +172,8 @@
 		</div>
 	{/if}
 
-	<fieldset class="mt-8 grid gap-6">
-		<legend class="label mb-5">Match</legend>
+	<fieldset class="mt-9 grid gap-6 border-t border-line pt-5">
+		<legend class="mb-4 text-[19px] font-semibold text-secondary">Match</legend>
 		<div class="flex flex-wrap items-start gap-x-10 gap-y-6">
 			<Segmented
 				name="format"
@@ -148,6 +192,7 @@
 					bind:value={form.playedOn}
 					max={maxDate}
 					class="w-52"
+					onfocus={() => (maxDate = todayLocal())}
 					aria-invalid={errors.played_on ? 'true' : undefined}
 					aria-describedby={errors.played_on ? 'played-on-error' : undefined}
 					onblur={() => form.touch('played_on')}
@@ -159,15 +204,15 @@
 		</div>
 	</fieldset>
 
-	<fieldset class="mt-8 grid gap-6">
-		<legend class="label mb-1">Players</legend>
+	<fieldset class="mt-9 grid gap-6 border-t border-line pt-5">
+		<legend class="mb-4 text-[19px] font-semibold text-secondary">Players</legend>
 		<p class="max-w-[52ch] text-[15px] text-muted">
 			Enter each player's OPEN code. They can find theirs on their Profile page. Names show once the
 			match is saved.
 		</p>
 
 		<div class="grid gap-3" role="group" aria-labelledby="team-a-title">
-			<h3 id="team-a-title" class="text-lg font-medium text-secondary">Your team</h3>
+			<h3 id="team-a-title" class="text-[15px] font-semibold text-secondary">Your team</h3>
 			<PlayerSlot
 				id="you"
 				label="Your OPEN code"
@@ -191,7 +236,7 @@
 		</div>
 
 		<div class="grid gap-3" role="group" aria-labelledby="team-b-title">
-			<h3 id="team-b-title" class="text-lg font-medium text-secondary">Opponents</h3>
+			<h3 id="team-b-title" class="text-[15px] font-semibold text-secondary">Opponents</h3>
 			{#each form.visibleOpponents as slot, index (index)}
 				<PlayerSlot
 					id="opponent-{index}"
@@ -208,8 +253,8 @@
 		</div>
 	</fieldset>
 
-	<fieldset class="mt-8 grid gap-6">
-		<legend class="label mb-1">Scoring</legend>
+	<fieldset class="mt-9 grid gap-6 border-t border-line pt-5">
+		<legend class="mb-4 text-[19px] font-semibold text-secondary">Scoring</legend>
 		<div class="flex flex-wrap items-start gap-x-10 gap-y-6">
 			<Segmented
 				name="target"
@@ -235,11 +280,11 @@
 		</div>
 	</fieldset>
 
-	<fieldset class="mt-8 grid gap-4">
-		<legend class="label mb-1">Games</legend>
-		<div class="grid gap-3">
+	<fieldset class="mt-9 grid gap-4 border-t border-line pt-5">
+		<legend class="mb-4 text-[19px] font-semibold text-secondary">Games</legend>
+		<div class="grid">
 			<div
-				class="grid grid-cols-[4.5rem_5rem_1rem_5rem_auto] items-center gap-x-2 text-[11px] tracking-[0.14em] text-muted uppercase"
+				class="grid grid-cols-[4.5rem_4rem_1.125rem_4rem_1fr] items-center gap-x-2 pb-2 text-[13px] text-faint"
 				aria-hidden="true"
 			>
 				<span></span><span class="text-center">You</span><span></span><span class="text-center"
@@ -249,17 +294,17 @@
 			{#each form.games as game, index (index)}
 				{@const gameError = errors[`games.${index}`]?.[0] ?? ''}
 				<div
-					class="grid gap-1.5"
+					class="grid gap-1.5 border-t border-line py-2.5"
 					role="group"
 					aria-label="Game {index + 1}"
 					onfocusout={(event) => leaveRow(event, index)}
 				>
-					<div class="grid grid-cols-[4.5rem_5rem_1rem_5rem_auto] items-center gap-x-2">
+					<div class="grid grid-cols-[4.5rem_4rem_1.125rem_4rem_1fr] items-center gap-x-2">
 						<span class="text-[15px] font-semibold text-secondary">Game {index + 1}</span>
 						<Input
 							id="game-{index}-a"
 							bind:value={game.a}
-							class="px-2 text-center tabular-nums"
+							class="w-16 px-0 text-center text-lg font-semibold tabular-nums"
 							inputmode="numeric"
 							autocomplete="off"
 							maxlength={3}
@@ -271,7 +316,7 @@
 						<Input
 							id="game-{index}-b"
 							bind:value={game.b}
-							class="px-2 text-center tabular-nums"
+							class="w-16 px-0 text-center text-lg font-semibold tabular-nums"
 							inputmode="numeric"
 							autocomplete="off"
 							maxlength={3}
@@ -283,9 +328,9 @@
 							<Button
 								type="button"
 								variant="ghost"
-								class="ml-1"
+								class="justify-self-end text-sm font-normal text-muted hover:text-secondary"
 								aria-label="Remove game {index + 1}"
-								onclick={() => form.removeGame(index)}>Remove</Button
+								onclick={() => removeGame(index)}>Remove</Button
 							>
 						{:else}
 							<span></span>
@@ -302,8 +347,15 @@
 		</div>
 		<div>
 			{#if form.canAddGame}
-				<Button type="button" variant="outline" size="sm" onclick={() => form.addGame()}>
-					Add a game
+				<Button
+					id="add-game"
+					type="button"
+					variant="ghost"
+					size="sm"
+					class="mt-2"
+					onclick={addGame}
+				>
+					<span aria-hidden="true">+</span> Add a game
 				</Button>
 			{/if}
 			<p class="mt-2 text-sm text-faint">Up to 5 games.</p>

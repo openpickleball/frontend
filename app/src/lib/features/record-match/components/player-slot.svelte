@@ -56,13 +56,15 @@
 			<span
 				class={[
 					'inline-flex min-h-11 items-center gap-2 rounded-full border bg-surface pr-1.5 pl-4 text-secondary',
-					error ? 'border-danger' : 'border-line'
+					error ? 'border-danger' : locked ? 'border-line' : 'border-secondary'
 				]}
 			>
 				{#if locked}
 					<span class="text-[13px] font-semibold text-muted">You</span>
 				{/if}
-				<span class="font-display tracking-wide" data-testid="chip">{code}</span>
+				<span class={['font-display tracking-wide', error && 'text-danger']} data-testid="chip"
+					>{code}</span
+				>
 				{#if locked}
 					<span class="mr-2.5"></span>
 				{:else}

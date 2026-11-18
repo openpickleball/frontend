@@ -33,9 +33,13 @@ export type SummaryEntry = { key: string; message: string; target: string | null
 export type Failure =
 	| { kind: 'offline'; message: string }
 	| { kind: 'duplicate'; message: string; matchCode: string | null }
+	/** The backend refused this player as the submitter: the code saved on the device may be someone else's. */
+	| { kind: 'forbidden'; message: string }
 	| { kind: 'other'; message: string };
 
-export const OFFLINE_MESSAGE = "You're offline. Your match was not saved.";
+export const OFFLINE_MESSAGE = 'We lost the connection. Your match may not have been saved.';
+export const FORBIDDEN_MESSAGE =
+	"We couldn't record this match. The OPEN code saved on this device may not be yours.";
 export const DUPLICATE_MESSAGE = 'This match was already recorded';
 
 const emptySlot = (): Slot => ({ code: null, text: '', error: '' });
@@ -90,8 +94,11 @@ export class RecordForm {
 	sending = $state(false);
 	failure = $state<Failure | null>(null);
 	#touched = $state<Record<string, boolean>>({});
-	/** The backend's field errors, good only for the exact form they answered. */
-	#server = $state<{ snapshot: string; fields: FieldErrors } | null>(null);
+	/**
+	 * The backend's field errors. Each one is kept with the value of its own field when the server
+	 * answered, and is dropped once that field changes. Other edits leave it alone.
+	 */
+	#server = $state<{ fields: FieldErrors; values: Record<string, string> } | null>(null);
 
 	constructor(own: PlayerCode) {
 		this.own = own;
@@ -160,17 +167,56 @@ export class RecordForm {
 	/** The domain rules' issues, minus team sizes, which `#missing` words better for chips. */
 	get #rules(): FieldErrors {
 		const result = validateMatch(this.input);
-		if (result.ok) return {};
-		return groupIssues(result.error.filter((issue) => issue.code !== 'team_size'));
+		const issues = result.ok ? [] : result.error.filter((issue) => issue.code !== 'team_size');
+		const rules = groupIssues(
+			issues.map((issue) => {
+				const game = /^games\.(\d+)$/.exec(issue.field);
+				if (!game || issue.code !== 'invalid_score') return issue;
+				const row = this.games[Number(game[1])];
+				if (row && (row.a.trim() === '' || row.b.trim() === '')) {
+					return { ...issue, message: `Game ${Number(game[1]) + 1}: enter both scores.` };
+				}
+				return issue;
+			})
+		);
+		// The rules allow a day of slack for time zones. The form holds to the player's own today.
+		if (!rules.played_on && this.playedOn > todayLocal()) {
+			rules.played_on = ['The date played cannot be in the future.'];
+		}
+		return rules;
 	}
 
-	get #snapshot(): string {
+	/** The value a server error key answered, so the error can go when that value changes. */
+	#valueOf(key: string): string {
+		const slot = (s: Slot) => s.code ?? '';
+		if (key === 'played_on') return this.playedOn;
+		if (key === 'format') return this.format;
+		if (key === 'game_target') return String(this.gameTarget);
+		if (key === 'scoring_type') return this.scoringType;
+		if (key === 'games') return JSON.stringify(this.games);
+		const game = /^games\.(\d+)(?:\.|$)/.exec(key);
+		if (game) return JSON.stringify(this.games[Number(game[1])] ?? null);
+		const team = /^team_([ab])(?:\.(\d+))?$/.exec(key);
+		if (team) {
+			const side =
+				team[1] === 'a'
+					? [this.own, this.partner.code ?? '']
+					: [slot(this.opponents[0]), slot(this.opponents[1])];
+			const value = team[2] === undefined ? side : [side[Number(team[2])] ?? ''];
+			return `${this.format}:${value.join(',')}`;
+		}
+		// A key we do not know goes when anything changes.
 		return JSON.stringify(this.input);
 	}
 
-	/** The server's errors while the form is still what the server answered. */
+	/** The server's errors, each kept while its own field is still what the server answered. */
 	get serverErrors(): FieldErrors {
-		return this.#server && this.#server.snapshot === this.#snapshot ? this.#server.fields : {};
+		if (!this.#server) return {};
+		const kept: FieldErrors = {};
+		for (const [key, messages] of Object.entries(this.#server.fields)) {
+			if (this.#server.values[key] === this.#valueOf(key)) kept[key] = messages;
+		}
+		return kept;
 	}
 
 	/** Every error to show now, by field key, with game errors grouped under `games.<i>`. */
@@ -231,7 +277,12 @@ export class RecordForm {
 			slot.error = parsed.error.message;
 			return false;
 		}
-		const taken = [this.own, this.partner.code, ...this.opponents.map((s) => s.code)];
+		// Only the slots in use count. Singles ignores a partner or second opponent entered before.
+		const taken = [
+			this.own,
+			...(this.doubles ? [this.partner.code] : []),
+			...this.visibleOpponents.map((s) => s.code)
+		];
 		if (taken.includes(parsed.value)) {
 			slot.error = 'This player is already in the match.';
 			return false;
@@ -281,18 +332,17 @@ export class RecordForm {
 		if (this.summary.length > 0) return null;
 
 		this.sending = true;
-		const snapshot = this.#snapshot;
 		try {
 			return await submit(this.input, this.own);
 		} catch (cause) {
-			this.#fail(cause, snapshot);
+			this.#fail(cause);
 			return null;
 		} finally {
 			this.sending = false;
 		}
 	}
 
-	#fail(cause: unknown, snapshot: string): void {
+	#fail(cause: unknown): void {
 		if (!isAppError(cause)) {
 			this.failure = { kind: 'other', message: 'Something went wrong. Please try again.' };
 			return;
@@ -310,13 +360,23 @@ export class RecordForm {
 				};
 				return;
 			case 'validation': {
-				this.#server = { snapshot, fields: error.fields };
+				this.#server = {
+					fields: error.fields,
+					values: Object.fromEntries(Object.keys(error.fields).map((k) => [k, this.#valueOf(k)]))
+				};
 				// A 422 with no field we can show still has to say something.
 				if (Object.keys(error.fields).length === 0) {
 					this.failure = { kind: 'other', message: error.message };
 				}
 				return;
 			}
+			case 'forbidden':
+				// The CSRF case has its own kind. This is a refusal of the submitter.
+				this.failure =
+					error.code === 'forbidden'
+						? { kind: 'forbidden', message: FORBIDDEN_MESSAGE }
+						: { kind: 'other', message: error.message };
+				return;
 			default:
 				this.failure = { kind: 'other', message: error.message };
 		}
