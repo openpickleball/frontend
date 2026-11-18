@@ -49,6 +49,23 @@ describe('AppShell', () => {
 		expect(side).toContain('Record a match');
 	});
 
+	it('drops the navs for account pages (bare) and keeps the top bar at every width', () => {
+		const body = render(AppShell, {
+			props: { pathname: '/account/login', children, bare: true }
+		}).body;
+		expect(navs(body)).toHaveLength(0);
+		expect(body).toMatch(/<header/);
+		expect(body).not.toMatch(/<header[^>]*shell:hidden/);
+		expect(body.match(/<main[\s>]/g)).toHaveLength(1);
+	});
+
+	it('shows account actions (sign out) in the top bar and the side nav when given', () => {
+		const account = createRawSnippet(() => ({ render: () => '<button>Sign out</button>' }));
+		const body = render(AppShell, { props: { pathname: '/', children, account } }).body;
+		expect(body.match(/<button>Sign out<\/button>/g)).toHaveLength(2);
+		expect(shell('/')).not.toContain('Sign out');
+	});
+
 	it('names both navs "Main"', () => {
 		const found = navs(shell('/'));
 		expect(found).toHaveLength(2);

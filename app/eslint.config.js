@@ -41,6 +41,8 @@ export default ts.config(
 		settings: {
 			// Resolves the #lib/* alias from package.json "imports", and .js imports of .ts files.
 			'import/resolver': { typescript: { alwaysTryTypes: true, project: './tsconfig.json' } },
+			// Test files may use the mocks (proposal.md section 7). Source files may not.
+			'boundaries/files': [{ pattern: '**/*.test.ts', category: 'test' }],
 			'boundaries/elements': [
 				{ type: 'domain', pattern: 'src/lib/domain', partialMatch: false },
 				{ type: 'api', pattern: 'src/lib/api', partialMatch: false },
@@ -61,6 +63,10 @@ export default ts.config(
 				{
 					default: 'disallow',
 					policies: [
+						{
+							from: { file: { categories: 'test' } },
+							allow: { to: { element: { type: 'mocks' } } }
+						},
 						// domain imports nothing in lib, except types from api/generated (for the mappers).
 						{
 							from: { element: { type: 'domain' } },

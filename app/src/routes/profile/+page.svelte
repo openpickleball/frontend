@@ -13,6 +13,7 @@
 		type PlayerRatings
 	} from '#lib/features/players/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { SignOutButton, session } from '#lib/features/auth/index.js';
 
 	// Sample ratings only in the mock modes. The real backend has no ratings (Decision Q2).
 	const sample = isSampleMode(PUBLIC_API_MOCK);
@@ -23,8 +24,8 @@
 	let ratingsLoading = $state(false);
 
 	onMount(() => {
-		// The root layout supplies the signed-in email through setAccountEmailSource, set at the
-		// top level of its script so it is in place before this runs (see features/players).
+		// The root layout points setAccountEmailSource at the auth session, and resets the store
+		// when the account changes (see +layout.svelte and features/players).
 		void myCode.load();
 	});
 
@@ -139,7 +140,15 @@
 				</Button>
 			</div>
 		{/if}
+	{/if}
 
-		<!-- T6 (auth) adds Sign out here, in an "Account" section. -->
+	{#if session.isSignedIn}
+		<section class="border-t border-line pt-6" aria-labelledby="account-heading">
+			<h2 id="account-heading" class="label">Account</h2>
+			<div class="mt-3 flex items-center justify-between gap-4">
+				<span class="text-[15px] text-muted">Sign out of OPEN on this device.</span>
+				<SignOutButton />
+			</div>
+		</section>
 	{/if}
 </div>

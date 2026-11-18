@@ -1,7 +1,16 @@
+<script lang="ts">
+	import { VerifyEmail } from '#lib/features/auth/index.js';
+	import type { PageProps } from './$types';
+
+	let { params }: PageProps = $props();
+</script>
+
 <svelte:head>
+	<!-- The key is in the URL: don't pass it on in a Referer header. -->
+	<meta name="referrer" content="no-referrer" />
 	<title>Verify your email · OPEN Pickleball</title>
 </svelte:head>
 
-<div class="pt-4">
-	<h1 class="page-title">Verify your email</h1>
+<div class="max-w-[420px] pt-4">
+	<VerifyEmail key={params.key} />
 </div>

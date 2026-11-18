@@ -2,18 +2,45 @@
 	import './layout.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import { page } from '$app/state';
+	import { untrack } from 'svelte';
+	import { SignOutButton, isAccountPath, session, sessionEmail } from '#lib/features/auth/index.js';
+	import { myCode, setAccountEmailSource } from '#lib/features/players/index.js';
 	import { AppShell } from '#lib/ui/app-shell/index.js';
 	import { Toaster } from '#lib/ui/sonner/index.js';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
+
+	// The players feature scopes the player's code to the account. Set at the top level of this
+	// script, not in onMount: a child's onMount runs first. sessionEmail() waits for the session,
+	// so it never says "signed out" while the session is still loading.
+	setAccountEmailSource(sessionEmail);
+
+	// A sign out or an account switch must never leave the last account's code in the store. The
+	// first read of the session (from unknown) is not a change.
+	let lastAccount: string | null = null;
+	$effect(() => {
+		if (session.status === 'unknown') return;
+		const account = `${session.status}|${session.email}`;
+		if (lastAccount !== null && lastAccount !== account) untrack(() => myCode.reset());
+		lastAccount = account;
+	});
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<AppShell pathname={page.url.pathname}>
+<!-- The sign-in and account pages have no nav: the player isn't signed in yet. -->
+<AppShell
+	pathname={page.url.pathname}
+	bare={isAccountPath(page.url.pathname)}
+	account={session.isSignedIn ? signOut : undefined}
+>
 	{@render children()}
 </AppShell>
 <Toaster />
+
+{#snippet signOut()}
+	<SignOutButton />
+{/snippet}

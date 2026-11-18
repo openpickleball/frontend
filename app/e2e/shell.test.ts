@@ -1,4 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { MOCK_PASSWORD, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
+import { signIn } from './helpers';
 
 const TABS = [
 	{ name: 'Home', path: '/' },
@@ -7,14 +9,19 @@ const TABS = [
 	{ name: 'Profile', path: '/profile' }
 ];
 
+// The signed-in pages send a signed-out visitor to sign in, so sign in to the mock backend first.
+function signInAsPlayer(page: Page) {
+	return signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+}
+
 test('the home page loads with the app title', async ({ page }) => {
-	await page.goto('/');
+	await signInAsPlayer(page);
 	await expect(page).toHaveTitle(/OPEN Pickleball/);
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
 test('the tab bar navigates to each tab and aria-current follows', async ({ page }) => {
-	await page.goto('/');
+	await signInAsPlayer(page);
 	const tabBar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
 
 	for (const { name, path } of TABS) {
@@ -26,4 +33,10 @@ test('the tab bar navigates to each tab and aria-current follows', async ({ page
 			'page'
 		);
 	}
+});
+
+test('the account pages have no tab bar', async ({ page }) => {
+	await page.goto('/account/login');
+	await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+	await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
 });
