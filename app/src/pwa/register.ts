@@ -1,5 +1,5 @@
 /**
- * Registers the app shell worker (`src/service-worker.ts`) and reports when an update is waiting.
+ * Registers the app shell worker (`src/service-worker/index.ts`) and reports when an update is waiting.
  * SvelteKit's own auto-registration is off (`serviceWorker.register: false` in vite.config.ts),
  * because MSW owns the service worker in the mock modes and a page can't run two at one scope.
  */

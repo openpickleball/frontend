@@ -19,11 +19,13 @@ export default defineConfig({
 			adapter: adapter({ fallback: 'index.html' }),
 
 			// Off on purpose: MSW owns the service worker in the mock modes. src/hooks.client.ts
-			// registers src/service-worker.ts itself, only when PUBLIC_API_MOCK is off.
+			// registers src/service-worker/index.ts itself, only when PUBLIC_API_MOCK is off.
 			serviceWorker: { register: false },
 
-			// Absolute asset URLs. The worker serves one cached shell for every route, and
-			// relative URLs would break on a deep link such as /account/login.
+			// Absolute asset URLs in every HTML response. The static fallback page already has them,
+			// but `vite preview` renders the shell per route with relative ones (./_app on /, ../_app
+			// on /account/login), and the worker caches one shell for all routes. The offline e2e
+			// check fails without this.
 			paths: { relative: false }
 		})
 	],

@@ -2,6 +2,7 @@
 	"name": "OPEN Pickleball",
 	"short_name": "OPEN",
 	"description": "Look up players and record pickleball matches.",
+	"id": "/",
 	"start_url": "/",
 	"scope": "/",
 	"display": "standalone",

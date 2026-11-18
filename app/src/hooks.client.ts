@@ -40,6 +40,7 @@ export const init: ClientInit = async () => {
 function offerUpdate(apply: () => void) {
 	toast('Update available', {
 		description: 'Reload to get the latest version.',
+		id: 'update-available',
 		duration: Infinity,
 		action: { label: 'Reload', onClick: apply }
 	});

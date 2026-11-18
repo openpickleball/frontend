@@ -1,6 +1,6 @@
 /**
  * Which requests the service worker may answer. Pure, so it is tested in node
- * (`routing.test.ts`). The worker itself is `src/service-worker.ts`.
+ * (`routing.test.ts`). The worker itself is `src/service-worker/index.ts`.
  */
 
 /** Paths that always go to the network and are never cached: they carry the session. */
