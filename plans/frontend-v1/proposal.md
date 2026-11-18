@@ -163,10 +163,11 @@ type AppError = {
 
 ## 8. PWA
 
-**Recommendation: SvelteKit's built-in `src/service-worker.ts` and a static `manifest.webmanifest`. No plugin.**
+**Recommendation: SvelteKit's built-in service worker and a static `manifest.webmanifest`. No plugin.**
 
 - **Manifest:** name and short name "OPEN", `display: standalone`, `start_url` and `scope` `/`, and black theme and background colors (the dark base). Icons are 192, 512 and 512 maskable. `brand-assets` is empty, so we render the icons from `site/public/assets/img/favicon.svg` with `design/tools/export-logo.py`. `app.html` gets the theme-color metas and the no-flash theme script.
-- **Service worker:** scope `/`. It precaches `$service-worker` `build` and `files` under a cache keyed by `version`. Navigations fall back to the cached `index.html`. `/api/` and `/_allauth/` are network-only: we never cache authenticated responses. An "Update available" toast prompts `skipWaiting`. The worker isn't registered in MSW modes.
+- **Service worker:** scope `/`. It precaches `immutable` and `assets` from `$app/manifest` under a cache keyed by `version` (from `$app/env`). Navigations fall back to the cached `index.html`. `/api/` and `/_allauth/` are network-only: we never cache authenticated responses. An "Update available" toast prompts `skipWaiting`. The worker isn't registered in MSW modes.
+- **Kit 3 decisions (T10):** `$service-worker` is gone, so the worker uses `$app/manifest`, `$app/service-worker` and `$app/env`. It lives in `src/service-worker/` with its own tsconfig, and `pnpm check` type-checks it. Auto-registration is off (`serviceWorker.register: false`). `hooks.client.ts` registers it only when `PUBLIC_API_MOCK` is `off` and not in dev. Icons are rendered from the app favicon with headless Chromium (`pnpm icons`), not `design/tools/export-logo.py`.
 - **Offline match queue (Q1), (deferred to frontend#33); not built in v1. Design kept for reference:** a submission that fails with `network` is stored in IndexedDB through `idb-keyval` 6.3. The app retries it when it opens, on `online`, and when the user taps "Retry". iOS has no Background Sync, as frontend#22 notes.
   - A 409 `duplicate_match` naming the player's own match counts as sent.
   - A 401 keeps the item and asks the player to log in.

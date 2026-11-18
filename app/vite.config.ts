@@ -16,7 +16,17 @@ export default defineConfig({
 
 			// SPA mode (plans/frontend-v1/proposal.md section 5): every route falls back to index.html,
 			// and the root layout turns off server rendering.
-			adapter: adapter({ fallback: 'index.html' })
+			adapter: adapter({ fallback: 'index.html' }),
+
+			// Off on purpose: MSW owns the service worker in the mock modes. src/hooks.client.ts
+			// registers src/service-worker/index.ts itself, only when PUBLIC_API_MOCK is off.
+			serviceWorker: { register: false },
+
+			// Absolute asset URLs in every HTML response. The static fallback page already has them,
+			// but `vite preview` renders the shell per route with relative ones (./_app on /, ../_app
+			// on /account/login), and the worker caches one shell for all routes. The offline e2e
+			// check fails without this.
+			paths: { relative: false }
 		})
 	],
 	server: {

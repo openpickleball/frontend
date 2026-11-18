@@ -99,9 +99,9 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
   - Note: a single AlertDialog meets "a Sheet on mobile". Its content is a bottom sheet under 640px and a centered dialog above, so one component serves both and keeps the alert dialog's focus and Escape behavior.
 
 ### T10 · PWA shell — frontend#46
-- [ ] `manifest.webmanifest` and icons rendered from the favicon (192, 512, 512 maskable).
-- [ ] `src/service-worker.ts`: precache the build and static files, navigation fallback, `/api` and `/_allauth` network-only, an "Update available" toast. Not registered in mock modes.
-- [ ] A Playwright check for installability and the offline shell.
+- [x] `manifest.webmanifest` and icons rendered from the favicon (192, 512, 512 maskable).
+- [x] `src/service-worker.ts`: precache the build and static files, navigation fallback, `/api` and `/_allauth` network-only, an "Update available" toast. Not registered in mock modes.
+- [x] A Playwright check for installability and the offline shell.
 
 ### T11 · Local dev docs and a live happy path — frontend#47
 - [x] `app/README.md`: running the backend locally, `.env` values, a shell snippet that verifies the seeded accounts and prints their logins (until backend issue B5), and the mock modes.
