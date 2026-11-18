@@ -1,6 +1,6 @@
 # Replace the SvelteKit placeholder page title and description (issue #15)
 
-**Status:** active
+**Status:** done
 
 Risk tier: Low. One static page and its test. No interaction, state or API. A server-render unit test sees the full head and body output, so it covers every criterion except how a browser shows the title, which a short live drive confirms.
 
