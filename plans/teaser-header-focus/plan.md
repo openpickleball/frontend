@@ -1,6 +1,6 @@
 # Show the hidden header when keyboard focus reaches it (issue #16)
 
-**Status:** active
+**Status:** done
 
 Risk tier: Medium. One class list in `site/public/index.html`, but it changes existing interactive behavior (focus, a scroll-driven show and hide) that `site/` has no automated test for, so only a browser drive proves it. The change goes live on openpb.org when merged.
 
@@ -40,13 +40,13 @@ Finding 2 (the arrow after "Get involved" is read aloud) is a separate pull requ
 
 - [x] Red: on the unchanged page, serve `site/public/` (run `pnpm build` in `site/` first), load `/` at the top, press Tab until a link inside `#site-nav` has focus, and record `document.activeElement` and the computed `opacity` of `#site-nav`. Expected today: the focused element is inside `#site-nav` and its opacity is `0`.
 - [x] Red for criterion 5: on the `focus-within` version, scroll down until the header shows, give a header link focus that is not `:focus-visible`, scroll back to the top, and record `data-hidden`, `opacity` and `pointer-events`. Expected: `data-hidden` is set but the header stays at opacity `1`.
-- [ ] Green: add the override to the header's class list:
+- [x] Green: add the override to the header's class list:
       `data-hidden:has-focus-visible:pointer-events-auto data-hidden:has-focus-visible:translate-y-0 data-hidden:has-focus-visible:opacity-100`.
       The stacked `data-hidden:has-focus-visible:` form is there so the override has higher specificity than the `data-hidden:` hide classes and wins whatever order Tailwind emits them in (see Risks). Rebuild with `pnpm build` and confirm in the compiled `main.css` that the override rules are present and use `:has(*:focus-visible)`.
-- [ ] Update the comment above the header.
-- [ ] Gate: `pnpm build` in `site/`.
-- [ ] Live drive: criteria 1 to 5, at a wide viewport (all three nav links shown) and a narrow one (only "OPEN" and "Get involved"), each in the black and the ivory theme, and with reduced motion emulated at least once at each width.
-- [ ] Set this plan's status to done.
+- [x] Update the comment above the header.
+- [x] Gate: `pnpm build` in `site/`.
+- [x] Live drive: criteria 1 to 5, at a wide viewport (all three nav links shown) and a narrow one (only "OPEN" and "Get involved"), each in the black and the ivory theme, and with reduced motion emulated at least once at each width.
+- [x] Set this plan's status to done.
 
 ## Risks
 
@@ -94,3 +94,93 @@ The header stays shown over the teaser with `data-hidden` set. Screenshot: `/tmp
 Note: before any pointer input, `link.focus()` did match `:focus-visible` in Chrome, so the click comes first. In this Chrome a mouse click on a same-page link left focus on `body` after the jump, so the scripted focus stands in for a browser that keeps focus on the clicked link.
 
 The green record for the `focus-within` version is in the history of this file (commit 7a4ddef). It is replaced by the green record for the `:has(:focus-visible)` version below.
+
+### Green (after the change, `:has(:focus-visible)`, commit 65fa55f)
+
+Compiled `main.css`: `.data-hidden\:has-focus-visible\:opacity-100[data-hidden]:has(:focus-visible){opacity:1}`, plus the matching `pointer-events-auto` and `translate-y-0` rules. Their specificity (0,3,0) is higher than the hide rules such as `.data-hidden\:opacity-0[data-hidden]` (0,2,0).
+
+How the values were read: `getComputedStyle(#site-nav)` and `document.activeElement` through Chrome DevTools, one call after each key press. With motion on, the headless page only advances a transition when it renders a frame, so those reads first finish `#site-nav`'s own transitions (`getAnimations().forEach(a => a.finish())`) to show the settled state. With reduced motion, `transition-property` computes to `none` and the values are read as they are, in the first read after the key press. "Topmost" means `document.elementFromPoint` at the element's center returns that element. All Tab and Shift+Tab steps are at `scrollY` 0 with `data-hidden` set, and every keyboard focus reported `:focus-visible` true.
+
+Columns: `opacity` / `pointer-events` / `translate` of `#site-nav`. "Shown" is `1` / `auto` / `0px`. "Hidden" is `0` / `none` / `0px -8px`.
+
+**A. Wide (1280x800, all three nav links shown), black, motion on**
+
+| Step | Focus | `#site-nav` |
+| --- | --- | --- |
+| Load | `body` | hidden |
+| Tab | "Skip to content" | hidden |
+| Tab | "OPEN" in header | shown |
+| Tab | "What we stand for" in header | shown |
+| Tab | "Open source" in header | shown |
+| Tab | "Get involved" in header | shown |
+| Tab | theme toggle, topmost | hidden |
+| Shift+Tab | "Get involved" in header | shown |
+| Shift+Tab x3 | "OPEN" in header | shown |
+| Shift+Tab | "Skip to content" at 16,12, topmost | hidden |
+| Criterion 3: blur, scroll to 720 | `body` | `data-hidden` removed, `1` / `auto` / `none` |
+| Criterion 3: scroll to 0 | `body` | `data-hidden` set, hidden |
+| Criterion 5: scroll to 720, mouse click "Open source" in header (jumps to 1472), then `link.focus()` | "Open source" in header, `:focus-visible` false | `data-hidden` removed, `1` / `auto` / `none` |
+| Criterion 5: scroll to 0 | "Open source" in header, `:focus-visible` false | `data-hidden` set, hidden |
+
+**B. Wide (1280x800), ivory, reduced motion** (`transition-property: none`)
+
+| Step | Focus | `#site-nav` |
+| --- | --- | --- |
+| Load | `body` | hidden |
+| Tab x2 | "OPEN" in header | shown |
+| Tab | "What we stand for" in header | shown |
+| Tab | "Open source" in header | shown |
+| Tab | "Get involved" in header | shown |
+| Tab | theme toggle at x 1186, topmost | hidden |
+| Shift+Tab | "Get involved" in header | shown |
+| Shift+Tab x3 | "OPEN" in header | shown |
+| Shift+Tab | "Skip to content" at 16,12, topmost | hidden |
+| Criterion 3: blur, scroll to 720 | `body` | `data-hidden` removed, `1` / `auto` / `none` |
+| Criterion 3: scroll to 0 | `body` | `data-hidden` set, hidden |
+| Criterion 5: scroll to 720, mouse click "Open source" in header (jumps to 1472), then `link.focus()` | "Open source" in header, `:focus-visible` false | `data-hidden` removed, `1` / `auto` / `none` |
+| Criterion 5: scroll to 0 | "Open source" in header, `:focus-visible` false | `data-hidden` set, hidden |
+
+**C. Narrow (390x844, only "OPEN" and "Get involved" shown), black, reduced motion** (`transition-property: none`)
+
+| Step | Focus | `#site-nav` |
+| --- | --- | --- |
+| Load | `body` | hidden |
+| Tab x2 | "OPEN" in header | shown |
+| Tab | "Get involved" in header | shown |
+| Tab | theme toggle at x 328 to 364, topmost | hidden |
+| Shift+Tab | "Get involved" in header | shown |
+| Shift+Tab | "OPEN" in header | shown |
+| Shift+Tab | "Skip to content" at 16,12, topmost | hidden |
+| Criterion 3: blur, scroll to 760 | `body` | `data-hidden` removed, `1` / `auto` / `none` |
+| Criterion 3: scroll to 0 | `body` | `data-hidden` set, hidden |
+| Criterion 5: scroll to 760, mouse click on the "A rating that belongs to the players" heading, then `focus()` on the header "OPEN" link | "OPEN" in header, `:focus-visible` false | `data-hidden` removed, `1` / `auto` / `none` |
+| Criterion 5: scroll to 0 | "OPEN" in header, `:focus-visible` false | `data-hidden` set, hidden |
+
+**D. Narrow (390x844), ivory, motion on**
+
+| Step | Focus | `#site-nav` |
+| --- | --- | --- |
+| Load | `body` | hidden |
+| Tab x2 | "OPEN" in header | shown |
+| Tab | "Get involved" in header | shown |
+| Tab | theme toggle at x 328 to 364, topmost | hidden |
+| Shift+Tab | "Get involved" in header | shown |
+| Shift+Tab | "OPEN" in header | shown |
+| Shift+Tab | "Skip to content" at 16,12, topmost | hidden |
+| Criterion 3: blur, scroll to 760 | `body` | `data-hidden` removed, `1` / `auto` / `none` |
+| Criterion 3: scroll to 0 | `body` | `data-hidden` set, hidden |
+| Criterion 5: scroll to 760, mouse click on the "A rating that belongs to the players" heading, then `focus()` on the header "OPEN" link | "OPEN" in header, `:focus-visible` false | `data-hidden` removed, `1` / `auto` / `none` |
+| Criterion 5: scroll to 0 | "OPEN" in header, `:focus-visible` false | `data-hidden` set, hidden |
+
+Criterion 4 screenshots, reviewed. The keyboard-focused header at the top looks the same as the scrolled header in both themes, and the header is gone after the mouse focus path:
+
+- A, keyboard focus on "OPEN": `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-wide-black-kbd-open.png`
+- A, mouse focus path back at the top: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-wide-black-mousefocus-top.png`
+- B, keyboard focus on "OPEN": `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-wide-ivory-reduced-kbd-open.png`
+- B, mouse focus path back at the top: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-wide-ivory-reduced-mousefocus-top.png`
+- C, keyboard focus on "Get involved": `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-narrow-black-reduced-kbd-getinvolved.png`
+- C, mouse focus path back at the top: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-narrow-black-reduced-mousefocus-top.png`
+- D, keyboard focus on "OPEN": `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-narrow-ivory-kbd-open.png`
+- D, mouse focus path back at the top: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-narrow-ivory-mousefocus-top.png`
+
+Criterion 6: `pnpm build` in `site/` passed (tailwindcss v4.3.5, "Done in 41ms").
