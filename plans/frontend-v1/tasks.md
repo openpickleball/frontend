@@ -34,13 +34,13 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Accept:** CI is green. No live link or instruction points at a deleted file.
 
 ### T1 · App shell and design system — frontend#37
-- [ ] SPA mode: `@sveltejs/adapter-static` with `fallback: 'index.html'`, and `ssr = false` in the root `+layout.ts`.
-- [ ] `layout.css` already has the `@theme` block, fonts and `color-scheme` base rules (frontend#14, `plans/app-theme/`). Keep them and their test in `layout.test.ts`. Add the `light:` variant and the token additions from `mockups/README.md` (confirmed, disputed, danger, field, washes), and extend the test to cover them.
-- [ ] `app.html`: the no-flash theme script that sets `data-theme`, the `theme-color` metas and the font preloads, the same as `site/`. Keep the body classes from #14.
-- [ ] Replace the placeholder home page from frontend#15 (`plans/app-page-title/`) with the shell's home stub. Keep the `OPEN Pickleball` title and the description, and update `page.test.ts`.
-- [ ] shadcn-svelte init, plus Button, Input, Label, Badge, AlertDialog, Sheet, ToggleGroup and Sonner in `src/lib/ui/`, restyled to the site utilities (`proposal.md` §2). Theme toggle.
-- [ ] App shell from the mockups: top bar and bottom tab bar on mobile, side nav from 960px. Stub routes `/`, `/record`, `/matches`, `/matches/[code]`, `/profile` and `/account/*`, each with a heading only.
-- [ ] `eslint-plugin-boundaries` with the import rules in `proposal.md` §3 (empty folders are fine).
+- [x] SPA mode: `@sveltejs/adapter-static` with `fallback: 'index.html'`, and `ssr = false` in the root `+layout.ts`.
+- [x] `layout.css` already has the `@theme` block, fonts and `color-scheme` base rules (frontend#14, `plans/app-theme/`). Keep them and their test in `layout.test.ts`. Add the `light:` variant and the token additions from `mockups/README.md` (confirmed, disputed, danger, field, washes), and extend the test to cover them.
+- [x] `app.html`: the no-flash theme script that sets `data-theme`, the `theme-color` metas and the font preloads, the same as `site/`. Keep the body classes from #14. (Font preloads are skipped: Vite fingerprints the fonts, so `app.html` can't name their built URLs. The reason is in a comment there.)
+- [x] Replace the placeholder home page from frontend#15 (`plans/app-page-title/`) with the shell's home stub. Keep the `OPEN Pickleball` title and the description, and update `page.test.ts`.
+- [x] shadcn-svelte init, plus Button, Input, Label, Badge, AlertDialog, Sheet, ToggleGroup and Sonner in `src/lib/ui/`, restyled to the site utilities (`proposal.md` §2). Theme toggle.
+- [x] App shell from the mockups: top bar and bottom tab bar on mobile, side nav from 960px. Stub routes `/`, `/record`, `/matches`, `/matches/[code]`, `/profile` and `/account/*`, each with a heading only.
+- [x] `eslint-plugin-boundaries` with the import rules in `proposal.md` §3 (empty folders are fine).
 - **Owns:** `app/svelte.config.js`, `app/src/app.html`, `app/src/routes/+layout.*`, `app/src/routes/+page.svelte`, `app/src/routes/page.test.ts`, `app/src/routes/layout.*`, `app/src/lib/ui/**`, `app/static/**`, `app/eslint.config.js`, the route stubs.
 - **Accept:** the shell matches `mockups/home.html` at 390px and 1280px in both themes (screenshot in the PR). The theme toggle persists. The build output is static.
 

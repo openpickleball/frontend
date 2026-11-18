@@ -36,10 +36,44 @@
 	--font-body: 'Instrument Sans', sans-serif;
 }
 
-/* Theme: the system setting decides. Nothing sets data-theme in the app yet. */
+/*
+  Additions for the app, with contrast checks in plans/frontend-v1/mockups/README.md. Status is
+  always shown as text plus an icon or dot as well, never as color alone.
+*/
+@theme {
+	--color-confirmed: light-dark(#3b5c12, #bad446); /* confirmed status; ball green in black */
+	--color-disputed: light-dark(#a3301b, #ff8b73); /* disputed status */
+	--color-danger: light-dark(#a3301b, #ff8b73); /* errors and destructive actions */
+	--color-pending: var(--color-muted); /* pending stays neutral on purpose */
+	--color-voided: var(--color-faint);
+	--color-field: var(--color-faint); /* input borders: 3:1 or better, unlike line */
+	--color-confirmed-wash: light-dark(#e9ecd2, #141a06); /* success banner background */
+	--color-danger-wash: light-dark(#f6e2d9, #1f0d09); /* error banner background */
+
+	--breakpoint-shell: 960px; /* the top and tab bars give way to the side nav */
+}
+
+/*
+  Theme: the system setting by default. The toggle stores a choice and the script in app.html puts
+  it on <html data-theme> before first paint. `light:` targets the ivory theme either way. Mirrors
+  the variant in site/src/input.css.
+*/
+@custom-variant light {
+	&:where([data-theme='light'], [data-theme='light'] *) {
+		@slot;
+	}
+	@media (prefers-color-scheme: light) {
+		&:where(:root:not([data-theme='dark']), :root:not([data-theme='dark']) *) {
+			@slot;
+		}
+	}
+}
+
 @layer base {
 	:root {
 		color-scheme: light dark;
+		--header-height: 64px; /* matches the site's h-16 */
+		--tabbar-height: 64px;
 	}
 	:root[data-theme='light'] {
 		color-scheme: light;
@@ -47,4 +81,60 @@
 	:root[data-theme='dark'] {
 		color-scheme: dark;
 	}
+}
+
+@layer base {
+	:focus-visible {
+		outline: 2px solid currentColor;
+		outline-offset: 4px;
+	}
+	[hidden] {
+		display: none !important;
+	}
+}
+
+/* Theme switch: the toggle wraps the change in a view transition, and the page crossfades. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 0.5s;
+	animation-timing-function: ease-in-out;
+}
+
+/* The logo as a mask, so it takes the text color in both themes. */
+@utility mark {
+	display: inline-block;
+	flex: none;
+	background-color: currentColor;
+	mask: url('../lib/assets/mark.svg') center / contain no-repeat;
+}
+
+/* Small spaced capitals in the wordmark face: section labels and kickers. */
+@utility label {
+	font-family: var(--font-display);
+	font-size: 11px;
+	line-height: 1.4;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--color-muted);
+}
+
+/* Dialogs, sheets and the overlay behind them fade in. Reduced motion skips it. */
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+}
+@utility animate-fade-in {
+	@media (prefers-reduced-motion: no-preference) {
+		animation: fade-in 0.2s ease-out;
+	}
+}
+
+/* The heading at the top of each page. */
+@utility page-title {
+	font-size: clamp(30px, 3.6vw, 40px);
+	line-height: 1.08;
+	font-weight: 500;
+	letter-spacing: -0.015em;
+	text-wrap: balance;
 }
