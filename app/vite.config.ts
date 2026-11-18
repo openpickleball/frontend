@@ -16,7 +16,11 @@ export default defineConfig({
 
 			// SPA mode (plans/frontend-v1/proposal.md section 5): every route falls back to index.html,
 			// and the root layout turns off server rendering.
-			adapter: adapter({ fallback: 'index.html' })
+			adapter: adapter({ fallback: 'index.html' }),
+
+			// Off on purpose: MSW owns the service worker in the mock modes. src/hooks.client.ts
+			// registers src/service-worker.ts itself, only when PUBLIC_API_MOCK is off.
+			serviceWorker: { register: false }
 		})
 	],
 	server: {
