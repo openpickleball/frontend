@@ -6,7 +6,16 @@ import svelte from 'eslint-plugin-svelte';
 import ts from 'typescript-eslint';
 
 export default ts.config(
-	{ ignores: ['.svelte-kit/', 'build/', 'node_modules/', 'test-results/', 'playwright-report/'] },
+	{
+		ignores: [
+			'.svelte-kit/',
+			'build/',
+			'node_modules/',
+			'test-results/',
+			'playwright-report/',
+			'static/mockServiceWorker.js'
+		]
+	},
 	js.configs.recommended,
 	...ts.configs.recommended,
 	...svelte.configs['flat/recommended'],

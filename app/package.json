@@ -43,6 +43,8 @@
 		"eslint-plugin-boundaries": "^7.4.4",
 		"eslint-plugin-svelte": "^3.24.1",
 		"globals": "^17.14.0",
+		"msw": "3.0.6",
+		"openapi-msw": "2.1.1",
 		"openapi-typescript": "7.13.0",
 		"prettier": "^3.9.10",
 		"prettier-plugin-svelte": "^4.1.1",
@@ -64,5 +66,10 @@
 		"tailwind-merge": "^3.7.0",
 		"tailwind-variants": "^4.0.2",
 		"zod": "^4.6.7"
+	},
+	"msw": {
+		"workerDirectory": [
+			"static"
+		]
 	}
 }

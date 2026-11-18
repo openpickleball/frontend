@@ -34,7 +34,7 @@ export default defineConfig({
 		coverage: {
 			provider: 'v8',
 			include: ['src/**/*.{ts,svelte}'],
-			exclude: ['src/**/*.test.ts', 'src/lib/api/generated/**'],
+			exclude: ['src/**/*.test.ts', 'src/lib/api/generated/**', 'src/lib/mocks/**'],
 			// A summary only, with no threshold (plans/frontend-v1/proposal.md section 9).
 			reporter: ['text-summary']
 		},
