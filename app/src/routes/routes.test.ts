@@ -58,8 +58,11 @@ describe('app.html', () => {
 	describe('no-flash theme script', () => {
 		// Runs the inline script against stand-ins for the document and localStorage.
 		function run(stored: string | null | 'throws') {
-			const script = /<script>([\s\S]*?)<\/script>/.exec(appHtml)?.[1];
-			expect(script, 'inline script in app.html').toBeDefined();
+			// app.html is our own file, so a plain search for its one inline script is enough.
+			const start = appHtml.indexOf('<script>') + '<script>'.length;
+			const end = appHtml.indexOf('</script>', start);
+			expect(start, 'inline script in app.html').toBeGreaterThan('<script>'.length - 1);
+			const script = appHtml.slice(start, end);
 			const metas = [{ content: '#000000' }, { content: '#f7f3e8' }];
 			const documentElement = { dataset: {} as { theme?: string } };
 			const document = { documentElement, querySelectorAll: () => metas };
@@ -69,7 +72,7 @@ describe('app.html', () => {
 					return stored;
 				}
 			};
-			new Function('document', 'localStorage', script ?? '')(document, localStorage);
+			new Function('document', 'localStorage', script)(document, localStorage);
 			return { theme: documentElement.dataset.theme, metas: metas.map((m) => m.content) };
 		}
 
