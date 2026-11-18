@@ -215,7 +215,9 @@
           var label = field.querySelector("label").textContent;
           var wrap = document.createElement("div");
           wrap.className = field.className.replace("field", "").trim();
-          wrap.innerHTML = '<span class="chip"><span class="code">' + code + '</span><button type="button" class="chip-remove" aria-label="Remove ' + code + '">' + X + "</button></span>";
+          wrap.innerHTML = '<span class="chip"><span class="code"></span><button type="button" class="chip-remove">' + X + "</button></span>";
+          wrap.querySelector(".code").textContent = code;
+          wrap.querySelector("button").setAttribute("aria-label", "Remove " + code);
           wrap.dataset.restore = field.outerHTML;
           wrap.dataset.label = label;
           field.replaceWith(wrap);
