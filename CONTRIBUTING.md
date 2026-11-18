@@ -94,7 +94,7 @@ Every change to app behavior needs tests that would fail without it. A bug fix n
 
 Vitest runs two projects. A file named `*.svelte.test.ts` renders components in a real headless browser (Chromium), and every other test file runs in node. The first run needs `pnpm exec playwright install chromium`. `pnpm test:coverage` runs the same tests and prints a coverage summary.
 
-End-to-end tests live in `app/e2e/`. Run them with `pnpm e2e` in `app/`: it builds the app, serves it on port 4183 and runs Playwright at phone size with axe accessibility checks.
+End-to-end tests live in `app/e2e/`. Run them with `pnpm e2e` in `app/`: it builds the app, serves it on port 4183 (set `E2E_PORT` to change it) and runs Playwright at phone size with axe accessibility checks.
 
 For local development, the `PUBLIC_API_MOCK` environment variable controls the mock API (`app/src/lib/mocks`):
 
