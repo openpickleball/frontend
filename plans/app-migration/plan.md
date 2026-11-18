@@ -1,6 +1,10 @@
 # Move from the teaser to the full app
 
-**Status:** planned
+**Status:** superseded
+
+## Superseded
+
+The v1 app is built by `plans/frontend-v1/`. Hosting is tracked in frontend#22 and backend#182: the app goes to `app.openpb.org` and `site/` stays as the public page at openpb.org. This plan's idea of replacing `site/` with the app is dropped for now. The steps below are kept for reference.
 
 ## Goal
 
@@ -21,4 +25,4 @@ openpb.org is set as the custom domain under Settings → Pages, and www.openpb.
 
 ## Decisions
 
-None yet.
+- Superseded by frontend#22 and backend#182 (app at `app.openpb.org`, `site/` stays). (2026-11-17)

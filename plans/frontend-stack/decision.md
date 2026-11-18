@@ -1,6 +1,10 @@
 # Frontend stack: SvelteKit, React Native or Flutter
 
-**Status:** proposed, not decided · 16 Nov 2026
+**Status:** decided · 17 Nov 2026
+
+## Decision
+
+SvelteKit, shipped as a responsive web app that works as an installable PWA. Capacitor is deferred and Expo is not planned. The project owner settled this on 2026-11-17, and `plans/frontend-v1/` builds it. The sections below are the analysis behind it.
 
 ## Recommendation
 
@@ -137,6 +141,15 @@ Mobile code reuse depends less on the UI framework than on how we structure the 
 - Usage data shows most players stay on mobile and share links aren't driving traffic.
 
 ## Open questions
+
+Answered on 2026-11-17 (see `plans/frontend-v1/plan.md`):
+
+1. No store deadline. Capacitor and app stores are out of scope for v1 and deferred.
+2. The v1 frontend is built by a few core developers working with coding agents. Contributor pool did not outweigh speed and simplicity.
+3. The backend is Python (Django with django-ninja), so there is no code to share with it. The frontend generates a typed client from its OpenAPI schema.
+4. No phone-only features are needed for v1. Offline score queueing is deferred to a follow-up issue.
+
+The original questions:
 
 1. Is there a date by which we must be in the App Store or Play Store? If it's within six months of launch, Expo becomes more attractive.
 2. Who is writing the frontend: one or two core developers, or a wider volunteer community? A wider community favors React.
