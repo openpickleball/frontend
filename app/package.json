@@ -22,6 +22,7 @@
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"e2e": "playwright test",
+		"e2e:live": "playwright test --config playwright.live.config.ts",
 		"e2e:webkit": "E2E_WEBKIT=1 playwright test --project=\"iPhone 15\"",
 		"api:pull": "curl -fsS http://127.0.0.1:8000/api/v1/openapi.json -o src/lib/api/schema/open.json && curl -fsS http://127.0.0.1:8000/_allauth/openapi.json -o src/lib/api/schema/allauth.json && prettier --write src/lib/api/schema",
 		"api:gen": "openapi-typescript src/lib/api/schema/open.json -o src/lib/api/generated/open.d.ts && openapi-typescript src/lib/api/schema/allauth.json -o src/lib/api/generated/allauth.d.ts && prettier --write src/lib/api/generated"
