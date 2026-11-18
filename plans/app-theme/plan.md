@@ -14,7 +14,7 @@ The SvelteKit app in `app/` has the teaser's design tokens, fonts and color-sche
 
 - Scope (asked on 2026-11-17): copy the `@theme` block, the two `@font-face` rules with their font files, and the `:root` `color-scheme` base rules. On its own, the `@theme` block would leave the app always ivory (`light-dark()` needs `color-scheme`) and on fallback fonts. The theme toggle, the `light:` variant, the `data-theme` head script, and the teaser's custom utilities (`mark`, `hero-green`, `shimmer`, `wrap`, `label`, `arrow-link`, scroll animations) are not copied. They belong to the home page rebuild (step 3).
 - The `:root[data-theme=...]` rules are copied along with `:root { color-scheme: light dark; }`, since they are part of the same base block and cost nothing. Nothing sets `data-theme` in the app yet, so the system setting decides.
-- Fonts live in `app/src/lib/assets/fonts/` and are referenced from `layout.css` by relative URL, so Vite fingerprints them. The OFL license files go with them, as the OFL requires when the fonts are redistributed. No `<link rel="preload">` yet. The home page rebuild can add one.
+- Fonts live in `app/src/lib/assets/fonts/` and are referenced from `layout.css` by relative URL, so Vite fingerprints them. The OFL license files must ship with the fonts, as the OFL requires when the fonts are redistributed. Nothing imports a text file, so Vite would leave them out of the build if they sat next to the woff2 files. They live in `app/static/fonts/` instead, which SvelteKit copies into the build as is and serves at `/fonts/OFL-KronaOne.txt` and `/fonts/OFL-InstrumentSans.txt`. (Changed 2026-11-17 after review: the first commit had them in `app/src/lib/assets/fonts/`, where the build dropped them.) No `<link rel="preload">` yet. The home page rebuild can add one.
 - The test reads `layout.css` and Tailwind's `index.css` with Vite `?raw` imports, not `node:fs`, because the app has no `@types/node` and adding it would be a new dependency. Vitest replaces every CSS import with an empty string by default, so `app/vite.config.ts` sets `test.css.include` to `/\.css\?raw$/`. That only lets raw source reads through. The file-exists test uses `import.meta.glob` on the fonts folder for the same reason. (Recorded 2026-11-17, during implementation.)
 - Prettier writes CSS strings with single quotes, so `layout.css` has `'Krona One'` where the teaser has `"Krona One"`. CSS treats the two the same. The test turns single quotes into double quotes in the compiled output before it compares values.
 - `app/src/app.html`'s `<body>` gets the teaser's body classes (`bg-primary font-body text-secondary antialiased`), so the app shell uses the theme. This shows the tokens work in a real page.
@@ -22,7 +22,7 @@ The SvelteKit app in `app/` has the teaser's design tokens, fonts and color-sche
 ## Acceptance criteria
 
 1. `app/src/routes/layout.css` contains, after `@import 'tailwindcss';`, the `@theme` block from `site/src/input.css` with the same token names and values: `--color-primary`, `--color-secondary`, `--color-muted`, `--color-line`, `--color-faint`, `--color-surface`, `--spacing-gutter`, `--font-display`, `--font-body`.
-2. `layout.css` has `@font-face` rules for "Krona One" (400, normal, `font-display: swap`) and "Instrument Sans" (400 to 700, normal, `font-display: swap`), pointing at `app/src/lib/assets/fonts/krona-one-latin.woff2` and `app/src/lib/assets/fonts/instrument-sans-latin-var.woff2`. Those files are byte-identical copies of the ones in `site/public/assets/fonts/`, and `OFL-KronaOne.txt` and `OFL-InstrumentSans.txt` are copied next to them.
+2. `layout.css` has `@font-face` rules for "Krona One" (400, normal, `font-display: swap`) and "Instrument Sans" (400 to 700, normal, `font-display: swap`), pointing at `app/src/lib/assets/fonts/krona-one-latin.woff2` and `app/src/lib/assets/fonts/instrument-sans-latin-var.woff2`. Those files are byte-identical copies of the ones in `site/public/assets/fonts/`, and `OFL-KronaOne.txt` and `OFL-InstrumentSans.txt` are copied, byte-identical, to `app/static/fonts/`, so the build ships them.
 3. `layout.css` has the base rules `:root { color-scheme: light dark; }`, `:root[data-theme="light"] { color-scheme: light; }` and `:root[data-theme="dark"] { color-scheme: dark; }` inside `@layer base`.
 4. Compiling `layout.css` with Tailwind for the candidates `bg-primary`, `text-secondary`, `text-muted`, `border-line`, `text-faint`, `bg-surface`, `px-gutter`, `font-display` and `font-body` emits a rule for each that uses the matching theme variable, and emits the variable definitions with the teaser's values. A Vitest test proves this.
 5. `app/src/app.html`'s `<body>` has `class="bg-primary font-body text-secondary antialiased"`.
@@ -33,7 +33,8 @@ The SvelteKit app in `app/` has the teaser's design tokens, fonts and color-sche
 ## Files that change
 
 - `app/src/routes/layout.css`: tokens, font faces, base rules.
-- `app/src/lib/assets/fonts/` (new): two woff2 files and two OFL license files, copied from `site/public/assets/fonts/`.
+- `app/src/lib/assets/fonts/` (new): two woff2 files, copied from `site/public/assets/fonts/`.
+- `app/static/fonts/` (new): the two OFL license files, copied from `site/public/assets/fonts/`.
 - `app/src/app.html`: body classes.
 - `app/src/routes/layout.test.ts` (new): the compile test for criterion 4.
 - `app/vite.config.ts`: let Vitest read `?raw` CSS imports (see Decisions).
@@ -62,7 +63,8 @@ Not doing: theme toggle, `light:` variant, head script, preload links, the tease
 
 ## Proof
 
-- Criteria 1 to 4: `app/src/routes/layout.test.ts`.
+- Criteria 1 to 4: `app/src/routes/layout.test.ts`. It checks each token value, each utility rule, each `@font-face` (its own `src`, weight, `font-style: normal` and `font-display: swap`), each `color-scheme` rule exactly, and that the three `:root` rules sit inside `@layer base` in `layout.css`.
+- Criterion 2 (license files ship): `pnpm build`, then find `OFL-*.txt` in the build output.
 - Criterion 2 (byte-identical): `cmp` of each copied file against its source, output in the PR.
 - Criterion 5: `grep` of `app.html`, and the live drive.
 - Criterion 6: live drive with the Chrome DevTools tools against `pnpm dev`: emulate `prefers-color-scheme: dark` and `light`, read the body's computed `background-color`, `color` and `font-family`, read `document.fonts` status for both families, and check the network request for the woff2 file returns 200.

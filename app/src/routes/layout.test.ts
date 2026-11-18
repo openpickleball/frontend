@@ -4,6 +4,7 @@ import layoutCss from './layout.css?raw';
 import tailwindIndexCss from 'tailwindcss/index.css?raw';
 
 // Vite lists the files that exist, so the test needs no file system access.
+// Glob keys are relative to this file and url() values to layout.css, so both must share a folder.
 const fontFiles = import.meta.glob('../lib/assets/fonts/*', { query: '?url', eager: true });
 
 const candidates = [
@@ -55,6 +56,19 @@ async function buildLayoutCss(): Promise<string> {
 	return compiler.build(candidates).replaceAll("'", '"');
 }
 
+/** The contents of the first `@layer base { ... }` block, matching nested braces. */
+function baseLayer(css: string): string | undefined {
+	const start = css.indexOf('@layer base {');
+	if (start === -1) return undefined;
+	const open = css.indexOf('{', start);
+	let depth = 0;
+	for (let i = open; i < css.length; i++) {
+		if (css[i] === '{') depth++;
+		if (css[i] === '}' && --depth === 0) return css.slice(open + 1, i);
+	}
+	return undefined;
+}
+
 /** The body of the first rule whose selector is exactly `selector`. */
 function ruleBody(css: string, selector: string): string | undefined {
 	const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -71,17 +85,29 @@ describe('layout.css', () => {
 		for (const [selector, declaration] of utilities) {
 			expect(ruleBody(css, selector), selector).toContain(declaration);
 		}
-		expect(ruleBody(css, ':root')).toContain('color-scheme: light dark');
-		expect(ruleBody(css, ':root[data-theme="light"]')).toContain('color-scheme: light');
-		expect(ruleBody(css, ':root[data-theme="dark"]')).toContain('color-scheme: dark');
+		expect(ruleBody(css, ':root')).toContain('color-scheme: light dark;');
+		expect(ruleBody(css, ':root[data-theme="light"]')).toContain('color-scheme: light;');
+		expect(ruleBody(css, ':root[data-theme="dark"]')).toContain('color-scheme: dark;');
 
 		const fontFaces = css.match(/@font-face\s*\{[^}]*\}/g) ?? [];
 		const krona = fontFaces.find((rule) => rule.includes('font-family: "Krona One"'));
 		const instrument = fontFaces.find((rule) => rule.includes('font-family: "Instrument Sans"'));
-		expect(krona).toMatch(/font-weight: 400;/);
-		expect(krona).toMatch(/font-display: swap;/);
-		expect(instrument).toMatch(/font-weight: 400 700;/);
-		expect(instrument).toMatch(/font-display: swap;/);
+		expect(krona).toContain('src: url("../lib/assets/fonts/krona-one-latin.woff2")');
+		expect(krona).toContain('font-weight: 400;');
+		expect(krona).toContain('font-style: normal;');
+		expect(krona).toContain('font-display: swap;');
+		expect(instrument).toContain('src: url("../lib/assets/fonts/instrument-sans-latin-var.woff2")');
+		expect(instrument).toContain('font-weight: 400 700;');
+		expect(instrument).toContain('font-style: normal;');
+		expect(instrument).toContain('font-display: swap;');
+	});
+
+	it('keeps the color-scheme rules inside @layer base', () => {
+		const base = baseLayer(layoutCss.replaceAll("'", '"'));
+		expect(base, '@layer base block in layout.css').toBeDefined();
+		expect(ruleBody(base ?? '', ':root')).toContain('color-scheme: light dark;');
+		expect(ruleBody(base ?? '', ':root[data-theme="light"]')).toContain('color-scheme: light;');
+		expect(ruleBody(base ?? '', ':root[data-theme="dark"]')).toContain('color-scheme: dark;');
 	});
 
 	it('points every url() at a font file that exists', () => {
