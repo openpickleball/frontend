@@ -1,13 +1,14 @@
 # Frontend v1 tasks
 
-Source of truth for implementation. Read `plan.md` (decisions) and `proposal.md` (architecture) first. Mockups are in `mockups/`; the component inventory and token additions are in `mockups/README.md`.
+Source of truth for implementation. Tracking issue: frontend#48. Read `plan.md` (decisions) and `proposal.md` (architecture) first. Mockups are in `mockups/`; the component inventory and token additions are in `mockups/README.md`.
 
 ## How tasks run
 
-- One task = one branch = one PR. Branch names are `<type>/v1-<slug>` (for example `feat/v1-app-shell`).
+- One task = one GitHub issue = one branch = one PR, following `CONTRIBUTING.md`. Branch names are `issue-<N>-<slug>`. The PR fills in `.github/PULL_REQUEST_TEMPLATE.md`, says `Closes #N`, and gives `plans/frontend-v1/plan.md` as the plan. Comment on the issue to claim it when work starts.
 - Each task lists the files it **owns**. Only that task edits them while it's open. `app/package.json` and `app/pnpm-lock.yaml` are shared: rebase on `main` and run `pnpm install` before pushing, and never hand-merge the lockfile.
 - Done means: acceptance criteria met, `pnpm format:check && pnpm lint && pnpm check && pnpm test && pnpm build` pass in `app/`, commits are signed off (`git commit -s`), the PR links this file, and the task's line here is ticked in the same PR.
-- An Opus agent reviews every PR. The orchestrator merges after CI is green and the review approves.
+- An Opus agent reviews every PR. The orchestrator merges after CI is green and the review approves. This is an owner-approved exception to "a maintainer merges every PR" for v1 (plan.md, Decisions).
+- Copy rules from `CONTRIBUTING.md` apply in the app too: no em dashes, plain words for players, never call anything an "OPEN rating", don't name competing rating systems.
 - Made-up data only.
 
 ## Waves
@@ -32,17 +33,18 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Owns:** `plans/**`, `design/**`, `.github/workflows/ci-app.yml`, `app/src/lib/assets/favicon.svg`.
 - **Accept:** CI is green. No live link or instruction points at a deleted file.
 
-### T1 · App shell and design system — `feat/v1-app-shell`
+### T1 · App shell and design system — frontend#37
 - [ ] SPA mode: `@sveltejs/adapter-static` with `fallback: 'index.html'`, and `ssr = false` in the root `+layout.ts`.
-- [ ] `layout.css`: the site `@theme` block unchanged, the `light:` variant, the token additions from `mockups/README.md` (confirmed, disputed, danger, field, washes), and the fonts (copy the woff2 files into `app/static/fonts/`).
-- [ ] `app.html`: the no-flash theme script, the `theme-color` metas and the font preloads, the same as `site/`.
+- [ ] `layout.css` already has the `@theme` block, fonts and `color-scheme` base rules (frontend#14, `plans/app-theme/`). Keep them and their test in `layout.test.ts`. Add the `light:` variant and the token additions from `mockups/README.md` (confirmed, disputed, danger, field, washes), and extend the test to cover them.
+- [ ] `app.html`: the no-flash theme script that sets `data-theme`, the `theme-color` metas and the font preloads, the same as `site/`. Keep the body classes from #14.
+- [ ] Replace the placeholder home page from frontend#15 (`plans/app-page-title/`) with the shell's home stub. Keep the `OPEN Pickleball` title and the description, and update `page.test.ts`.
 - [ ] shadcn-svelte init, plus Button, Input, Label, Badge, AlertDialog, Sheet, ToggleGroup and Sonner in `src/lib/ui/`, restyled to the site utilities (`proposal.md` §2). Theme toggle.
 - [ ] App shell from the mockups: top bar and bottom tab bar on mobile, side nav from 960px. Stub routes `/`, `/record`, `/matches`, `/matches/[code]`, `/profile` and `/account/*`, each with a heading only.
 - [ ] `eslint-plugin-boundaries` with the import rules in `proposal.md` §3 (empty folders are fine).
-- **Owns:** `app/svelte.config.js`, `app/src/app.html`, `app/src/routes/+layout.*`, `app/src/routes/layout.css`, `app/src/lib/ui/**`, `app/static/**`, `app/eslint.config.js`, the route stubs.
+- **Owns:** `app/svelte.config.js`, `app/src/app.html`, `app/src/routes/+layout.*`, `app/src/routes/+page.svelte`, `app/src/routes/page.test.ts`, `app/src/routes/layout.*`, `app/src/lib/ui/**`, `app/static/**`, `app/eslint.config.js`, the route stubs.
 - **Accept:** the shell matches `mockups/home.html` at 390px and 1280px in both themes (screenshot in the PR). The theme toggle persists. The build output is static.
 
-### T2 · Domain layer — `feat/v1-domain`
+### T2 · Domain layer — frontend#38
 - [ ] `src/lib/domain/`: branded `PlayerCode` and `MatchCode`, with normalization and the check character copied from backend `apps/public_ids/codes.py`.
 - [ ] Score rules mirroring backend `apps/matches/services.py`: no ties, the winner reaches the target, win by 2, and past the target the game ends at exactly +2. Games to 11, 15 or 21; 1–5 games.
 - [ ] Zod schemas: `matchInputSchema` and the auth forms. Domain models `Match`, `Team` and `Player`, with derived fields (`winner`, `myTeam`, `isPending`).
@@ -50,7 +52,7 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Owns:** `app/src/lib/domain/**`.
 - **Accept:** no Svelte imports. Every backend validation case has a matching test.
 
-### T3 · API layer — `feat/v1-api-client`
+### T3 · API layer — frontend#39
 - [ ] Commit the schema snapshots `src/lib/api/schema/open.json` and `allauth.json`. This needs a running backend or ninja's `export_openapi_schema`. See "Blockers".
 - [ ] Scripts `api:pull` and `api:gen` (openapi-typescript) → `src/lib/api/generated/`.
 - [ ] openapi-fetch clients for `/api/v1` and `/_allauth/browser/v1`, CSRF middleware, and `toAppError()` with the `AppError` type (`proposal.md` §4). Unit tests for every error shape.
@@ -59,47 +61,47 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - **Owns:** `app/src/lib/api/**`, the proxy block in `app/vite.config.ts`, the drift step in `ci-app.yml`.
 - **Accept:** the generated types are committed and CI catches drift. `toAppError` covers ninja 422, 403 CSRF, 409 duplicate, the allauth 401 with flows, non-JSON responses and network errors.
 
-### T4 · Test infrastructure and the e2e job — `ci/v1-e2e`
+### T4 · Test infrastructure and the e2e job — frontend#40
 - [ ] Vitest browser mode (`@vitest/browser-playwright`, `vitest-browser-svelte`) as a second project next to node, with one example component test.
 - [ ] Playwright: a Pixel 7 project that runs against `vite preview` with `PUBLIC_API_MOCK=all`, axe on every page, and a shell smoke test.
 - [ ] A new `app-e2e` job in CI with a cached browser and the report uploaded on failure. Add coverage (v8) to the summary, with no threshold.
 - **Owns:** `app/playwright.config.ts`, `app/e2e/**`, the test sections of `app/vite.config.ts`, the `app-e2e` job.
 - **Accept:** `app-e2e` passes on the PR. Afterwards, the owner makes it required and turns on "require up to date".
 
-### T5 · Mocks — `feat/v1-mocks`
+### T5 · Mocks — frontend#41
 - [ ] MSW 3 and openapi-msw handlers for every endpoint in use, plus `api/provisional.ts` types for `me/player`, `players/{code}` and ratings (shapes from backend#124 and #53).
 - [ ] Hand-written fixtures: fictional players and matches in every status. Code formats match the backend.
 - [ ] Modes `PUBLIC_API_MOCK=off|missing|all`, set up in `hooks.client.ts`. `msw/node` setup for Vitest.
 - **Owns:** `app/src/lib/mocks/**`, `app/src/hooks.client.ts`, `app/src/lib/api/provisional.ts`.
 
-### T6 · Auth — `feat/v1-auth`
+### T6 · Auth — frontend#42
 - [ ] `features/auth`: a session store filled from `GET auth/session`, and services for signup, login, logout, verify email, resend, password reset request and reset with key.
 - [ ] Pages at the backend's email paths (`/account/signup`, `/account/verify-email/[key]`, `/account/password/reset`, `/account/password/reset/key/[key]`) plus `/account/login`. A route guard on the signed-in routes.
 - [ ] Every state in `mockups/auth.html`. Component tests and an e2e test of signup → verify → login on mocks.
 
-### T9 · Profile and own code — `feat/v1-profile`
+### T9 · Profile and own code — frontend#43
 - [ ] `features/players`: the "my OPEN code" store, filled from `me/player` when it exists (mock) and otherwise from a one-time entry kept in localStorage.
-- [ ] `/profile`: the code with Copy and Share, the match count, and a "Ratings aren't live yet" card. In mock mode, a sample rating card labelled as sample data.
+- [ ] `/profile`: the code with Copy and Share, the match count, and a "Ratings aren't live yet" card. In mock mode, a sample rating card labelled as sample data. Never call it an "OPEN rating" (`CONTRIBUTING.md`).
 - [ ] The one-time code entry prompt, shown when signed in with no code.
 
-### T7 · Record a match — `feat/v1-record-match`
+### T7 · Record a match — frontend#44
 - **Overrides the mockups** (plan.md Q1, Q4): the record button says the player is confirming the score; after submit the match waits only on the other team (the "recorded" state in `match.html` must not ask the submitter to confirm); no offline queue (frontend#33).
 - [ ] `/record` per `mockups/record.html`: singles or doubles, players entered by code as chips (the user's own code prefilled), date, game settings, add and remove games, and inline validation from T2.
 - [ ] Submit → `POST /matches/` → confirm for the user's own team (Q4) → match detail with a toast. The button says the user is confirming the score.
 - [ ] 422 errors mapped onto their fields, and a 409 duplicate linked to the existing match. Offline shows an error (no queue, Q1).
 
-### T8 · My matches, detail, confirm and dispute — `feat/v1-matches`
+### T8 · My matches, detail, confirm and dispute — frontend#45
 - **Overrides the mockups** (plan.md Q1, Q4): a match the user just submitted waits only on the other team, so the "recorded" state in `match.html` must not ask the submitter to confirm; no offline queue (frontend#33).
 - [ ] `features/matches`: list service with "load more", and a cache by code.
 - [ ] Home (needs confirmation first, then recent), `/matches` paged per `mockups/history.html`, `/matches/[code]` per `mockups/match.html`. Cold deep links fall back to scanning the user's list.
 - [ ] Confirm, and dispute through an AlertDialog (a Sheet on mobile). Empty and error states.
 
-### T10 · PWA shell — `feat/v1-pwa`
+### T10 · PWA shell — frontend#46
 - [ ] `manifest.webmanifest` and icons rendered from the favicon (192, 512, 512 maskable).
 - [ ] `src/service-worker.ts`: precache the build and static files, navigation fallback, `/api` and `/_allauth` network-only, an "Update available" toast. Not registered in mock modes.
 - [ ] A Playwright check for installability and the offline shell.
 
-### T11 · Local dev docs and a live happy path — `docs/v1-local-dev`
+### T11 · Local dev docs and a live happy path — frontend#47
 - [ ] `app/README.md`: running the backend locally, `.env` values, a shell snippet that verifies the seeded accounts and prints their logins (until backend issue B5), and the mock modes.
 - [ ] `pnpm e2e:live`: one happy path against the local backend. Local only, not run in CI.
 
