@@ -2,7 +2,7 @@
 
 **Status:** done
 
-Risk tier: Medium. CSS and font files only, and the change only adds things. A build and a unit test cover the generated CSS, but font loading and the switch between the black and ivory themes can only be confirmed in a browser. About six files change.
+Risk tier: Medium. CSS and font files, plus a few edited lines in existing files. A build and a unit test cover the generated CSS, but font loading and the switch between the black and ivory themes can only be confirmed in a browser. Eleven files change. Four of them are copied font and license files.
 
 Domain skills: superpowers:test-driven-development: invoke (implementer). chrome-devtools-mcp:chrome-devtools: invoke for the live drive (computed styles, loaded fonts, both color schemes). context7: invoke if Tailwind v4 `compile` or Vite asset URL behavior is unclear. frontend-design: not applicable because no new design is made, the existing tokens are copied. a11y-debugging: not applicable because no markup or interaction changes. All others (Django, Expo, React, email, payments, auth): not applicable, CSS only.
 
@@ -44,7 +44,7 @@ The SvelteKit app in `app/` has the teaser's design tokens, fonts and color-sche
 
 ## Order of work
 
-1. Write `app/src/routes/layout.test.ts`. It reads `layout.css` and compiles it with `compile` from `tailwindcss`, passing a `loadStylesheet` that resolves `tailwindcss` to `node_modules/tailwindcss/index.css` (and its nested imports) from disk. It calls `build()` with the criterion 4 candidates and asserts: each token's definition with its exact value (for example `--color-primary: light-dark(#f7f3e8, #000000)`), each utility's rule uses its variable (for example `.bg-primary` sets `background-color: var(--color-primary)`), the `color-scheme: light dark` base rule, and both `@font-face` families. A second test asserts that every `url(...)` in `layout.css` resolves to a file that exists. Run it and see it fail against the bare `@import 'tailwindcss';`.
+1. Write `app/src/routes/layout.test.ts`. It reads `layout.css` and compiles it with `compile` from `tailwindcss`, passing a `loadStylesheet` that resolves `tailwindcss` to `tailwindcss/index.css`, read with a Vite `?raw` import (see Decisions). It calls `build()` with the criterion 4 candidates and asserts: each token's definition with its exact value (for example `--color-primary: light-dark(#f7f3e8, #000000)`), each utility's rule uses its variable (for example `.bg-primary` sets `background-color: var(--color-primary)`), the `color-scheme: light dark` base rule, and both `@font-face` families. A second test asserts that every `url(...)` in `layout.css` resolves to a file that exists. Run it and see it fail against the bare `@import 'tailwindcss';`.
 2. Copy the fonts and license files. Add the comment, `@theme`, `@font-face` and `@layer base` blocks to `layout.css`. Run the test until it passes.
 3. Add the body classes to `app.html`.
 4. Run the full app gate in order. Run `pnpm build` in `site/` after the comment edit.
