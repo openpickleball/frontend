@@ -10,7 +10,8 @@ import { createHandlers, createMissingHandlers } from './handlers';
 import type { MockMode } from './mode';
 import { mockStore } from './store';
 
-const STORAGE_KEY = 'open-mock-state';
+/** Bump the suffix when the shape of the mock state changes. */
+const STORAGE_KEY = 'open-mock-state-v1';
 
 declare global {
 	interface Window {
@@ -21,7 +22,8 @@ declare global {
 function load(): void {
 	try {
 		const saved = sessionStorage.getItem(STORAGE_KEY);
-		if (saved) mockStore.restore(saved);
+		// A snapshot that does not match this version of the mocks is dropped.
+		if (saved && !mockStore.restore(saved)) sessionStorage.removeItem(STORAGE_KEY);
 	} catch {
 		// No storage: start from the seed.
 	}

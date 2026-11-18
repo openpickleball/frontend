@@ -258,7 +258,18 @@ export function createMockStore() {
 		restore(serialized: string): boolean {
 			try {
 				const parsed = JSON.parse(serialized) as MockState;
-				if (!Array.isArray(parsed.accounts) || !Array.isArray(parsed.matches)) return false;
+				const lists = [
+					parsed.accounts,
+					parsed.players,
+					parsed.matches,
+					parsed.tokens,
+					parsed.outbox
+				];
+				const fresh = seed();
+				if (!lists.every(Array.isArray) || typeof parsed.csrfToken !== 'string') return false;
+				if (typeof parsed.ratings !== 'object' || parsed.ratings === null) return false;
+				// A snapshot from older fixtures would show stale data: drop it.
+				if (parsed.matches.length < fresh.matches.length) return false;
 				state = parsed;
 				return true;
 			} catch {
@@ -403,11 +414,19 @@ export function createMockStore() {
 			if (input.privacy) Object.assign(player.privacy, input.privacy);
 		},
 
-		/** A player's public profile, or undefined when it is hidden (private or inactive account). */
-		publicProfile(code: string): PlayerProfileOut | undefined {
+		/**
+		 * A player's public profile, or undefined when it is hidden (inactive account).
+		 * Like `PlayerPrivacy.visible_to`, the home club goes to the owner, or to an active
+		 * signed-in viewer when the setting is `signed_in`. Signed-out callers never get it.
+		 */
+		publicProfile(code: string, viewerEmail: string | null): PlayerProfileOut | undefined {
 			const player = playerByCode(code);
 			if (!player || !this.isListed(player)) return undefined;
-			const showClub = player.privacy.home_club_visibility === 'signed_in';
+			const viewer = viewerEmail ? accountByEmail(viewerEmail) : undefined;
+			const showClub =
+				viewer?.active === true &&
+				(viewer.email === player.accountEmail ||
+					player.privacy.home_club_visibility === 'signed_in');
 			return {
 				code: player.code,
 				display_name: player.displayName,

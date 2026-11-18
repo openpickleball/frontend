@@ -458,6 +458,29 @@ describe('provisional endpoints', () => {
 		expect((await fetchJson(api, 'POST', '/api/v1/me/player', {})).status).toBe(422);
 	});
 
+	it('shows the home club only to the owner or a signed-in viewer allowed by the setting', async () => {
+		const profile = async () =>
+			(await (await fetch(`${BASE}/api/v1/players/${tamsin}`)).json()) as {
+				home_club: string | null;
+			};
+		// Signed out: never.
+		expect((await profile()).home_club).toBeNull();
+
+		// Another signed-in player: yes while the setting is signed_in.
+		const { api } = browser();
+		await login(api, 'oren@example.com');
+		expect((await profile()).home_club).toBe('Riverside Pickleball Club');
+
+		// The owner hides it: others lose it, the owner keeps it.
+		const player = mockStore.playerByCode(tamsin);
+		if (player) player.privacy.home_club_visibility = 'private';
+		expect((await profile()).home_club).toBeNull();
+		mockStore.logout();
+		const owner = browser();
+		await login(owner.api);
+		expect((await profile()).home_club).toBe('Riverside Pickleball Club');
+	});
+
 	it('serves public profiles and ratings, and a 404 for hidden or unknown players', async () => {
 		const { api } = browser();
 		const profile = await fetch(`${BASE}/api/v1/players/${tamsin}`);

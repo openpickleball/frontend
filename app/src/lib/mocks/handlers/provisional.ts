@@ -128,9 +128,10 @@ export function createProvisionalHandlers(store: MockStore, options: Provisional
 		}),
 
 		http.get('/api/v1/players/{code}', ({ params, response }) => {
+			const viewer = standalone ? STANDALONE_EMAIL : (store.currentAccount()?.email ?? null);
 			const code = normalizeCode(params.code, 'player');
 			if (!code.ok) return response.untyped(notFound());
-			const profile = store.publicProfile(code.value);
+			const profile = store.publicProfile(code.value, viewer);
 			if (profile) return response(200).json(profile);
 			if (standalone && !store.playerByCode(code.value)) {
 				return response(200).json({
