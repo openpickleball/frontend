@@ -12,8 +12,8 @@ openpb.org explains, in plain language for players, what open-source software is
 
 ## Acceptance criteria
 
-1. `site/public/index.html` has a new section `<section id="open-source" aria-labelledby="open-source-title">` between `#about` and `#help`, with the label `02 · Open source` and the `h2` "Built in the open". `#help`'s label becomes `03 · Get involved`.
-2. The header nav has an "Open source" link to `#open-source`, between "What we stand for" and "Get involved", hidden below `md` like "What we stand for".
+1. `site/public/index.html` has a new section `<section id="open-source" aria-labelledby="open-source-title">` between `#about` and `#help`, with the label `02 · Open-source` and the `h2` "Built in the open". `#help`'s label becomes `03 · Get involved`.
+2. The header nav has an "Open-source" link to `#open-source`, between "What we stand for" and "Get involved", hidden below `md` like "What we stand for".
 3. The section text is exactly the copy under "Copy" below. It contains no em dashes, says nothing about how ratings are calculated, and doesn't mention GitHub hosting or Tally.
 4. The "It can't be locked up" item says, in one line, that a copy can't present itself as OPEN, and links to `LICENSING.md` (licensing and trademark).
 5. Every link in the section that leaves openpb.org has `target="_blank" rel="noopener"` and a visually hidden " (opens in a new tab)".
@@ -24,7 +24,7 @@ openpb.org explains, in plain language for players, what open-source software is
 
 ## Copy
 
-Label: `02 · Open source`
+Label: `02 · Open-source`
 
 Heading (h2): Built in the open
 
@@ -32,7 +32,7 @@ Intro (lead paragraph, same style as `#about`'s):
 > Every app and website is built from written instructions called source code. Think of it as the recipe. Most companies keep their recipe secret. Open-source software publishes it, so anyone can read it, use it for free, improve it and share it.
 
 Second paragraph (smaller, muted):
-> You already use open source every day. Android, Firefox, Wikipedia, WordPress, VLC and Signal are all built on it.
+> You already use open-source every day. Android, Firefox, Wikipedia, WordPress, VLC and Signal are all built on it.
 
 Three items, same markup as the `#about` pillars (`h3` plus paragraph):
 
@@ -99,6 +99,7 @@ Three items, same markup as the `#about` pillars (`h3` plus paragraph):
 
 - The same check on the changed file: 20 passed, 0 failed (7 `target="_blank"` links).
 - After the review copy changes (see Decisions), the check's expected copy was updated first. Against the previous markup it failed only "#open-source text is exactly the plan's copy" (19 passed, 1 failed), and it passed 20 of 20 after the markup changed.
+- Note (issue #52): the check output above is the record from issue #23 and stays as it ran. Anyone rerunning the check should now expect the label "02 · Open-source", the nav link text "Open-source", and "You already use open-source every day" in the copy.
 - `pnpm build` in `site/`.
 - Live drive (criteria 2, 6, 7): screenshots of the section in black and ivory, with reduced motion emulated, at 375px and 1440px; `document.documentElement.scrollWidth <= innerWidth` at 375px; headings outline; the nav link scrolls to the section; tab order reaches both new links.
 
@@ -120,3 +121,4 @@ Three items, same markup as the `#about` pillars (`h3` plus paragraph):
   - The three item headings lost their trailing periods, to match the `#about` pillar headings.
   - "A copy can't present itself as OPEN, though." became "A copy can't present itself as OPEN."
   - The closing line ("In short, open source turns ...") was removed.
+- Visible text spells the term "open-source", with a hyphen, as noun and adjective. The nav link, the section label and "You already use open-source every day" changed to match "Open-source software publishes it". Ids and anchors such as `#open-source` are unchanged (user, 2026-11-17, issue #52).
