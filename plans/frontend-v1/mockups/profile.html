@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Profile · OPEN mockup</title>
+    <link rel="icon" href="../../../site/public/assets/img/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="mockup.css" />
+    <script src="mockup.js"></script>
+  </head>
+  <body data-page="profile">
+    <nav class="mock-bar" aria-label="Mockup states">
+      <a href="index.html">All screens</a>
+      <span class="mock-title">Profile</span>
+      <a href="#today">Today (no ratings)</a>
+      <a href="#preview">Rating card preview</a>
+    </nav>
+
+    <main class="main" id="main">
+      <div class="page-head">
+        <h1 class="page-title">Tamsin Vale</h1>
+        <p class="lead">tamsin.vale@example.com</p>
+      </div>
+
+      <!-- The OPEN code is the one thing other players need from you, so it leads. -->
+      <section class="section" style="margin-top: 32px" aria-labelledby="code-title">
+        <h2 class="label" id="code-title">Your OPEN code</h2>
+        <p class="code code--lg" style="margin-top: 12px">P-4RWN-8TQ2</p>
+        <p class="muted" style="margin-top: 8px; max-width: 44ch">Share it with the people you play. They need it to add you to a match.</p>
+        <div class="btn-row" style="margin-top: 16px">
+          <button type="button" class="btn btn--outline btn--sm" data-toast="Code copied">Copy code</button>
+          <button type="button" class="btn btn--outline btn--sm" data-toast="Share sheet opens here">Share</button>
+        </div>
+      </section>
+
+      <dl class="stat-row">
+        <div><dt>Matches</dt><dd>47</dd></div>
+        <div><dt>Pending</dt><dd>3</dd></div>
+      </dl>
+
+      <!-- Today: ratings are not live. Says only what is true. -->
+      <section class="section" aria-labelledby="rating-title" data-show="today">
+        <h2 class="label" id="rating-title">Rating</h2>
+        <div class="card" style="margin-top: 14px">
+          <h3 class="card-title">Ratings aren't live yet</h3>
+          <p class="muted">OPEN ratings will be calculated from confirmed matches. Your matches are saved in the meantime.</p>
+          <p class="muted">When ratings go live, you'll be able to see what changed your rating after every match, and why.</p>
+        </div>
+      </section>
+
+      <!-- Preview variant: what a rating card could look like. Clearly not live. -->
+      <section class="section" aria-labelledby="preview-title" data-show="preview">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+          <h2 class="label" id="preview-title">Rating</h2>
+          <span class="preview-tag">Preview: not live</span>
+        </div>
+        <div class="card card--preview" style="margin-top: 14px" aria-describedby="preview-note">
+          <p id="preview-note" class="small" style="font-weight: 600">Sample numbers. This is not your rating, and no OPEN rating exists yet.</p>
+          <div class="rating-figure">
+            <span class="value tnum">3.87</span>
+            <span class="delta">+0.04<span class="sr-only"> since your last match</span></span>
+          </div>
+          <p class="muted" style="margin-top: 6px">Doubles, from 38 confirmed matches</p>
+          <ul class="rating-rows">
+            <li><span>Singles</span><span class="muted">Not enough matches yet</span></li>
+            <li><span>Last change</span><span class="muted">+0.04 on 14 Nov</span></li>
+          </ul>
+          <p style="margin-top: 16px"><span class="text-link arrow-link" aria-disabled="true">See what changed it</span></p>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="account-title">
+        <h2 class="label" id="account-title">Account</h2>
+        <ul class="settings-list" style="margin-top: 14px">
+          <li><span>Theme</span><button type="button" class="theme-toggle" aria-label="Switch theme"><svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.25" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" /></svg><svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg></button></li>
+          <li><span>Change password</span><a class="text-link arrow-link" href="#today" aria-label="Change password">Change</a></li>
+          <li><span>Sign out</span><a class="btn btn--outline btn--sm" href="auth.html#sign-in">Sign out</a></li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

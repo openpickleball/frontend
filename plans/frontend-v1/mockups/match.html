@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Match · OPEN mockup</title>
+    <link rel="icon" href="../../../site/public/assets/img/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="mockup.css" />
+    <script src="mockup.js"></script>
+  </head>
+  <body data-page="history">
+    <nav class="mock-bar" aria-label="Mockup states">
+      <a href="index.html">All screens</a>
+      <span class="mock-title">Match detail</span>
+      <a href="#pending">Pending</a>
+      <a href="#recorded">Just recorded</a>
+      <a href="#dispute-dialog">Dispute dialog</a>
+      <a href="#confirmed">Confirmed</a>
+      <a href="#disputed">Disputed</a>
+    </nav>
+
+    <main class="main" id="main">
+      <a class="back-link text-link muted" href="history.html" style="display: inline-block; margin-top: 8px">Matches</a>
+
+      <div class="page-head">
+        <p class="label">Saturday 14 November 2026</p>
+        <h1 class="page-title">Doubles, best of 3</h1>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 14px">
+          <span data-show="pending recorded dispute-dialog"><span class="badge badge--pending">Pending</span></span>
+          <span data-show="confirmed"><span class="badge badge--confirmed">Confirmed</span></span>
+          <span data-show="disputed"><span class="badge badge--disputed">Disputed</span></span>
+          <span class="code faint" style="font-size: 12px"><span class="sr-only">Match code </span>M-7QK2-H9WD-3NFA</span>
+        </div>
+      </div>
+
+      <!-- Scoreboard: teams down the side, one column per game. The winner is named, not just bold. -->
+      <section class="scoreboard" style="--games: 3" aria-label="Score">
+        <div class="sr-only"><table>
+          <caption>Score by game</caption>
+          <tr><th scope="col">Team</th><th scope="col">Game 1</th><th scope="col">Game 2</th><th scope="col">Game 3</th></tr>
+          <tr><th scope="row">Tamsin Vale (you) and Oren Quill, winners</th><td>11</td><td>9</td><td>11</td></tr>
+          <tr><th scope="row">Bea Marlowe and Kit Ashdown</th><td>7</td><td>11</td><td>4</td></tr>
+        </table></div>
+        <div aria-hidden="true">
+          <div class="sb-head"><span>Team</span><span>G1</span><span>G2</span><span>G3</span></div>
+          <div class="sb-team is-winner">
+            <div class="sb-players">
+              <div class="sb-player"><span class="name">Tamsin Vale (you)</span><span class="code">P-4RWN-8TQ2</span></div>
+              <div class="sb-player"><span class="name">Oren Quill</span><span class="code">P-9HJD-3XKA</span></div>
+              <span class="won-tag">Won 2–1</span>
+            </div>
+            <span class="score won">11</span><span class="score">9</span><span class="score won">11</span>
+          </div>
+          <div class="sb-team">
+            <div class="sb-players">
+              <div class="sb-player"><span class="name">Bea Marlowe</span><span class="code">P-M2CF-7YPE</span></div>
+              <div class="sb-player"><span class="name">Kit Ashdown</span><span class="code">P-T6BZ-0NQR</span></div>
+            </div>
+            <span class="score">7</span><span class="score won">11</span><span class="score">4</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Status panel: what the status means and what you can do. -->
+      <section class="status-panel status-panel--pending" aria-labelledby="st-pending" data-show="pending recorded dispute-dialog">
+        <h2 id="st-pending">Is this the right score?</h2>
+        <p>This match counts once a player on each team confirms it. If the score is wrong, dispute it and a moderator will look at it.</p>
+        <div class="btn-row">
+          <button type="button" class="btn btn--primary" onclick="location.hash = 'confirmed'; OPEN.toast('Confirmed. Thanks for checking the score.')">Confirm score</button>
+          <a class="btn btn--danger" href="#dispute-dialog">Dispute</a>
+        </div>
+      </section>
+
+      <section class="status-panel status-panel--confirmed" aria-labelledby="st-confirmed" data-show="confirmed">
+        <h2 id="st-confirmed">Confirmed</h2>
+        <p>Players on both teams agreed on this score. It's part of your match history.</p>
+      </section>
+
+      <section class="status-panel status-panel--disputed" aria-labelledby="st-disputed" data-show="disputed">
+        <h2 id="st-disputed">Disputed</h2>
+        <p>A player in this match said the score is wrong. It stays disputed until a moderator reviews it, and no one can confirm it in the meantime.</p>
+      </section>
+
+      <dl class="details">
+        <div><dt>Played</dt><dd>14 Nov 2026</dd></div>
+        <div><dt>Format</dt><dd>Doubles</dd></div>
+        <div><dt>Games to</dt><dd>11</dd></div>
+        <div><dt>Scoring</dt><dd>Side-out</dd></div>
+      </dl>
+    </main>
+
+    <!-- Dispute: AlertDialog on desktop, bottom Sheet on mobile. -->
+    <div class="overlay" data-show="dispute-dialog">
+      <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlg-title" aria-describedby="dlg-desc">
+        <h2 class="dialog-title" id="dlg-title">Dispute this score?</h2>
+        <p id="dlg-desc">A moderator will review the match. No one can confirm it while it's disputed, and you can't undo a dispute.</p>
+        <div class="btn-row">
+          <a class="btn btn--outline" href="#pending">Cancel</a>
+          <a class="btn btn--danger-solid" href="#disputed" onclick="OPEN.toast('Score disputed')">Dispute score</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("mockstate", function (e) {
+        if (e.detail === "recorded") OPEN.toast("Match recorded", '<a href="home.html">Done</a>');
+        if (e.detail === "dispute-dialog") setTimeout(function () { document.querySelector(".dialog .btn--outline").focus(); });
+      });
+    </script>
+  </body>
+</html>

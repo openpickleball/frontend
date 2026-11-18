@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Home · OPEN mockup</title>
+    <link rel="icon" href="../../../site/public/assets/img/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="mockup.css" />
+    <script src="mockup.js"></script>
+  </head>
+  <body data-page="home">
+    <nav class="mock-bar" aria-label="Mockup states">
+      <a href="index.html">All screens</a>
+      <span class="mock-title">Home</span>
+      <a href="#default">Default</a>
+      <a href="#empty">No matches yet</a>
+      <a href="#offline">Offline</a>
+      <a href="#error">Couldn't load</a>
+    </nav>
+
+    <main class="main" id="main">
+      <!-- Offline banner. Shows cached data, says plainly what needs a connection. -->
+      <div class="banner" role="status" data-show="offline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 4.2-2.5M19 13a10 10 0 0 0-3-2M2 9.5a15 15 0 0 1 4.5-2.9M22 9.5A15 15 0 0 0 11 5.6"/><circle cx="12" cy="19.5" r="0.75" fill="currentColor"/></svg>
+        <div class="banner-body">
+          <strong>You're offline.</strong>
+          <p>These are your matches from your last visit, Saturday at 18:40. Recording and confirming matches need a connection.</p>
+        </div>
+      </div>
+
+      <!-- Error banner: the API didn't answer. -->
+      <div class="banner banner--error" role="alert" data-show="error">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.75"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.25" r="0.75" fill="currentColor"/></svg>
+        <div class="banner-body">
+          <strong>Your matches didn't load.</strong>
+          <p>OPEN didn't respond. Check your connection, then try again.</p>
+          <button type="button" class="btn btn--outline btn--sm">Try again</button>
+        </div>
+      </div>
+
+      <div class="page-head">
+        <h1 class="page-title">Hi, Tamsin</h1>
+      </div>
+
+      <div class="code-strip">
+        <div class="who">
+          <span class="small muted">Your OPEN code</span>
+          <span class="code">P-4RWN-8TQ2</span>
+        </div>
+        <button type="button" class="btn btn--outline btn--sm" data-toast="Code copied">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></svg>
+          Copy code
+        </button>
+      </div>
+
+      <div style="margin-top: 28px" data-show="default offline error">
+        <a class="btn btn--primary arrow-link" href="record.html" data-show="default error">Record a match</a>
+        <span class="btn btn--primary" aria-disabled="true" data-show="offline">Record a match</span>
+      </div>
+
+      <!-- Needs your confirmation -->
+      <section class="section" aria-labelledby="needs-title" data-show="default offline">
+        <div class="section-head">
+          <h2 class="section-title" id="needs-title">Needs your confirmation</h2>
+          <span class="count">2 matches</span>
+        </div>
+        <p class="small muted" style="margin-bottom: 12px">A match counts once a player on each team confirms the score.</p>
+        <ul class="match-list" data-matches="needs-me"></ul>
+      </section>
+
+      <!-- Recent matches -->
+      <section class="section" aria-labelledby="recent-title" data-show="default offline">
+        <div class="section-head">
+          <h2 class="section-title" id="recent-title">Recent matches</h2>
+          <a class="text-link arrow-link" href="history.html">All matches</a>
+        </div>
+        <ul class="match-list" style="margin-top: 12px" data-matches="recent"></ul>
+      </section>
+
+      <!-- Empty state: a new player with no matches. -->
+      <section class="section" aria-labelledby="empty-title" data-show="empty">
+        <div class="empty">
+          <span class="mark" aria-hidden="true"></span>
+          <h2 id="empty-title">No matches yet</h2>
+          <p>Record your first match to start your history. You'll need the OPEN code of everyone who played.</p>
+          <p>Other players need your code to add you to a match they record.</p>
+          <a class="btn btn--primary arrow-link" href="record.html#new">Record a match</a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

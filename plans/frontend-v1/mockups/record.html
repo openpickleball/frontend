@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Record a match · OPEN mockup</title>
+    <link rel="icon" href="../../../site/public/assets/img/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="mockup.css" />
+    <script src="mockup.js"></script>
+  </head>
+  <body data-page="record">
+    <nav class="mock-bar" aria-label="Mockup states">
+      <a href="index.html">All screens</a>
+      <span class="mock-title">Record a match</span>
+      <a href="#filled">Filled in</a>
+      <a href="#new">Blank</a>
+      <a href="#errors">Errors</a>
+    </nav>
+
+    <main class="main" id="main">
+      <div class="page-head">
+        <h1 class="page-title">Record a match</h1>
+        <p class="lead">Enter the final score. Once it's saved, the other players can confirm it or dispute it.</p>
+      </div>
+
+      <!-- Error summary: focus moves here on submit. Each line links to its field. -->
+      <div class="banner banner--error" role="alert" tabindex="-1" id="error-summary" style="margin-top: 24px" data-show="errors">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.75"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.25" r="0.75" fill="currentColor"/></svg>
+        <div class="banner-body">
+          <strong>Fix 3 things to record this match</strong>
+          <ul>
+            <li><a href="#opp-2">No player has the code P-M2CF-7YPF</a></li>
+            <li><a href="#g2a">Game 2 isn't finished at 11–10</a></li>
+            <li><a href="#g3a">Game 3 can't end 13–10</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <form novalidate onsubmit="event.preventDefault(); location.href = 'match.html#recorded';">
+        <!-- Format and date -->
+        <fieldset class="form-section">
+          <legend>Match</legend>
+          <div class="options-grid">
+            <div class="field">
+              <span class="field-label" id="format-label">Format</span>
+              <div class="seg" role="radiogroup" aria-labelledby="format-label">
+                <label><input type="radio" name="format" value="singles" />Singles</label>
+                <label><input type="radio" name="format" value="doubles" checked />Doubles</label>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="played-on">Date played</label>
+              <input class="input" id="played-on" type="date" value="2026-11-14" max="2026-11-17" style="width: 200px" />
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Teams by OPEN code -->
+        <fieldset class="form-section">
+          <legend>Players</legend>
+          <div>
+            <p class="field-hint">Enter each player's OPEN code. They can find it on their Profile page. Names show once the match is saved.</p>
+
+            <div class="team-block" style="margin-top: 20px">
+              <h3 id="team-a">Your team</h3>
+              <div class="players" aria-labelledby="team-a">
+                <div><span class="chip chip--fixed"><span class="chip-who">You</span><span class="code">P-4RWN-8TQ2</span></span></div>
+
+                <div class="doubles-only" data-show="filled errors">
+                  <span class="chip"><span class="code">P-9HJD-3XKA</span><button type="button" class="chip-remove" aria-label="Remove P-9HJD-3XKA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span>
+                </div>
+                <div class="field doubles-only" data-show="new">
+                  <label class="sr-only" for="partner">Your partner's OPEN code</label>
+                  <input class="input input--code code-input" id="partner" placeholder="Partner: P-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+                </div>
+              </div>
+            </div>
+
+            <div class="team-block">
+              <h3 id="team-b">Opponents</h3>
+              <div class="players" aria-labelledby="team-b">
+                <div data-show="filled errors">
+                  <span class="chip"><span class="code">P-T6BZ-0NQR</span><button type="button" class="chip-remove" aria-label="Remove P-T6BZ-0NQR"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span>
+                </div>
+                <div class="doubles-only" data-show="filled">
+                  <span class="chip"><span class="code">P-M2CF-7YPE</span><button type="button" class="chip-remove" aria-label="Remove P-M2CF-7YPE"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span>
+                </div>
+                <div class="field doubles-only" data-show="errors">
+                  <span class="chip chip--error" id="opp-2" tabindex="-1"><span class="code">P-M2CF-7YPF</span><button type="button" class="chip-remove" aria-label="Remove P-M2CF-7YPF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span>
+                  <p class="field-error">No player has the code P-M2CF-7YPF. Check it with them and enter it again.</p>
+                </div>
+                <div class="field" data-show="new">
+                  <label class="sr-only" for="opp-a">First opponent's OPEN code</label>
+                  <input class="input input--code code-input" id="opp-a" placeholder="P-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+                </div>
+                <div class="field doubles-only" data-show="new">
+                  <label class="sr-only" for="opp-b">Second opponent's OPEN code</label>
+                  <input class="input input--code code-input" id="opp-b" placeholder="P-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Scoring rules -->
+        <fieldset class="form-section">
+          <legend>Scoring</legend>
+          <div class="options-grid">
+            <div class="field">
+              <span class="field-label" id="target-label">Games to</span>
+              <div class="seg seg--sm" role="radiogroup" aria-labelledby="target-label">
+                <label><input type="radio" name="target" value="11" checked />11</label>
+                <label><input type="radio" name="target" value="15" />15</label>
+                <label><input type="radio" name="target" value="21" />21</label>
+              </div>
+            </div>
+            <div class="field">
+              <span class="field-label" id="scoring-label">Scoring</span>
+              <div class="seg seg--sm" role="radiogroup" aria-labelledby="scoring-label">
+                <label><input type="radio" name="scoring" value="side_out" checked />Side-out</label>
+                <label><input type="radio" name="scoring" value="rally" />Rally</label>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Games -->
+        <fieldset class="form-section">
+          <legend>Games</legend>
+          <div>
+            <div class="games" id="games">
+              <div class="game-head" aria-hidden="true"><span></span><span>You</span><span></span><span>Them</span><span></span></div>
+
+              <div class="game-row">
+                <span class="game-n">Game 1</span>
+                <input class="input input--score" inputmode="numeric" aria-label="Game 1, your team's points" value="11" data-blank />
+                <span class="dash" aria-hidden="true">–</span>
+                <input class="input input--score" inputmode="numeric" aria-label="Game 1, opponents' points" value="7" data-blank />
+                <span></span>
+              </div>
+
+              <div class="game-row" data-show="filled">
+                <span class="game-n">Game 2</span>
+                <input class="input input--score" id="g2a" inputmode="numeric" aria-label="Game 2, your team's points" value="9" />
+                <span class="dash" aria-hidden="true">–</span>
+                <input class="input input--score" inputmode="numeric" aria-label="Game 2, opponents' points" value="11" />
+                <button type="button" class="remove">Remove</button>
+              </div>
+              <div class="game-row" data-show="filled">
+                <span class="game-n">Game 3</span>
+                <input class="input input--score" inputmode="numeric" aria-label="Game 3, your team's points" value="11" />
+                <span class="dash" aria-hidden="true">–</span>
+                <input class="input input--score" inputmode="numeric" aria-label="Game 3, opponents' points" value="4" />
+                <button type="button" class="remove">Remove</button>
+              </div>
+            </div>
+
+            <!-- Errors state replaces games 2 and 3 with invalid scores. -->
+            <template id="error-games">
+              <div class="game-row">
+                <span class="game-n">Game 2</span>
+                <input class="input input--score" id="g2a" inputmode="numeric" aria-label="Game 2, your team's points" value="11" aria-invalid="true" aria-describedby="g2-err" />
+                <span class="dash" aria-hidden="true">–</span>
+                <input class="input input--score" inputmode="numeric" aria-label="Game 2, opponents' points" value="10" aria-invalid="true" aria-describedby="g2-err" />
+                <button type="button" class="remove">Remove</button>
+                <p class="field-error" id="g2-err">Game 2 isn't finished at 11–10. A game is won by 2 points.</p>
+              </div>
+              <div class="game-row">
+                <span class="game-n">Game 3</span>
+                <input class="input input--score" id="g3a" inputmode="numeric" aria-label="Game 3, your team's points" value="13" aria-invalid="true" aria-describedby="g3-err" />
+                <span class="dash" aria-hidden="true">–</span>
+                <input class="input input--score" inputmode="numeric" aria-label="Game 3, opponents' points" value="10" aria-invalid="true" aria-describedby="g3-err" />
+                <button type="button" class="remove">Remove</button>
+                <p class="field-error" id="g3-err">Game 3 can't end 13–10. Past 11, a game ends as soon as one team leads by 2.</p>
+              </div>
+            </template>
+
+            <button type="button" class="btn btn--ghost" id="add-game" style="margin-top: 8px">+ Add a game</button>
+            <p class="field-hint" style="margin-top: 4px">Up to 5 games.</p>
+          </div>
+        </fieldset>
+
+        <div class="submit-bar">
+          <button type="submit" class="btn btn--primary">Record match</button>
+          <p>The match shows as pending until a player on each team confirms the score.</p>
+        </div>
+      </form>
+    </main>
+
+    <script>
+      // Mockup behaviour only: code entry turns into a chip, singles hides partner slots,
+      // games can be added, and the errors state swaps in invalid games.
+      (function () {
+        var CODE = /^P-?([0-9A-HJKMNP-TV-Z]{4})-?([0-9A-HJKMNP-TV-Z]{4})$/;
+        var X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+        function chipFor(input) {
+          var raw = input.value.toUpperCase().replace(/\s+/g, "");
+          var m = raw.match(CODE);
+          var field = input.closest(".field");
+          var err = field.querySelector(".field-error");
+          if (!raw) return;
+          if (!m) {
+            input.setAttribute("aria-invalid", "true");
+            if (!err) {
+              err = document.createElement("p");
+              err.className = "field-error";
+              err.id = input.id + "-err";
+              field.appendChild(err);
+              input.setAttribute("aria-describedby", err.id);
+            }
+            err.textContent = "An OPEN code looks like P-7K3M-QX9H: a P and 8 letters or numbers.";
+            return;
+          }
+          var code = "P-" + m[1] + "-" + m[2];
+          var label = field.querySelector("label").textContent;
+          var wrap = document.createElement("div");
+          wrap.className = field.className.replace("field", "").trim();
+          wrap.innerHTML = '<span class="chip"><span class="code">' + code + '</span><button type="button" class="chip-remove" aria-label="Remove ' + code + '">' + X + "</button></span>";
+          wrap.dataset.restore = field.outerHTML;
+          wrap.dataset.label = label;
+          field.replaceWith(wrap);
+          wrap.querySelector("button").focus();
+        }
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && e.target.classList.contains("code-input")) {
+            e.preventDefault();
+            chipFor(e.target);
+          }
+        });
+        document.addEventListener("focusout", function (e) {
+          if (e.target.classList && e.target.classList.contains("code-input")) chipFor(e.target);
+        });
+        document.addEventListener("click", function (e) {
+          var rm = e.target.closest(".chip-remove");
+          if (rm) {
+            var wrap = rm.closest(".chip").parentElement;
+            var restore = wrap.dataset.restore;
+            if (restore) {
+              wrap.outerHTML = restore;
+            } else {
+              wrap.innerHTML = '<div class="field"><label class="sr-only" for="c' + Date.now() + '">Player OPEN code</label><input class="input input--code code-input" id="c' + Date.now() + '" placeholder="P-XXXX-XXXX" autocomplete="off" spellcheck="false" /></div>';
+              wrap.removeAttribute("data-show");
+              wrap.className = wrap.className;
+            }
+          }
+          var removeGame = e.target.closest(".game-row .remove");
+          if (removeGame) {
+            removeGame.closest(".game-row").remove();
+            renumber();
+          }
+        });
+        var games = document.getElementById("games");
+        function renumber() {
+          games.querySelectorAll(".game-row:not([hidden])").forEach(function (row, i) {
+            var n = i + 1;
+            row.querySelector(".game-n").textContent = "Game " + n;
+            var inputs = row.querySelectorAll("input");
+            inputs[0].setAttribute("aria-label", "Game " + n + ", your team's points");
+            inputs[1].setAttribute("aria-label", "Game " + n + ", opponents' points");
+          });
+          document.getElementById("add-game").hidden = games.querySelectorAll(".game-row:not([hidden])").length >= 5;
+        }
+        document.getElementById("add-game").addEventListener("click", function () {
+          var rows = games.querySelectorAll(".game-row:not([hidden])");
+          var row = document.createElement("div");
+          row.className = "game-row";
+          row.innerHTML = '<span class="game-n"></span><input class="input input--score" inputmode="numeric" /><span class="dash" aria-hidden="true">–</span><input class="input input--score" inputmode="numeric" /><button type="button" class="remove">Remove</button>';
+          games.appendChild(row);
+          renumber();
+          row.querySelector("input").focus();
+        });
+        document.querySelectorAll('input[name="format"]').forEach(function (r) {
+          r.addEventListener("change", function () {
+            var singles = document.querySelector('input[name="format"]:checked').value === "singles";
+            document.querySelectorAll(".doubles-only").forEach(function (el) {
+              el.style.display = singles ? "none" : "";
+            });
+          });
+        });
+        document.addEventListener("mockstate", function (e) {
+          var s = e.detail;
+          games.querySelectorAll("[data-from-template]").forEach(function (el) { el.remove(); });
+          games.querySelectorAll("[data-blank]").forEach(function (el, i) {
+            el.value = s === "new" ? "" : i === 0 ? "11" : "7";
+          });
+          if (s === "errors") {
+            var frag = document.getElementById("error-games").content.cloneNode(true);
+            frag.querySelectorAll(".game-row").forEach(function (r) { r.dataset.fromTemplate = ""; });
+            games.appendChild(frag);
+          }
+          renumber();
+        });
+      })();
+    </script>
+  </body>
+</html>
