@@ -58,13 +58,18 @@ test('signs in, records a singles match and sees it in the list', async ({ page 
 	const field = page.getByLabel("Your opponent's OPEN code");
 	await field.fill(opponent!);
 	await field.blur();
-	// The backend refuses a match that repeats one from the same day, so the scores vary by run.
-	const loser = () => String(Math.floor(Math.random() * 10));
-	await page.getByLabel("Game 1, your team's points").fill('11');
-	await page.getByLabel("Game 1, opponents' points").fill(loser());
-	await page.getByRole('button', { name: 'Add a game' }).click();
-	await page.getByLabel("Game 2, your team's points").fill('11');
-	await page.getByLabel("Game 2, opponents' points").fill(loser());
+	// The backend refuses a match that repeats one from the same day. Three games, each won 11 to
+	// 0-9, give 1000 score lines, picked from the time of day, so a line repeats only after
+	// 1000 seconds and runs less than 1000 seconds apart never collide.
+	const now = new Date();
+	const tick = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) % 1000;
+	const losers = String(tick).padStart(3, '0').split('');
+	for (const [index, loser] of losers.entries()) {
+		const game = index + 1;
+		if (game > 1) await page.getByRole('button', { name: 'Add a game' }).click();
+		await page.getByLabel(`Game ${game}, your team's points`).fill('11');
+		await page.getByLabel(`Game ${game}, opponents' points`).fill(loser);
+	}
 	await page.getByRole('button', { name: 'Record and confirm score' }).click();
 
 	await expect(page).toHaveURL(MATCH_URL);

@@ -48,10 +48,21 @@ With `all`, you can sign in as `player@example.com` (see `src/lib/mocks/fixtures
 
 ## Run the backend
 
-From a clone of the backend, next to this one (`../backend`):
+From a clone of the backend, next to this one (`../backend`). First copy the settings and point links in emails at the app:
 
 ```sh
 cp .env.example .env
+```
+
+Then edit `.env` and set the web app's address (the default is for another app), so links in emails open the app you are running:
+
+```sh
+FRONTEND_URL=http://localhost:5173
+```
+
+Then:
+
+```sh
 uv sync
 docker compose up -d --wait
 uv run python manage.py migrate
@@ -59,11 +70,7 @@ uv run python manage.py seed_dev_data --players 20
 uv run python manage.py runserver
 ```
 
-Before you start the server, edit `.env` in the backend and set the web app's address, so links in emails open the app you are running:
-
-```sh
-FRONTEND_URL=http://localhost:5173
-```
+To run the server in a container instead of `runserver`, use `docker compose --profile web up -d --wait` after `migrate`. It also starts the Celery worker (see Email), and it uses the same port, so stop one before starting the other.
 
 The backend then answers on http://127.0.0.1:8000. Check it at http://127.0.0.1:8000/api/v1/health/live.
 
@@ -75,7 +82,7 @@ When the backend changes its API, run `pnpm api:pull` and then `pnpm api:gen` to
 
 ## Email
 
-The backend never sends mail while it handles a request. It saves each message, and a Celery worker sends it. In local development, with `DJANGO_DEBUG` on and `EMAIL_BACKEND` empty, the worker prints the message to its own console. Nothing leaves your machine.
+The backend never sends mail while it handles a request. It saves each message, and a Celery worker sends it. In local development, with `DJANGO_DEBUG` on and `EMAIL_BACKEND` empty, the worker prints the message to its own console. Nothing leaves your machine. Queued mail prints only while the worker is running.
 
 So to receive a verification email, run a worker in a second terminal, in the backend:
 
@@ -160,4 +167,4 @@ pnpm e2e:live
 | `LIVE_OWN_CODE`      | That player's own OPEN code. The app asks for it once, until backend #124 ships. |
 | `LIVE_OPPONENT_CODE` | The OPEN code of a second seeded player.                                         |
 
-The test skips, and says why, when the backend does not answer or `LIVE_EMAIL`, `LIVE_PASSWORD` or `LIVE_OPPONENT_CODE` is missing. Each run adds one pending match to your local database. The scores change on every run, because the backend refuses a match that repeats one from the same day. It is not part of `pnpm e2e` or `pnpm test`.
+The test skips, and says why, when the backend does not answer or `LIVE_EMAIL`, `LIVE_PASSWORD` or `LIVE_OPPONENT_CODE` is missing. It skips before `pnpm dev` starts when a value is missing. Each run adds one pending match to your local database. The scores come from the time of day and differ on every run, because the backend refuses a match that repeats one from the same day. It is not part of `pnpm e2e` or `pnpm test`.

@@ -17,12 +17,19 @@ export default defineConfig({
 		trace: 'retain-on-failure'
 	},
 	projects: [{ name: 'Pixel 7', use: { ...devices['Pixel 7'] } }],
-	webServer: {
-		command: `pnpm dev --port ${PORT} --strictPort`,
-		url: `http://localhost:${PORT}`,
-		env: { PUBLIC_API_MOCK: 'off' },
-		// Never reuse a server: one started with the mocks on would hide the real backend.
-		reuseExistingServer: false,
-		timeout: 120_000
-	}
+	// Without the settings the test skips, so do not boot the dev server for nothing.
+	webServer: !(
+		process.env.LIVE_EMAIL &&
+		process.env.LIVE_PASSWORD &&
+		process.env.LIVE_OPPONENT_CODE
+	)
+		? undefined
+		: {
+				command: `pnpm dev --port ${PORT} --strictPort`,
+				url: `http://localhost:${PORT}`,
+				env: { PUBLIC_API_MOCK: 'off' },
+				// Never reuse a server: one started with the mocks on would hide the real backend.
+				reuseExistingServer: false,
+				timeout: 120_000
+			}
 });
