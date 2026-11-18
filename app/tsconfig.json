@@ -6,9 +6,11 @@
 	"include": [
 		"src",
 		"e2e",
+		"e2e-live",
 		"e2e-pwa",
 		"vite.config.ts",
 		"playwright.config.ts",
+		"playwright.live.config.ts",
 		"playwright.pwa.config.ts"
 	],
 	"exclude": ["src/service-worker"]

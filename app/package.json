@@ -22,6 +22,7 @@
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"e2e": "playwright test",
+		"e2e:live": "playwright test --config playwright.live.config.ts",
 		"e2e:pwa": "playwright test --config playwright.pwa.config.ts",
 		"icons": "node scripts/render-icons.mjs",
 		"e2e:webkit": "E2E_WEBKIT=1 playwright test --project=\"iPhone 15\"",
