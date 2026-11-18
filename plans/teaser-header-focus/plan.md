@@ -42,7 +42,7 @@ Finding 2 (the arrow after "Get involved" is read aloud) is a separate pull requ
 - [x] Red for criterion 5: on the `focus-within` version, scroll down until the header shows, give a header link focus that is not `:focus-visible`, scroll back to the top, and record `data-hidden`, `opacity` and `pointer-events`. Expected: `data-hidden` is set but the header stays at opacity `1`.
 - [x] Green: add the override to the header's class list:
       `data-hidden:has-focus-visible:pointer-events-auto data-hidden:has-focus-visible:translate-y-0 data-hidden:has-focus-visible:opacity-100`.
-      The stacked `data-hidden:has-focus-visible:` form is there so the override has higher specificity than the `data-hidden:` hide classes and wins whatever order Tailwind emits them in (see Risks). Rebuild with `pnpm build` and confirm in the compiled `main.css` that the override rules are present and use `:has(*:focus-visible)`.
+      The stacked `data-hidden:has-focus-visible:` form is there so the override has higher specificity than the `data-hidden:` hide classes and wins whatever order Tailwind emits them in (see Risks). Rebuild with `pnpm build` and confirm in the compiled `main.css` that the override rules are present and use `:has(:focus-visible)`.
 - [x] Update the comment above the header.
 - [x] Gate: `pnpm build` in `site/`.
 - [x] Live drive: criteria 1 to 5, at a wide viewport (all three nav links shown) and a narrow one (only "OPEN" and "Get involved"), each in the black and the ivory theme, and with reduced motion emulated at least once at each width.
@@ -182,5 +182,14 @@ Criterion 4 screenshots, reviewed. The keyboard-focused header at the top looks 
 - C, mouse focus path back at the top: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-narrow-black-reduced-mousefocus-top.png`
 - D, keyboard focus on "OPEN": `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-narrow-ivory-kbd-open.png`
 - D, mouse focus path back at the top: `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-narrow-ivory-mousefocus-top.png`
+
+Criterion 4, keyboard-focused header at the top against the scrolled header (wide, 1280x800). The scrolled shots have focus on `body` at `scrollY` 720:
+
+| Theme | Keyboard focus at top | Scrolled, no focus | Matched |
+| --- | --- | --- | --- |
+| Black | `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-wide-black-kbd-open.png` | `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g3-wide-black-scrolled.png` | Background `oklab(0 0 0 / 0.8)` with `blur(12px)`, height 64 px at top 0, link colors "OPEN" and "Get involved" `rgb(255, 255, 255)`, "What we stand for" and "Open source" `rgb(189, 189, 189)`. Same values in both states. |
+| Ivory | `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g2-wide-ivory-reduced-kbd-open.png` | `/tmp/claude-1000/-home-bradstricherz-WebstormProjects-frontend/a0e58315-6f98-4059-ac54-d0a38822d5f2/scratchpad/g3-wide-ivory-scrolled.png` | Background `oklab(0.964242 -0.0000181794 0.0151916 / 0.8)` with `blur(12px)`, height 64 px at top 0, link colors "OPEN" and "Get involved" `rgb(23, 21, 15)`, "What we stand for" and "Open source" `rgb(77, 73, 63)`. Same values in both states. The ivory values at the top were read with keyboard focus on "Get involved". |
+
+In both pairs the links sit in the same places. The only visible differences are the focus ring on the focused link and the page content showing through the 80 percent background (the teaser wordmark at the top, section text when scrolled).
 
 Criterion 6: `pnpm build` in `site/` passed (tailwindcss v4.3.5, "Done in 41ms").
