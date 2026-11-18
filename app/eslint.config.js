@@ -13,6 +13,7 @@ export default ts.config(
 			'node_modules/',
 			'test-results/',
 			'playwright-report/',
+			'blob-report/',
 			'static/mockServiceWorker.js'
 		]
 	},
