@@ -161,8 +161,9 @@ test.describe('an account with no player yet (me/player answers 404)', () => {
 	});
 });
 
-test('signed out, the profile asks the player to sign in', async ({ page }) => {
+test('signed out, the profile sends the player to sign in and back', async ({ page }) => {
+	// The auth guard redirects before the page renders.
 	await page.goto('/profile');
-	await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
+	await expect(page).toHaveURL(/\/account\/login\?next=%2Fprofile$/);
 	await expect(page.getByTestId('my-code')).toHaveCount(0);
 });
