@@ -19,7 +19,8 @@ export default defineConfig({
 		command: `pnpm build && pnpm preview --port ${PORT} --strictPort`,
 		url: `http://localhost:${PORT}`,
 		env: { PUBLIC_API_MOCK: 'off' },
-		reuseExistingServer: !process.env.CI,
+		// Never reuse a server: one from another checkout would test the wrong build.
+		reuseExistingServer: false,
 		timeout: 120_000
 	}
 });

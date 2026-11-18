@@ -20,7 +20,11 @@ export default defineConfig({
 
 			// Off on purpose: MSW owns the service worker in the mock modes. src/hooks.client.ts
 			// registers src/service-worker.ts itself, only when PUBLIC_API_MOCK is off.
-			serviceWorker: { register: false }
+			serviceWorker: { register: false },
+
+			// Absolute asset URLs. The worker serves one cached shell for every route, and
+			// relative URLs would break on a deep link such as /account/login.
+			paths: { relative: false }
 		})
 	],
 	server: {
