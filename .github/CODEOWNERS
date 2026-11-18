@@ -1,0 +1,13 @@
+# Code owners for openpickleball/frontend.
+#
+# GitHub requests a review from the owners of every path a pull request
+# changes. The last matching rule wins, so the default comes first.
+# List only paths that exist.
+
+* @openpickleball/maintainers
+
+# The static site. Merging a change here to main deploys openpb.org.
+/site/ @openpickleball/maintainers
+
+# CI, the deploy and DCO workflows, the PR template, and this file.
+/.github/ @openpickleball/maintainers
