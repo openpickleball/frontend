@@ -46,6 +46,14 @@ export type CsrfOptions = {
 export function createCsrfMiddleware({ getToken, refresh }: CsrfOptions): Middleware {
 	const originals = new WeakMap<Request, Request>();
 	const retried = new WeakSet<Request>();
+	// One refresh at a time: concurrent requests share the same in-flight call.
+	let inFlight: Promise<void> | null = null;
+	function sharedRefresh(): Promise<void> {
+		inFlight ??= refresh().finally(() => {
+			inFlight = null;
+		});
+		return inFlight;
+	}
 
 	function withToken(request: Request, token: string): Request {
 		const headers = new Headers(request.headers);
@@ -58,7 +66,7 @@ export function createCsrfMiddleware({ getToken, refresh }: CsrfOptions): Middle
 			if (SAFE_METHODS.has(request.method.toUpperCase())) return;
 			let token = getToken();
 			if (!token) {
-				await refresh();
+				await sharedRefresh();
 				token = getToken();
 			}
 			const next = token ? withToken(request, token) : request;
@@ -78,7 +86,7 @@ export function createCsrfMiddleware({ getToken, refresh }: CsrfOptions): Middle
 			}
 			if (!isCsrfFailure(403, body)) return;
 			retried.add(request);
-			await refresh();
+			await sharedRefresh();
 			const token = getToken();
 			if (!token) return;
 			return options.fetch(withToken(original, token));

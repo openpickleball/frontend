@@ -23,7 +23,10 @@ export type AppError = {
 	code: string;
 	/** Safe to show to a player. */
 	message: string;
-	/** Field path to messages. Ninja's `body.games.1` becomes `games.1`; allauth uses `param`. */
+	/**
+	 * Field path to messages. Ninja's `body.games.1` becomes `games.1`; allauth uses `param`.
+	 * A key of `body` is a form-level error. `query.` and `path.` prefixes are kept.
+	 */
 	fields: Record<string, string[]>;
 	/** Set on an allauth 401: the flows still pending, such as `verify_email`. */
 	flows?: AllauthFlow[];
@@ -40,6 +43,8 @@ const MESSAGES: Record<AppErrorKind, string> = {
 	validation: 'Please check the highlighted fields.',
 	server: 'Something went wrong on our side. Please try again.'
 };
+
+const THROTTLED_MESSAGE = 'Too many attempts. Wait a moment and try again.';
 
 export function isAppError(value: unknown): value is AppError {
 	if (typeof value !== 'object' || value === null) return false;
@@ -120,14 +125,22 @@ function fromNinja(status: number, body: Json): AppError {
 		const message = str(item.message);
 		if (field && message) addField(fields, stripBody(field), message);
 	}
-	return { kind, status, code, message: str(body.message) ?? MESSAGES[kind], fields };
+	const message = kind === 'csrf' ? MESSAGES.csrf : (str(body.message) ?? MESSAGES[kind]);
+	return { kind, status, code, message, fields };
+}
+
+function codeForStatus(status: number): string {
+	if (status === 401) return 'unauthenticated';
+	if (status === 410) return 'session_gone';
+	if (status === 429) return 'throttled';
+	return 'error';
 }
 
 /** allauth: `{status, errors: [{code, param, message}]}` or a 401 `{status, data: {flows}, meta}`. */
 function fromAllauth(status: number, body: Json): AppError {
 	const items = Array.isArray(body.errors) ? body.errors.filter(isObject) : [];
 	const first = items[0];
-	const code = str(first?.code) ?? (status === 401 ? 'unauthenticated' : 'error');
+	const code = str(first?.code) ?? codeForStatus(status);
 	const kind = kindForStatus(status, body, code);
 	const fields: Record<string, string[]> = {};
 	for (const item of items) {
@@ -139,7 +152,7 @@ function fromAllauth(status: number, body: Json): AppError {
 		kind,
 		status,
 		code,
-		message: str(first?.message) ?? MESSAGES[kind],
+		message: str(first?.message) ?? (code === 'throttled' ? THROTTLED_MESSAGE : MESSAGES[kind]),
 		fields
 	};
 	if (isObject(body.data) && Array.isArray(body.data.flows)) {
@@ -179,5 +192,6 @@ export function toAppError(error: unknown, response?: Response): AppError {
 	// unknown JSON shape: use a generic message, never the raw body.
 	const kind = kindForStatus(status, error, 'non_json');
 	const code = kind === 'csrf' ? 'csrf_failed' : status === 429 ? 'throttled' : 'non_json_response';
-	return { kind, status, code, message: MESSAGES[kind], fields: {} };
+	const message = code === 'throttled' ? THROTTLED_MESSAGE : MESSAGES[kind];
+	return { kind, status, code, message, fields: {} };
 }

@@ -159,6 +159,38 @@ describe('CSRF middleware', () => {
 		expect(posts).toBe(1);
 	});
 
+	it('shares one refresh between concurrent requests with no cookie', async () => {
+		let configCalls = 0;
+		const { api, jar } = setup(async (request) => {
+			if (request.url.endsWith('/config')) {
+				configCalls += 1;
+				await new Promise((r) => setTimeout(r, 5));
+				jar.token = 'fresh';
+				return json(200, {});
+			}
+			return json(201, {});
+		});
+		await Promise.all([
+			api.open.POST('/api/v1/matches/', { body: matchBody }),
+			api.open.POST('/api/v1/matches/', { body: matchBody })
+		]);
+		expect(configCalls).toBe(1);
+	});
+
+	it('does not retry a CSRF 403 when the refresh yields no token', async () => {
+		let posts = 0;
+		const { api } = setup((request) => {
+			if (request.url.endsWith('/config')) return json(200, {});
+			posts += 1;
+			return json(403, { code: 'forbidden', message: 'CSRF check Failed', errors: [] });
+		});
+		// The backend never sets a cookie, so there is no token to retry with.
+		const pending = api.open.POST('/api/v1/matches/', { body: matchBody });
+		const { response } = await pending;
+		expect(response.status).toBe(403);
+		expect(posts).toBe(1);
+	});
+
 	it('initCsrf asks the backend only when there is no cookie', async () => {
 		const { api, jar, fetchStub } = setup((request) => {
 			if (request.url.endsWith('/config')) jar.token = 'set';

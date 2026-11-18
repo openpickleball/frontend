@@ -45,6 +45,7 @@ describe('toAppError: ninja errors', () => {
 			res(403)
 		);
 		expect(error).toMatchObject({ kind: 'csrf', status: 403, code: 'forbidden' });
+		expect(error.message).toBe('Your session check failed. Please try again.');
 	});
 
 	it('maps any other 403 to forbidden', () => {
@@ -172,6 +173,23 @@ describe('toAppError: allauth errors', () => {
 	it('maps an allauth 409 to conflict', () => {
 		const error = toAppError({ status: 409 }, res(409));
 		expect(error).toMatchObject({ kind: 'conflict', status: 409 });
+	});
+
+	it('maps an allauth {status: 429} to a throttled server error', () => {
+		const error = toAppError({ status: 429 }, res(429));
+		expect(error).toMatchObject({
+			kind: 'server',
+			status: 429,
+			code: 'throttled',
+			message: 'Too many attempts. Wait a moment and try again.'
+		});
+	});
+
+	it('gives an allauth {status: 410} the session_gone code', () => {
+		expect(toAppError({ status: 410 }, res(410))).toMatchObject({
+			kind: 'unauthenticated',
+			code: 'session_gone'
+		});
 	});
 
 	it('maps an allauth JSON 403 to forbidden', () => {
