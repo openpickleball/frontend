@@ -228,8 +228,8 @@
 			{#if form.doubles}
 				<PlayerSlot
 					id="partner"
-					label="Your partner's OPEN code"
-					placeholder="Partner: P-XXXX-XXXX"
+					label="Your partner: name or OPEN code"
+					placeholder="Name or P-XXXX-XXXX"
 					code={form.partner.code}
 					name={form.partner.name}
 					exclude={form.taken}
@@ -249,8 +249,8 @@
 				<PlayerSlot
 					id="opponent-{index}"
 					label={form.doubles
-						? `${index === 0 ? 'First' : 'Second'} opponent's OPEN code`
-						: "Your opponent's OPEN code"}
+						? `${index === 0 ? 'First' : 'Second'} opponent: name or OPEN code`
+						: 'Your opponent: name or OPEN code'}
 					code={slot.code}
 					name={slot.name}
 					exclude={form.taken}

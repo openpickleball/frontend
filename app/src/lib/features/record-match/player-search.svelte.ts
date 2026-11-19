@@ -103,7 +103,10 @@ export class PlayerSearch {
 		try {
 			result = await this.#search(text, { signal: controller.signal });
 		} catch {
-			if (round === this.#round) this.#settle('error', GENERIC, []);
+			if (round === this.#round) {
+				this.#controller = null;
+				this.#settle('error', GENERIC, []);
+			}
 			return;
 		}
 		if (round !== this.#round || controller.signal.aborted) return;

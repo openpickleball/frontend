@@ -26,7 +26,7 @@ async function setup(answer: SearchResult | Promise<SearchResult> = two, exclude
 	const oncommit = vi.fn();
 	const screen = await render(PlayerSlot, {
 		id: 'partner',
-		label: "Your partner's OPEN code",
+		label: 'Your partner: name or OPEN code',
 		code: null,
 		exclude,
 		search,
@@ -34,7 +34,7 @@ async function setup(answer: SearchResult | Promise<SearchResult> = two, exclude
 		oncommit,
 		onremove: () => {}
 	});
-	const box = screen.getByRole('combobox', { name: "Your partner's OPEN code" });
+	const box = screen.getByRole('combobox', { name: 'Your partner: name or OPEN code' });
 	return { screen, search, onpick, oncommit, box };
 }
 
@@ -62,7 +62,9 @@ describe('PlayerSlot search', () => {
 		await expect.element(box).toHaveAttribute('aria-expanded', 'true');
 		await expect
 			.element(screen.getByRole('status'))
-			.toHaveTextContent('2 players found. Use the up and down arrow keys to choose.');
+			.toHaveTextContent(
+				'2 players found, starting with Bea Marlowe. Use the up and down arrow keys to choose.'
+			);
 		// Each option shows the name and the code.
 		await expect
 			.poll(() => screen.getByRole('option').first().element().textContent)
@@ -138,7 +140,9 @@ describe('PlayerSlot search', () => {
 			.toContain('Rosa Fenwick');
 		await expect
 			.element(screen.getByRole('status'))
-			.toHaveTextContent('1 player found. Use the up and down arrow keys to choose.');
+			.toHaveTextContent(
+				'1 player found, starting with Rosa Fenwick. Use the up and down arrow keys to choose.'
+			);
 	});
 
 	it('says when no one was found', async () => {
@@ -169,7 +173,7 @@ describe('PlayerSlot search', () => {
 	it('shows the name beside the code once a player is picked', async () => {
 		const screen = await render(PlayerSlot, {
 			id: 'partner',
-			label: "Your partner's OPEN code",
+			label: 'Your partner: name or OPEN code',
 			code: code('bea'),
 			name: 'Bea Marlowe',
 			oncommit: () => {},
@@ -180,5 +184,42 @@ describe('PlayerSlot search', () => {
 		await expect
 			.element(screen.getByRole('button', { name: `Remove ${code('bea')}` }))
 			.toBeVisible();
+	});
+
+	it('does not search for part of a code', async () => {
+		const { box, search } = await setup();
+		await box.fill('P-M2CF');
+		await box.fill('4rwn8');
+		await new Promise((r) => setTimeout(r, 400));
+		expect(search).not.toHaveBeenCalled();
+	});
+
+	it('changes what is announced when a new search returns the same count', async () => {
+		const answers: SearchResult[] = [
+			{ ok: true, items: [{ code: code('bea'), name: 'Bea Marlowe' }] },
+			{ ok: true, items: [{ code: code('rosa'), name: 'Rosa Fenwick' }] }
+		];
+		const search = vi.fn<SearchFn>().mockImplementation(async () => answers.shift()!);
+		const screen = await render(PlayerSlot, {
+			id: 'partner',
+			label: 'Your partner: name or OPEN code',
+			code: null,
+			search,
+			oncommit: () => {},
+			onremove: () => {}
+		});
+		const box = screen.getByRole('combobox');
+		await box.fill('bea');
+		await expect
+			.element(screen.getByRole('status'))
+			.toHaveTextContent(
+				'1 player found, starting with Bea Marlowe. Use the up and down arrow keys to choose.'
+			);
+		await box.fill('rosa');
+		await expect
+			.element(screen.getByRole('status'))
+			.toHaveTextContent(
+				'1 player found, starting with Rosa Fenwick. Use the up and down arrow keys to choose.'
+			);
 	});
 });

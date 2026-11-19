@@ -1,9 +1,15 @@
 <script lang="ts">
 	import { onDestroy, tick } from 'svelte';
-	import { parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
+	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { PlayerSearch } from '../player-search.svelte.js';
-	import { MIN_SEARCH_LENGTH, searchPlayers, type PlayerHit, type SearchFn } from '../search.js';
+	import {
+		MIN_SEARCH_LENGTH,
+		looksLikeCode,
+		searchPlayers,
+		type PlayerHit,
+		type SearchFn
+	} from '../search.js';
 	import FieldError from './field-error.svelte';
 
 	let {
@@ -53,8 +59,8 @@
 	// svelte-ignore state_referenced_locally
 	const finder = new PlayerSearch({
 		search,
-		// A whole code is not a name. Plain words that happen to check out as one still search.
-		skip: (value) => parsePlayerCode(value).ok && (/\d/.test(value) || /^p[-\s]/i.test(value))
+		// A code, whole or part, is not a name.
+		skip: looksLikeCode
 	});
 	onDestroy(() => finder.clear());
 
@@ -79,7 +85,8 @@
 		if (!open) return '';
 		if (showList) {
 			const count = hits.length;
-			return `${count} ${count === 1 ? 'player' : 'players'} found. Use the up and down arrow keys to choose.`;
+			// The first name makes the text differ when a new search returns the same count.
+			return `${count} ${count === 1 ? 'player' : 'players'} found, starting with ${hits[0].name}. Use the up and down arrow keys to choose.`;
 		}
 		return finder.status === 'loading' ? '' : note;
 	});

@@ -26,9 +26,9 @@ async function addPlayer(page: Page, label: string, code: string) {
 }
 
 async function fillDoublesMatch(page: Page) {
-	await addPlayer(page, "Your partner's OPEN code", codeOf('oren'));
-	await addPlayer(page, "First opponent's OPEN code", codeOf('kit'));
-	await addPlayer(page, "Second opponent's OPEN code", codeOf('bea'));
+	await addPlayer(page, 'Your partner: name or OPEN code', codeOf('oren'));
+	await addPlayer(page, 'First opponent: name or OPEN code', codeOf('kit'));
+	await addPlayer(page, 'Second opponent: name or OPEN code', codeOf('bea'));
 	await page.getByLabel("Game 1, your team's points").fill('11');
 	await page.getByLabel("Game 1, opponents' points").fill('6');
 	await page.getByRole('button', { name: 'Add a game' }).click();
@@ -60,7 +60,7 @@ test('opens the new match from the cache, waiting for the other team', async ({ 
 
 test('accepts a code in any spelling and shows the canonical one', async ({ page }) => {
 	await openRecord(page);
-	const field = page.getByLabel("Your partner's OPEN code");
+	const field = page.getByLabel('Your partner: name or OPEN code');
 	await field.fill(codeOf('oren').toLowerCase().replaceAll('-', ' '));
 	await field.press('Enter');
 	await expect(page.getByRole('button', { name: `Remove ${codeOf('oren')}` })).toBeFocused();
@@ -69,9 +69,9 @@ test('accepts a code in any spelling and shows the canonical one', async ({ page
 test('singles hides the partner and the second opponent', async ({ page }) => {
 	await openRecord(page);
 	await page.getByText('Singles', { exact: true }).click();
-	await expect(page.getByLabel("Your partner's OPEN code")).toHaveCount(0);
-	await expect(page.getByLabel("Second opponent's OPEN code")).toHaveCount(0);
-	await addPlayer(page, "Your opponent's OPEN code", codeOf('kit'));
+	await expect(page.getByLabel('Your partner: name or OPEN code')).toHaveCount(0);
+	await expect(page.getByLabel('Second opponent: name or OPEN code')).toHaveCount(0);
+	await addPlayer(page, 'Your opponent: name or OPEN code', codeOf('kit'));
 	await page.getByLabel("Game 1, your team's points").fill('11');
 	await page.getByLabel("Game 1, opponents' points").fill('4');
 	await page.getByRole('button', { name: 'Record and confirm score' }).click();
@@ -142,7 +142,7 @@ test('has no WCAG 2.1 AA violations, blank or with errors', async ({ page }) => 
 
 test('records a doubles match by finding the players by name', async ({ page }) => {
 	await openRecord(page);
-	const partner = page.getByRole('combobox', { name: "Your partner's OPEN code" });
+	const partner = page.getByRole('combobox', { name: 'Your partner: name or OPEN code' });
 
 	// Under 3 characters nothing is offered.
 	await partner.fill('or');
@@ -160,7 +160,7 @@ test('records a doubles match by finding the players by name', async ({ page }) 
 	await expect(page).toHaveURL(/\/record$/);
 
 	// The pointer path, matching a later word of the name, in any case.
-	await page.getByRole('combobox', { name: "First opponent's OPEN code" }).fill('ASHD');
+	await page.getByRole('combobox', { name: 'First opponent: name or OPEN code' }).fill('ASHD');
 	const kit = page.getByRole('option', { name: /Kit Ashdown/ });
 	await expect(kit).toBeVisible();
 	expect((await kit.boundingBox())!.height).toBeGreaterThanOrEqual(44);
@@ -168,7 +168,7 @@ test('records a doubles match by finding the players by name', async ({ page }) 
 	await expect(page.getByRole('button', { name: `Remove ${codeOf('kit')}` })).toBeVisible();
 
 	// A code still works in the last slot.
-	await addPlayer(page, "Second opponent's OPEN code", codeOf('bea'));
+	await addPlayer(page, 'Second opponent: name or OPEN code', codeOf('bea'));
 
 	await page.getByLabel("Game 1, your team's points").fill('11');
 	await page.getByLabel("Game 1, opponents' points").fill('6');
@@ -179,7 +179,7 @@ test('records a doubles match by finding the players by name', async ({ page }) 
 
 test('says so when no player has that name, and Escape closes the list', async ({ page }) => {
 	await openRecord(page);
-	const box = page.getByRole('combobox', { name: "Your partner's OPEN code" });
+	const box = page.getByRole('combobox', { name: 'Your partner: name or OPEN code' });
 	await box.fill('zzzz');
 	await expect(
 		page.getByText('No players found. Check the spelling or enter their OPEN code.').first()
@@ -194,8 +194,8 @@ test('says so when no player has that name, and Escape closes the list', async (
 
 test('does not offer a player already in the match', async ({ page }) => {
 	await openRecord(page);
-	await addPlayer(page, "Your partner's OPEN code", codeOf('oren'));
-	const box = page.getByRole('combobox', { name: "First opponent's OPEN code" });
+	await addPlayer(page, 'Your partner: name or OPEN code', codeOf('oren'));
+	const box = page.getByRole('combobox', { name: 'First opponent: name or OPEN code' });
 	await box.fill('oren');
 	await expect(page.getByText('No players found.').first()).toBeVisible();
 	await expect(page.getByRole('option')).toHaveCount(0);
@@ -208,8 +208,8 @@ test('the search list has no WCAG 2.1 AA violations in either theme', async ({ p
 	await openRecord(page);
 	for (const scheme of ['dark', 'light'] as const) {
 		await page.emulateMedia({ colorScheme: scheme });
-		await page.getByRole('combobox', { name: "Your partner's OPEN code" }).fill('');
-		await page.getByRole('combobox', { name: "Your partner's OPEN code" }).fill('mar');
+		await page.getByRole('combobox', { name: 'Your partner: name or OPEN code' }).fill('');
+		await page.getByRole('combobox', { name: 'Your partner: name or OPEN code' }).fill('mar');
 		await expect(page.getByRole('option', { name: /Bea Marlowe/ })).toBeVisible();
 		const results = await new AxeBuilder({ page })
 			.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

@@ -19,6 +19,7 @@ import {
 	type PlayerCode,
 	type ScoringType
 } from '#lib/domain/index.js';
+import { looksLikeCode } from './search.js';
 import { duplicateMatchCode, submitMatch, type SubmitResult } from './service.js';
 
 /** One place for a player's OPEN code: a chip once it checks out, a text box until then. */
@@ -298,7 +299,9 @@ export class RecordForm {
 		}
 		const parsed = parsePlayerCode(text);
 		if (!parsed.ok) {
-			slot.error = parsed.error.message;
+			slot.error = looksLikeCode(text)
+				? parsed.error.message
+				: 'Pick a player from the list, or enter their OPEN code.';
 			return false;
 		}
 		// Only the slots in use count. Singles ignores a partner or second opponent entered before.

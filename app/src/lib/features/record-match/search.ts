@@ -91,3 +91,12 @@ export function waitText(seconds: number | null): string {
 	const hours = Math.ceil(seconds / 3600);
 	return `in ${hours} ${hours === 1 ? 'hour' : 'hours'}`;
 }
+
+/**
+ * Does this text look like an OPEN code, whole or part? It has a digit and no space (a name
+ * never does), or it starts with the "P-" prefix.
+ */
+export function looksLikeCode(text: string): boolean {
+	const t = text.trim();
+	return (/\d/.test(t) && !/\s/.test(t)) || /^p[-\s]/i.test(t);
+}

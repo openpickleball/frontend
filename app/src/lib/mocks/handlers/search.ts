@@ -90,8 +90,8 @@ function matches(name: string, q: string): boolean {
 export function createSearchHandlers(store: MockStore, options: SearchOptions = {}) {
 	const perMinute = options.perMinute ?? SEARCH_PER_MINUTE;
 	const now = options.now ?? Date.now;
-	let windowStart = 0;
-	let used = 0;
+	/** Each account has its own minute. */
+	const windows = new Map<string, { start: number; used: number }>();
 
 	return [
 		http.get('/api/v1/players/search', ({ request, response }) => {
@@ -99,17 +99,18 @@ export function createSearchHandlers(store: MockStore, options: SearchOptions = 
 			if (!account) return response.untyped(unauthorized());
 
 			const at = now();
-			if (at - windowStart >= 60_000) {
-				windowStart = at;
-				used = 0;
+			let slot = windows.get(account.email);
+			if (!slot || at - slot.start >= 60_000) {
+				slot = { start: at, used: 0 };
+				windows.set(account.email, slot);
 			}
-			if (used >= perMinute) {
-				const wait = Math.max(1, Math.ceil((windowStart + 60_000 - at) / 1000));
+			if (slot.used >= perMinute) {
+				const wait = Math.max(1, Math.ceil((slot.start + 60_000 - at) / 1000));
 				const throttled = ninjaError(429, 'throttled', 'Too many requests.');
 				throttled.headers.set('Retry-After', String(wait));
 				return response.untyped(throttled);
 			}
-			used += 1;
+			slot.used += 1;
 
 			const params = new URL(request.url).searchParams;
 			const q = params.get('q')?.trim() ?? null;

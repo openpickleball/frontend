@@ -12,7 +12,7 @@ const BASE = 'http://localhost';
 const codeOf = (key: string) => PLAYERS.find((p) => p.key === key)!.code;
 
 /** The real client with a cookie jar, signed in as the mock player. */
-async function signedIn(): Promise<Api> {
+async function signedIn(email = VERIFIED_EMAIL): Promise<Api> {
 	const jar = new Map<string, string>();
 	const fetchWithJar: typeof fetch = async (input, init) => {
 		const response = await fetch(input, init);
@@ -28,7 +28,7 @@ async function signedIn(): Promise<Api> {
 	await api.initCsrf();
 	await api.allauth.POST('/_allauth/{client}/v1/auth/login', {
 		params: allauthParams,
-		body: { email: VERIFIED_EMAIL, password: MOCK_PASSWORD }
+		body: { email, password: MOCK_PASSWORD }
 	});
 	return api;
 }
@@ -63,6 +63,16 @@ describe('searchPlayers', () => {
 		expect((await searchPlayers('bea', { api })).ok).toBe(true);
 		const second = await searchPlayers('bea', { api });
 		expect(second).toEqual({ ok: false, kind: 'throttled', retryAfter: 60 });
+	});
+
+	it('counts searches for each account on its own', async () => {
+		server.use(...createSearchHandlers(mockStore, { perMinute: 1, now: () => 0 }));
+		const tamsin = await signedIn();
+		expect((await searchPlayers('bea', { api: tamsin })).ok).toBe(true);
+		expect(await searchPlayers('bea', { api: tamsin })).toMatchObject({ kind: 'throttled' });
+		mockStore.logout();
+		const kit = await signedIn('kit@example.com');
+		expect((await searchPlayers('bea', { api: kit })).ok).toBe(true);
 	});
 
 	it('reports a signed-out search as a plain failure', async () => {

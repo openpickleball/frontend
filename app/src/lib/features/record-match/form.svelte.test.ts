@@ -102,4 +102,15 @@ describe('RecordForm players found by name', () => {
 		form.choose(form.partner, { code: code('oren'), name: 'Oren Quill' });
 		expect(form.taken).toEqual([code('tamsin'), code('oren')]);
 	});
+
+	it('asks for a pick, not a code, when a half-typed name is left in a slot', () => {
+		const form = new RecordForm(code('tamsin'));
+		form.partner.text = 'mar';
+		expect(form.commit(form.partner)).toBe(false);
+		expect(form.partner.error).toBe('Pick a player from the list, or enter their OPEN code.');
+		// Text shaped like a code keeps the code messages.
+		form.partner.text = 'P-AAAA';
+		form.commit(form.partner);
+		expect(form.partner.error).toBe('That OPEN code is the wrong length.');
+	});
 });
