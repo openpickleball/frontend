@@ -45,6 +45,10 @@ function makeMatch(overrides: Partial<Match> = {}): Match {
 			{ number: 2, teamA: 9, teamB: 11 },
 			{ number: 3, teamA: 11, teamB: 5 }
 		],
+		viewerSide: null,
+		viewerDecision: 'none',
+		confirmedBySide: null,
+		createdAt: '2026-06-01T18:00:00Z',
 		...overrides
 	};
 }

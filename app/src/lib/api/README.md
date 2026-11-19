@@ -10,13 +10,12 @@ Transport only: generated types, the two openapi-fetch clients, CSRF handling an
 
 ## Refreshing the snapshots
 
-With a local backend running on 127.0.0.1:8000, run `pnpm api:pull` and then `pnpm api:gen`, and commit both.
+The backend commits its OPEN API document as `openapi/openapi.json`. To refresh the snapshot:
 
-The first snapshots were made without a database or a running server, from `../backend` after `uv sync`, with `DJANGO_DEBUG=True`, `FRONTEND_URL=http://localhost:5173`, and dummy `DATABASE_URL` and `REDIS_URL` values:
+1. Update a backend checkout to the commit you want. It defaults to `../backend`, next to this repo. Set `BACKEND_DIR` to use another path (a relative path starts at the frontend repo root).
+2. Run `pnpm api:pull`. It copies `openapi/openapi.json` to `schema/open.json` and formats it. It stops with a message if the file is missing.
+3. Run `pnpm api:gen` and commit both.
 
-- OPEN API: `uv run python manage.py export_openapi_schema --api config.api.api --output open.json`
-- allauth headless has no export command, so the document was fetched with Django's test client in `manage.py shell`: `Client().get('/_allauth/openapi.json')`. It is the same document `HEADLESS_SERVE_SPECIFICATION` serves.
-
-Both were then formatted with Prettier (`pnpm prettier --write src/lib/api/schema`).
+allauth headless has no export command, so `pnpm api:pull:allauth` still fetches its document from a backend running on 127.0.0.1:8000. It is the same document `HEADLESS_SERVE_SPECIFICATION` serves. Run it only when the allauth routes change.
 
 The allauth document describes endpoints OPEN disables (phone, codes, sessions). Wrap only the ones we use.

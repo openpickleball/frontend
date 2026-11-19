@@ -67,6 +67,8 @@ export type MockMatch = {
 	submittedBy: string | null;
 	/** Creation order, the tie-break after the date when the list is sorted. */
 	seq: number;
+	/** When the match was submitted, as an ISO time. */
+	createdAt: string;
 	decisions: MockDecision[];
 };
 
@@ -171,6 +173,7 @@ function seed(): MockState {
 			games: m.games.map(([a, b]) => ({ a, b })),
 			submittedBy: PLAYERS.find((p) => p.key === m.submittedBy)?.accountEmail ?? null,
 			seq: total - index,
+			createdAt: `${m.playedOn}T18:00:00Z`,
 			decisions: m.decisions.map((d) => ({ player: code(d.player), decision: d.decision }))
 		})),
 		ratings,
@@ -458,8 +461,21 @@ export function createMockStore() {
 				if (!account?.active && !isViewer) return { code: null, display_name: PRIVATE_PLAYER_NAME };
 				return { code: player.code, display_name: player.displayName };
 			};
+			const own = viewerEmail ? playerOfAccount(viewerEmail) : undefined;
+			const onA = own !== undefined && match.teamA.includes(own.code);
+			const onB = own !== undefined && match.teamB.includes(own.code);
+			const confirmedBy = (team: string[]) =>
+				match.decisions.some((d) => d.decision === 'confirm' && team.includes(d.player));
+			// The latest decision this player recorded, as the backend reports it.
+			const latest =
+				onA || onB ? match.decisions.findLast((d) => d.player === own?.code) : undefined;
 			return {
 				code: match.code,
+				my_team: onA ? 'A' : onB ? 'B' : null,
+				my_decision: latest?.decision ?? 'none',
+				confirmed_by_team:
+					onA || onB ? { a: confirmedBy(match.teamA), b: confirmedBy(match.teamB) } : null,
+				created_at: match.createdAt,
 				status: match.status,
 				format: match.format,
 				played_on: match.playedOn,
@@ -549,6 +565,7 @@ export function createMockStore() {
 				games: valid.games.map((g) => ({ a: g.teamA, b: g.teamB })),
 				submittedBy: email,
 				seq: Math.max(0, ...state.matches.map((m) => m.seq)) + 1,
+				createdAt: new Date().toISOString(),
 				decisions: []
 			};
 			state.matches.push(match);

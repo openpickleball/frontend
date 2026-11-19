@@ -78,7 +78,7 @@ The backend then answers on http://127.0.0.1:8000. Check it at http://127.0.0.1:
 
 To stop: press Ctrl+C in the `runserver` terminal, then run `docker compose down` in the backend.
 
-When the backend changes its API, run `pnpm api:pull` and then `pnpm api:gen` to update the typed client (the backend must be running).
+When the backend changes its API, update your backend checkout, then run `pnpm api:pull` and `pnpm api:gen` to update the typed client. `api:pull` copies `openapi/openapi.json` from `../backend` (set `BACKEND_DIR` for another path) and needs no running server. See `src/lib/api/README.md`.
 
 ## Email
 

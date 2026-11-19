@@ -45,6 +45,10 @@ export function sampleMatch(overrides: Partial<Match> = {}): Match {
 		teamA: team('a', tamsin, oren),
 		teamB: team('b', bea, kit),
 		games: games([11, 7], [9, 11], [11, 4]),
+		viewerSide: null,
+		viewerDecision: 'none',
+		confirmedBySide: null,
+		createdAt: '2026-11-14T18:00:00Z',
 		...overrides
 	};
 }

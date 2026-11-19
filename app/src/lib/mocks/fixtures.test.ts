@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseMatchCode, parsePlayerCode } from '../domain/codes';
 import { validateMatch } from '../domain/scores';
-import { ACCOUNTS, MATCHES, PLAYERS, RATINGS } from './fixtures';
+import { ACCOUNTS, MATCHES, PLAYERS, RATINGS, VERIFIED_EMAIL } from './fixtures';
 import { createMockStore } from './store';
 
 describe('fixtures', () => {
@@ -31,6 +31,23 @@ describe('fixtures', () => {
 		}
 		expect(MATCHES.some((m) => m.format === 'singles')).toBe(true);
 		expect(MATCHES.some((m) => m.format === 'doubles')).toBe(true);
+	});
+
+	it('shows the viewer fields for a participant and a stranger', () => {
+		const store = createMockStore();
+		const accountOf = (key: string) => PLAYERS.find((p) => p.key === key)?.accountEmail ?? null;
+		const waiting = store.state.matches.find((m) => m.seq === MATCHES.length);
+		if (!waiting) throw new Error('fixture match is missing');
+		// Tamsin plays on side A. Bea, on side B, has confirmed.
+		expect(store.matchOut(waiting, VERIFIED_EMAIL)).toMatchObject({
+			my_team: 'A',
+			my_decision: 'none',
+			confirmed_by_team: { a: false, b: true },
+			created_at: '2026-11-14T18:00:00Z'
+		});
+		const outsider = store.matchOut(waiting, accountOf('rosa'));
+		expect(outsider).toMatchObject({ my_team: null, my_decision: 'none', confirmed_by_team: null });
+		expect(store.matchOut(waiting, null).my_team).toBeNull();
 	});
 
 	it('has valid, unique match codes', () => {
