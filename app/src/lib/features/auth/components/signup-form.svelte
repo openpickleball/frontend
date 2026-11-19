@@ -1,17 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import { PASSWORD_MIN_LENGTH, signupSchema } from '#lib/domain/index.js';
+	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
-	import {
-		asAppError,
-		focusFirstError,
-		isThrottled,
-		issueMessages,
-		serverMessages
-	} from '../forms.js';
+	import { isThrottled } from '../forms.js';
+	import { createAuthForm } from '../form.svelte.js';
 	import { session } from '../session.svelte.js';
 	import { signup } from '../services.js';
-	import Banner from './banner.svelte';
 	import CheckEmail from './check-email.svelte';
 	import TextField from './text-field.svelte';
 
@@ -20,39 +16,25 @@
 
 	let email = $state('');
 	let password = $state('');
-	let errors = $state<Record<string, string>>({});
-	let problem = $state<string | null>(null);
-	let busy = $state(false);
+	const form = createAuthForm('signup', ['email', 'password']);
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy) return;
-		problem = null;
-		const parsed = signupSchema.safeParse({ email, password });
-		if (!parsed.success) {
-			errors = issueMessages(parsed.error.issues);
-			focusFirstError(errors, ['email', 'password'], 'signup');
-			return;
-		}
-		errors = {};
-		busy = true;
-		try {
-			// A new address and one that already has an account get the same answer, so the
-			// screen never says which it was.
-			const state = await signup(parsed.data);
-			if (state.status === 'signed_in') onsuccess();
-		} catch (cause) {
-			const error = asAppError(cause);
-			const fields = serverMessages(error);
-			if (!isThrottled(error) && (fields.email || fields.password)) {
-				errors = fields;
-				focusFirstError(errors, ['email', 'password'], 'signup');
-			} else {
-				problem = error.message;
+	function submit(event: SubmitEvent) {
+		return form.submit(event, {
+			parse: () => signupSchema.safeParse({ email, password }),
+			run: async (data) => {
+				// A new address and one that already has an account get the same answer, so the
+				// screen never says which it was.
+				const state = await signup(data);
+				if (state.status === 'signed_in') onsuccess();
+			},
+			onError: (error, fields) => {
+				if (!isThrottled(error) && (fields.email || fields.password)) {
+					form.showFields(fields);
+				} else {
+					form.problem = { title: error.message };
+				}
 			}
-		} finally {
-			busy = false;
-		}
+		});
 	}
 </script>
 
@@ -62,8 +44,11 @@
 	<section aria-labelledby="signup-title" class="grid gap-5">
 		<h1 id="signup-title" class="page-title">Create account</h1>
 		<p class="text-muted">It's free. We'll send you an email to confirm your address.</p>
-		{#if problem}
-			<Banner kind="error" title={problem} />
+		{#if form.problem}
+			<Alert variant="destructive">
+				<CircleAlertIcon aria-hidden="true" />
+				<AlertTitle>{form.problem.title}</AlertTitle>
+			</Alert>
 		{/if}
 		<form method="post" onsubmit={submit} novalidate class="grid gap-5">
 			<TextField
@@ -74,7 +59,7 @@
 				autocomplete="email"
 				placeholder="you@example.com"
 				bind:value={email}
-				error={errors.email}
+				error={form.errors.email}
 			/>
 			<TextField
 				id="signup-password"
@@ -85,10 +70,10 @@
 				autocomplete="new-password"
 				hint="At least {PASSWORD_MIN_LENGTH} characters. Avoid one you use somewhere else."
 				bind:value={password}
-				error={errors.password}
+				error={form.errors.password}
 			/>
-			<Button type="submit" aria-disabled={busy} aria-busy={busy} class="w-full">
-				{busy ? 'Creating account...' : 'Create account'}
+			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
+				{form.busy ? 'Creating account...' : 'Create account'}
 			</Button>
 		</form>
 		<p class="text-sm text-muted">

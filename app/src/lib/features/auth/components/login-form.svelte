@@ -1,17 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import { loginSchema } from '#lib/domain/index.js';
+	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
-	import {
-		asAppError,
-		focusFirstError,
-		isThrottled,
-		issueMessages,
-		serverMessages
-	} from '../forms.js';
+	import { isThrottled } from '../forms.js';
+	import { createAuthForm } from '../form.svelte.js';
 	import { session } from '../session.svelte.js';
 	import { login } from '../services.js';
-	import Banner from './banner.svelte';
 	import CheckEmail from './check-email.svelte';
 	import TextField from './text-field.svelte';
 
@@ -20,50 +16,33 @@
 
 	let email = $state('');
 	let password = $state('');
-	let errors = $state<Record<string, string>>({});
-	/** A problem with the form as a whole, shown in a banner. */
-	let problem = $state<{ title: string; detail?: string } | null>(null);
-	let busy = $state(false);
+	const form = createAuthForm('login', ['email', 'password']);
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy) return;
-		problem = null;
-		const parsed = loginSchema.safeParse({ email, password });
-		if (!parsed.success) {
-			errors = issueMessages(parsed.error.issues);
-			focusFirstError(errors, ['email', 'password'], 'login');
-			return;
-		}
-		errors = {};
-		busy = true;
-		try {
-			const state = await login(parsed.data);
-			if (state.status === 'signed_in') onsuccess();
-			// Pending verification: the store now says so, and the check-your-email view shows.
-		} catch (cause) {
-			const error = asAppError(cause);
-			if (error.code === 'email_password_mismatch') {
-				problem = {
-					title: "That email and password don't match.",
-					detail: 'Check both and try again, or reset your password.'
-				};
-			} else if (isThrottled(error)) {
-				// Too many tries (a 429, or a 400 lockout): show the message the error carries.
-				problem = { title: error.message };
-			} else {
-				const fields = serverMessages(error);
-				if (fields.email || fields.password) {
-					errors = fields;
-					focusFirstError(errors, ['email', 'password'], 'login');
+	function submit(event: SubmitEvent) {
+		return form.submit(event, {
+			parse: () => loginSchema.safeParse({ email, password }),
+			run: async (data) => {
+				const state = await login(data);
+				if (state.status === 'signed_in') onsuccess();
+				// Pending verification: the store now says so, and the check-your-email view shows.
+			},
+			onError: (error, fields) => {
+				if (error.code === 'email_password_mismatch') {
+					form.problem = {
+						title: "That email and password don't match.",
+						detail: 'Check both and try again, or reset your password.'
+					};
+				} else if (isThrottled(error)) {
+					// Too many tries (a 429, or a 400 lockout): show the message the error carries.
+					form.problem = { title: error.message };
+				} else if (fields.email || fields.password) {
+					form.showFields(fields);
 				} else {
 					// No field to mark, so say what happened to the sign-in as a whole.
-					problem = { title: "We couldn't sign you in.", detail: error.message };
+					form.problem = { title: "We couldn't sign you in.", detail: error.message };
 				}
 			}
-		} finally {
-			busy = false;
-		}
+		});
 	}
 </script>
 
@@ -72,14 +51,20 @@
 {:else}
 	<section aria-labelledby="login-title" class="grid gap-5">
 		<h1 id="login-title" class="page-title">Sign in</h1>
-		{#if problem}
-			<Banner kind="error" title={problem.title} detail={problem.detail} />
+		{#if form.problem}
+			<Alert variant="destructive">
+				<CircleAlertIcon aria-hidden="true" />
+				<AlertTitle>{form.problem.title}</AlertTitle>
+				{#if form.problem.detail}
+					<AlertDescription>{form.problem.detail}</AlertDescription>
+				{/if}
+			</Alert>
 		{:else if session.expired}
-			<Banner
-				kind="error"
-				title="You were signed out."
-				detail="Your session ended. Sign in again to continue."
-			/>
+			<Alert variant="destructive">
+				<CircleAlertIcon aria-hidden="true" />
+				<AlertTitle>You were signed out.</AlertTitle>
+				<AlertDescription>Your session ended. Sign in again to continue.</AlertDescription>
+			</Alert>
 		{/if}
 		<form method="post" onsubmit={submit} novalidate class="grid gap-5">
 			<TextField
@@ -89,7 +74,7 @@
 				type="email"
 				autocomplete="email"
 				bind:value={email}
-				error={errors.email}
+				error={form.errors.email}
 			/>
 			<div class="grid gap-2">
 				<TextField
@@ -100,7 +85,7 @@
 					reveal
 					autocomplete="current-password"
 					bind:value={password}
-					error={errors.password}
+					error={form.errors.password}
 				/>
 				<a
 					href={resolve('/account/password/reset')}
@@ -108,8 +93,8 @@
 					>Forgot your password?</a
 				>
 			</div>
-			<Button type="submit" aria-disabled={busy} aria-busy={busy} class="w-full">
-				{busy ? 'Signing in...' : 'Sign in'}
+			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
+				{form.busy ? 'Signing in...' : 'Sign in'}
 			</Button>
 		</form>
 		<p class="text-sm text-muted">

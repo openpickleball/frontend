@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import { onMount } from 'svelte';
+	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { asAppError } from '../forms.js';
 	import { verifyEmail } from '../services.js';
-	import Banner from './banner.svelte';
 
 	/** The key from the link in the email. */
 	let { key }: { key: string } = $props();
@@ -47,11 +49,11 @@
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 			Email confirmed
 		</h1>
-		<Banner
-			kind="success"
-			title="Your email is confirmed."
-			detail="Sign in to record your first match."
-		/>
+		<Alert variant="success">
+			<CircleCheckIcon aria-hidden="true" />
+			<AlertTitle>Your email is confirmed.</AlertTitle>
+			<AlertDescription>Sign in to record your first match.</AlertDescription>
+		</Alert>
 		<Button href={resolve('/account/login')} class="w-full">Sign in</Button>
 	{:else if phase === 'invalid'}
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
@@ -66,7 +68,10 @@
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 			We couldn't confirm your email
 		</h1>
-		<Banner kind="error" title={failure} />
+		<Alert variant="destructive">
+			<CircleAlertIcon aria-hidden="true" />
+			<AlertTitle>{failure}</AlertTitle>
+		</Alert>
 		<Button variant="outline" onclick={confirm} class="w-full">Try again</Button>
 	{/if}
 </section>

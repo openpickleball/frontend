@@ -1,6 +1,12 @@
 <script lang="ts">
+	import { Field, FieldDescription, FieldError, FieldLabel } from '#lib/ui/field/index.js';
 	import { Input } from '#lib/ui/input/index.js';
-	import { Label } from '#lib/ui/label/index.js';
+	import {
+		InputGroup,
+		InputGroupAddon,
+		InputGroupButton,
+		InputGroupInput
+	} from '#lib/ui/input-group/index.js';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	let {
@@ -30,42 +36,39 @@
 	);
 </script>
 
-<div class="grid gap-2">
-	<Label for={id}>{label}</Label>
-	<div class="relative">
+<Field>
+	<FieldLabel for={id}>{label}</FieldLabel>
+	{#if reveal}
+		<InputGroup>
+			<InputGroupInput
+				{id}
+				bind:value
+				type={shown ? 'text' : type}
+				aria-invalid={error ? true : undefined}
+				aria-describedby={describedBy}
+				{...rest}
+			/>
+			<InputGroupAddon>
+				<InputGroupButton aria-pressed={shown} aria-controls={id} onclick={() => (shown = !shown)}>
+					{shown ? 'Hide' : 'Show'}
+					<span class="sr-only">password</span>
+				</InputGroupButton>
+			</InputGroupAddon>
+		</InputGroup>
+	{:else}
 		<Input
 			{id}
 			bind:value
-			type={reveal && shown ? 'text' : type}
+			{type}
 			aria-invalid={error ? true : undefined}
 			aria-describedby={describedBy}
-			class={reveal ? 'pr-20' : ''}
 			{...rest}
 		/>
-		{#if reveal}
-			<button
-				type="button"
-				aria-pressed={shown}
-				aria-controls={id}
-				onclick={() => (shown = !shown)}
-				class="absolute inset-y-0 right-1.5 my-1.5 rounded-full px-3.5 text-sm font-semibold text-muted hover:text-secondary"
-			>
-				{shown ? 'Hide' : 'Show'}
-				<span class="sr-only">password</span>
-			</button>
-		{/if}
-	</div>
+	{/if}
 	{#if hint}
-		<p id="{id}-hint" class="text-sm text-faint">{hint}</p>
+		<FieldDescription id="{id}-hint">{hint}</FieldDescription>
 	{/if}
 	{#if error}
-		<p id="{id}-error" class="flex items-start gap-2 text-sm font-medium text-danger">
-			<span
-				aria-hidden="true"
-				class="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-danger text-[11px] leading-none font-bold text-primary"
-				>!</span
-			>
-			<span>{error}</span>
-		</p>
+		<FieldError id="{id}-error">{error}</FieldError>
 	{/if}
-</div>
+</Field>

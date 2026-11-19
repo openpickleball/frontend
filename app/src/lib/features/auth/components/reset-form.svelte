@@ -1,17 +1,14 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import { onMount } from 'svelte';
 	import { PASSWORD_MIN_LENGTH, passwordResetSchema } from '#lib/domain/index.js';
+	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
-	import {
-		asAppError,
-		focusFirstError,
-		isThrottled,
-		issueMessages,
-		serverMessages
-	} from '../forms.js';
+	import { isThrottled } from '../forms.js';
+	import { createAuthForm } from '../form.svelte.js';
 	import { checkResetKey, resetPassword } from '../services.js';
-	import Banner from './banner.svelte';
 	import TextField from './text-field.svelte';
 
 	/** The key from the link in the email. */
@@ -20,9 +17,7 @@
 	/** `checking` while we ask whether the link still works. `form` is the normal state. */
 	let step = $state<'checking' | 'form' | 'invalid' | 'done'>('checking');
 	let password = $state('');
-	let errors = $state<Record<string, string>>({});
-	let problem = $state<string | null>(null);
-	let busy = $state(false);
+	const form = createAuthForm('newpw', ['password']);
 	let heading = $state<HTMLHeadingElement>();
 
 	function show(next: typeof step) {
@@ -39,36 +34,29 @@
 		}
 	});
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy) return;
-		problem = null;
-		const parsed = passwordResetSchema.safeParse({ key, password });
-		if (!parsed.success) {
-			errors = issueMessages(parsed.error.issues);
-			if (errors.key) show('invalid');
-			else focusFirstError(errors, ['password'], 'newpw');
-			return;
-		}
-		errors = {};
-		busy = true;
-		try {
-			await resetPassword(parsed.data.key, parsed.data.password);
-			show('done');
-		} catch (cause) {
-			const error = asAppError(cause);
-			const fields = serverMessages(error);
-			if (!isThrottled(error) && fields.key && !fields.password) {
+	function submit(event: SubmitEvent) {
+		return form.submit(event, {
+			parse: () => passwordResetSchema.safeParse({ key, password }),
+			// A bad key shows the "link doesn't work" view, not a field.
+			onInvalid: (messages) => {
+				if (!messages.key) return false;
 				show('invalid');
-			} else if (!isThrottled(error) && fields.password) {
-				errors = fields;
-				focusFirstError(errors, ['password'], 'newpw');
-			} else {
-				problem = error.message;
+				return true;
+			},
+			run: async (data) => {
+				await resetPassword(data.key, data.password);
+				show('done');
+			},
+			onError: (error, fields) => {
+				if (!isThrottled(error) && fields.key && !fields.password) {
+					show('invalid');
+				} else if (!isThrottled(error) && fields.password) {
+					form.showFields(fields);
+				} else {
+					form.problem = { title: error.message };
+				}
 			}
-		} finally {
-			busy = false;
-		}
+		});
 	}
 </script>
 
@@ -78,8 +66,11 @@
 		<p class="text-muted" role="status">Checking your link...</p>
 	{:else if step === 'form'}
 		<h1 id="newpw-title" class="page-title">Choose a new password</h1>
-		{#if problem}
-			<Banner kind="error" title={problem} />
+		{#if form.problem}
+			<Alert variant="destructive">
+				<CircleAlertIcon aria-hidden="true" />
+				<AlertTitle>{form.problem.title}</AlertTitle>
+			</Alert>
 		{/if}
 		<form method="post" onsubmit={submit} novalidate class="grid gap-5">
 			<TextField
@@ -91,21 +82,21 @@
 				autocomplete="new-password"
 				hint="At least {PASSWORD_MIN_LENGTH} characters. Avoid one you use somewhere else."
 				bind:value={password}
-				error={errors.password}
+				error={form.errors.password}
 			/>
-			<Button type="submit" aria-disabled={busy} aria-busy={busy} class="w-full">
-				{busy ? 'Saving...' : 'Save new password'}
+			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
+				{form.busy ? 'Saving...' : 'Save new password'}
 			</Button>
 		</form>
 	{:else if step === 'done'}
 		<h1 id="newpw-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 			Password changed
 		</h1>
-		<Banner
-			kind="success"
-			title="Your password is changed."
-			detail="Sign in with your new password."
-		/>
+		<Alert variant="success">
+			<CircleCheckIcon aria-hidden="true" />
+			<AlertTitle>Your password is changed.</AlertTitle>
+			<AlertDescription>Sign in with your new password.</AlertDescription>
+		</Alert>
 		<Button href={resolve('/account/login')} class="w-full">Sign in</Button>
 	{:else}
 		<h1 id="newpw-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
