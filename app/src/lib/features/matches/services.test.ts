@@ -9,6 +9,7 @@ import {
 	PAGE_SIZE,
 	configureMatchesApi,
 	confirmMatch,
+	countMatches,
 	disputeMatch,
 	getMatch,
 	listAwaitingConfirmation,
@@ -104,6 +105,18 @@ describe('listMatches', () => {
 	it('fails with an AppError for a player who does not exist', async () => {
 		const missing = buildCode('player', '0000000') as PlayerCode;
 		expect((await failure(listMatches(missing, 0, { cache }))).kind).toBe('not_found');
+	});
+});
+
+describe('countMatches', () => {
+	it('reads the total from a one-match page', async () => {
+		expect(await countMatches(TAMSIN)).toBe(26);
+		expect(calls).toEqual([`GET /api/v1/players/${TAMSIN}/matches?limit=1`]);
+	});
+
+	it('fails with an AppError for a player who does not exist', async () => {
+		const missing = buildCode('player', '0000000') as PlayerCode;
+		expect((await failure(countMatches(missing))).kind).toBe('not_found');
 	});
 });
 

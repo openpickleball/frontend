@@ -24,7 +24,7 @@
  * - `matchCache`: matches by code, filled by every list page and every confirm or dispute
  *   response. `matchCache.get(code)` is reactive. It empties by itself when the signed-in player
  *   changes.
- * - `listMatches(player, offset)`, `listAwaitingConfirmation(offset)`, `getMatch(code)`,
+ * - `listMatches(player, offset)`, `countMatches(player)`, `listAwaitingConfirmation(offset)`, `getMatch(code)`,
  *   `confirmMatch(code)` and `disputeMatch(code)` are the services. They throw an `AppError` when a call fails.
  * - `format.ts` helpers (`scoreLine`, `teamNames`, `formatDate`, ...) are exported for other
  *   screens that show a match.
@@ -34,6 +34,7 @@ export {
 	PAGE_SIZE,
 	configureMatchesApi,
 	confirmMatch,
+	countMatches,
 	disputeMatch,
 	getMatch,
 	listAwaitingConfirmation,

@@ -34,16 +34,6 @@ export async function fetchMyPlayer(): Promise<MyPlayer | null> {
 	}
 }
 
-/** How many matches the player is in (the list's `count`), whatever their status. */
-export async function fetchMatchCount(code: string): Promise<number> {
-	const page = await unwrap(
-		api.open.GET('/api/v1/players/{code}/matches', {
-			params: { path: { code }, query: { limit: 1 } }
-		})
-	);
-	return page.count;
-}
-
 /**
  * A player's ratings. Only mock modes call this (Decision Q2): the real backend has no
  * ratings yet. `null` when the player has none to show.
