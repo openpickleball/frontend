@@ -6,7 +6,7 @@ import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
 import { matchCache } from '../cache.svelte.js';
 import * as services from '../services.js';
-import { TAMSIN, sampleMatch, viewerMatch } from '../testing.js';
+import { TAMSIN, viewerMatch } from '../testing.js';
 import HomeView from './home-view.svelte';
 
 // The services have their own tests against the mock API. Here they are stand-ins.
@@ -139,9 +139,24 @@ describe('HomeView', () => {
 		await expect.element(heading('Recent matches')).not.toBeInTheDocument();
 	});
 
-	it('shows one error with Try again when the awaiting list fails', async () => {
-		mocked.listMatches.mockResolvedValue({ items: [sampleMatch()], count: 1 });
-		mocked.listAwaitingConfirmation.mockRejectedValue(new Error('down'));
+	it('still shows the history, with a notice and Try again, when only the awaiting list fails', async () => {
+		mocked.listMatches.mockResolvedValue({ items: [waiting, done], count: 2 });
+		mocked.listAwaitingConfirmation.mockRejectedValueOnce(new Error('down'));
+		await render(HomeView);
+		await expect.element(page.getByTestId('needs-error')).toBeVisible();
+		await expect.element(heading('Waiting for the other team')).toBeVisible();
+		await expect.element(heading('Recent matches')).toBeVisible();
+		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
+
+		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [needs], count: 1 });
+		await page.getByTestId('needs-error').getByRole('button', { name: 'Try again' }).click();
+		await expect.element(heading('Needs your confirmation')).toBeVisible();
+		await expect.element(page.getByTestId('needs-error')).not.toBeInTheDocument();
+	});
+
+	it('shows one page-wide error with Try again when the history fails', async () => {
+		mocked.listMatches.mockRejectedValue(new Error('down'));
+		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [needs], count: 1 });
 		await render(HomeView);
 		await expect.element(page.getByText("Your matches didn't load.")).toBeVisible();
 	});

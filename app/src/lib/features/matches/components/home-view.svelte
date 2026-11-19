@@ -41,14 +41,19 @@
 	const firstName = $derived(myCode.displayName?.trim().split(/\s+/)[0] ?? '');
 	const greeting = $derived(firstName ? `Hi, ${firstName}` : 'Home');
 
+	// The page fails as a whole only when the history does. If just the awaiting list fails, the
+	// history sections still show, with a small notice where "Needs your confirmation" would be.
+	// Retrying only that list does not put the whole page back to loading.
+	let retryingAwaiting = $state(false);
 	const status = $derived(
-		view.status === 'error' || awaiting.status === 'error'
+		view.status === 'error'
 			? 'error'
-			: view.status === 'loading' || awaiting.status === 'loading'
+			: view.status === 'loading' || (awaiting.status === 'loading' && !retryingAwaiting)
 				? 'loading'
 				: 'ready'
 	);
-	const offline = $derived(view.offline || awaiting.offline);
+	const awaitingFailed = $derived(awaiting.status === 'error');
+	const offline = $derived(view.offline || (awaiting.offline && !retryingAwaiting));
 
 	// Matches that need the player. A confirm on a match page updates the cached copy, so a match
 	// the player just confirmed drops out of the list.
@@ -79,6 +84,7 @@
 					kind={offline ? 'offline' : 'error'}
 					title={offline ? "You're offline." : "Your matches didn't load."}
 					onretry={() => {
+						retryingAwaiting = false;
 						void view.load(you);
 						void awaiting.load(you);
 					}}
@@ -107,7 +113,20 @@
 			{#if view.count === 0}
 				<EmptyMatches onHome />
 			{:else}
-				{#if needs.length > 0}
+				{#if awaitingFailed}
+					<div class="mt-10" data-testid="needs-error">
+						<Notice
+							kind={awaiting.offline ? 'offline' : 'error'}
+							title="We couldn't check what needs your confirmation."
+							onretry={() => {
+								retryingAwaiting = true;
+								void awaiting.load(you);
+							}}
+						>
+							The rest of your matches are below. Try again to see what needs you.
+						</Notice>
+					</div>
+				{:else if needs.length > 0}
 					<section class="mt-10" aria-labelledby="needs-title">
 						<div class="flex items-baseline justify-between gap-4">
 							<h2 id="needs-title" class="text-[22px] font-semibold tracking-tight">

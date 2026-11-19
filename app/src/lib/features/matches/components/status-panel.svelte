@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { isPending, needsViewerConfirmation, type Match } from '#lib/domain/index.js';
+	import {
+		isPending,
+		needsViewerConfirmation,
+		waitingOnOtherTeam,
+		type Match
+	} from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import type { MatchAction } from '../cache.svelte.js';
 
@@ -69,6 +74,13 @@
 						: 'Neither team has confirmed this score yet.'
 				} The match counts once a player on each team confirms it. If the score is wrong, dispute it.`,
 				actions: true
+			};
+		}
+		if (!waitingOnOtherTeam(match)) {
+			return {
+				title: 'Waiting for confirmation',
+				text: 'This match counts once a player on each team confirms the score.',
+				actions: false
 			};
 		}
 		return {

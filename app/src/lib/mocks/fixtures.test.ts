@@ -47,9 +47,16 @@ describe('fixtures', () => {
 		});
 		const outsider = store.matchOut(waiting, accountOf('rosa'));
 		expect(outsider).toMatchObject({ my_team: null, my_decision: 'none', confirmed_by_team: null });
+		// Disputing straight away records the dispute and no confirmation.
+		store.changeMatch(VERIFIED_EMAIL, waiting.code, 'dispute');
+		expect(store.matchOut(waiting, VERIFIED_EMAIL)).toMatchObject({
+			my_decision: 'dispute',
+			confirmed_by_team: { a: false, b: true }
+		});
 		expect(store.matchOut(waiting, null).my_team).toBeNull();
 	});
 
+	// The backend lets a participant dispute a match that is already confirmed (workflow.dispute_match).
 	it('reports a dispute after a confirm without taking the confirmation back', () => {
 		const store = createMockStore();
 		const waiting = store.state.matches.find((m) => m.seq === MATCHES.length);

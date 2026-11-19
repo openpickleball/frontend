@@ -21,10 +21,10 @@
  *   `/matches/{code}`. It puts the new match in the cache, so the detail page opens with no
  *   lookup. Pass the match as the API returned it after the player's own confirmation (Decision Q4).
  * - `matchCache`: matches by code, filled by every list page and every confirm or dispute
- *   response. `matchCache.get(code)` is reactive. It empties by
- *   itself when the signed-in player changes.
- * - `listMatches(player, offset)`, `listAwaitingConfirmation(offset)`, `findMatch(code, player)`, `confirmMatch(code)` and
- *   `disputeMatch(code)` are the services. They throw an `AppError` when a call fails.
+ *   response. `matchCache.get(code)` is reactive. It empties by itself when the signed-in player
+ *   changes.
+ * - `listMatches(player, offset)`, `listAwaitingConfirmation(offset)`, `findMatch(code, player)`,
+ *   `confirmMatch(code)` and `disputeMatch(code)` are the services. They throw an `AppError` when a call fails.
  * - `format.ts` helpers (`scoreLine`, `teamNames`, `formatDate`, ...) are exported for other
  *   screens that show a match.
  */

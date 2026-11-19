@@ -89,6 +89,20 @@ describe('StatusPanel', () => {
 		});
 	});
 
+	describe('a pending match with both teams confirmed', () => {
+		it('does not say it waits for the other team', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ a: true, b: true, decision: 'confirm' }),
+				...handlers()
+			});
+			await expect
+				.element(screen.getByRole('heading', { name: 'Waiting for confirmation' }))
+				.toBeVisible();
+			await expect.element(screen.getByText(/other team/)).not.toBeInTheDocument();
+			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+		});
+	});
+
 	describe('a pending match the player is not in', () => {
 		it('says it waits for confirmation, with no buttons', async () => {
 			const screen = await render(StatusPanel, { match: sampleMatch(), ...handlers() });

@@ -154,6 +154,13 @@ describe('rowLabel and viewpoint', () => {
 		expect(rowLabel(match, TAMSIN)).toContain('Tamsin Vale (you) and Oren Quill played ');
 	});
 
+	it("prefers the API's viewerSide over the side the code is on", () => {
+		// TAMSIN is on team A, but the API says the viewer is on side B.
+		const match = sampleMatch({ viewerSide: 'b' });
+		expect(viewpoint(match, TAMSIN)).toBe('b');
+		expect(rowLabel(match, TAMSIN)).toContain('Bea Marlowe and Kit Ashdown lost to');
+	});
+
 	it('falls back to team A for someone who did not play', () => {
 		expect(viewpoint(sampleMatch(), null)).toBe('a');
 	});

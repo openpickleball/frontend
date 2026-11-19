@@ -85,7 +85,8 @@ export async function findMatch(
 
 /**
  * Confirm a match the player played in. Confirming again is safe on the backend. Resolves to the
- * match as the API now has it (it is `confirmed` once both teams have), and remembers it. Throws an `AppError`: a 409 `conflict` when the match was disputed or voided.
+ * match as the API now has it (it is `confirmed` once both teams have), and remembers it. Throws
+ * an `AppError`: a 409 `conflict` when the match was disputed or voided.
  */
 export async function confirmMatch(
 	code: MatchCode,
