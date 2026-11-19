@@ -70,3 +70,36 @@ describe('RecordForm server errors', () => {
 		expect(result?.match).toBe(match);
 	});
 });
+
+describe('RecordForm players found by name', () => {
+	it('fills the slot with the code and keeps the name', () => {
+		const form = new RecordForm(code('tamsin'));
+		expect(form.choose(form.partner, { code: code('oren'), name: 'Oren Quill' })).toBe(true);
+		expect(form.partner).toMatchObject({ code: code('oren'), name: 'Oren Quill', error: '' });
+		expect(form.input.teamA).toEqual([code('tamsin'), code('oren')]);
+	});
+
+	it('refuses a player who is already in the match', () => {
+		const form = new RecordForm(code('tamsin'));
+		form.choose(form.partner, { code: code('oren'), name: 'Oren Quill' });
+		expect(form.choose(form.opponents[0], { code: code('oren'), name: 'Oren Quill' })).toBe(false);
+		expect(form.opponents[0].code).toBeNull();
+		expect(form.opponents[0].error).toBe('This player is already in the match.');
+	});
+
+	it('forgets the name when the chip is removed or a typed code replaces it', () => {
+		const form = new RecordForm(code('tamsin'));
+		form.choose(form.partner, { code: code('oren'), name: 'Oren Quill' });
+		form.remove(form.partner);
+		expect(form.partner.name).toBe('');
+		form.opponents[0].text = code('kit');
+		form.commit(form.opponents[0]);
+		expect(form.opponents[0].name).toBe('');
+	});
+
+	it('lists the codes in the match, so search can leave them out', () => {
+		const form = new RecordForm(code('tamsin'));
+		form.choose(form.partner, { code: code('oren'), name: 'Oren Quill' });
+		expect(form.taken).toEqual([code('tamsin'), code('oren')]);
+	});
+});

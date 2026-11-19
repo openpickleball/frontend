@@ -1,6 +1,7 @@
 import { mockStore, type MockStore } from '../store';
 import { createAllauthHandlers } from './allauth';
 import { createOpenHandlers } from './open';
+import { createSearchHandlers } from './search';
 import { createProvisionalHandlers, type ProvisionalOptions } from './provisional';
 
 /** Every endpoint the app uses: allauth, the OPEN API and the provisional ones. */
@@ -8,6 +9,7 @@ export function createHandlers(store: MockStore = mockStore) {
 	return [
 		...createAllauthHandlers(store),
 		...createOpenHandlers(store),
+		...createSearchHandlers(store),
 		...createProvisionalHandlers(store)
 	];
 }

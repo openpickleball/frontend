@@ -385,3 +385,29 @@ describe('RecordForm', () => {
 		await expect.element(screen.getByLabelText("Game 1, your team's points")).toHaveFocus();
 	});
 });
+
+describe('RecordForm player search', () => {
+	it('fills a slot from a search result and sends that code', async () => {
+		const search = vi.fn().mockResolvedValue({
+			ok: true,
+			items: [{ code: code('oren'), name: 'Oren Quill' }]
+		});
+		const submit = vi.fn().mockResolvedValue(recordedResult);
+		const screen = await render(RecordForm, { own: tamsin, onrecorded: vi.fn(), submit, search });
+		await screen.getByLabelText("Your partner's OPEN code").fill('ore');
+		await screen.getByRole('option', { name: /Oren Quill/ }).click();
+
+		await expect
+			.element(screen.getByRole('button', { name: `Remove ${code('oren')}` }))
+			.toBeVisible();
+		await expect.element(screen.getByText('Oren Quill')).toBeVisible();
+
+		await addPlayer(screen, "First opponent's OPEN code", code('kit'));
+		await addPlayer(screen, "Second opponent's OPEN code", code('bea'));
+		await screen.getByLabelText("Game 1, your team's points").fill('11');
+		await screen.getByLabelText("Game 1, opponents' points").fill('7');
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+		await vi.waitFor(() => expect(submit).toHaveBeenCalled());
+		expect(submit.mock.calls[0][0].teamA).toEqual([tamsin, code('oren')]);
+	});
+});
