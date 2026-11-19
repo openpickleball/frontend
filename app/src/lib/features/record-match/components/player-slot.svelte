@@ -15,7 +15,7 @@
 	let {
 		id,
 		label,
-		placeholder = 'P-XXXX-XXXX',
+		placeholder = 'Name or P-XXXX-XXXX',
 		code,
 		name = '',
 		text = $bindable(''),
