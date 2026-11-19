@@ -11,6 +11,4 @@
 	<title>Choose a new password · OPEN Pickleball</title>
 </svelte:head>
 
-<div class="max-w-[420px] pt-4">
-	<ResetForm key={params.key} />
-</div>
+<ResetForm key={params.key} />

@@ -6,6 +6,4 @@
 	<title>Reset your password · OPEN Pickleball</title>
 </svelte:head>
 
-<div class="max-w-[420px] pt-4">
-	<ResetRequestForm />
-</div>
+<ResetRequestForm />

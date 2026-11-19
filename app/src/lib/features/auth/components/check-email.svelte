@@ -54,7 +54,7 @@
 		will send a new one.
 	</p>
 	<div class="mt-2 flex flex-wrap gap-3">
-		<Button variant="outline" onclick={signInAgain}>Sign in for a new link</Button>
+		<Button variant="outline" onclick={signInAgain} class="w-full">Sign in for a new link</Button>
 	</div>
 	<p class="text-sm text-muted">
 		Wrong address?
