@@ -137,7 +137,9 @@ test.describe('match detail', () => {
 	test('confirms a match and shows the new status', async ({ page }) => {
 		await rowFor(page, WAITING_ON_ME_TOO).click();
 		await expect(page).toHaveURL(new RegExp(`/matches/${WAITING_ON_ME_TOO}$`));
-		await expect(page.getByRole('heading', { level: 1, name: 'Singles, best of 3' })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { level: 1, name: /^You (beat|lost to) / })
+		).toBeVisible();
 		await expect(page.getByText('Pending', { exact: true })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Is this the right score?' })).toBeVisible();
 
@@ -224,7 +226,7 @@ test.describe('match detail', () => {
 	test('opens a match from its URL on a fresh page load, with nothing cached', async ({ page }) => {
 		const code = matchCode(oldest.random);
 		await page.goto(`/matches/${code}`);
-		await expect(page.getByRole('heading', { level: 1 })).toContainText(/Singles|Doubles/);
+		await expect(page.getByRole('heading', { level: 1 })).toContainText(/ (beat|lost to|played) /);
 		await expect(page.getByText(code)).toBeVisible();
 		await expect(page.getByRole('table', { name: 'Score by game' })).toBeAttached();
 		await expectNoAxeViolations(page);

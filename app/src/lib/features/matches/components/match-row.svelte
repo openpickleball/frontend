@@ -58,7 +58,7 @@
 	<!-- The link's name is this sentence. The drawn row below repeats it for the eye. -->
 	<span class="sr-only">{rowLabel(match, you)}</span>
 	<div
-		class="mb-2.5 flex items-center justify-between gap-3 text-[14px] text-muted"
+		class="mb-2.5 flex items-center justify-between gap-3 text-base text-muted"
 		aria-hidden="true"
 	>
 		<span>{formatShortDate(match.playedOn)} · {formatName(match.format)}, {games}</span>
@@ -77,15 +77,14 @@
 			<span class="flex gap-1 tabular-nums">
 				{#each row.scores as score, index (index)}
 					<span
-						class="min-w-[26px] text-right {score.won
-							? 'font-semibold text-secondary'
-							: 'text-muted'}">{score.points}</span
+						class="min-w-8 text-right {score.won ? 'font-semibold text-secondary' : 'text-muted'}"
+						>{score.points}</span
 					>
 				{/each}
 			</span>
 		{/each}
 	</div>
 	{#if note}
-		<p class="mt-2 text-[13px] text-muted">{note}</p>
+		<p class="mt-2 text-sm text-muted">{note}</p>
 	{/if}
 </a>
