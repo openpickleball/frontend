@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import SiteFooter from './site-footer.svelte';
 	import SideNav from './side-nav.svelte';
 	import TabBar from './tab-bar.svelte';
 	import TopBar from './top-bar.svelte';
@@ -35,13 +36,12 @@
 			id="main"
 			class={[
 				'mx-auto w-full max-w-[calc(720px+2*var(--spacing-gutter))] pt-2 pr-[max(var(--spacing-gutter),env(safe-area-inset-right))] pl-[max(var(--spacing-gutter),env(safe-area-inset-left))] shell:pt-12',
-				bare
-					? 'pb-24'
-					: 'pb-[calc(var(--tabbar-height)+56px+env(safe-area-inset-bottom))] shell:pb-24'
+				'pb-16'
 			]}
 		>
 			{@render children()}
 		</main>
+		<SiteFooter {bare} />
 	</div>
 	{#if !bare}<TabBar {pathname} />{/if}
 </div>
