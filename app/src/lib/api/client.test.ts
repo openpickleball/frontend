@@ -203,6 +203,43 @@ describe('CSRF middleware', () => {
 	});
 });
 
+describe('onUnauthenticated', () => {
+	const unauthorized = () =>
+		json(401, { code: 'unauthorized', message: 'Authentication required.', errors: [] });
+
+	it('tells listeners when the first-party API answers 401', async () => {
+		const { api } = setup(unauthorized);
+		const listener = vi.fn();
+		api.onUnauthenticated(listener);
+		const result = await api.open.GET('/api/v1/accounts/me');
+		expect(result.response.status).toBe(401);
+		expect(listener).toHaveBeenCalledOnce();
+	});
+
+	it('ignores allauth 401s, which are session state', async () => {
+		const { api } = setup(() => json(401, { status: 401, data: { flows: [] }, meta: {} }));
+		const listener = vi.fn();
+		api.onUnauthenticated(listener);
+		await api.allauth.GET('/_allauth/{client}/v1/auth/session', { params: allauthParams });
+		expect(listener).not.toHaveBeenCalled();
+	});
+
+	it('ignores other failures, and stops when unsubscribed', async () => {
+		let status = 403;
+		const { api } = setup(() =>
+			status === 401 ? unauthorized() : json(status, { code: 'x', message: 'x', errors: [] })
+		);
+		const listener = vi.fn();
+		const stop = api.onUnauthenticated(listener);
+		await api.open.GET('/api/v1/accounts/me');
+		expect(listener).not.toHaveBeenCalled();
+		stop();
+		status = 401;
+		await api.open.GET('/api/v1/accounts/me');
+		expect(listener).not.toHaveBeenCalled();
+	});
+});
+
 describe('unwrap', () => {
 	it('returns data on success', async () => {
 		const { api } = setup(() => json(200, { email: 'a@example.test' }));

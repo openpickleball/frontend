@@ -217,4 +217,18 @@ export async function resetPassword(key: string, password: string): Promise<void
 	if (result.response.status !== 401) fail(result);
 }
 
+/**
+ * Notice when the session ends while the app is open (it expired, or the player signed out on
+ * another tab or device): the first 401 from the API marks this device signed out, then calls
+ * `onExpired` once so the caller can send the player to sign in. A 401 while already signed
+ * out changes nothing. Returns a function that stops watching.
+ */
+export function watchSessionExpiry(onExpired: () => void): () => void {
+	return api.onUnauthenticated(() => {
+		if (!session.isSignedIn) return;
+		session.expire();
+		onExpired();
+	});
+}
+
 export type { AppError };

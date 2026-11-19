@@ -16,7 +16,8 @@ import {
 	resetBootstrap,
 	resetPassword,
 	signup,
-	verifyEmail
+	verifyEmail,
+	watchSessionExpiry
 } from './services';
 
 useMockApi();
@@ -300,5 +301,47 @@ describe('password reset', () => {
 	it('refuses a bad key with a key error', async () => {
 		const error = await failure(resetPassword('nope', 'a-brand-new-pass-77'));
 		expect(error.fields.key?.length).toBeGreaterThan(0);
+	});
+});
+
+describe('watchSessionExpiry', () => {
+	it('signs this device out and calls back once when the API answers 401', async () => {
+		const api = browserApi();
+		configureAuthApi(api);
+		await login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD });
+		expect(session.isSignedIn).toBe(true);
+
+		let expired = 0;
+		const stop = watchSessionExpiry(() => expired++);
+		// The session ends on the backend, as after a sign out on another device.
+		mockStore.logout();
+		await api.open.GET('/api/v1/accounts/me');
+		await api.open.GET('/api/v1/accounts/me');
+		stop();
+
+		expect(session.status).toBe('signed_out');
+		expect(session.email).toBeNull();
+		expect(session.expired).toBe(true);
+		expect(expired).toBe(1);
+	});
+
+	it('does nothing while nobody is signed in', async () => {
+		const api = browserApi();
+		configureAuthApi(api);
+		session.apply({ status: 'signed_out' });
+		let expired = 0;
+		const stop = watchSessionExpiry(() => expired++);
+		await api.open.GET('/api/v1/accounts/me');
+		stop();
+		expect(expired).toBe(0);
+		expect(session.expired).toBe(false);
+	});
+
+	it('forgets that the session expired once the player signs in again', async () => {
+		session.apply({ status: 'signed_in', email: VERIFIED_EMAIL });
+		session.expire();
+		expect(session.expired).toBe(true);
+		await login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD });
+		expect(session.expired).toBe(false);
 	});
 });
