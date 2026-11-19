@@ -21,6 +21,10 @@ const matchCode = buildCode('match', 'MAT11111111');
 function dto(overrides: Partial<MatchDto> = {}): MatchDto {
 	return {
 		code: matchCode,
+		my_team: null,
+		my_decision: 'none',
+		confirmed_by_team: null,
+		created_at: '2026-11-14T18:00:00Z',
 		status: 'pending',
 		format: 'doubles',
 		played_on: '2026-11-14',
@@ -91,6 +95,23 @@ describe('toGame', () => {
 });
 
 describe('toMatch', () => {
+	it('carries the viewer fields through', () => {
+		const match = toMatch(
+			dto({
+				my_team: 'B',
+				my_decision: 'dispute',
+				confirmed_by_team: { a: true, b: false }
+			})
+		);
+		expect(match).toMatchObject({
+			viewerSide: 'b',
+			viewerDecision: 'dispute',
+			confirmedBySide: { a: true, b: false },
+			createdAt: '2026-11-14T18:00:00Z'
+		});
+		expect(toMatch(dto()).viewerSide).toBeNull();
+	});
+
 	it('renames every field and parses the codes', () => {
 		const match = toMatch(dto());
 		expect(match.code).toBe(matchCode);

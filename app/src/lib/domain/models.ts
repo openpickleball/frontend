@@ -62,6 +62,14 @@ export type Match = {
 	teamA: Team;
 	teamB: Team;
 	games: readonly Game[];
+	/** The signed-in player's side, or null when they did not play. */
+	viewerSide: Side | null;
+	/** The latest confirm or dispute the signed-in player recorded, `none` if there is none. */
+	viewerDecision: 'confirm' | 'dispute' | 'none';
+	/** Whether a player on each side has confirmed. Null when the signed-in player did not play. */
+	confirmedBySide: { a: boolean; b: boolean } | null;
+	/** When the match was submitted, an ISO time. */
+	createdAt: string;
 };
 
 export function isPrivatePlayer(player: Player): boolean {

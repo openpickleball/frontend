@@ -70,7 +70,11 @@ export function toMatch(dto: MatchDto): Match {
 		gameTarget: dto.game_target,
 		teamA: team('a', dto.team_a),
 		teamB: team('b', dto.team_b),
-		games: dto.games.map(toGame)
+		games: dto.games.map(toGame),
+		viewerSide: dto.my_team === null ? null : dto.my_team === 'A' ? 'a' : 'b',
+		viewerDecision: dto.my_decision,
+		confirmedBySide: dto.confirmed_by_team,
+		createdAt: dto.created_at
 	};
 }
 

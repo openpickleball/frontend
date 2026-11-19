@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+	'/api/v1/accounts/me': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Current Account
+		 * @description Return the Account that the session token or session cookie belongs to.
+		 */
+		get: operations['get_current_account'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/api/v1/health/live': {
 		parameters: {
 			query?: never;
@@ -30,26 +50,6 @@ export interface paths {
 		};
 		/** Ready */
 		get: operations['health_ready'];
-		put?: never;
-		post?: never;
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
-	'/api/v1/accounts/me': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		/**
-		 * Get Current Account
-		 * @description Return the Account that the session token or session cookie belongs to.
-		 */
-		get: operations['get_current_account'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -131,6 +131,55 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/api/v1/me/matches/awaiting-confirmation': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List Matches Awaiting Confirmation
+		 * @description The pending matches waiting for your confirmation, newest first.
+		 *
+		 *     A match is listed while it is pending, you played in it, and nobody on
+		 *     your team has confirmed it yet. Once you or a teammate confirms it,
+		 *     your team is done and it leaves the list. A match you submitted is
+		 *     listed too, since submitting is not confirming.
+		 */
+		get: operations['list_matches_awaiting_confirmation'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/players/search': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Search Players
+		 * @description Find players by the start of a word in their display name.
+		 *
+		 *     For picking an opponent or partner. Players whose Account is inactive
+		 *     never appear. Limited per Account to 30 searches a minute and 300 a
+		 *     day; past that the answer is 429 with a Retry-After header.
+		 */
+		get: operations['search_players'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/api/v1/players/{code}/matches': {
 		parameters: {
 			query?: never;
@@ -159,36 +208,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
 	schemas: {
-		/** LiveOut */
-		LiveOut: {
-			/**
-			 * Status
-			 * @constant
-			 */
-			status: 'ok';
-		};
-		/** ReadyChecks */
-		ReadyChecks: {
-			/**
-			 * Database
-			 * @enum {string}
-			 */
-			database: 'ok' | 'fail';
-			/**
-			 * Cache
-			 * @enum {string}
-			 */
-			cache: 'ok' | 'fail';
-		};
-		/** ReadyOut */
-		ReadyOut: {
-			/**
-			 * Status
-			 * @enum {string}
-			 */
-			status: 'ok' | 'unavailable';
-			checks: components['schemas']['ReadyChecks'];
-		};
+		/**
+		 * BestOf
+		 * @description How many games a Match is played to (decision F15 in #1).
+		 * @enum {integer}
+		 */
+		BestOf: 1 | 3 | 5;
 		/**
 		 * CurrentAccount
 		 * @description The signed-in Account.
@@ -198,11 +223,29 @@ export interface components {
 			email: string;
 		};
 		/**
-		 * BestOf
-		 * @description How many games a Match is played to (decision F15 in #1).
-		 * @enum {integer}
+		 * ErrorResponse
+		 * @description The body of every error response.
 		 */
-		BestOf: 1 | 3 | 5;
+		ErrorResponse: {
+			/** Code */
+			code: string;
+			/** Errors */
+			errors: components['schemas']['FieldError'][];
+			/** Message */
+			message: string;
+		};
+		/**
+		 * FieldError
+		 * @description One invalid input: where it is, what kind of error, and a message.
+		 */
+		FieldError: {
+			/** Code */
+			code: string;
+			/** Field */
+			field: string;
+			/** Message */
+			message: string;
+		};
 		/**
 		 * GameOut
 		 * @description One game's number and the points each team won.
@@ -216,97 +259,6 @@ export interface components {
 			team_b: number;
 		};
 		/**
-		 * GameTarget
-		 * @description The points a game is played to (decision F15 in #1).
-		 *
-		 *     The values are the points in the engine's ``ALL_GAME_FORMATS``.
-		 * @enum {integer}
-		 */
-		GameTarget: 11 | 15 | 21;
-		/**
-		 * MatchFormat
-		 * @description Singles or doubles.
-		 *
-		 *     The values are the two base values of ``open_engine.RatingFormat``. The
-		 *     engine's doubles categories (mixed, men's, women's) are not stored here:
-		 *     #44 derives them from the players.
-		 * @enum {string}
-		 */
-		MatchFormat: 'singles' | 'doubles';
-		/**
-		 * MatchOut
-		 * @description A match, its teams, and its games.
-		 */
-		MatchOut: {
-			/** Code */
-			code: string;
-			status: components['schemas']['MatchStatus'];
-			format: components['schemas']['MatchFormat'];
-			/**
-			 * Played On
-			 * Format: date
-			 */
-			played_on: string;
-			best_of: components['schemas']['BestOf'];
-			scoring_type: components['schemas']['ScoringType'];
-			game_target: components['schemas']['GameTarget'];
-			/** Team A */
-			team_a: components['schemas']['ParticipantOut'][];
-			/** Team B */
-			team_b: components['schemas']['ParticipantOut'][];
-			/** Games */
-			games: components['schemas']['GameOut'][];
-		};
-		/**
-		 * MatchStatus
-		 * @description Where a Match is in confirmation.
-		 *
-		 *     Only ``record_match`` (the initial status) and the services in
-		 *     ``apps.matches.workflow`` set it.
-		 * @enum {string}
-		 */
-		MatchStatus: 'pending' | 'confirmed' | 'disputed' | 'voided';
-		/**
-		 * ParticipantOut
-		 * @description A player in a match. ``code`` is null for a Private player.
-		 */
-		ParticipantOut: {
-			/** Code */
-			code: string | null;
-			/** Display Name */
-			display_name: string;
-		};
-		/**
-		 * ScoringType
-		 * @description How points are scored. The values are ``open_engine.ScoringType``'s.
-		 * @enum {string}
-		 */
-		ScoringType: 'side_out' | 'rally';
-		/**
-		 * ErrorResponse
-		 * @description The body of every error response.
-		 */
-		ErrorResponse: {
-			/** Code */
-			code: string;
-			/** Message */
-			message: string;
-			/** Errors */
-			errors: components['schemas']['FieldError'][];
-		};
-		/**
-		 * FieldError
-		 * @description One invalid input: where it is, what kind of error, and a message.
-		 */
-		FieldError: {
-			/** Field */
-			field: string;
-			/** Code */
-			code: string;
-			/** Message */
-			message: string;
-		};
-		/**
 		 * GameScoreIn
 		 * @description One game's score: the points each team won.
 		 */
@@ -317,32 +269,13 @@ export interface components {
 			team_b: number;
 		};
 		/**
-		 * MatchCreateIn
-		 * @description A player's own match submission.
+		 * GameTarget
+		 * @description The points a game is played to (decision F15 in #1).
 		 *
-		 *     The field names are ``validate_match``'s argument names, so its issues
-		 *     name the request fields. A missing game target means 11, a missing
-		 *     scoring type means side-out, and a missing best-of is inferred from
-		 *     the games. Each team takes at most ``MAX_TEAM_ENTRIES`` codes and the
-		 *     games at most ``MAX_GAME_ENTRIES`` scores.
+		 *     The values are the points in the engine's ``ALL_GAME_FORMATS``.
+		 * @enum {integer}
 		 */
-		MatchCreateIn: {
-			format: components['schemas']['MatchFormat'];
-			/**
-			 * Played On
-			 * Format: date
-			 */
-			played_on: string;
-			/** Team A */
-			team_a: string[];
-			/** Team B */
-			team_b: string[];
-			/** Games */
-			games: components['schemas']['GameScoreIn'][];
-			best_of?: components['schemas']['BestOf'] | null;
-			scoring_type?: components['schemas']['ScoringType'] | null;
-			game_target?: components['schemas']['GameTarget'] | null;
-		};
+		GameTarget: 11 | 15 | 21;
 		/** Input */
 		Input: {
 			/**
@@ -356,12 +289,209 @@ export interface components {
 			 */
 			offset: number;
 		};
+		/** LiveOut */
+		LiveOut: {
+			/**
+			 * Status
+			 * @constant
+			 */
+			status: 'ok';
+		};
+		/**
+		 * MatchCreateIn
+		 * @description A player's own match submission.
+		 *
+		 *     The field names are ``validate_match``'s argument names, so its issues
+		 *     name the request fields. A missing game target means 11, a missing
+		 *     scoring type means side-out, and a missing best-of is inferred from
+		 *     the games. Each team takes at most ``MAX_TEAM_ENTRIES`` codes and the
+		 *     games at most ``MAX_GAME_ENTRIES`` scores.
+		 */
+		MatchCreateIn: {
+			best_of?: components['schemas']['BestOf'] | null;
+			format: components['schemas']['MatchFormat'];
+			game_target?: components['schemas']['GameTarget'] | null;
+			/** Games */
+			games: components['schemas']['GameScoreIn'][];
+			/**
+			 * Played On
+			 * Format: date
+			 */
+			played_on: string;
+			scoring_type?: components['schemas']['ScoringType'] | null;
+			/** Team A */
+			team_a: string[];
+			/** Team B */
+			team_b: string[];
+		};
+		/**
+		 * MatchFormat
+		 * @description Singles or doubles.
+		 *
+		 *     The values are the two base values of ``open_engine.RatingFormat``. The
+		 *     engine's doubles categories (mixed, men's, women's) are not stored here:
+		 *     #44 derives them from the players.
+		 * @enum {string}
+		 */
+		MatchFormat: 'singles' | 'doubles';
+		/**
+		 * MatchOut
+		 * @description A match, its teams, and its games, as the signed-in Account sees it.
+		 *
+		 *     ``my_team`` is the viewer's own team, null when the viewer's Player did
+		 *     not play in the match. ``my_decision`` is the latest confirm or dispute
+		 *     this player recorded on the match, ``none`` when they recorded none or
+		 *     did not play. A repeated decision is not recorded again, so confirming
+		 *     again after a dispute that a moderator resolved still shows
+		 *     ``dispute``. An organizer's confirmation is not a player decision: a
+		 *     player who confirms as a member of the match's Event Organizer still
+		 *     shows ``none``. For a participant, ``confirmed_by_team`` says whether
+		 *     a player on each team recorded a confirmation (a dispute is not a
+		 *     confirmation); it is null for anyone else. A confirmation still shows
+		 *     in ``confirmed_by_team`` after the same player disputes, since a
+		 *     recorded decision is never withdrawn. It counts player confirmations
+		 *     only: a match confirmed by an organizer or a moderator, or a
+		 *     correction, can be confirmed with both false, so read ``status`` for
+		 *     whether the match is confirmed. ``created_at`` is when the match was
+		 *     submitted.
+		 */
+		MatchOut: {
+			best_of: components['schemas']['BestOf'];
+			/** Code */
+			code: string;
+			confirmed_by_team: components['schemas']['TeamConfirmationsOut'] | null;
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			format: components['schemas']['MatchFormat'];
+			game_target: components['schemas']['GameTarget'];
+			/** Games */
+			games: components['schemas']['GameOut'][];
+			my_decision: components['schemas']['MyDecision'];
+			my_team: components['schemas']['Team'] | null;
+			/**
+			 * Played On
+			 * Format: date
+			 */
+			played_on: string;
+			scoring_type: components['schemas']['ScoringType'];
+			status: components['schemas']['MatchStatus'];
+			/** Team A */
+			team_a: components['schemas']['ParticipantOut'][];
+			/** Team B */
+			team_b: components['schemas']['ParticipantOut'][];
+		};
+		/**
+		 * MatchStatus
+		 * @description Where a Match is in confirmation.
+		 *
+		 *     Only ``record_match`` (the initial status) and the services in
+		 *     ``apps.matches.workflow`` set it.
+		 * @enum {string}
+		 */
+		MatchStatus: 'pending' | 'confirmed' | 'disputed' | 'voided';
+		/**
+		 * MyDecision
+		 * @description The viewer's own latest decision on a match.
+		 * @enum {string}
+		 */
+		MyDecision: 'confirm' | 'dispute' | 'none';
 		/** PagedMatchOut */
 		PagedMatchOut: {
-			/** Items */
-			items: components['schemas']['MatchOut'][];
 			/** Count */
 			count: number;
+			/** Items */
+			items: components['schemas']['MatchOut'][];
+		};
+		/**
+		 * ParticipantOut
+		 * @description A player in a match. ``code`` is null for a Private player.
+		 */
+		ParticipantOut: {
+			/** Code */
+			code: string | null;
+			/** Display Name */
+			display_name: string;
+		};
+		/**
+		 * PlayerSearchOut
+		 * @description The players found, best match first. No count and no paging.
+		 */
+		PlayerSearchOut: {
+			/** Items */
+			items: components['schemas']['PlayerSearchResult'][];
+		};
+		/**
+		 * PlayerSearchQuery
+		 * @description The search text and how many players to return.
+		 */
+		PlayerSearchQuery: {
+			/**
+			 * Limit
+			 * @default 10
+			 */
+			limit: number;
+			/**
+			 * Q
+			 * @description The start of a word in the display name, 3 to 64 characters after leading and trailing spaces are removed.
+			 */
+			q: string;
+		};
+		/**
+		 * PlayerSearchResult
+		 * @description One player found: their OPEN Code and display name, nothing else.
+		 */
+		PlayerSearchResult: {
+			/** Code */
+			code: string;
+			/** Display Name */
+			display_name: string;
+		};
+		/** ReadyChecks */
+		ReadyChecks: {
+			/**
+			 * Cache
+			 * @enum {string}
+			 */
+			cache: 'ok' | 'fail';
+			/**
+			 * Database
+			 * @enum {string}
+			 */
+			database: 'ok' | 'fail';
+		};
+		/** ReadyOut */
+		ReadyOut: {
+			checks: components['schemas']['ReadyChecks'];
+			/**
+			 * Status
+			 * @enum {string}
+			 */
+			status: 'ok' | 'unavailable';
+		};
+		/**
+		 * ScoringType
+		 * @description How points are scored. The values are ``open_engine.ScoringType``'s.
+		 * @enum {string}
+		 */
+		ScoringType: 'side_out' | 'rally';
+		/**
+		 * Team
+		 * @description One side of a Match.
+		 * @enum {string}
+		 */
+		Team: 'A' | 'B';
+		/**
+		 * TeamConfirmationsOut
+		 * @description Whether a player on each team has confirmed the match.
+		 */
+		TeamConfirmationsOut: {
+			/** A */
+			a: boolean;
+			/** B */
+			b: boolean;
 		};
 	};
 	responses: never;
@@ -372,6 +502,35 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+	get_current_account: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CurrentAccount'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
 	health_live: {
 		parameters: {
 			query?: never;
@@ -417,35 +576,6 @@ export interface operations {
 				};
 				content: {
 					'application/json': components['schemas']['ReadyOut'];
-				};
-			};
-		};
-	};
-	get_current_account: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description OK */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['CurrentAccount'];
-				};
-			};
-			/** @description The request is not authenticated. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
 		};
@@ -637,6 +767,98 @@ export interface operations {
 			};
 			/** @description The request is not valid. */
 			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_matches_awaiting_confirmation: {
+		parameters: {
+			query?: {
+				limit?: number;
+				offset?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PagedMatchOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	search_players: {
+		parameters: {
+			query: {
+				/** @description The start of a word in the display name, 3 to 64 characters after leading and trailing spaces are removed. */
+				q: string;
+				limit?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PlayerSearchOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too Many Requests */
+			429: {
 				headers: {
 					[name: string]: unknown;
 				};

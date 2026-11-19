@@ -22,7 +22,7 @@ Still out of scope: a player's own code (backend#124) and ratings (backend#53). 
 
 ## Steps
 
-- [ ] U1 Sync the API schema with the backend's committed copy (frontend#72)
+- [x] U1 Sync the API schema with the backend's committed copy (frontend#72)
 - [ ] U2 Show players which matches need their confirmation (frontend#73), after U1
 - [ ] U3 Find players by name when recording a match (frontend#74), after U1
 - [ ] U4 Load match detail by code (frontend#75), after backend#210 merges, U1 re-run and U2
