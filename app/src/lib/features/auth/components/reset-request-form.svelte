@@ -84,7 +84,7 @@
 				bind:value={email}
 				error={errors.email}
 			/>
-			<Button type="submit" disabled={busy} aria-busy={busy} class="w-full">
+			<Button type="submit" aria-disabled={busy} aria-busy={busy} class="w-full">
 				{busy ? 'Sending...' : 'Send reset link'}
 			</Button>
 		</form>

@@ -93,7 +93,7 @@
 				bind:value={password}
 				error={errors.password}
 			/>
-			<Button type="submit" disabled={busy} aria-busy={busy} class="w-full">
+			<Button type="submit" aria-disabled={busy} aria-busy={busy} class="w-full">
 				{busy ? 'Saving...' : 'Save new password'}
 			</Button>
 		</form>

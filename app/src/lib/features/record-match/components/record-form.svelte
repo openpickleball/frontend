@@ -64,6 +64,8 @@
 
 	async function onsubmit(event: SubmitEvent) {
 		event.preventDefault();
+		// The button is aria-disabled while sending, so Enter in a field can still land here.
+		if (form.sending) return;
 		maxDate = todayLocal();
 		const result = await form.send(submit);
 		if (result) {
@@ -393,7 +395,7 @@
 
 	<div class="mt-8 grid gap-3 border-t border-line pt-6">
 		<div>
-			<Button type="submit" disabled={form.sending} aria-describedby="submit-note">
+			<Button type="submit" aria-disabled={form.sending} aria-describedby="submit-note">
 				{form.sending ? 'Recording…' : 'Record and confirm score'}
 			</Button>
 		</div>

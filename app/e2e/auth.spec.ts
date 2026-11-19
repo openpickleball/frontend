@@ -72,6 +72,17 @@ test('a wrong password shows an error and stays on sign in', async ({ page }) =>
 	await expect(page).toHaveURL(/\/account\/login$/);
 });
 
+test('keyboard focus stays on the Sign in button after a failed sign-in', async ({ page }) => {
+	await page.goto('/account/login');
+	await page.getByLabel('Email').fill(VERIFIED_EMAIL);
+	await page.getByLabel('Password', { exact: true }).fill('not-the-password');
+	const button = page.getByRole('button', { name: 'Sign in' });
+	await button.focus();
+	await page.keyboard.press('Enter');
+	await expect(page.getByRole('alert')).toContainText("That email and password don't match.");
+	await expect(page.getByRole('button', { name: 'Sign in' })).toBeFocused();
+});
+
 test('the form names what is missing', async ({ page }) => {
 	await page.goto('/account/login');
 	await page.getByRole('button', { name: 'Sign in', exact: true }).click();
