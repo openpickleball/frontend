@@ -15,6 +15,10 @@ The public page at openpb.org. It stays when the app ships at app.openpb.org (fr
 - `public/funding.json` is OPEN's [funding.json](https://fundingjson.org) manifest, served at `https://www.openpb.org/funding.json`. The `engine`, `backend`, `frontend`, and `rating-spec` repositories each have a `.well-known/funding-manifest-urls` file pointing to it. Keep it true today, like the rest of the site.
 - The logo is `public/assets/img/mark.svg`. `mark.svg` and `favicon.svg` come from `design/tools/export-logo.py`; `favicon-48.png` and `apple-touch-icon.png` are browser renders of `favicon.svg`. See `plans/about-redesign/`.
 
+## Tailwind values
+
+Follow the same order as the app's [Reuse before you build](../app/AGENTS.md#reuse-before-you-build): a native element, then Tailwind's default scales, then the color tokens in `src/input.css`. Avoid arbitrary values in square brackets unless they need `env()` or `calc()`, and say why in a comment.
+
 ## Commands
 
 - `pnpm dev` rebuilds the CSS on change.

@@ -23,6 +23,19 @@ CI runs `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test:coverage` and
 
 `pnpm install` enables `.githooks/pre-commit`, which runs Prettier and ESLint on staged `app/` files. It only reports problems: run `pnpm format` or fix the lint errors, then stage the result. Without `node_modules`, as in a fresh worktree, it warns and skips, and CI still runs the same checks.
 
+## Reuse before you build
+
+The less custom code we write, the less we maintain. Before writing your own version of something, work down this list and stop at the first option that fits.
+
+1. **The platform.** A native element or attribute when it does the job, for example `<input type="date">`, `<dialog>`, `required` and `inputmode`.
+2. **Tailwind defaults.** The default type, spacing, size, width, breakpoint, radius, shadow and motion scales. No arbitrary values in square brackets unless they need `env()` or `calc()`, with a comment saying why.
+3. **Our tokens.** The color tokens, fonts, gutter and the `label` and `page-title` utilities in `src/routes/layout.css`. Add a token only when a brand value has no default.
+4. **A shadcn-svelte component** from the registry, added with the CLI and restyled to our tokens in the same change. Prefer components built on Bits UI for anything with keyboard, focus or ARIA behavior.
+5. **Lucide** for icons.
+6. **Our own code**, only when none of the above fits. Say why in the PR.
+
+A component or default that looks a little different from the mockups is acceptable when it saves code we maintain. Raise the difference in the PR instead of building a custom version.
+
 ## Layout
 
 - `src/lib/ui/` holds the design system: shadcn-svelte components (copied in with the CLI, then restyled to the site tokens in `src/routes/layout.css`, so don't adopt shadcn's color names), the app shell and the theme toggle. Add components with `pnpm dlx shadcn-svelte@latest add <name>`, then restyle them.
