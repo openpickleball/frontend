@@ -61,15 +61,16 @@ export async function listAwaitingConfirmation(
  * Read one match from the API and remember it. Only the match's players can read it. Anyone else,
  * and any unknown or malformed code, gets the same 404, so a `not_found` `AppError` means "not
  * yours or not there". Any other failure is an `AppError` too. It always asks the API, so it
- * gives the current state, for a first read and to refresh a cached copy.
+ * gives the current state, for a first read and to refresh a cached copy. Pass
+ * `remember: false` to keep it out of the cache, so the caller can drop a read that came too late.
  */
 export async function getMatch(
 	code: MatchCode,
-	{ cache = matchCache }: { cache?: MatchCache } = {}
+	{ cache = matchCache, remember = true }: { cache?: MatchCache; remember?: boolean } = {}
 ): Promise<Match> {
 	const dto = await unwrap(api.open.GET('/api/v1/matches/{code}', { params: { path: { code } } }));
 	const match = toMatch(dto);
-	cache.remember(match);
+	if (remember) cache.remember(match);
 	return match;
 }
 

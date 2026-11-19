@@ -162,6 +162,12 @@ describe('getMatch', () => {
 		expect(cache.get(CONFIRMED)?.status).toBe('confirmed');
 	});
 
+	it('keeps the match out of the cache with `remember: false`', async () => {
+		const found = await getMatch(CONFIRMED, { cache, remember: false });
+		expect(found.code).toBe(CONFIRMED);
+		expect(cache.get(CONFIRMED)).toBeUndefined();
+	});
+
 	it('finds the oldest match with one request, with no scan of the list', async () => {
 		const found = await getMatch(code(oldest.random), { cache });
 		expect(found.code).toBe(code(oldest.random));

@@ -19,7 +19,8 @@
  *   the address). Each waits for `myCode` and asks for it when needed.
  * - `rememberMatch(match)`: call it after `POST matches/` succeeds, before going to
  *   `/matches/{code}`. It puts the new match in the cache, so the detail page shows it at
- *   once while it reads the current state. Pass the match as the API returned it after the player's own confirmation (Decision Q4).
+ *   once while it reads the current state. Pass the match as the API returned it after the
+ *   player's own confirmation (Decision Q4).
  * - `matchCache`: matches by code, filled by every list page and every confirm or dispute
  *   response. `matchCache.get(code)` is reactive. It empties by itself when the signed-in player
  *   changes.

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import type { AppError } from '#lib/api/index.js';
+import { buildCode, type MatchCode } from '#lib/domain/index.js';
 import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
 import { matchCache } from '../cache.svelte.js';
@@ -132,7 +133,7 @@ describe('MatchView', () => {
 		await expect
 			.element(page.getByTestId('status-panel'))
 			.toHaveAttribute('data-status', 'pending');
-		expect(mocked.getMatch).toHaveBeenCalledWith(code());
+		expect(mocked.getMatch).toHaveBeenCalledWith(code(), { remember: false });
 
 		const fresh = viewerMatch({}, { status: 'disputed' });
 		matchCache.remember(fresh);
@@ -147,6 +148,82 @@ describe('MatchView', () => {
 		await render(MatchView, { code: code() });
 		await expect.element(page.getByTestId('status-panel')).toBeVisible();
 		await expect.element(page.getByRole('alert')).not.toBeInTheDocument();
+		await expect.element(page.getByText('Showing a saved copy.')).toBeVisible();
+		await expect.element(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+	});
+
+	it('does not let a slow first read bring Confirm back after the player confirmed', async () => {
+		let late: (match: ReturnType<typeof viewerMatch>) => void = () => {};
+		mocked.getMatch.mockImplementation(() => new Promise((resolve) => (late = resolve)));
+		mocked.confirmMatch.mockImplementation(async () => {
+			const done = viewerMatch({ a: true, decision: 'confirm' });
+			matchCache.remember(done);
+			return done;
+		});
+		await render(MatchView, { code: code() });
+
+		await page.getByRole('button', { name: 'Confirm score' }).click();
+		await expect
+			.element(page.getByRole('button', { name: 'Confirm score' }))
+			.not.toBeInTheDocument();
+
+		// The first read was sent before the confirm. Its answer is old.
+		late(viewerMatch());
+		await new Promise((done) => setTimeout(done, 50));
+		await expect
+			.element(page.getByRole('button', { name: 'Confirm score' }))
+			.not.toBeInTheDocument();
+	});
+
+	it('ignores a 404 for the match the page just left', async () => {
+		const other = sampleMatch({ code: buildCode('match', 'D9PW5KXE7RM') as MatchCode });
+		let fail: (cause: unknown) => void = () => {};
+		mocked.getMatch.mockImplementationOnce(() => new Promise((_, reject) => (fail = reject)));
+		const screen = await render(MatchView, { code: code() });
+
+		mocked.getMatch.mockImplementation(async () => {
+			const found = viewerMatch({}, { code: other.code });
+			matchCache.remember(found);
+			return found;
+		});
+		await screen.rerender({ code: other.code });
+		fail(notFound);
+
+		await expect.element(page.getByTestId('status-panel')).toBeVisible();
+		await expect.poll(() => document.title).toContain(other.code);
+		await expect.element(page.getByText("We couldn't find this match")).not.toBeInTheDocument();
+	});
+
+	it('shows the match it read when the cache cannot keep it', async () => {
+		matchCache.reset();
+		mocked.getMatch.mockImplementation(async () => viewerMatch());
+		await render(MatchView, { code: code() });
+		await expect.element(page.getByTestId('status-panel')).toBeVisible();
+	});
+
+	it('says so when the fresh read changes what the cache showed', async () => {
+		mocked.getMatch.mockImplementation(async () => {
+			const found = viewerMatch({}, { status: 'disputed' });
+			matchCache.remember(found);
+			return found;
+		});
+		await render(MatchView, { code: code() });
+		// The status panel takes focus, because the Confirm button that was there is gone.
+		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toBeVisible();
+		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toHaveFocus();
+	});
+
+	it('asks a signed-out player to sign in', async () => {
+		matchCache.reset();
+		mocked.getMatch.mockRejectedValue({
+			kind: 'unauthenticated',
+			status: 401,
+			code: 'unauthorized',
+			message: 'Authentication required.',
+			fields: {}
+		} satisfies AppError);
+		await render(MatchView, { code: code() });
+		await expect.element(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
 	});
 
 	it('says it is loading when there is no cached match yet', async () => {
@@ -162,7 +239,7 @@ describe('MatchView', () => {
 		myCode.save(TAMSIN);
 		await render(MatchView, { code: code() });
 		await expect.element(page.getByTestId('status-panel')).toBeVisible();
-		expect(mocked.getMatch).toHaveBeenCalledWith(code());
+		expect(mocked.getMatch).toHaveBeenCalledWith(code(), { remember: false });
 	});
 
 	it('says it could not find the match on a 404, and drops the cached copy', async () => {

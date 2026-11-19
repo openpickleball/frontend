@@ -40,7 +40,9 @@ The same as `plans/frontend-v1/plan.md`: one issue and one `issue-<N>-<slug>` br
 
 ## Outcome (2026-11-19)
 
-Shipped in #76 (U1, schema sync), #79 (U2, what needs a player's confirmation), #80 (U3, find players by name) and this PR (U4, match detail by code). `/matches/{code}` now reads `GET /api/v1/matches/{code}`. A cached copy shows first when there is one, and the response replaces it. A 404 shows "We couldn't find this match", the same for a match the player was not in and an unknown code.
+Shipped in #76 (U1, schema sync), #79 (U2, what needs a player's confirmation), #80 (U3, find players by name) and #123 (U4, match detail by code). `/matches/{code}` now reads `GET /api/v1/matches/{code}`. A cached copy shows first when there is one, and the response replaces it. A 404 shows "We couldn't find this match", the same for a match the player was not in, an unknown code and a malformed code ("not yours" and "unknown" look the same on purpose).
+
+The confirmation email link opens the match by URL. On a fresh device it still lands on code entry first, until backend#124 ships a player's own code (frontend#35).
 
 Still open:
 
