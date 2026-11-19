@@ -39,6 +39,19 @@ export async function listMatches(
 }
 
 /**
+ * How many matches the player is in, whatever their status: the list's `count`, read from a
+ * one-match page. That match is not mapped or cached.
+ */
+export async function countMatches(player: PlayerCode): Promise<number> {
+	const dto = await unwrap(
+		api.open.GET('/api/v1/players/{code}/matches', {
+			params: { path: { code: player }, query: { limit: 1 } }
+		})
+	);
+	return dto.count;
+}
+
+/**
  * One page of the matches that wait for the signed-in player: pending, they played in them, and
  * no one on their team has confirmed. Newest first, like the history. Every match on the page
  * goes into the cache. `offset` is how many matches to skip.
