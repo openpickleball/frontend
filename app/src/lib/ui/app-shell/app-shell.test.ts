@@ -102,14 +102,30 @@ describe('AppShell', () => {
 		expect(shell('/')).not.toContain('<aside');
 	});
 
-	it('clears landscape notches on the top bar and main', () => {
+	it('clears landscape notches on the top bar, main and footer', () => {
 		const body = shell('/');
 		for (const side of ['left', 'right']) {
 			expect(
 				body.match(
 					new RegExp(`max\\(var\\(--spacing-gutter\\),env\\(safe-area-inset-${side}\\)\\)`, 'g')
 				)
-			).toHaveLength(2);
+			).toHaveLength(3);
+		}
+	});
+
+	it('ends every page with a footer that links to the source code in a new tab', () => {
+		for (const body of [
+			shell('/'),
+			render(AppShell, { props: { pathname: '/account/login', children, bare: true } }).body
+		]) {
+			expect(body.match(/<footer[\s>]/g)).toHaveLength(1);
+			const footer = body.match(/<footer[\s\S]*?<\/footer>/)![0];
+			expect(footer).toContain('AGPL-3.0-or-later');
+			expect(footer).toMatch(/href="https:\/\/github\.com\/openpickleball\/frontend"/);
+			expect(footer).toContain('target="_blank"');
+			expect(footer).toContain('rel="noopener"');
+			expect(footer).toContain('(opens in a new tab)');
+			expect(body.indexOf('</main>')).toBeLessThan(body.indexOf('<footer'));
 		}
 	});
 
