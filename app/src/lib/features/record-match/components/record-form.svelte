@@ -195,9 +195,9 @@
 		</div>
 	{/if}
 
-	<fieldset class="mt-9 grid gap-6 border-t border-line pt-5">
-		<legend class="mb-4 text-[19px] font-semibold text-secondary">Match</legend>
-		<div class="flex flex-wrap items-start gap-x-10 gap-y-6">
+	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
+		<legend class="text-xl font-semibold text-secondary">Match</legend>
+		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
 			<Segmented
 				name="format"
 				label="Format"
@@ -227,8 +227,8 @@
 		</div>
 	</fieldset>
 
-	<fieldset class="mt-9 grid gap-6 border-t border-line pt-5">
-		<legend class="mb-4 text-[19px] font-semibold text-secondary">Players</legend>
+	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
+		<legend class="text-xl font-semibold text-secondary">Players</legend>
 		<p class="max-w-[52ch] text-[15px] text-muted">
 			Type a player's name to find them, or enter their OPEN code. They can find theirs on their
 			Profile page.
@@ -284,9 +284,9 @@
 		</div>
 	</fieldset>
 
-	<fieldset class="mt-9 grid gap-6 border-t border-line pt-5">
-		<legend class="mb-4 text-[19px] font-semibold text-secondary">Scoring</legend>
-		<div class="flex flex-wrap items-start gap-x-10 gap-y-6">
+	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
+		<legend class="text-xl font-semibold text-secondary">Scoring</legend>
+		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
 			<Segmented
 				name="target"
 				label="Games to"
@@ -311,16 +311,12 @@
 		</div>
 	</fieldset>
 
-	<fieldset class="mt-9 grid gap-4 border-t border-line pt-5">
-		<legend class="mb-4 text-[19px] font-semibold text-secondary">Games</legend>
-		<div class="grid">
-			<div
-				class="grid grid-cols-[4.5rem_4rem_1.125rem_4rem_1fr] items-center gap-x-2 pb-2 text-[13px] text-faint"
-				aria-hidden="true"
-			>
-				<span></span><span class="text-center">You</span><span></span><span class="text-center"
-					>Them</span
-				>
+	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
+		<legend class="text-xl font-semibold text-secondary">Games</legend>
+		<div class="grid max-w-sm">
+			<div class="flex items-center gap-x-2 pb-2 text-xs text-faint" aria-hidden="true">
+				<span class="w-20"></span><span class="w-16 text-center">You</span><span class="w-4"
+				></span><span class="w-16 text-center">Them</span>
 			</div>
 			{#each form.games as game, index (index)}
 				{@const gameError = errors[`games.${index}`]?.[0] ?? ''}
@@ -330,8 +326,8 @@
 					aria-label="Game {index + 1}"
 					onfocusout={(event) => leaveRow(event, index)}
 				>
-					<div class="grid grid-cols-[4.5rem_4rem_1.125rem_4rem_1fr] items-center gap-x-2">
-						<span class="text-[15px] font-semibold text-secondary">Game {index + 1}</span>
+					<div class="flex items-center gap-x-2">
+						<span class="w-20 text-[15px] font-semibold text-secondary">Game {index + 1}</span>
 						<Input
 							id="game-{index}-a"
 							bind:value={game.a}
@@ -343,7 +339,7 @@
 							aria-invalid={gameError ? 'true' : undefined}
 							aria-describedby={gameError ? gameErrorId(index) : undefined}
 						/>
-						<span class="text-center text-muted" aria-hidden="true">–</span>
+						<span class="w-4 text-center text-muted" aria-hidden="true">–</span>
 						<Input
 							id="game-{index}-b"
 							bind:value={game.b}
@@ -359,12 +355,10 @@
 							<Button
 								type="button"
 								variant="ghost"
-								class="justify-self-end text-sm font-normal text-muted hover:text-secondary"
+								class="ml-auto min-h-11 px-3 text-sm font-normal text-muted hover:text-secondary"
 								aria-label="Remove game {index + 1}"
 								onclick={() => removeGame(index)}>Remove</Button
 							>
-						{:else}
-							<span></span>
 						{/if}
 					</div>
 					{#if gameError}
@@ -383,7 +377,7 @@
 					type="button"
 					variant="ghost"
 					size="sm"
-					class="mt-2"
+					class="mt-2 min-h-11 px-3"
 					onclick={addGame}
 				>
 					<span aria-hidden="true">+</span> Add a game
