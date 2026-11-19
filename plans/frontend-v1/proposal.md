@@ -210,7 +210,7 @@ Not now: path filters on required checks, Renovate, preview hosting.
 - `plans/consolidate-repos/plan.md`: rewrite the Goal and decisions for one page, and leave the three admin items for the owner to verify.
 - `plans/app-migration/plan.md`: mark it superseded by frontend#22 and backend#182 (app at `app.openpb.org`, `site/` stays).
 - `plans/frontend-stack/decision.md` and `plan.md`: status decided (SvelteKit, PWA, Capacitor deferred, 2026-11-17), and the open questions answered.
-- `plans/about-redesign/plan.md`: move "Carry it into app/" here, and rename the UTR mentions.
+- `plans/about-redesign/plan.md`: move "Carry it into app/" here, and rename the mentions of an external rating system.
 - `plans/teaser-content/plan.md`: add a "superseded by `site/src/input.css`" note, and drop the patent line.
 - `plans/site-content-v2/plan.md`: fix step 3 to `data-tally-form`, and re-check the external-name wording.
 - `.claude/launch.json`: rename `teaser` to `site`.
