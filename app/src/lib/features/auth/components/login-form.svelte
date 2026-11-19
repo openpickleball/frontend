@@ -74,6 +74,12 @@
 		<h1 id="login-title" class="page-title">Sign in</h1>
 		{#if problem}
 			<Banner kind="error" title={problem.title} detail={problem.detail} />
+		{:else if session.expired}
+			<Banner
+				kind="error"
+				title="You were signed out."
+				detail="Your session ended. Sign in again to continue."
+			/>
 		{/if}
 		<form method="post" onsubmit={submit} novalidate class="grid gap-5">
 			<TextField

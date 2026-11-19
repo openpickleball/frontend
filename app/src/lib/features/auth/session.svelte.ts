@@ -26,6 +26,8 @@ class Session {
 	 * just typed, when this page knows it (a page reload forgets it). Otherwise null.
 	 */
 	email = $state<string | null>(null);
+	/** True when the session ended while the app was open, so sign-in can say why it is back. */
+	expired = $state(false);
 
 	get isSignedIn(): boolean {
 		return this.status === 'signed_in';
@@ -34,9 +36,16 @@ class Session {
 	/** Take the backend's answer. `typedEmail` is kept while verification is pending. */
 	apply(state: SessionState, typedEmail?: string): void {
 		this.status = state.status;
+		this.expired = false;
 		if (state.status === 'signed_in') this.email = state.email;
 		else if (state.status === 'pending_verification') this.email = typedEmail ?? this.email;
 		else this.email = null;
+	}
+
+	/** The backend refused a call because the session ended. This device is signed out now. */
+	expire(): void {
+		this.apply({ status: 'signed_out' });
+		this.expired = true;
 	}
 
 	/** Forget a pending verification on this device, such as "Use a different email". */
@@ -48,6 +57,7 @@ class Session {
 	reset(): void {
 		this.status = 'unknown';
 		this.email = null;
+		this.expired = false;
 	}
 }
 

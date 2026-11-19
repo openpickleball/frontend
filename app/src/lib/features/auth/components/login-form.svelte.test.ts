@@ -210,4 +210,20 @@ describe('LoginForm', () => {
 		await screen.getByRole('button', { name: /Show/ }).click();
 		await expect.element(password).toHaveAttribute('type', 'text');
 	});
+
+	it('says why the player is back on sign in after the session ended', async () => {
+		session.apply({ status: 'signed_in', email: 'player@example.com' });
+		session.expire();
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		await expect.element(screen.getByText('You were signed out.')).toBeVisible();
+		await expect
+			.element(screen.getByText('Your session ended. Sign in again to continue.'))
+			.toBeVisible();
+	});
+
+	it('says nothing about a session on a plain visit', async () => {
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		await expect.element(screen.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+		await expect.element(screen.getByText('You were signed out.')).not.toBeInTheDocument();
+	});
 });

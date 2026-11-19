@@ -91,6 +91,25 @@ test('a signed-out visit to a signed-in page goes to sign in, then back', async 
 	await expect(page).toHaveURL(/\/matches$/);
 });
 
+test('a session that ends mid-use sends the player to sign in, then back', async ({ page }) => {
+	await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+	await expect(page.getByRole('heading', { name: 'Recent matches' })).toBeVisible();
+
+	// The backend forgets the session, as when it expires or the player signs out elsewhere.
+	await page.evaluate(() =>
+		(window as unknown as { __openMock: { reset: () => void } }).__openMock.reset()
+	);
+	await page.getByRole('link', { name: 'Matches' }).filter({ visible: true }).first().click();
+
+	await expect(page).toHaveURL(/\/account\/login\?next=%2Fmatches$/);
+	await expect(page.getByText('You were signed out.')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Sign out' })).toHaveCount(0);
+
+	await submitSignIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+	await expect(page).toHaveURL(/\/matches$/);
+	await expect(page.getByText('You were signed out.')).toHaveCount(0);
+});
+
 test('next never sends the player to another site', async ({ page, baseURL }) => {
 	for (const next of ['https://evil.example/', '//evil.example', '/\\evil.example']) {
 		await page.goto(`/account/login?next=${encodeURIComponent(next)}`);

@@ -1,9 +1,16 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '#lib/assets/favicon.svg';
+	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { untrack } from 'svelte';
-	import { SignOutButton, isAccountPath, session, sessionEmail } from '#lib/features/auth/index.js';
+	import { onDestroy, untrack } from 'svelte';
+	import {
+		SignOutButton,
+		isAccountPath,
+		session,
+		sessionEmail,
+		watchSessionExpiry
+	} from '#lib/features/auth/index.js';
 	import { matchCache, ownerKey } from '#lib/features/matches/index.js';
 	import { myCode, setAccountEmailSource } from '#lib/features/players/index.js';
 	import { AppShell } from '#lib/ui/app-shell/index.js';
@@ -34,6 +41,11 @@
 		}
 		lastAccount = account;
 	});
+
+	// When the session ends mid-use, the first 401 marks this device signed out, which clears the
+	// code and the cache above. Re-running the loads lets the guard send the player to sign in,
+	// with `next` set to this page. Set up at the top level, before any child page calls the API.
+	onDestroy(watchSessionExpiry(() => void invalidateAll()));
 </script>
 
 <svelte:head>

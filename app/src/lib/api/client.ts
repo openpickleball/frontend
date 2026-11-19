@@ -28,6 +28,12 @@ export type Api = {
 	allauth: Client<AllauthPaths>;
 	/** Make sure the CSRF cookie exists. Call once at startup. */
 	initCsrf: () => Promise<void>;
+	/**
+	 * Call `listener` whenever `open` answers 401: the session ended while the app was open.
+	 * allauth's 401s are left out, because there they are session state, not a failure.
+	 * Returns a function that stops listening.
+	 */
+	onUnauthenticated: (listener: () => void) => () => void;
 };
 
 export function createApi(options: CreateApiOptions = {}): Api {
@@ -59,5 +65,22 @@ export function createApi(options: CreateApiOptions = {}): Api {
 	open.use(csrf);
 	allauth.use(csrf);
 
-	return { open, allauth, initCsrf: async () => (getToken() ? undefined : refresh()) };
+	const listeners = new Set<() => void>();
+	open.use({
+		onResponse({ response }) {
+			if (response.status !== 401) return;
+			for (const listener of listeners) listener();
+		}
+	});
+	function onUnauthenticated(listener: () => void): () => void {
+		listeners.add(listener);
+		return () => listeners.delete(listener);
+	}
+
+	return {
+		open,
+		allauth,
+		initCsrf: async () => (getToken() ? undefined : refresh()),
+		onUnauthenticated
+	};
 }
