@@ -8,6 +8,13 @@
 	import { myCode } from '#lib/features/players/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import {
+		Empty,
+		EmptyContent,
+		EmptyDescription,
+		EmptyHeader,
+		EmptyTitle
+	} from '#lib/ui/empty/index.js';
 	import { matchCache, type MatchAction } from '../cache.svelte.js';
 	import {
 		STATUS_LABELS,
@@ -270,11 +277,18 @@
 		</Notice>
 	</div>
 {:else}
-	<h1 class="page-title">We couldn't find this match</h1>
-	<div class="mt-4 grid max-w-[46ch] justify-items-start gap-5">
-		<p class="text-muted">
-			Only the players in a match can see it. Check the link, or look for the match in your history.
-		</p>
-		<Button href={resolve('/matches')} variant="outline">Matches</Button>
-	</div>
+	<Empty class="mt-4">
+		<EmptyHeader>
+			<EmptyTitle level="h1">We couldn't find this match</EmptyTitle>
+			<EmptyDescription>
+				<p>
+					Only the players in a match can see it. Check the link, or look for the match in your
+					history.
+				</p>
+			</EmptyDescription>
+		</EmptyHeader>
+		<EmptyContent>
+			<Button href={resolve('/matches')} variant="outline">Back to your matches</Button>
+		</EmptyContent>
+	</Empty>
 {/if}
