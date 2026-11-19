@@ -1,20 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { BEA, TAMSIN, sampleMatch } from '../testing.js';
+import { sampleMatch, viewerMatch } from '../testing.js';
 import StatusPanel from './status-panel.svelte';
 
 const handlers = () => ({ onconfirm: vi.fn(), ondispute: vi.fn() });
 
 describe('StatusPanel', () => {
-	describe('a pending match the player is in', () => {
+	describe("a pending match where the player's team has not confirmed", () => {
 		it('asks if the score is right and offers Confirm and Dispute', async () => {
 			const h = handlers();
-			const screen = await render(StatusPanel, { match: sampleMatch(), you: TAMSIN, ...h });
+			const screen = await render(StatusPanel, { match: viewerMatch(), ...h });
 			await expect
 				.element(screen.getByRole('heading', { name: 'Is this the right score?' }))
-				.toBeVisible();
-			await expect
-				.element(screen.getByText('Already confirmed? Confirming again changes nothing.'))
 				.toBeVisible();
 			await screen.getByRole('button', { name: 'Confirm score' }).click();
 			expect(h.onconfirm).toHaveBeenCalledOnce();
@@ -22,30 +19,30 @@ describe('StatusPanel', () => {
 			expect(h.ondispute).toHaveBeenCalledOnce();
 		});
 
-		it('offers both to a player on the other team too', async () => {
-			const screen = await render(StatusPanel, {
-				match: sampleMatch(),
-				you: BEA,
-				...handlers()
-			});
-			await expect.element(screen.getByRole('button', { name: 'Confirm score' })).toBeVisible();
-			await expect.element(screen.getByRole('button', { name: 'Dispute' })).toBeVisible();
+		it('says neither team has confirmed', async () => {
+			const screen = await render(StatusPanel, { match: viewerMatch(), ...handlers() });
+			await expect
+				.element(screen.getByText(/Neither team has confirmed this score yet/))
+				.toBeVisible();
 		});
 
-		it('does not claim the player has not confirmed, or has', async () => {
-			const screen = await render(StatusPanel, {
-				match: sampleMatch(),
-				you: TAMSIN,
-				...handlers()
-			});
-			await expect.element(screen.getByText(/waiting for the other team/i)).not.toBeInTheDocument();
-			await expect.element(screen.getByText(/you confirmed/i)).not.toBeInTheDocument();
+		it('says the other team has confirmed', async () => {
+			const screen = await render(StatusPanel, { match: viewerMatch({ b: true }), ...handlers() });
+			await expect
+				.element(screen.getByText(/The other team has confirmed this score. Your team has not./))
+				.toBeVisible();
+		});
+
+		it('reads the other team from the side the player is on', async () => {
+			const match = viewerMatch({ a: true, b: false }, { viewerSide: 'b' });
+			const screen = await render(StatusPanel, { match, ...handlers() });
+			await expect.element(screen.getByText(/The other team has confirmed/)).toBeVisible();
+			await expect.element(screen.getByRole('button', { name: 'Confirm score' })).toBeVisible();
 		});
 
 		it('waits while an action is in flight', async () => {
 			const screen = await render(StatusPanel, {
-				match: sampleMatch(),
-				you: TAMSIN,
+				match: viewerMatch(),
 				busy: 'confirm',
 				...handlers()
 			});
@@ -55,8 +52,7 @@ describe('StatusPanel', () => {
 
 		it('shows why the last action failed', async () => {
 			const screen = await render(StatusPanel, {
-				match: sampleMatch(),
-				you: TAMSIN,
+				match: viewerMatch(),
 				error: "We couldn't confirm the score. Try again.",
 				...handlers()
 			});
@@ -67,12 +63,10 @@ describe('StatusPanel', () => {
 		});
 	});
 
-	describe('after the player confirmed in this session (or recorded the match)', () => {
-		it('says it is waiting for the other team and offers no buttons', async () => {
+	describe("a pending match where the player's team has confirmed", () => {
+		it('says the player confirmed and offers no buttons', async () => {
 			const screen = await render(StatusPanel, {
-				match: sampleMatch(),
-				you: TAMSIN,
-				acted: 'confirm',
+				match: viewerMatch({ a: true, decision: 'confirm' }),
 				...handlers()
 			});
 			await expect
@@ -81,17 +75,23 @@ describe('StatusPanel', () => {
 			await expect.element(screen.getByText(/You confirmed this score/)).toBeVisible();
 			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
 		});
+
+		it('says a teammate confirmed when the player did not', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ a: true }),
+				...handlers()
+			});
+			await expect
+				.element(screen.getByText(/A player on your team confirmed this score/))
+				.toBeVisible();
+			await expect.element(screen.getByText(/You confirmed/)).not.toBeInTheDocument();
+			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+		});
 	});
 
 	describe('a pending match the player is not in', () => {
 		it('says it waits for confirmation, with no buttons', async () => {
-			const other = sampleMatch();
-			// Nobody on the page is this code.
-			const screen = await render(StatusPanel, {
-				match: other,
-				you: 'P-0000-0000' as never,
-				...handlers()
-			});
+			const screen = await render(StatusPanel, { match: sampleMatch(), ...handlers() });
 			await expect
 				.element(screen.getByRole('heading', { name: 'Waiting for confirmation' }))
 				.toBeVisible();
@@ -104,11 +104,9 @@ describe('StatusPanel', () => {
 		['disputed', 'Disputed', /No one can confirm it while it is disputed/],
 		['voided', 'Voided', /This match was voided/]
 	] as const) {
-		it(`explains a ${status} match, with no buttons even after a confirm`, async () => {
+		it(`explains a ${status} match, with no buttons`, async () => {
 			const screen = await render(StatusPanel, {
-				match: sampleMatch({ status }),
-				you: TAMSIN,
-				acted: 'confirm',
+				match: viewerMatch({}, { status }),
 				...handlers()
 			});
 			await expect.element(screen.getByRole('heading', { name: title })).toBeVisible();
@@ -117,14 +115,39 @@ describe('StatusPanel', () => {
 		});
 	}
 
+	it('says a confirmed match is confirmed when neither team shows a confirmation', async () => {
+		// An organizer can confirm a match, so both teams read false. Status decides.
+		const screen = await render(StatusPanel, {
+			match: viewerMatch({ a: false, b: false }, { status: 'confirmed' }),
+			...handlers()
+		});
+		await expect.element(screen.getByRole('heading', { name: 'Confirmed' })).toBeVisible();
+		await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+	});
+
+	it('shows the player their own decision on a confirmed or disputed match', async () => {
+		const confirmed = await render(StatusPanel, {
+			match: viewerMatch({ a: true, b: true, decision: 'confirm' }, { status: 'confirmed' }),
+			...handlers()
+		});
+		await expect.element(confirmed.getByText(/You confirmed this score/)).toBeVisible();
+		const disputed = await render(StatusPanel, {
+			match: viewerMatch({ decision: 'dispute' }, { status: 'disputed' }),
+			...handlers()
+		});
+		await expect.element(disputed.getByText(/You said this score is wrong/)).toBeVisible();
+	});
+
 	it('uses no em dashes in any of its copy', async () => {
 		for (const status of ['pending', 'confirmed', 'disputed', 'voided'] as const) {
-			const screen = await render(StatusPanel, {
-				match: sampleMatch({ status }),
-				you: TAMSIN,
-				...handlers()
-			});
-			expect(screen.container.textContent).not.toContain('—');
+			for (const match of [
+				sampleMatch({ status }),
+				viewerMatch({}, { status }),
+				viewerMatch({ a: true, decision: 'confirm' }, { status })
+			]) {
+				const screen = await render(StatusPanel, { match, ...handlers() });
+				expect(screen.container.textContent).not.toContain('—');
+			}
 		}
 	});
 });

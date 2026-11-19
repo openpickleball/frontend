@@ -31,7 +31,6 @@
 	const code = $derived(parsed.ok ? parsed.value : null);
 	const match = $derived(code ? matchCache.get(code) : undefined);
 	const title = $derived(code ? `Match ${code} · OPEN Pickleball` : 'Match · OPEN Pickleball');
-	const acted = $derived(code ? matchCache.actedOn(code) : undefined);
 
 	// Looking the match up. The cache answers when the player came from a list. A deep link has to
 	// scan their list, because there is no `GET matches/{code}` (backend#194).
@@ -163,8 +162,6 @@
 
 	<StatusPanel
 		{match}
-		{you}
-		{acted}
 		{busy}
 		{error}
 		onconfirm={() => act('confirm')}

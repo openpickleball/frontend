@@ -132,9 +132,15 @@ export const STATUS_LABELS: Record<MatchStatus, string> = {
 	voided: 'Voided'
 };
 
-/** The side to read the match from: the player's own, or team A when they did not play. */
-export function viewpoint(match: Pick<Match, 'teamA' | 'teamB'>, you: PlayerCode | null): Side {
-	return (you && myTeam(match, you)?.side) || 'a';
+/**
+ * The side to read the match from: the signed-in player's own (`viewerSide`), else the side of the
+ * player with code `you`, else team A.
+ */
+export function viewpoint(
+	match: Pick<Match, 'teamA' | 'teamB'> & { viewerSide?: Match['viewerSide'] },
+	you: PlayerCode | null
+): Side {
+	return match.viewerSide ?? ((you && myTeam(match, you)?.side) || 'a');
 }
 
 /** One sentence for a screen reader: who played, the score and the status. */

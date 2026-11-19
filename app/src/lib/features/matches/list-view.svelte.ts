@@ -1,7 +1,14 @@
 import { isAppError } from '#lib/api/index.js';
-import type { Match, PlayerCode } from '#lib/domain/index.js';
+import type { Match, MatchPage, PlayerCode } from '#lib/domain/index.js';
 import { matchCache, type MatchCache } from './cache.svelte.js';
 import { listMatches, PAGE_SIZE } from './services.js';
+
+/** Fetches one page of matches. The default is the player's history. */
+export type PageFetcher = (
+	player: PlayerCode,
+	offset: number,
+	options: { limit: number; cache: MatchCache }
+) => Promise<MatchPage>;
 
 /** `loading` before the first answer and while a page loads, `error` when it did not come. */
 export type ListStatus = 'loading' | 'ready' | 'error';
@@ -20,9 +27,12 @@ export class MatchListView {
 
 	#run = 0;
 	#cache: MatchCache;
+	#fetch: PageFetcher;
 
-	constructor(cache: MatchCache = matchCache) {
+	/** Pass `fetch` to list something other than the player's history. */
+	constructor(cache: MatchCache = matchCache, fetch: PageFetcher = listMatches) {
 		this.#cache = cache;
+		this.#fetch = fetch;
 	}
 
 	/** The page's matches as the cache has them now, so a confirm here shows up in the list. */
@@ -34,7 +44,7 @@ export class MatchListView {
 		const run = ++this.#run;
 		this.status = 'loading';
 		try {
-			const page = await listMatches(player, offset, { limit, cache: this.#cache });
+			const page = await this.#fetch(player, offset, { limit, cache: this.#cache });
 			if (run !== this.#run) return;
 			this.items = page.items;
 			this.count = page.count;

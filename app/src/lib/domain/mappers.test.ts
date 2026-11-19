@@ -95,6 +95,10 @@ describe('toGame', () => {
 });
 
 describe('toMatch', () => {
+	it('maps my_team A to side a', () => {
+		expect(toMatch(dto({ my_team: 'A' })).viewerSide).toBe('a');
+	});
+
 	it('carries the viewer fields through', () => {
 		const match = toMatch(
 			dto({
