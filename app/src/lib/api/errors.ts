@@ -30,21 +30,44 @@ export type AppError = {
 	fields: Record<string, string[]>;
 	/** Set on an allauth 401: the flows still pending, such as `verify_email`. */
 	flows?: AllauthFlow[];
+	/** What the call threw when there was no response, kept for logging. Never shown. */
+	cause?: unknown;
 };
 
+/**
+ * What a player reads for each kind: what happened and what to do next. Only `validation` and
+ * `duplicate` show the backend's own text, because it names the field or the match. Every other
+ * kind uses these, so a player never sees text such as "Internal".
+ */
 const MESSAGES: Record<AppErrorKind, string> = {
 	network: "We can't reach the server. Check your connection and try again.",
-	unauthenticated: 'Please sign in to continue.',
-	forbidden: "You can't do that.",
-	csrf: 'Your session check failed. Please try again.',
-	not_found: "We can't find that.",
-	conflict: "That can't be done right now.",
+	unauthenticated: "You're not signed in. Sign in, then try again.",
+	forbidden: "You can't do that. Only the players in a match can change it.",
+	csrf: 'Your session check failed. Reload the page, then try again.',
+	not_found: "We can't find that. Check the link, or go back to your matches.",
+	conflict: "That can't be done right now. Reload the page to see the latest, then try again.",
 	duplicate: 'That has already been recorded.',
 	validation: 'Please check the highlighted fields.',
-	server: 'Something went wrong on our side. Please try again.'
+	server: 'Something went wrong on our side. Wait a moment, then try again.'
 };
 
+/** A validation error with no field to highlight. */
+const FORM_MESSAGE = "Something you entered wasn't accepted. Check it and try again.";
+
 const THROTTLED_MESSAGE = 'Too many attempts. Wait a moment and try again.';
+
+/** The message for an error. `serverText` is the backend's own message, if it sent one. */
+function messageFor(
+	kind: AppErrorKind,
+	code: string,
+	fields: Record<string, string[]>,
+	serverText?: string
+): string {
+	if (code === 'throttled') return THROTTLED_MESSAGE;
+	if ((kind === 'validation' || kind === 'duplicate') && serverText) return serverText;
+	if (kind === 'validation' && Object.keys(fields).length === 0) return FORM_MESSAGE;
+	return MESSAGES[kind];
+}
 
 export function isAppError(value: unknown): value is AppError {
 	if (typeof value !== 'object' || value === null) return false;
@@ -125,7 +148,7 @@ function fromNinja(status: number, body: Json): AppError {
 		const message = str(item.message);
 		if (field && message) addField(fields, stripBody(field), message);
 	}
-	const message = kind === 'csrf' ? MESSAGES.csrf : (str(body.message) ?? MESSAGES[kind]);
+	const message = messageFor(kind, status === 429 ? 'throttled' : code, fields, str(body.message));
 	return { kind, status, code, message, fields };
 }
 
@@ -152,7 +175,7 @@ function fromAllauth(status: number, body: Json): AppError {
 		kind,
 		status,
 		code,
-		message: str(first?.message) ?? (code === 'throttled' ? THROTTLED_MESSAGE : MESSAGES[kind]),
+		message: messageFor(kind, code, fields, str(first?.message)),
 		fields
 	};
 	if (isObject(body.data) && Array.isArray(body.data.flows)) {
@@ -166,21 +189,50 @@ function isNinjaBody(body: Json): boolean {
 }
 
 /**
+ * A request that got no answer, because `fetch` itself rejected. The API clients turn that
+ * rejection into this error (see `client.ts`), so nothing else is mistaken for it.
+ */
+export function networkError(cause?: unknown): AppError {
+	return {
+		kind: 'network',
+		status: null,
+		code: 'network_error',
+		message: MESSAGES.network,
+		fields: {},
+		cause
+	};
+}
+
+/** A request that was cancelled or timed out on purpose, not lost. */
+export function isAbortError(cause: unknown): boolean {
+	return cause instanceof Error && (cause.name === 'AbortError' || cause.name === 'TimeoutError');
+}
+
+/**
  * Turn a failed call into an `AppError`.
  *
  * Pass what openapi-fetch returned: `error` (parsed JSON, raw text for a non-JSON body,
- * or undefined for an empty one) and `response`. With no `response`, `error` is what
- * `fetch` rejected with, which is a network failure.
+ * or undefined for an empty one) and `response`. With no `response`, `error` is what the
+ * call rejected with. A lost connection already arrives as a `network` AppError. Anything
+ * else, such as a 200 that is not JSON (a `SyntaxError`), an aborted request or a bug in a
+ * middleware, is not a connection problem, so it is a `server` error with a generic message.
  */
 export function toAppError(error: unknown, response?: Response): AppError {
 	if (isAppError(error)) return error;
 	if (!response) {
+		const code =
+			error instanceof SyntaxError
+				? 'bad_response'
+				: isAbortError(error)
+					? 'aborted'
+					: 'unexpected';
 		return {
-			kind: 'network',
+			kind: 'server',
 			status: null,
-			code: 'network_error',
-			message: MESSAGES.network,
-			fields: {}
+			code,
+			message: MESSAGES.server,
+			fields: {},
+			cause: error
 		};
 	}
 	const { status } = response;
@@ -192,6 +244,5 @@ export function toAppError(error: unknown, response?: Response): AppError {
 	// unknown JSON shape: use a generic message, never the raw body.
 	const kind = kindForStatus(status, error, 'non_json');
 	const code = kind === 'csrf' ? 'csrf_failed' : status === 429 ? 'throttled' : 'non_json_response';
-	const message = code === 'throttled' ? THROTTLED_MESSAGE : MESSAGES[kind];
-	return { kind, status, code, message, fields: {} };
+	return { kind, status, code, message: messageFor(kind, code, {}), fields: {} };
 }

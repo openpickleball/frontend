@@ -8,8 +8,8 @@
 	import { PAGE_SIZE } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import EmptyMatches from './empty-matches.svelte';
+	import LoadError from './load-error.svelte';
 	import MatchList from './match-list.svelte';
-	import Notice from './notice.svelte';
 
 	/** `page` is 1 for the newest matches, 2 for the next 20, and so on. */
 	let { page = 1 }: { page?: number } = $props();
@@ -61,17 +61,7 @@
 
 		{#if view.status === 'error'}
 			<div class="mt-7">
-				<Notice
-					kind={view.offline ? 'offline' : 'error'}
-					title={view.offline ? "You're offline." : "Your matches didn't load."}
-					onretry={() => view.load(you, (page - 1) * PAGE_SIZE)}
-				>
-					{#if view.offline}
-						Your matches need a connection. Check it, then try again.
-					{:else}
-						OPEN didn't respond. Check your connection, then try again.
-					{/if}
-				</Notice>
+				<LoadError kind={view.errorKind} onretry={() => view.load(you, (page - 1) * PAGE_SIZE)} />
 			</div>
 		{:else if view.status === 'loading'}
 			<p class="mt-8 text-muted" role="status">Loading your matches…</p>

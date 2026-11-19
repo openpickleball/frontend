@@ -12,6 +12,7 @@
 	import CodeGate from './code-gate.svelte';
 	import CodeStrip from './code-strip.svelte';
 	import EmptyMatches from './empty-matches.svelte';
+	import LoadError from './load-error.svelte';
 	import MatchList from './match-list.svelte';
 	import Notice from './notice.svelte';
 
@@ -80,21 +81,14 @@
 	{#snippet children(you)}
 		{#if status === 'error'}
 			<div class="mt-6">
-				<Notice
-					kind={offline ? 'offline' : 'error'}
-					title={offline ? "You're offline." : "Your matches didn't load."}
+				<LoadError
+					kind={offline ? 'network' : view.errorKind}
 					onretry={() => {
 						retryingAwaiting = false;
 						void view.load(you);
 						void awaiting.load(you);
 					}}
-				>
-					{#if offline}
-						Your matches need a connection. Check it, then try again.
-					{:else}
-						OPEN didn't respond. Check your connection, then try again.
-					{/if}
-				</Notice>
+				/>
 			</div>
 		{/if}
 
