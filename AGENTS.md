@@ -13,6 +13,7 @@
 - Use Node 26 (`.nvmrc`) and pnpm.
 - Keep `tailwindcss` on the same exact version in `site/` and `app/` until the static pages are removed.
 - Before starting multi-step work, check `plans/` for an existing plan.
+- Reuse before you build: follow the order of preference in [app/AGENTS.md](app/AGENTS.md#reuse-before-you-build) (platform, Tailwind defaults, our tokens, shadcn-svelte, Lucide, then your own code).
 
 ## Hard rules
 

@@ -14,6 +14,10 @@ The public page at openpb.org. It stays when the app ships at app.openpb.org (fr
 - `public/404.html` uses the same styles.
 - The logo is `public/assets/img/mark.svg`. `mark.svg` and `favicon.svg` come from `design/tools/export-logo.py`; `favicon-48.png` and `apple-touch-icon.png` are browser renders of `favicon.svg`. See `plans/about-redesign/`.
 
+## Tailwind values
+
+Follow the same order as the app's [Reuse before you build](../app/AGENTS.md#reuse-before-you-build): a native element, then Tailwind's default scales, then the color tokens in `src/input.css`. Avoid arbitrary values in square brackets unless they need `env()` or `calc()`, and say why in a comment.
+
 ## Commands
 
 - `pnpm dev` rebuilds the CSS on change.
