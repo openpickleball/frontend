@@ -47,7 +47,48 @@ describe('fixtures', () => {
 		});
 		const outsider = store.matchOut(waiting, accountOf('rosa'));
 		expect(outsider).toMatchObject({ my_team: null, my_decision: 'none', confirmed_by_team: null });
+		// Disputing straight away records the dispute and no confirmation.
+		store.changeMatch(VERIFIED_EMAIL, waiting.code, 'dispute');
+		expect(store.matchOut(waiting, VERIFIED_EMAIL)).toMatchObject({
+			my_decision: 'dispute',
+			confirmed_by_team: { a: false, b: true }
+		});
 		expect(store.matchOut(waiting, null).my_team).toBeNull();
+	});
+
+	// The backend lets a participant dispute a match that is already confirmed (workflow.dispute_match).
+	it('reports a dispute after a confirm without taking the confirmation back', () => {
+		const store = createMockStore();
+		const waiting = store.state.matches.find((m) => m.seq === MATCHES.length);
+		if (!waiting) throw new Error('fixture match is missing');
+		expect(store.changeMatch(VERIFIED_EMAIL, waiting.code, 'confirm').ok).toBe(true);
+		expect(store.matchOut(waiting, VERIFIED_EMAIL)).toMatchObject({
+			my_decision: 'confirm',
+			confirmed_by_team: { a: true, b: true },
+			status: 'confirmed'
+		});
+		expect(store.changeMatch(VERIFIED_EMAIL, waiting.code, 'dispute').ok).toBe(true);
+		// A dispute is not a confirmation: Tamsin's side still counts as confirmed.
+		expect(store.matchOut(waiting, VERIFIED_EMAIL)).toMatchObject({
+			my_decision: 'dispute',
+			confirmed_by_team: { a: true, b: true },
+			status: 'disputed'
+		});
+	});
+
+	it("lists a pending match as awaiting until the player's team confirms or disputes", () => {
+		const store = createMockStore();
+		const codes = () =>
+			store.listAwaitingConfirmation(VERIFIED_EMAIL, 20, 0).items.map((m) => m.code);
+		const waiting = store.state.matches.find((m) => m.seq === MATCHES.length);
+		if (!waiting) throw new Error('fixture match is missing');
+		expect(codes()).toContain(waiting.code);
+		store.changeMatch(VERIFIED_EMAIL, waiting.code, 'confirm');
+		expect(codes()).not.toContain(waiting.code);
+		expect(store.listAwaitingConfirmation('nobody@example.com', 20, 0)).toEqual({
+			items: [],
+			count: 0
+		});
 	});
 
 	it('has valid, unique match codes', () => {

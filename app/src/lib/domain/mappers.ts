@@ -1,7 +1,9 @@
 /**
  * Mappers from the API's DTOs (the generated `components['schemas']` types) to the
  * domain models. They rename fields to camelCase and parse codes into branded types.
- * Nothing else: derived values (`winner`, `myTeam`) are functions in `models.ts`.
+ * Nothing else: derived values (`winner`, `needsViewerConfirmation`) are functions in `models.ts`.
+ * The signed-in player's side is not derived from the codes: the API sends `my_team`, which
+ * becomes `viewerSide`. `myTeam` is only for a code the API does not report on.
  *
  * Only `import type` from `api/generated` is allowed here (proposal.md, section 3).
  *

@@ -72,6 +72,19 @@ export function createOpenHandlers(store: MockStore) {
 		change('confirm'),
 		change('dispute'),
 
+		http.get('/api/v1/me/matches/awaiting-confirmation', ({ request, cookies, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const url = new URL(request.url);
+			const page = pageQuery(url.searchParams.get('limit'), url.searchParams.get('offset'));
+			if (!page.ok) return response.untyped(validationError(page.issues));
+			const result = store.listAwaitingConfirmation(email, page.value.limit, page.value.offset);
+			return response(200).json({
+				items: result.items.map((match) => store.matchOut(match, email)),
+				count: result.count
+			});
+		}),
+
 		http.get('/api/v1/players/{code}/matches', ({ request, cookies, params, response }) => {
 			const email = guard(request, cookies);
 			if (typeof email !== 'string') return response.untyped(email);

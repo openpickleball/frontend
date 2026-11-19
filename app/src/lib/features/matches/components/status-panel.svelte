@@ -1,21 +1,21 @@
 <script lang="ts">
-	import { isPending, myTeam, type Match, type PlayerCode } from '#lib/domain/index.js';
+	import {
+		isPending,
+		needsViewerConfirmation,
+		waitingOnOtherTeam,
+		type Match
+	} from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import type { MatchAction } from '../cache.svelte.js';
 
 	let {
 		match,
-		you,
-		acted,
 		busy = null,
 		error = null,
 		onconfirm,
 		ondispute
 	}: {
 		match: Match;
-		you: PlayerCode;
-		/** What the player did to this match in this session. The API cannot say (backend#193). */
-		acted?: MatchAction;
 		/** The action in flight, so its button waits. */
 		busy?: MatchAction | null;
 		/** Why the last Confirm or Dispute failed. */
@@ -25,21 +25,26 @@
 		ondispute: () => void;
 	} = $props();
 
-	const plays = $derived(myTeam(match, you) !== null);
-
 	type Panel = { title: string; text: string; actions: boolean };
 	const panel = $derived.by((): Panel => {
+		const decision = match.viewerDecision;
 		switch (match.status) {
 			case 'confirmed':
 				return {
 					title: 'Confirmed',
-					text: 'This score is confirmed. It counts in your match history.',
+					text:
+						decision === 'confirm'
+							? 'You confirmed this score. It counts in your match history.'
+							: 'This score is confirmed. It counts in your match history.',
 					actions: false
 				};
 			case 'disputed':
 				return {
 					title: 'Disputed',
-					text: 'A player in this match said the score is wrong. No one can confirm it while it is disputed.',
+					text:
+						decision === 'dispute'
+							? 'You said this score is wrong. No one can confirm it while it is disputed.'
+							: 'A player in this match said the score is wrong. No one can confirm it while it is disputed.',
 					actions: false
 				};
 			case 'voided':
@@ -51,25 +56,41 @@
 			default:
 				break;
 		}
-		if (!plays) {
+		const confirmed = match.confirmedBySide;
+		if (!match.viewerSide || !confirmed) {
 			return {
 				title: 'Waiting for confirmation',
 				text: 'This match counts once a player on each team confirms the score.',
 				actions: false
 			};
 		}
-		// Only what this session knows. The API does not say who has confirmed.
-		if (acted === 'confirm') {
+		const otherConfirmed = confirmed[match.viewerSide === 'a' ? 'b' : 'a'];
+		if (needsViewerConfirmation(match)) {
 			return {
-				title: 'Waiting for the other team',
-				text: 'You confirmed this score. The match counts once a player on the other team confirms it too.',
+				title: 'Is this the right score?',
+				text: `${
+					otherConfirmed
+						? 'The other team has confirmed this score. Your team has not.'
+						: 'Neither team has confirmed this score yet.'
+				} The match counts once a player on each team confirms it. If the score is wrong, dispute it.`,
+				actions: true
+			};
+		}
+		if (!waitingOnOtherTeam(match)) {
+			return {
+				title: 'Waiting for confirmation',
+				text: 'This match counts once a player on each team confirms the score.',
 				actions: false
 			};
 		}
 		return {
-			title: 'Is this the right score?',
-			text: 'This match counts once a player on each team confirms it. If the score is wrong, dispute it.',
-			actions: true
+			title: 'Waiting for the other team',
+			text: `${
+				decision === 'confirm'
+					? 'You confirmed this score.'
+					: 'A player on your team confirmed this score.'
+			} The match counts once a player on the other team confirms it too.`,
+			actions: false
 		};
 	});
 </script>
@@ -95,7 +116,6 @@
 		<p class="mt-3 max-w-[56ch] text-[15px] text-danger" role="alert">{error}</p>
 	{/if}
 	{#if panel.actions && isPending(match)}
-		<p class="mt-3 text-[15px] text-muted">Already confirmed? Confirming again changes nothing.</p>
 		<div class="mt-[18px] flex flex-wrap gap-3">
 			<Button id="confirm-button" onclick={onconfirm} disabled={busy !== null}>
 				{busy === 'confirm' ? 'Confirming…' : 'Confirm score'}

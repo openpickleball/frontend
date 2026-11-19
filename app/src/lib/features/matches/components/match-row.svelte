@@ -1,8 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { isPending, myTeam, winner, type Match, type PlayerCode } from '#lib/domain/index.js';
+	import {
+		needsViewerConfirmation,
+		waitingOnOtherTeam,
+		winner,
+		type Match,
+		type PlayerCode
+	} from '#lib/domain/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
-	import type { MatchAction } from '../cache.svelte.js';
 	import {
 		STATUS_LABELS,
 		formatName,
@@ -15,14 +20,11 @@
 
 	let {
 		match,
-		you,
-		acted
+		you
 	}: {
 		match: Match;
 		/** The signed-in player's code. The row reads the match from their team's side. */
 		you: PlayerCode;
-		/** What the player did to this match in this session, if anything. */
-		acted?: MatchAction;
 	} = $props();
 
 	const mine = $derived(viewpoint(match, you));
@@ -35,13 +37,15 @@
 		}))
 	);
 	const games = $derived(match.games.length === 1 ? '1 game' : `${match.games.length} games`);
-	// The API cannot say whether the player already confirmed (backend#193), so before they act in
-	// this session the row only says the match is waiting on a confirmation.
+	// What the player can do about a pending match, from what the API says about their team.
 	const note = $derived.by(() => {
-		if (!isPending(match) || !myTeam(match, you)) return null;
-		return acted === 'confirm'
-			? 'You confirmed this score. Waiting for the other team.'
-			: 'Waiting on a confirmation.';
+		if (needsViewerConfirmation(match)) return 'Needs your confirmation.';
+		if (waitingOnOtherTeam(match)) {
+			return match.viewerDecision === 'confirm'
+				? 'You confirmed this score. Waiting for the other team.'
+				: 'Your team confirmed this score. Waiting for the other team.';
+		}
+		return null;
 	});
 </script>
 

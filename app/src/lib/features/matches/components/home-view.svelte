@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { isPending, myTeam } from '#lib/domain/index.js';
+	import { needsViewerConfirmation, waitingOnOtherTeam } from '#lib/domain/index.js';
 	import { myCode } from '#lib/features/players/index.js';
 	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 	import { Button } from '#lib/ui/button/index.js';
 	import { matchCountLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
+	import { matchCache } from '../cache.svelte.js';
+	import { listAwaitingConfirmation } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import CodeStrip from './code-strip.svelte';
 	import EmptyMatches from './empty-matches.svelte';
@@ -17,29 +19,57 @@
 	const RECENT = 5;
 
 	const view = new MatchListView();
-	onDestroy(() => view.cancel());
+	// The matches that wait for the player, from their own endpoint, so an old one still shows.
+	const awaiting = new MatchListView(matchCache, (_player, offset, options) =>
+		listAwaitingConfirmation(offset, options)
+	);
+	onDestroy(() => {
+		view.cancel();
+		awaiting.cancel();
+	});
 
 	$effect(() => {
 		const code = myCode.code;
-		if (myCode.status === 'ready' && code) untrack(() => void view.load(code));
+		if (myCode.status === 'ready' && code) {
+			untrack(() => {
+				void view.load(code);
+				void awaiting.load(code);
+			});
+		}
 	});
 
 	const firstName = $derived(myCode.displayName?.trim().split(/\s+/)[0] ?? '');
 	const greeting = $derived(firstName ? `Hi, ${firstName}` : 'Home');
 
-	// Pending matches the player is in. The API cannot say who already confirmed (backend#193), so
-	// the section is "Pending matches", not "needs your confirmation". A row says "Waiting on a
-	// confirmation" until the player acts here, then "You confirmed this score" (see match-row).
-	// This looks only at the newest page (20 matches). A pending match older than that shows in the
-	// history list under "All matches".
-	const pending = $derived(
-		view.matches.filter(
-			(match) => isPending(match) && myCode.code !== null && myTeam(match, myCode.code) !== null
-		)
+	// The page fails as a whole only when the history does. If just the awaiting list fails, the
+	// history sections still show, with a small notice where "Needs your confirmation" would be.
+	// Retrying only that list does not put the whole page back to loading.
+	let retryingAwaiting = $state(false);
+	const status = $derived(
+		view.status === 'error'
+			? 'error'
+			: view.status === 'loading' || (awaiting.status === 'loading' && !retryingAwaiting)
+				? 'loading'
+				: 'ready'
 	);
+	const awaitingFailed = $derived(awaiting.status === 'error');
+	const offline = $derived(view.offline || (awaiting.offline && !retryingAwaiting));
+
+	// Matches that need the player. A confirm on a match page updates the cached copy, so a match
+	// the player just confirmed drops out of the list.
+	const needs = $derived(awaiting.matches.filter(needsViewerConfirmation));
+	// How many the first page left out.
+	const moreNeeds = $derived(Math.max(0, awaiting.count - awaiting.items.length));
+	// Matches the player's team confirmed. This looks only at the newest page (20 matches) of the
+	// history. An older one shows under "All matches".
+	const waiting = $derived(view.matches.filter(waitingOnOtherTeam));
 	const recent = $derived(
 		view.matches
-			.filter((match) => !pending.some((needed) => needed.code === match.code))
+			.filter(
+				(match) =>
+					!needs.some((item) => item.code === match.code) &&
+					!waiting.some((item) => item.code === match.code)
+			)
 			.slice(0, RECENT)
 	);
 </script>
@@ -48,14 +78,18 @@
 
 <CodeGate>
 	{#snippet children(you)}
-		{#if view.status === 'error'}
+		{#if status === 'error'}
 			<div class="mt-6">
 				<Notice
-					kind={view.offline ? 'offline' : 'error'}
-					title={view.offline ? "You're offline." : "Your matches didn't load."}
-					onretry={() => view.load(you)}
+					kind={offline ? 'offline' : 'error'}
+					title={offline ? "You're offline." : "Your matches didn't load."}
+					onretry={() => {
+						retryingAwaiting = false;
+						void view.load(you);
+						void awaiting.load(you);
+					}}
 				>
-					{#if view.offline}
+					{#if offline}
 						Your matches need a connection. Check it, then try again.
 					{:else}
 						OPEN didn't respond. Check your connection, then try again.
@@ -67,31 +101,69 @@
 		<CodeStrip code={you} />
 
 		<div class="mt-7">
-			<Button href={resolve('/record')} disabled={view.offline}>
+			<Button href={resolve('/record')} disabled={offline}>
 				Record a match
 				<ArrowRightIcon aria-hidden="true" />
 			</Button>
 		</div>
 
-		{#if view.status === 'loading'}
+		{#if status === 'loading'}
 			<p class="mt-8 text-muted" role="status">Loading your matches…</p>
-		{:else if view.status === 'ready'}
+		{:else if status === 'ready'}
 			{#if view.count === 0}
 				<EmptyMatches onHome />
 			{:else}
-				{#if pending.length > 0}
-					<section class="mt-10" aria-labelledby="pending-title">
+				{#if awaitingFailed}
+					<div class="mt-10" data-testid="needs-error">
+						<Notice
+							kind={awaiting.offline ? 'offline' : 'error'}
+							title="We couldn't check what needs your confirmation."
+							onretry={() => {
+								retryingAwaiting = true;
+								void awaiting.load(you);
+							}}
+						>
+							The rest of your matches are below. Try again to see what needs you.
+						</Notice>
+					</div>
+				{:else if needs.length > 0}
+					<section class="mt-10" aria-labelledby="needs-title">
 						<div class="flex items-baseline justify-between gap-4">
-							<h2 id="pending-title" class="text-[22px] font-semibold tracking-tight">
-								Pending matches
+							<h2 id="needs-title" class="text-[22px] font-semibold tracking-tight">
+								Needs your confirmation
 							</h2>
-							<span class="text-[15px] text-muted">{matchCountLabel(pending.length)}</span>
+							<span class="text-[15px] text-muted">{matchCountLabel(needs.length + moreNeeds)}</span
+							>
 						</div>
 						<p class="mt-1 mb-3 text-[15px] text-muted">
-							A match counts once a player on each team confirms the score. If you already
-							confirmed, there's nothing more to do.
+							Check the score. Confirm it if it's right, or dispute it if it's wrong.
 						</p>
-						<MatchList matches={pending} {you} label="Pending matches" />
+						<MatchList matches={needs} {you} label="Needs your confirmation" />
+						{#if moreNeeds > 0}
+							<p class="mt-3 text-[15px] text-muted" data-testid="more-needs">
+								{moreNeeds === 1 ? '1 more match is' : `${moreNeeds} more matches are`} waiting for you.
+								<a
+									href={resolve('/matches')}
+									class="underline underline-offset-4 hover:text-secondary">See all matches</a
+								>.
+							</p>
+						{/if}
+					</section>
+				{/if}
+
+				{#if waiting.length > 0}
+					<section class="mt-10" aria-labelledby="waiting-title">
+						<div class="flex items-baseline justify-between gap-4">
+							<h2 id="waiting-title" class="text-[22px] font-semibold tracking-tight">
+								Waiting for the other team
+							</h2>
+							<span class="text-[15px] text-muted">{matchCountLabel(waiting.length)}</span>
+						</div>
+						<p class="mt-1 mb-3 text-[15px] text-muted">
+							Your team confirmed these scores. A match counts once a player on the other team
+							confirms it too.
+						</p>
+						<MatchList matches={waiting} {you} label="Waiting for the other team" />
 					</section>
 				{/if}
 

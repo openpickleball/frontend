@@ -42,6 +42,25 @@ export async function listMatches(
 }
 
 /**
+ * One page of the matches that wait for the signed-in player: pending, they played in them, and
+ * no one on their team has confirmed. Newest first, like the history. Every match on the page
+ * goes into the cache. `offset` is how many matches to skip.
+ */
+export async function listAwaitingConfirmation(
+	offset = 0,
+	{ limit = PAGE_SIZE, cache = matchCache }: { limit?: number; cache?: MatchCache } = {}
+): Promise<MatchPage> {
+	const dto = await unwrap(
+		api.open.GET('/api/v1/me/matches/awaiting-confirmation', {
+			params: { query: { limit, offset } }
+		})
+	);
+	const page = toMatchPage(dto);
+	cache.rememberAll(page.items);
+	return page;
+}
+
+/**
  * Find a match by code. There is no `GET matches/{code}` (backend#194), so this checks the cache,
  * then scans the player's list a page at a time, up to `SCAN_LIMIT` matches. Resolves to null when
  * the match is not one of theirs, or is further back than the scan goes. Throws an `AppError` when
@@ -66,8 +85,8 @@ export async function findMatch(
 
 /**
  * Confirm a match the player played in. Confirming again is safe on the backend. Resolves to the
- * match as the API now has it (it is `confirmed` once both teams have), and remembers that the
- * player confirmed it. Throws an `AppError`: a 409 `conflict` when the match was disputed or voided.
+ * match as the API now has it (it is `confirmed` once both teams have), and remembers it. Throws
+ * an `AppError`: a 409 `conflict` when the match was disputed or voided.
  */
 export async function confirmMatch(
 	code: MatchCode,
@@ -78,7 +97,6 @@ export async function confirmMatch(
 	);
 	const match = toMatch(dto);
 	cache.remember(match);
-	cache.markActed(match.code, 'confirm');
 	return match;
 }
 
@@ -95,16 +113,14 @@ export async function disputeMatch(
 	);
 	const match = toMatch(dto);
 	cache.remember(match);
-	cache.markActed(match.code, 'dispute');
 	return match;
 }
 
 /**
- * Seed the app-wide cache with a match the player just recorded. Recording confirms the match for
- * the player's own team (Decision Q4), so the match detail says it is waiting for the other team
- * and offers no Confirm button. Call it after `POST matches/` succeeds, before going to the match.
+ * Seed the app-wide cache with a match the player just recorded. Pass the match as the API last
+ * returned it (after the confirm for the player's own team, Decision Q4), so the match detail
+ * shows where it stands. Call it after `POST matches/` succeeds, before going to the match.
  */
 export function rememberMatch(match: Match, cache: MatchCache = matchCache): void {
 	cache.remember(match);
-	cache.markActed(match.code, 'confirm');
 }

@@ -12,6 +12,7 @@ import {
 	confirmMatch,
 	disputeMatch,
 	findMatch,
+	listAwaitingConfirmation,
 	listMatches,
 	rememberMatch
 } from './services.js';
@@ -107,6 +108,43 @@ describe('listMatches', () => {
 	});
 });
 
+describe('listAwaitingConfirmation', () => {
+	it("lists the pending matches no one on the player's team has confirmed, newest first", async () => {
+		const page = await listAwaitingConfirmation(0, { cache });
+		expect(calls).toEqual(['GET /api/v1/me/matches/awaiting-confirmation?limit=20&offset=0']);
+		expect(page.items.map((m) => m.code)).toEqual([WAITING_ON_ME, code('3FTB8ZRMK6P')]);
+		expect(page.count).toBe(2);
+		for (const match of page.items) {
+			expect(match.status).toBe('pending');
+			expect(match.viewerSide).not.toBeNull();
+			expect(match.confirmedBySide?.[match.viewerSide!]).toBe(false);
+			expect(cache.get(match.code)).toBe(match);
+		}
+	});
+
+	it("leaves out a match the player's team confirmed", async () => {
+		const page = await listAwaitingConfirmation(0, { cache });
+		expect(page.items.map((m) => m.code)).not.toContain(ALREADY_CONFIRMED);
+	});
+
+	it('drops a match once the player confirms it', async () => {
+		await confirmMatch(WAITING_ON_ME, { cache });
+		const page = await listAwaitingConfirmation(0, { cache });
+		expect(page.items.map((m) => m.code)).toEqual([code('3FTB8ZRMK6P')]);
+	});
+
+	it('drops a match once the player disputes it', async () => {
+		await disputeMatch(WAITING_ON_ME, { cache });
+		expect((await listAwaitingConfirmation(0, { cache })).count).toBe(1);
+	});
+
+	it('pages with limit and offset', async () => {
+		const page = await listAwaitingConfirmation(1, { limit: 1, cache });
+		expect(page.items.map((m) => m.code)).toEqual([code('3FTB8ZRMK6P')]);
+		expect(page.count).toBe(2);
+	});
+});
+
 describe('findMatch', () => {
 	it('answers from the cache with no request', async () => {
 		const match = sampleMatch();
@@ -160,20 +198,21 @@ describe('findMatch', () => {
 });
 
 describe('confirmMatch', () => {
-	it('confirms, caches the new state and notes that the player confirmed', async () => {
+	it("confirms and caches the new state, with the player's own decision", async () => {
 		const match = await confirmMatch(WAITING_ON_ME, { cache });
 		// Bea's team confirmed first, so Tamsin's confirmation makes it count.
 		expect(match.status).toBe('confirmed');
 		expect(calls).toEqual([`POST /api/v1/matches/${WAITING_ON_ME}/confirm`]);
 		expect(cache.get(WAITING_ON_ME)).toBe(match);
-		expect(cache.actedOn(WAITING_ON_ME)).toBe('confirm');
+		expect(match.viewerDecision).toBe('confirm');
+		expect(match.confirmedBySide).toEqual({ a: true, b: true });
 	});
 
 	it('leaves a match pending when the other team has not confirmed', async () => {
 		const match = await confirmMatch(ALREADY_CONFIRMED, { cache });
 		// The mock has Tamsin's team confirmed already and the other team still to go.
 		expect(match.status).toBe('pending');
-		expect(cache.actedOn(ALREADY_CONFIRMED)).toBe('confirm');
+		expect(match.confirmedBySide).toEqual({ a: true, b: false });
 	});
 
 	it('is safe to repeat', async () => {
@@ -181,10 +220,9 @@ describe('confirmMatch', () => {
 		expect((await confirmMatch(WAITING_ON_ME, { cache })).status).toBe('confirmed');
 	});
 
-	it('fails with a conflict for a disputed match, and does not note an action', async () => {
+	it('fails with a conflict for a disputed match', async () => {
 		const error = await failure(confirmMatch(DISPUTED, { cache }));
 		expect(error.kind).toBe('conflict');
-		expect(cache.actedOn(DISPUTED)).toBeUndefined();
 	});
 
 	it('fails with not found for a match the player is not in', async () => {
@@ -193,12 +231,12 @@ describe('confirmMatch', () => {
 });
 
 describe('disputeMatch', () => {
-	it('disputes with no body, caches the new state and notes the dispute', async () => {
+	it('disputes with no body and caches the new state', async () => {
 		const match = await disputeMatch(WAITING_ON_ME, { cache });
 		expect(match.status).toBe('disputed');
 		expect(calls).toEqual([`POST /api/v1/matches/${WAITING_ON_ME}/dispute`]);
 		expect(cache.get(WAITING_ON_ME)).toBe(match);
-		expect(cache.actedOn(WAITING_ON_ME)).toBe('dispute');
+		expect(match.viewerDecision).toBe('dispute');
 	});
 
 	it('is safe to repeat', async () => {
@@ -212,10 +250,9 @@ describe('disputeMatch', () => {
 });
 
 describe('rememberMatch', () => {
-	it('seeds the cache with a recorded match and notes the submitter confirmed it', () => {
+	it('seeds the cache with a recorded match', () => {
 		const match = sampleMatch();
 		rememberMatch(match, cache);
 		expect(cache.get(match.code)).toBe(match);
-		expect(cache.actedOn(match.code)).toBe('confirm');
 	});
 });

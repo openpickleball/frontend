@@ -52,3 +52,23 @@ export function sampleMatch(overrides: Partial<Match> = {}): Match {
 		...overrides
 	};
 }
+
+/**
+ * A pending doubles match as the API shows it to a player on side A (Tamsin). `a` and `b` say
+ * whether a player on each team has confirmed. `decision` is Tamsin's own latest decision.
+ */
+export function viewerMatch(
+	{
+		a = false,
+		b = false,
+		decision = 'none'
+	}: { a?: boolean; b?: boolean; decision?: Match['viewerDecision'] } = {},
+	overrides: Partial<Match> = {}
+): Match {
+	return sampleMatch({
+		viewerSide: 'a',
+		viewerDecision: decision,
+		confirmedBySide: { a, b },
+		...overrides
+	});
+}

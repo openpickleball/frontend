@@ -7,8 +7,10 @@ import {
 	isPending,
 	isPrivatePlayer,
 	myTeam,
+	needsViewerConfirmation,
 	otherSide,
 	teamOn,
+	waitingOnOtherTeam,
 	winner,
 	type Match,
 	type Player
@@ -159,5 +161,38 @@ describe('small helpers', () => {
 		const match = makeMatch();
 		expect(teamOn(match, 'a')).toBe(match.teamA);
 		expect(teamOn(match, 'b')).toBe(match.teamB);
+	});
+});
+
+describe('needsViewerConfirmation and waitingOnOtherTeam', () => {
+	const viewer = (
+		status: Match['status'],
+		viewerSide: Match['viewerSide'],
+		confirmedBySide: Match['confirmedBySide']
+	) => makeMatch({ status, viewerSide, confirmedBySide });
+
+	it('needs the player when their team has not confirmed a pending match', () => {
+		const match = viewer('pending', 'a', { a: false, b: true });
+		expect(needsViewerConfirmation(match)).toBe(true);
+		expect(waitingOnOtherTeam(match)).toBe(false);
+		expect(needsViewerConfirmation(viewer('pending', 'b', { a: false, b: false }))).toBe(true);
+	});
+
+	it("waits on the other team once the player's team has confirmed", () => {
+		const match = viewer('pending', 'a', { a: true, b: false });
+		expect(needsViewerConfirmation(match)).toBe(false);
+		expect(waitingOnOtherTeam(match)).toBe(true);
+		expect(waitingOnOtherTeam(viewer('pending', 'b', { a: false, b: true }))).toBe(true);
+	});
+
+	it('is neither when the match is not pending or the player did not play', () => {
+		for (const status of ['confirmed', 'disputed', 'voided'] as const) {
+			const match = viewer(status, 'a', { a: false, b: false });
+			expect(needsViewerConfirmation(match)).toBe(false);
+			expect(waitingOnOtherTeam(match)).toBe(false);
+		}
+		const outsider = viewer('pending', null, null);
+		expect(needsViewerConfirmation(outsider)).toBe(false);
+		expect(waitingOnOtherTeam(outsider)).toBe(false);
 	});
 });
