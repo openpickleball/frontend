@@ -36,6 +36,25 @@ async function fillDoublesMatch(page: Page) {
 	await page.getByLabel("Game 2, opponents' points").fill('8');
 }
 
+test('controls are at least 44px tall and Scoring fits on one row on a phone', async ({ page }) => {
+	await openRecord(page);
+	await page.getByRole('button', { name: 'Add a game' }).click();
+	const heights = async (locators: ReturnType<Page['locator']>[]) =>
+		Promise.all(locators.map(async (l) => (await l.boundingBox())?.height ?? 0));
+	const controls = [
+		page.getByRole('button', { name: 'Remove game 1' }),
+		page.getByRole('button', { name: 'Add a game' }),
+		page.locator('label:has(input[name="format"][value="singles"])'),
+		page.locator('label:has(input[name="target"][value="11"])'),
+		page.locator('label:has(input[name="scoring"][value="rally"])')
+	];
+	for (const height of await heights(controls)) expect(height).toBeGreaterThanOrEqual(44);
+	// "Games to" and "Scoring" share one row.
+	const target = await page.getByText('Games to', { exact: true }).boundingBox();
+	const scoring = await page.getByText('Scoring', { exact: true }).last().boundingBox();
+	expect(Math.abs(target!.y - scoring!.y)).toBeLessThan(4);
+});
+
 test('records a doubles match and lands on its page', async ({ page }) => {
 	await openRecord(page);
 	await fillDoublesMatch(page);
