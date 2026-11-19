@@ -3,6 +3,7 @@ import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { Button } from './button/index.js';
 import { Badge } from './badge/index.js';
+import { EmptyDescription, EmptyMedia, EmptyTitle } from './empty/index.js';
 import { Input } from './input/index.js';
 import { cn } from './utils.js';
 
@@ -19,6 +20,7 @@ describe('index files', () => {
 				'alert-dialog',
 				'badge',
 				'button',
+				'empty',
 				'input',
 				'label',
 				'sheet',
@@ -75,6 +77,24 @@ describe('Badge', () => {
 			expect(body).toContain(cls);
 			expect(body).toContain(`<span>${variant}</span>`);
 		}
+	});
+});
+
+describe('Empty', () => {
+	it('renders its title as a heading, h2 by default and h1 on request', () => {
+		const h2 = render(EmptyTitle, { props: { children: text('No matches yet') } });
+		expect(h2.body).toMatch(/<h2[^>]*data-slot="empty-title"/);
+		const h1 = render(EmptyTitle, { props: { level: 'h1', children: text('Not found') } });
+		expect(h1.body).toMatch(/<h1[^>]*class="[^"]*page-title/);
+	});
+
+	it('uses the site tokens, not shadcn color names', () => {
+		const { body } = render(EmptyDescription, { props: { children: text('x') } });
+		expect(body).toContain('text-muted');
+		expect(body).not.toMatch(/text-muted-foreground|bg-muted/);
+		const media = render(EmptyMedia, { props: { variant: 'icon', children: text('x') } });
+		expect(media.body).toContain('bg-surface');
+		expect(media.body).not.toMatch(/bg-muted|text-foreground/);
 	});
 });
 

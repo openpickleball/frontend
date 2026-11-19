@@ -250,7 +250,7 @@ describe('MatchView', () => {
 			.element(page.getByRole('heading', { level: 1, name: "We couldn't find this match" }))
 			.toBeVisible();
 		await expect.element(page.getByText(/Only the players in a match can see it/)).toBeVisible();
-		await expect.element(page.getByRole('link', { name: 'Matches' })).toBeVisible();
+		await expect.element(page.getByRole('link', { name: 'Back to your matches' })).toBeVisible();
 		await expect.element(page.getByTestId('status-panel')).not.toBeInTheDocument();
 		expect(matchCache.get(code())).toBeUndefined();
 	});

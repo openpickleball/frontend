@@ -40,3 +40,15 @@ test('the account pages have no tab bar', async ({ page }) => {
 	await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
 	await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
 });
+
+test('an unknown route shows a not-found page with a way home', async ({ page }) => {
+	await signInAsPlayer(page);
+	await page.goto('/does-not-exist');
+	await expect(
+		page.getByRole('heading', { level: 1, name: "We couldn't find this page" })
+	).toBeVisible();
+	await expect(page).toHaveTitle(/^We couldn't find this page/);
+	await page.locator('#main').getByRole('link', { name: 'Back to home' }).click();
+	await expect(page).toHaveURL(/\/$/);
+	await expect(page.getByRole('link', { name: 'Record a match' })).toBeVisible();
+});

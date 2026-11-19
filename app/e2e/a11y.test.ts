@@ -10,6 +10,7 @@ const ROUTES = [
 	'/matches',
 	'/matches/M-7QK2-H9WD-3NFA',
 	'/profile',
+	'/does-not-exist',
 	'/account/login',
 	'/account/signup',
 	'/account/verify-email/example-key',
@@ -23,7 +24,8 @@ const SIGNED_IN_ROUTES = new Set([
 	'/record',
 	'/matches',
 	'/matches/M-7QK2-H9WD-3NFA',
-	'/profile'
+	'/profile',
+	'/does-not-exist'
 ]);
 
 function signInAsPlayer(page: Page) {

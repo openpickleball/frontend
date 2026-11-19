@@ -259,7 +259,7 @@ test.describe('match detail', () => {
 			page.getByRole('heading', { level: 1, name: "We couldn't find this match" })
 		).toBeVisible();
 		await expectNoAxeViolations(page);
-		await page.locator('#main').getByRole('link', { name: 'Matches', exact: true }).click();
+		await page.locator('#main').getByRole('link', { name: 'Back to your matches' }).click();
 		await expect(page).toHaveURL(/\/matches$/);
 	});
 
