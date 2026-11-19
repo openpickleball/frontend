@@ -6,7 +6,7 @@ import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
 import { matchCache } from '../cache.svelte.js';
 import * as services from '../services.js';
-import { TAMSIN, sampleMatch } from '../testing.js';
+import { TAMSIN, sampleMatch, viewerMatch } from '../testing.js';
 import MatchView from './match-view.svelte';
 
 // The services have their own tests against the mock API. Here they are stand-ins.
@@ -34,7 +34,7 @@ beforeEach(() => {
 	myCode.reset();
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
 	myCode.save(TAMSIN);
-	matchCache.remember(sampleMatch());
+	matchCache.remember(viewerMatch());
 });
 
 afterEach(() => {
@@ -57,7 +57,7 @@ describe('MatchView', () => {
 
 	it('moves focus to the new status when the dispute works', async () => {
 		mocked.disputeMatch.mockImplementation(async () => {
-			const disputed = sampleMatch({ status: 'disputed' });
+			const disputed = viewerMatch({ decision: 'dispute' }, { status: 'disputed' });
 			matchCache.remember(disputed);
 			return disputed;
 		});
@@ -73,7 +73,7 @@ describe('MatchView', () => {
 		mocked.confirmMatch.mockRejectedValue(conflict);
 		// The view looks the match up when it opens. Only a `fresh` read finds it changed.
 		mocked.findMatch.mockImplementation(async (_code, _player, options) => {
-			const found = sampleMatch({ status: options?.fresh ? 'disputed' : 'pending' });
+			const found = viewerMatch({}, { status: options?.fresh ? 'disputed' : 'pending' });
 			matchCache.remember(found);
 			return found;
 		});

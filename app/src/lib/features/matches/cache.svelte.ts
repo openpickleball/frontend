@@ -2,7 +2,7 @@ import { SvelteMap } from 'svelte/reactivity';
 import type { Match, MatchCode, PlayerCode } from '#lib/domain/index.js';
 import { myCode } from '#lib/features/players/index.js';
 
-/** What the player did to a match in this session. */
+/** What a player can do to a match they played in. */
 export type MatchAction = 'confirm' | 'dispute';
 
 /**
@@ -14,12 +14,9 @@ export function ownerKey(email: string | null, code: PlayerCode | null): string 
 }
 
 /**
- * Matches by code, plus what the player did to them in this session.
- *
- * The API cannot say whether the player already confirmed a match (backend#193). So "I
- * confirmed this" is only known from what happened here: the player pressed Confirm or
- * Dispute, or recorded the match (recording confirms for the submitter's team). A match that
- * arrives in a list has no entry, and the screens do not guess.
+ * Matches by code. Every match carries the signed-in player's side, their latest decision and
+ * which teams confirmed (`viewerSide`, `viewerDecision`, `confirmedBySide`), so the cache keeps
+ * nothing else. A confirm or dispute replaces the match with the one the API returns.
  *
  * The cache belongs to one account and player (`ownerKey`). When either changes, or is gone,
  * everything in it is dropped, so one account never sees another's matches. Reads are safe in a
@@ -27,7 +24,6 @@ export function ownerKey(email: string | null, code: PlayerCode | null): string 
  */
 export class MatchCache {
 	#matches = new SvelteMap<MatchCode, Match>();
-	#acted = new SvelteMap<MatchCode, MatchAction>();
 	// Reactive, so a read that found nothing (no owner yet) reruns once the first write sets it.
 	#owner = $state<string | null>(null);
 	#currentOwner: () => string | null;
@@ -55,7 +51,6 @@ export class MatchCache {
 		const owner = this.#currentOwner();
 		if (owner !== this.#owner) {
 			this.#matches.clear();
-			this.#acted.clear();
 			this.#owner = owner;
 		}
 		return owner !== null;
@@ -70,11 +65,6 @@ export class MatchCache {
 		return this.#valid() ? this.#matches.get(code) : undefined;
 	}
 
-	/** What the player did to this match in this session, or undefined when nothing is known. */
-	actedOn(code: MatchCode): MatchAction | undefined {
-		return this.#valid() ? this.#acted.get(code) : undefined;
-	}
-
 	/** Keep a match, replacing an older copy of it. */
 	remember(match: Match): void {
 		if (this.#sync()) this.#matches.set(match.code, match);
@@ -84,14 +74,8 @@ export class MatchCache {
 		for (const match of matches) this.remember(match);
 	}
 
-	/** Note that the player confirmed or disputed this match here. */
-	markActed(code: MatchCode, action: MatchAction): void {
-		if (this.#sync()) this.#acted.set(code, action);
-	}
-
 	reset(): void {
 		this.#matches.clear();
-		this.#acted.clear();
 		this.#owner = null;
 	}
 }

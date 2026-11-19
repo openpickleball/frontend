@@ -636,15 +636,47 @@ export function createMockStore() {
 			const all = state.matches
 				.filter((m) => [...m.teamA, ...m.teamB].includes(code))
 				.filter((m) => isOwn || m.status === 'confirmed')
-				.sort((a, b) =>
-					a.playedOn === b.playedOn ? b.seq - a.seq : a.playedOn < b.playedOn ? 1 : -1
-				);
+				.sort(newestFirst);
 			return { ok: true, items: all.slice(offset, offset + limit), count: all.length };
+		},
+
+		/**
+		 * `list_matches_awaiting_confirmation`: pending matches the signed-in account's player
+		 * played in where no one on their team has confirmed yet, newest first. An account with no
+		 * player gets an empty page. A disputed or voided match is never pending, so never listed.
+		 */
+		listAwaitingConfirmation(
+			viewerEmail: string,
+			limit: number,
+			offset: number
+		): { items: MockMatch[]; count: number } {
+			const own = playerOfAccount(viewerEmail);
+			if (!own) return { items: [], count: 0 };
+			const all = state.matches
+				.filter((m) => {
+					if (m.status !== 'pending') return false;
+					const team = m.teamA.includes(own.code)
+						? m.teamA
+						: m.teamB.includes(own.code)
+							? m.teamB
+							: null;
+					return (
+						team !== null &&
+						!m.decisions.some((d) => d.decision === 'confirm' && team.includes(d.player))
+					);
+				})
+				.sort(newestFirst);
+			return { items: all.slice(offset, offset + limit), count: all.length };
 		},
 
 		/** Whether a code is a well-formed player code (a malformed one is a 404 in the API). */
 		parsePlayerCode
 	};
+}
+
+/** The history order: newest played date first, then the latest submitted. */
+function newestFirst(a: MockMatch, b: MockMatch): number {
+	return a.playedOn === b.playedOn ? b.seq - a.seq : a.playedOn < b.playedOn ? 1 : -1;
 }
 
 /** The same fingerprint idea as `match_fingerprint`: player and team order do not matter. */

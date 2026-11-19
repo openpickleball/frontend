@@ -35,36 +35,21 @@ describe('MatchCache', () => {
 		expect(cache.get(b.code)).toBe(b);
 	});
 
-	it('knows nothing about what the player did until they act', () => {
-		const { cache } = cacheFor(TAMSIN);
-		const match = sampleMatch();
-		cache.remember(match);
-		expect(cache.actedOn(match.code)).toBeUndefined();
-		cache.markActed(match.code, 'confirm');
-		expect(cache.actedOn(match.code)).toBe('confirm');
-		cache.markActed(match.code, 'dispute');
-		expect(cache.actedOn(match.code)).toBe('dispute');
-	});
-
 	it('stores nothing while no player is signed in', () => {
 		const { cache } = cacheFor(null);
 		const match = sampleMatch();
 		cache.remember(match);
-		cache.markActed(match.code, 'confirm');
 		expect(cache.get(match.code)).toBeUndefined();
-		expect(cache.actedOn(match.code)).toBeUndefined();
 	});
 
 	it('never shows one player’s matches to the next', () => {
 		const { cache, signInAs } = cacheFor(TAMSIN);
 		const match = sampleMatch();
 		cache.remember(match);
-		cache.markActed(match.code, 'confirm');
 
 		// Reads stop at once, before anything writes.
 		signInAs(BEA);
 		expect(cache.get(match.code)).toBeUndefined();
-		expect(cache.actedOn(match.code)).toBeUndefined();
 
 		// The first write for the new player drops the old data for good.
 		cache.remember(sampleMatch({ status: 'confirmed' }));

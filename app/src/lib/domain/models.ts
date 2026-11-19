@@ -66,7 +66,11 @@ export type Match = {
 	viewerSide: Side | null;
 	/** The latest confirm or dispute the signed-in player recorded, `none` if there is none. */
 	viewerDecision: 'confirm' | 'dispute' | 'none';
-	/** Whether a player on each side has confirmed. Null when the signed-in player did not play. */
+	/**
+	 * Whether any player on each side has confirmed. A dispute is not a confirmation. A match an
+	 * organizer or moderator confirmed can show both sides false, so read `status` for whether the
+	 * match is confirmed. Null when the signed-in player did not play.
+	 */
 	confirmedBySide: { a: boolean; b: boolean } | null;
 	/** When the match was submitted, an ISO time. */
 	createdAt: string;
@@ -109,7 +113,11 @@ export function winner(match: Pick<Match, 'games' | 'bestOf'>): Side | null {
 	return null;
 }
 
-/** The team that has the player with `myCode`, or null when they did not play. */
+/**
+ * The team that has the player with `myCode`, or null when they did not play. For the signed-in
+ * player, read `match.viewerSide` instead: the API says it. This works from the codes in the match,
+ * for a code the API does not report on.
+ */
 export function myTeam(match: Pick<Match, 'teamA' | 'teamB'>, myCode: PlayerCode): Team | null {
 	for (const team of [match.teamA, match.teamB]) {
 		if (team.players.some((player) => player.code === myCode)) return team;
@@ -120,6 +128,29 @@ export function myTeam(match: Pick<Match, 'teamA' | 'teamB'>, myCode: PlayerCode
 /** True while the match waits for confirmation. */
 export function isPending(match: Pick<Match, 'status'>): boolean {
 	return match.status === 'pending';
+}
+
+/**
+ * True when the signed-in player played in a pending match and no one on their team has confirmed
+ * it. These are the matches that need them.
+ */
+export function needsViewerConfirmation(
+	match: Pick<Match, 'status' | 'viewerSide' | 'confirmedBySide'>
+): boolean {
+	if (match.status !== 'pending' || !match.viewerSide || !match.confirmedBySide) return false;
+	return !match.confirmedBySide[match.viewerSide];
+}
+
+/**
+ * True when the signed-in player's team has confirmed a pending match and the other team has not.
+ */
+export function waitingOnOtherTeam(
+	match: Pick<Match, 'status' | 'viewerSide' | 'confirmedBySide'>
+): boolean {
+	if (match.status !== 'pending' || !match.viewerSide || !match.confirmedBySide) return false;
+	return (
+		match.confirmedBySide[match.viewerSide] && !match.confirmedBySide[otherSide(match.viewerSide)]
+	);
 }
 
 /** Whether the player with `myCode` won. Null when they did not play or the match is undecided. */

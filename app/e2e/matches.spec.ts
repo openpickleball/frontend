@@ -37,24 +37,39 @@ function rowFor(page: Page, code: string) {
 }
 
 test.describe('home', () => {
-	test('lists the pending matches first, then the recent ones', async ({ page }) => {
+	test('lists what needs her, then what waits on the other team, then recent matches', async ({
+		page
+	}) => {
 		await expect(page).toHaveTitle('OPEN Pickleball');
 		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 		await expect(page.getByRole('link', { name: 'Record a match' })).toBeVisible();
 
-		const needs = page.getByRole('heading', { level: 2, name: 'Pending matches' });
+		const needs = page.getByRole('heading', { level: 2, name: 'Needs your confirmation' });
+		const waiting = page.getByRole('heading', { level: 2, name: 'Waiting for the other team' });
 		const recent = page.getByRole('heading', { level: 2, name: 'Recent matches' });
 		await expect(needs).toBeVisible();
+		await expect(waiting).toBeVisible();
 		await expect(recent).toBeVisible();
-		const [needsBox, recentBox] = [await needs.boundingBox(), await recent.boundingBox()];
-		expect(needsBox!.y).toBeLessThan(recentBox!.y);
+		const [needsBox, waitingBox, recentBox] = [
+			await needs.boundingBox(),
+			await waiting.boundingBox(),
+			await recent.boundingBox()
+		];
+		expect(needsBox!.y).toBeLessThan(waitingBox!.y);
+		expect(waitingBox!.y).toBeLessThan(recentBox!.y);
+		await expect(page.getByRole('heading', { name: 'Pending matches' })).toHaveCount(0);
 
-		const needsList = page.getByRole('list', { name: 'Pending matches' });
-		await expect(needsList.getByTestId('match-row')).toHaveCount(3);
-		await expect(needsList.getByTestId('match-row').first()).toHaveAttribute(
-			'data-status',
-			'pending'
-		);
+		const needsList = page.getByRole('list', { name: 'Needs your confirmation' });
+		await expect(needsList.getByTestId('match-row')).toHaveCount(2);
+		await expect(rowFor(page, WAITING_ON_ME)).toContainText('Needs your confirmation.');
+		await expect(rowFor(page, WAITING_ON_ME_TOO)).toBeVisible();
+		await expect(page.getByTestId('more-needs')).toHaveCount(0);
+
+		const waitingList = page.getByRole('list', { name: 'Waiting for the other team' });
+		await expect(waitingList.getByTestId('match-row')).toHaveCount(1);
+		await expect(
+			waitingList.locator(`a[href$="/matches/${ALREADY_CONFIRMED_BY_ME}"]`)
+		).toContainText('You confirmed this score. Waiting for the other team.');
 		await expect(
 			page.getByRole('list', { name: 'Recent matches' }).getByTestId('match-row')
 		).toHaveCount(5);
@@ -71,7 +86,7 @@ test.describe('home', () => {
 	});
 
 	test('has no WCAG 2.1 AA violations', async ({ page }) => {
-		await expect(page.getByRole('heading', { name: 'Pending matches' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Needs your confirmation' })).toBeVisible();
 		await expectNoAxeViolations(page);
 	});
 });
@@ -134,34 +149,51 @@ test.describe('match detail', () => {
 		await expect(page.getByRole('button', { name: 'Dispute' })).toHaveCount(0);
 
 		// The home list no longer asks for it.
-		await page.locator('#main').getByRole('link', { name: 'Matches', exact: true }).click();
+		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
+		await expect(
+			page.getByRole('list', { name: 'Needs your confirmation' }).getByTestId('match-row')
+		).toHaveCount(1);
+		await page.getByRole('link', { name: 'All matches' }).click();
 		await expect(
 			rowFor(page, WAITING_ON_ME_TOO).getByText('Confirmed', { exact: true })
 		).toBeVisible();
 	});
 
-	test('says it is waiting for the other team after the player confirms a pending match', async ({
+	test('confirms a match the other team has not, then waits for the other team', async ({
+		page
+	}) => {
+		await rowFor(page, WAITING_ON_ME).click();
+		// Bea's team confirmed it, Tamsin's has not.
+		await expect(page.getByText(/The other team has confirmed this score/)).toBeVisible();
+		await page.getByRole('button', { name: 'Confirm score' }).click();
+		await expect(page.getByText('Confirmed. The match now counts.')).toBeVisible();
+	});
+
+	test('says it is waiting for the other team when her team already confirmed', async ({
 		page
 	}) => {
 		await rowFor(page, ALREADY_CONFIRMED_BY_ME).click();
-		// Cold, the app cannot know she confirmed it already, so it still offers Confirm.
-		await expect(page.getByRole('button', { name: 'Confirm score' })).toBeVisible();
-		await page.getByRole('button', { name: 'Confirm score' }).click();
-
-		await expect(page.getByText('Confirmed. Thanks for checking the score.')).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Waiting for the other team' })).toBeFocused();
+		// The API says her team confirmed, so there is nothing to press.
+		await expect(page.getByRole('heading', { name: 'Waiting for the other team' })).toBeVisible();
+		await expect(page.getByText('You confirmed this score.')).toBeVisible();
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'pending');
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Dispute' })).toHaveCount(0);
+	});
 
-		// Back on home, the match is still pending, and the row says she confirmed it here.
-		await page.locator('#main').getByRole('link', { name: 'Matches', exact: true }).click();
+	test('shows her own decision after a dispute', async ({ page }) => {
+		await rowFor(page, WAITING_ON_ME).click();
+		await page.getByRole('button', { name: 'Dispute', exact: true }).click();
+		await page
+			.getByRole('alertdialog', { name: 'Dispute this score?' })
+			.getByRole('button', { name: 'Dispute score' })
+			.click();
+		await expect(page.getByText(/You said this score is wrong/)).toBeVisible();
+		// It leaves "Needs your confirmation" on home.
 		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
-		const pending = page.getByRole('list', { name: 'Pending matches' });
-		await expect(pending.getByTestId('match-row')).toHaveCount(3);
-		await expect(rowFor(page, ALREADY_CONFIRMED_BY_ME)).toContainText(
-			'You confirmed this score. Waiting for the other team.'
-		);
-		await expect(rowFor(page, WAITING_ON_ME)).toContainText('Waiting on a confirmation');
+		await expect(
+			page.getByRole('list', { name: 'Needs your confirmation' }).getByTestId('match-row')
+		).toHaveCount(1);
 	});
 
 	test('disputes a match through the dialog, with Cancel focused first', async ({ page }) => {
