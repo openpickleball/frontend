@@ -7,11 +7,10 @@ import { server, useMockApi } from '#lib/mocks/node.js';
 import { MatchCache } from './cache.svelte.js';
 import {
 	PAGE_SIZE,
-	SCAN_LIMIT,
 	configureMatchesApi,
 	confirmMatch,
 	disputeMatch,
-	findMatch,
+	getMatch,
 	listAwaitingConfirmation,
 	listMatches,
 	rememberMatch
@@ -145,55 +144,53 @@ describe('listAwaitingConfirmation', () => {
 	});
 });
 
-describe('findMatch', () => {
-	it('answers from the cache with no request', async () => {
-		const match = sampleMatch();
-		cache.remember(match);
-		expect(await findMatch(match.code, TAMSIN, { cache })).toBe(match);
-		expect(calls).toEqual([]);
-	});
-
-	it('reads the list again with `fresh`, even when the cache has the match', async () => {
-		cache.remember(sampleMatch({ code: CONFIRMED, status: 'pending' }));
-		const found = await findMatch(CONFIRMED, TAMSIN, { cache, fresh: true });
-		expect(calls).toHaveLength(1);
-		expect(found?.status).toBe('confirmed');
-		expect(cache.get(CONFIRMED)?.status).toBe('confirmed');
-	});
-
-	it('finds a match on the first page with one request', async () => {
-		const found = await findMatch(CONFIRMED, TAMSIN, { cache });
-		expect(found?.code).toBe(CONFIRMED);
-		expect(calls).toHaveLength(1);
+describe('getMatch', () => {
+	it('reads the match from the API and remembers it', async () => {
+		const found = await getMatch(CONFIRMED, { cache });
+		expect(found.code).toBe(CONFIRMED);
+		expect(found.status).toBe('confirmed');
+		expect(found.viewerSide).not.toBeNull();
+		expect(calls).toEqual([`GET /api/v1/matches/${CONFIRMED}`]);
 		expect(cache.get(CONFIRMED)).toBe(found);
 	});
 
-	it('scans on to later pages for an older match', async () => {
-		const found = await findMatch(code(oldest.random), TAMSIN, { cache });
-		expect(found?.code).toBe(code(oldest.random));
-		expect(calls).toHaveLength(2);
+	it('asks the API even when the cache has the match, and replaces the cached copy', async () => {
+		cache.remember(sampleMatch({ code: CONFIRMED, status: 'pending' }));
+		const found = await getMatch(CONFIRMED, { cache });
+		expect(calls).toHaveLength(1);
+		expect(found.status).toBe('confirmed');
+		expect(cache.get(CONFIRMED)?.status).toBe('confirmed');
 	});
 
-	it('gives null for a match that is not in the list, after reading all of it', async () => {
-		expect(await findMatch(NOT_MINE, TAMSIN, { cache })).toBeNull();
-		expect(calls).toHaveLength(2);
+	it('keeps the match out of the cache with `remember: false`', async () => {
+		const found = await getMatch(CONFIRMED, { cache, remember: false });
+		expect(found.code).toBe(CONFIRMED);
+		expect(cache.get(CONFIRMED)).toBeUndefined();
 	});
 
-	it('stops scanning at SCAN_LIMIT matches', async () => {
-		let requests = 0;
-		server.use(
-			http.get('*/api/v1/players/:code/matches', () => {
-				requests += 1;
-				return HttpResponse.json({ items: [], count: 500 });
-			})
-		);
-		expect(await findMatch(NOT_MINE, TAMSIN, { cache })).toBeNull();
-		expect(requests).toBe(SCAN_LIMIT / PAGE_SIZE);
+	it('finds the oldest match with one request, with no scan of the list', async () => {
+		const found = await getMatch(code(oldest.random), { cache });
+		expect(found.code).toBe(code(oldest.random));
+		expect(calls).toHaveLength(1);
+	});
+
+	it('reads a match in every status the player is in', async () => {
+		expect((await getMatch(WAITING_ON_ME, { cache })).status).toBe('pending');
+		expect((await getMatch(DISPUTED, { cache })).status).toBe('disputed');
+	});
+
+	it('throws not_found for a match the player was not in', async () => {
+		expect((await failure(getMatch(NOT_MINE, { cache }))).kind).toBe('not_found');
+		expect(cache.get(NOT_MINE)).toBeUndefined();
+	});
+
+	it('throws not_found for an unknown code', async () => {
+		expect((await failure(getMatch(code('00000000000'), { cache }))).kind).toBe('not_found');
 	});
 
 	it('throws a network AppError when the API cannot be reached', async () => {
-		server.use(http.get('*/api/v1/players/:code/matches', () => HttpResponse.error()));
-		expect((await failure(findMatch(NOT_MINE, TAMSIN, { cache }))).kind).toBe('network');
+		server.use(http.get('*/api/v1/matches/:code', () => HttpResponse.error()));
+		expect((await failure(getMatch(CONFIRMED, { cache }))).kind).toBe('network');
 	});
 });
 

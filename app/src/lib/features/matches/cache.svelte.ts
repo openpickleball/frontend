@@ -74,6 +74,11 @@ export class MatchCache {
 		for (const match of matches) this.remember(match);
 	}
 
+	/** Drop one match, for example when the API says it is not there for this player. */
+	forget(code: MatchCode): void {
+		this.#matches.delete(code);
+	}
+
 	reset(): void {
 		this.#matches.clear();
 		this.#owner = null;

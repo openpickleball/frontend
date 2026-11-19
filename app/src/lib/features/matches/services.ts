@@ -19,9 +19,6 @@ export function configureMatchesApi(next: Api = appApi): void {
 /** Matches per page. The API's own maximum is larger, and 20 matches the mockups. */
 export const PAGE_SIZE = 20;
 
-/** A cold deep link scans at most this many of the player's matches before giving up. */
-export const SCAN_LIMIT = 100;
-
 /**
  * One page of the player's matches, newest first. The owner sees every status. Every match on
  * the page goes into the cache. `offset` is how many matches to skip.
@@ -61,26 +58,20 @@ export async function listAwaitingConfirmation(
 }
 
 /**
- * Find a match by code. There is no `GET matches/{code}` (backend#194), so this checks the cache,
- * then scans the player's list a page at a time, up to `SCAN_LIMIT` matches. Resolves to null when
- * the match is not one of theirs, or is further back than the scan goes. Throws an `AppError` when
- * the API cannot be reached. Pass `fresh` to skip the cache and read the list again.
+ * Read one match from the API and remember it. Only the match's players can read it. Anyone else,
+ * and any unknown or malformed code, gets the same 404, so a `not_found` `AppError` means "not
+ * yours or not there". Any other failure is an `AppError` too. It always asks the API, so it
+ * gives the current state, for a first read and to refresh a cached copy. Pass
+ * `remember: false` to keep it out of the cache, so the caller can drop a read that came too late.
  */
-export async function findMatch(
+export async function getMatch(
 	code: MatchCode,
-	player: PlayerCode,
-	{ cache = matchCache, fresh = false }: { cache?: MatchCache; fresh?: boolean } = {}
-): Promise<Match | null> {
-	// `fresh` skips the cache, to see where a match stands after the API said it changed.
-	const cached = fresh ? undefined : cache.get(code);
-	if (cached) return cached;
-	for (let offset = 0; offset < SCAN_LIMIT; offset += PAGE_SIZE) {
-		const page = await listMatches(player, offset, { cache });
-		const found = page.items.find((match) => match.code === code);
-		if (found) return found;
-		if (offset + PAGE_SIZE >= page.count) return null;
-	}
-	return null;
+	{ cache = matchCache, remember = true }: { cache?: MatchCache; remember?: boolean } = {}
+): Promise<Match> {
+	const dto = await unwrap(api.open.GET('/api/v1/matches/{code}', { params: { path: { code } } }));
+	const match = toMatch(dto);
+	if (remember) cache.remember(match);
+	return match;
 }
 
 /**

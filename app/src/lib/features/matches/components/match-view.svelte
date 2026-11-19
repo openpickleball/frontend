@@ -4,7 +4,7 @@
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import { resolve } from '$app/paths';
 	import { isAppError } from '#lib/api/index.js';
-	import { parseMatchCode } from '#lib/domain/index.js';
+	import { parseMatchCode, type Match, type MatchCode } from '#lib/domain/index.js';
 	import { myCode } from '#lib/features/players/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
@@ -17,7 +17,7 @@
 		matchTitle,
 		scoringName
 	} from '../format.js';
-	import { confirmMatch, disputeMatch, findMatch } from '../services.js';
+	import { confirmMatch, disputeMatch, getMatch } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import DisputeDialog from './dispute-dialog.svelte';
 	import Notice from './notice.svelte';
@@ -29,32 +29,75 @@
 
 	const parsed = $derived(parseMatchCode(raw));
 	const code = $derived(parsed.ok ? parsed.value : null);
-	const match = $derived(code ? matchCache.get(code) : undefined);
+
+	// Reading the match from the API. A cached copy shows meanwhile, and the response replaces it.
+	// `missing` is a 404: the API says the same for a match the player was not in and an unknown
+	// code. `signed-out` is a 401. The result belongs to one code, so a result for the code the
+	// page just left is ignored. `fetched` is the response itself, for when the cache won't keep it.
+	type Result = {
+		code: MatchCode | null;
+		state: 'loading' | 'done' | 'missing' | 'signed-out' | 'error';
+		fetched: Match | null;
+	};
+	let result = $state<Result>({ code: null, state: 'loading', fetched: null });
+	const mine = $derived(result.code === code);
+	const lookup = $derived(mine ? result.state : 'loading');
+
+	// The cached copy shows at once, when the player came from a list or just recorded the match.
+	// A 404 or a 401 hides it, because the API says it is not theirs or not there, or they are out.
+	const match = $derived(
+		code && lookup !== 'missing' && lookup !== 'signed-out'
+			? (matchCache.get(code) ?? (mine ? result.fetched : null) ?? undefined)
+			: undefined
+	);
 	const title = $derived(code ? `Match ${code} · OPEN Pickleball` : 'Match · OPEN Pickleball');
 
-	// Looking the match up. The cache answers when the player came from a list. A deep link has to
-	// scan their list, because there is no `GET matches/{code}` (backend#194).
-	let lookup = $state<'loading' | 'done' | 'error'>('loading');
+	// Counts reads and actions. A read that finishes after a newer one started, or after the player
+	// confirmed or disputed, is ignored, so it can't bring back an older state.
 	let run = 0;
 	onDestroy(() => run++);
 
-	async function find() {
-		const you = myCode.code;
-		if (!code || !you) return;
-		const mine = ++run;
-		lookup = 'loading';
+	/** Keep a match the API returned, in the cache and on the page. */
+	function adopt(found: Match) {
+		matchCache.remember(found);
+		if (result.code === found.code) result.fetched = found;
+	}
+
+	async function load() {
+		if (!code) return;
+		const token = ++run;
+		const shown = match?.status;
+		result = { code, state: 'loading', fetched: null };
 		try {
-			await findMatch(code, you);
-			if (mine === run) lookup = 'done';
-		} catch {
-			if (mine === run) lookup = 'error';
+			const found = await getMatch(code, { remember: false });
+			if (token !== run) return;
+			adopt(found);
+			result = { code, state: 'done', fetched: found };
+			if (shown && found.status !== shown) {
+				toast('This match changed. Here is where it stands.');
+				// The button that had focus may be gone now.
+				await tick();
+				if (!document.activeElement || document.activeElement === document.body) {
+					document.getElementById('status-heading')?.focus();
+				}
+			}
+		} catch (cause) {
+			if (token !== run) return;
+			if (isAppError(cause) && cause.kind === 'not_found') {
+				matchCache.forget(code);
+				result = { code, state: 'missing', fetched: null };
+			} else if (isAppError(cause) && cause.kind === 'unauthenticated') {
+				result = { code, state: 'signed-out', fetched: null };
+			} else {
+				result = { code, state: 'error', fetched: result.fetched };
+			}
 		}
 	}
 
 	$effect(() => {
 		// Rerun when the address or the signed-in player changes.
 		void [code, myCode.code];
-		if (myCode.status === 'ready' && code) untrack(() => void find());
+		if (myCode.status === 'ready' && code) untrack(() => void load());
 	});
 
 	let busy = $state<MatchAction | null>(null);
@@ -88,16 +131,16 @@
 
 	/**
 	 * The API said the match can't take this action, so the page is out of date. Read the match
-	 * again, skipping the cache, and show where it stands. Returns false when that did not work.
+	 * again and show where it stands. Returns false when that did not work.
 	 */
 	async function refresh(): Promise<boolean> {
-		const you = myCode.code;
-		if (!code || !you) return false;
+		if (!code) return false;
 		try {
 			// What the page shows now. The fresh read replaces it in the cache.
-			const shown = matchCache.get(code)?.status;
-			const found = await findMatch(code, you, { fresh: true });
-			if (!found) return false;
+			const shown = match?.status;
+			run++;
+			const found = await getMatch(code, { remember: false });
+			adopt(found);
 			if (found.status !== shown) toast('This match changed. Here is where it stands.');
 			return true;
 		} catch {
@@ -109,18 +152,22 @@
 		if (!code || busy) return;
 		busy = action;
 		error = null;
+		// A first read still out must not overwrite what this action gets.
+		run++;
+		if (result.code === code && result.state === 'loading') result.state = 'done';
 		// Where focus goes once the buttons are enabled again. A disabled button can't take focus.
 		let focusId = 'status-heading';
 		try {
 			if (action === 'confirm') {
 				const updated = await confirmMatch(code);
+				adopt(updated);
 				toast(
 					updated.status === 'confirmed'
 						? 'Confirmed. The match now counts.'
 						: 'Confirmed. Thanks for checking the score.'
 				);
 			} else {
-				await disputeMatch(code);
+				adopt(await disputeMatch(code));
 				toast('Score disputed');
 			}
 		} catch (cause) {
@@ -147,6 +194,15 @@
 		class="mt-2 inline-flex items-center gap-2.5 text-[15px] text-muted underline underline-offset-4 hover:text-secondary"
 		><ArrowLeftIcon class="size-4" aria-hidden="true" />Matches</a
 	>
+	{#if lookup === 'error'}
+		<div
+			class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[15px] text-muted"
+			role="status"
+		>
+			<span>Showing a saved copy.</span>
+			<Button variant="outline" size="sm" onclick={load}>Try again</Button>
+		</div>
+	{/if}
 	<div class="pt-4">
 		<p class="label">{formatLongDate(match.playedOn)}</p>
 		<h1 class="page-title mt-2">{matchTitle(match)}</h1>
@@ -188,15 +244,21 @@
 	</dl>
 
 	<DisputeDialog bind:open={disputeOpen} onconfirm={() => act('dispute')} />
-{:else if myCode.status !== 'ready' || (code && lookup === 'loading')}
+{:else if code && (lookup === 'loading' || lookup === 'done')}
 	<h1 class="page-title">Match</h1>
 	<CodeGate>
 		<p class="mt-8 text-muted" role="status">Loading the match…</p>
 	</CodeGate>
+{:else if code && lookup === 'signed-out'}
+	<h1 class="page-title">Match</h1>
+	<section class="mt-8 grid justify-items-start gap-3">
+		<p class="max-w-[44ch] text-muted">Sign in to see your matches.</p>
+		<Button href={resolve('/account/login')}>Sign in</Button>
+	</section>
 {:else if code && lookup === 'error'}
 	<h1 class="page-title">Match</h1>
 	<div class="mt-8">
-		<Notice kind="error" title="This match didn't load." onretry={find}>
+		<Notice kind="error" title="This match didn't load." onretry={load}>
 			OPEN didn't respond. Check your connection, then try again.
 		</Notice>
 	</div>
@@ -204,8 +266,7 @@
 	<h1 class="page-title">We couldn't find this match</h1>
 	<div class="mt-4 grid max-w-[46ch] justify-items-start gap-5">
 		<p class="text-muted">
-			It may not be one of yours, the link may be wrong, or it's older than your last 100 matches.
-			Matches you played in are in your history.
+			Only the players in a match can see it. Check the link, or look for the match in your history.
 		</p>
 		<Button href={resolve('/matches')} variant="outline">Matches</Button>
 	</div>

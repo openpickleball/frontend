@@ -16,7 +16,10 @@ const WAITING_ON_ME = matchCode('7QK2H9WD3NF');
 const WAITING_ON_ME_TOO = matchCode('3FTB8ZRMK6P');
 const ALREADY_CONFIRMED_BY_ME = matchCode('X4NC2GHJ9VQ');
 
-// The oldest match she is in: past the first page, so a deep link has to scan for it.
+// A confirmed match between Oren and Bea. Tamsin is not in it, so she cannot read it.
+const NOT_HERS = matchCode('C4VD8RME2TX');
+
+// The oldest match she is in: past the first page of her history, and still one request by URL.
 const oldest = MATCHES.filter((m) => [...m.teamA, ...m.teamB].includes('tamsin')).reduce((a, b) =>
 	a.playedOn <= b.playedOn ? a : b
 );
@@ -218,14 +221,28 @@ test.describe('match detail', () => {
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toHaveCount(0);
 	});
 
-	test('opens a match from a deep link, scanning the list when the cache is empty', async ({
-		page
-	}) => {
+	test('opens a match from its URL on a fresh page load, with nothing cached', async ({ page }) => {
 		const code = matchCode(oldest.random);
 		await page.goto(`/matches/${code}`);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText(/Singles|Doubles/);
 		await expect(page.getByText(code)).toBeVisible();
 		await expect(page.getByRole('table', { name: 'Score by game' })).toBeAttached();
+		await expectNoAxeViolations(page);
+	});
+
+	test('opens a match with the status panel from a link in any status', async ({ page }) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'pending');
+		await expect(page.getByRole('button', { name: 'Confirm score' })).toBeVisible();
+	});
+
+	test('says the same for a match she did not play in as for an unknown code', async ({ page }) => {
+		await page.goto(`/matches/${NOT_HERS}`);
+		await expect(
+			page.getByRole('heading', { level: 1, name: "We couldn't find this match" })
+		).toBeVisible();
+		await expect(page.getByText(/Only the players in a match can see it/)).toBeVisible();
+		await expect(page.getByTestId('status-panel')).toHaveCount(0);
 		await expectNoAxeViolations(page);
 	});
 

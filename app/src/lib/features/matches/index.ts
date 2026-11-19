@@ -4,8 +4,8 @@
  * What the screens can and cannot know
  *
  * - `GET players/{code}/matches` returns every status for the owner, with no status filter
- *   (backend#192). There is no `GET matches/{code}` (backend#194), so a cold deep link scans the
- *   list, up to `SCAN_LIMIT` matches.
+ *   (backend#192). `GET matches/{code}` returns one match, in any status, to its players only.
+ *   Everyone else gets the same 404 as an unknown code, so a 404 means "not yours or not there".
  * - Every `MatchOut` says which side the signed-in player is on, their latest decision and which
  *   teams have confirmed (`viewerSide`, `viewerDecision`, `confirmedBySide`). The screens read
  *   those, not the codes. `GET me/matches/awaiting-confirmation` lists the pending matches where
@@ -18,12 +18,13 @@
  * - Pages: `HomeView`, `HistoryView` (pass `page`, from 1) and `MatchView` (pass the `code` from
  *   the address). Each waits for `myCode` and asks for it when needed.
  * - `rememberMatch(match)`: call it after `POST matches/` succeeds, before going to
- *   `/matches/{code}`. It puts the new match in the cache, so the detail page opens with no
- *   lookup. Pass the match as the API returned it after the player's own confirmation (Decision Q4).
+ *   `/matches/{code}`. It puts the new match in the cache, so the detail page shows it at
+ *   once while it reads the current state. Pass the match as the API returned it after the
+ *   player's own confirmation (Decision Q4).
  * - `matchCache`: matches by code, filled by every list page and every confirm or dispute
  *   response. `matchCache.get(code)` is reactive. It empties by itself when the signed-in player
  *   changes.
- * - `listMatches(player, offset)`, `listAwaitingConfirmation(offset)`, `findMatch(code, player)`,
+ * - `listMatches(player, offset)`, `listAwaitingConfirmation(offset)`, `getMatch(code)`,
  *   `confirmMatch(code)` and `disputeMatch(code)` are the services. They throw an `AppError` when a call fails.
  * - `format.ts` helpers (`scoreLine`, `teamNames`, `formatDate`, ...) are exported for other
  *   screens that show a match.
@@ -31,11 +32,10 @@
 export { MatchCache, matchCache, ownerKey, type MatchAction } from './cache.svelte.js';
 export {
 	PAGE_SIZE,
-	SCAN_LIMIT,
 	configureMatchesApi,
 	confirmMatch,
 	disputeMatch,
-	findMatch,
+	getMatch,
 	listAwaitingConfirmation,
 	listMatches,
 	rememberMatch

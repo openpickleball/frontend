@@ -493,6 +493,18 @@ export function createMockStore() {
 		},
 
 		/**
+		 * `get_match`: a match in any status, for a player who played in it. Everyone else, with
+		 * an unknown code or not, gets undefined (a 404 in the API). Organizers and moderators
+		 * get no more than other accounts.
+		 */
+		matchForParticipant(email: string, code: string): MockMatch | undefined {
+			const match = this.matchByCode(code);
+			const own = playerOfAccount(email);
+			if (!match || !own || ![...match.teamA, ...match.teamB].includes(own.code)) return undefined;
+			return match;
+		},
+
+		/**
 		 * `create_match` after the request body has passed schema validation. Follows
 		 * `apps/matches/api.py`: the submitter must play in it (403), every code must belong to
 		 * a player (422), the score rules (422), then the duplicate check (409).
