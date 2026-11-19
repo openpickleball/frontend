@@ -1,5 +1,6 @@
 import createClient, { type Client } from 'openapi-fetch';
 import { CSRF_BOOTSTRAP_PATH, CSRF_COOKIE_NAME, createCsrfMiddleware, readCookie } from './csrf';
+import { isAbortError, networkError } from './errors';
 import type { paths as OpenPaths } from './generated/open';
 import type { paths as AllauthPaths } from './generated/allauth';
 
@@ -31,7 +32,15 @@ export type Api = {
 
 export function createApi(options: CreateApiOptions = {}): Api {
 	const baseUrl = options.baseUrl ?? '';
-	const doFetch: typeof fetch = (input, init) => (options.fetch ?? globalThis.fetch)(input, init);
+	// fetch rejects only when no answer came, or when the request was aborted. Mark the first as
+	// a network error here, so a later failure (such as a 200 that is not JSON) can't pass for one.
+	const doFetch: typeof fetch = async (input, init) => {
+		try {
+			return await (options.fetch ?? globalThis.fetch)(input, init);
+		} catch (cause) {
+			throw isAbortError(cause) ? cause : networkError(cause);
+		}
+	};
 	const getCookies =
 		options.getCookies ?? (() => (typeof document === 'undefined' ? '' : document.cookie));
 

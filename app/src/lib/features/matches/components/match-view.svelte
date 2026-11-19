@@ -40,6 +40,8 @@
 		fetched: Match | null;
 	};
 	let result = $state<Result>({ code: null, state: 'loading', fetched: null });
+	// When the read failed: was it the connection, or a problem on our side?
+	let offline = $state(false);
 	const mine = $derived(result.code === code);
 	const lookup = $derived(mine ? result.state : 'loading');
 
@@ -89,6 +91,7 @@
 			} else if (isAppError(cause) && cause.kind === 'unauthenticated') {
 				result = { code, state: 'signed-out', fetched: null };
 			} else {
+				offline = isAppError(cause) && cause.kind === 'network';
 				result = { code, state: 'error', fetched: result.fetched };
 			}
 		}
@@ -258,8 +261,12 @@
 {:else if code && lookup === 'error'}
 	<h1 class="page-title">Match</h1>
 	<div class="mt-8">
-		<Notice kind="error" title="This match didn't load." onretry={load}>
-			OPEN didn't respond. Check your connection, then try again.
+		<Notice kind={offline ? 'offline' : 'error'} title="This match didn't load." onretry={load}>
+			{#if offline}
+				It needs a connection. Check it, then try again.
+			{:else}
+				Something went wrong on our side. Wait a moment, then try again.
+			{/if}
 		</Notice>
 	</div>
 {:else}

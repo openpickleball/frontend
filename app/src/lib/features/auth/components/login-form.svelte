@@ -57,7 +57,8 @@
 					errors = fields;
 					focusFirstError(errors, ['email', 'password'], 'login');
 				} else {
-					problem = { title: error.message };
+					// No field to mark, so say what happened to the sign-in as a whole.
+					problem = { title: "We couldn't sign you in.", detail: error.message };
 				}
 			}
 		} finally {

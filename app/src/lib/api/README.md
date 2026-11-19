@@ -7,6 +7,8 @@ Transport only: generated types, the two openapi-fetch clients, CSRF handling an
 - `client.ts`: `createApi()` and the app-wide `api` (`api.open`, `api.allauth`). The generated paths already include their prefix (`/api/v1/...`, `/_allauth/{client}/v1/...`), so the base URL is empty. Pass `allauthParams` on every allauth call. Call `api.initCsrf()` once at startup.
 - `csrf.ts`: copies the `csrftoken` cookie into `X-CSRFToken` on unsafe methods and retries once after a CSRF 403.
 - `errors.ts`: `toAppError(error, response?)`. `unwrap.ts`: `unwrap(call)` returns data or throws an `AppError`.
+  - Only a `fetch` that got no answer is kind `network`. The clients mark it as it happens. A 200 that is not JSON, an aborted call or any other thrown error is kind `server`, with the thrown value in `cause`.
+  - `message` is safe to show and says what to do next. It is the backend's text only for `validation` and `duplicate`, where it names the field or the match. A `validation` error with no field says so instead of pointing at highlighted fields.
 
 ## Refreshing the snapshots
 

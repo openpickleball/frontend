@@ -1,4 +1,4 @@
-import { isAppError } from '#lib/api/index.js';
+import { isAppError, type AppErrorKind } from '#lib/api/index.js';
 import type { Match, MatchPage, PlayerCode } from '#lib/domain/index.js';
 import { matchCache, type MatchCache } from './cache.svelte.js';
 import { listMatches, PAGE_SIZE } from './services.js';
@@ -22,8 +22,16 @@ export class MatchListView {
 	items = $state.raw<Match[]>([]);
 	count = $state(0);
 	offset = $state(0);
+	/**
+	 * Why the last load failed, so the screen can say the right thing: `network` is offline,
+	 * `unauthenticated` needs a sign-in, and the rest is a problem on our side. Null otherwise.
+	 */
+	errorKind = $state<AppErrorKind | null>(null);
+
 	/** True when the failure was a missing connection, so the screen can say "offline". */
-	offline = $state(false);
+	get offline(): boolean {
+		return this.errorKind === 'network';
+	}
 
 	#run = 0;
 	#cache: MatchCache;
@@ -49,11 +57,12 @@ export class MatchListView {
 			this.items = page.items;
 			this.count = page.count;
 			this.offset = offset;
-			this.offline = false;
+			this.errorKind = null;
 			this.status = 'ready';
 		} catch (error) {
 			if (run !== this.#run) return;
-			this.offline = isAppError(error) && error.kind === 'network';
+			// Anything that is not an AppError (such as a response we could not read) is on our side.
+			this.errorKind = isAppError(error) ? error.kind : 'server';
 			this.status = 'error';
 		}
 	}

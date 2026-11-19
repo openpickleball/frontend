@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
+import type { AppError, AppErrorKind } from '#lib/api/index.js';
 import { buildCode, type Match, type MatchCode } from '#lib/domain/index.js';
 import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
@@ -159,5 +160,34 @@ describe('HomeView', () => {
 		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [needs], count: 1 });
 		await render(HomeView);
 		await expect.element(page.getByText("Your matches didn't load.")).toBeVisible();
+		await expect.element(page.getByText(/went wrong on our side/)).toBeVisible();
+		await expect.element(page.getByText(/connection/)).not.toBeInTheDocument();
+		// A problem on our side is not a lost connection, so recording stays open.
+		await expect
+			.element(page.getByRole('link', { name: 'Record a match' }))
+			.toHaveAttribute('href', '/record');
+	});
+
+	it('says the player is offline only for a lost connection', async () => {
+		mocked.listMatches.mockRejectedValue(failure('network'));
+		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [], count: 0 });
+		await render(HomeView);
+		await expect.element(page.getByText("You're offline.")).toBeVisible();
+		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
+	});
+
+	it('links to sign in, with no Try again, when the player is signed out', async () => {
+		mocked.listMatches.mockRejectedValue(failure('unauthenticated'));
+		mocked.listAwaitingConfirmation.mockRejectedValue(failure('unauthenticated'));
+		await render(HomeView);
+		await expect.element(page.getByText("You're not signed in.")).toBeVisible();
+		await expect.element(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
+		await expect
+			.element(page.getByRole('alert').getByRole('button', { name: 'Try again' }))
+			.not.toBeInTheDocument();
 	});
 });
+
+function failure(kind: AppErrorKind): AppError {
+	return { kind, status: null, code: kind, message: 'Backend text', fields: {} };
+}

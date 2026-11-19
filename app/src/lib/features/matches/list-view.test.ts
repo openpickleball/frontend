@@ -72,4 +72,29 @@ describe('MatchListView', () => {
 		await loading;
 		expect(view.count).toBe(0);
 	});
+
+	it.each([
+		['network', true],
+		['unauthenticated', false],
+		['server', false],
+		['not_found', false]
+	] as const)('keeps the kind of a failed load (%s)', async (kind, offline) => {
+		const view = new MatchListView(new MatchCache(() => TAMSIN));
+		listMatches.mockRejectedValueOnce({ kind, status: null, code: kind, message: '', fields: {} });
+		await view.load(TAMSIN);
+		expect(view.status).toBe('error');
+		expect(view.errorKind).toBe(kind);
+		expect(view.offline).toBe(offline);
+	});
+
+	it('treats a failure that is not an AppError as ours, and clears it on success', async () => {
+		const view = new MatchListView(new MatchCache(() => TAMSIN));
+		listMatches
+			.mockRejectedValueOnce(new Error('bad data'))
+			.mockResolvedValueOnce(page(1, 'pending'));
+		await view.load(TAMSIN);
+		expect(view.errorKind).toBe('server');
+		await view.load(TAMSIN);
+		expect(view.errorKind).toBeNull();
+	});
 });

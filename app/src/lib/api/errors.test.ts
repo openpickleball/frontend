@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAppError, toAppError } from './errors';
+import { isAppError, networkError, toAppError } from './errors';
 
 function res(status: number, body?: string, contentType = 'application/json'): Response {
 	return new Response(body, { status, headers: { 'Content-Type': contentType } });
@@ -45,15 +45,46 @@ describe('toAppError: ninja errors', () => {
 			res(403)
 		);
 		expect(error).toMatchObject({ kind: 'csrf', status: 403, code: 'forbidden' });
-		expect(error.message).toBe('Your session check failed. Please try again.');
+		expect(error.message).toBe('Your session check failed. Reload the page, then try again.');
 	});
 
-	it('maps any other 403 to forbidden', () => {
+	it('maps any other 403 to forbidden, with our own message', () => {
 		const error = toAppError(
 			{ code: 'forbidden', message: 'You are not part of this match.', errors: [] },
 			res(403)
 		);
-		expect(error).toMatchObject({ kind: 'forbidden', message: 'You are not part of this match.' });
+		expect(error).toMatchObject({
+			kind: 'forbidden',
+			message: "You can't do that. Only the players in a match can change it."
+		});
+	});
+
+	it.each([
+		[
+			401,
+			'unauthorized',
+			'Authentication required.',
+			"You're not signed in. Sign in, then try again."
+		],
+		[
+			409,
+			'conflict',
+			'Conflict thing',
+			"That can't be done right now. Reload the page to see the latest, then try again."
+		],
+		[429, 'throttled', 'Too many requests.', 'Too many attempts. Wait a moment and try again.'],
+		[500, 'error', 'Internal', 'Something went wrong on our side. Wait a moment, then try again.']
+	])('never shows the backend text for a %i', (status, code, text, message) => {
+		const error = toAppError({ code, message: text, errors: [] }, res(status));
+		expect(error.message).toBe(message);
+	});
+
+	it('keeps the backend text for a 422 with no field', () => {
+		const error = toAppError(
+			{ code: 'validation_error', message: 'A match needs at least one game.', errors: [] },
+			res(422)
+		);
+		expect(error.message).toBe('A match needs at least one game.');
 	});
 
 	it('maps 404 not_found', () => {
@@ -228,6 +259,13 @@ describe('toAppError: non-JSON responses', () => {
 		expect(toAppError(undefined, res(404))).toMatchObject({ kind: 'not_found' });
 	});
 
+	it('does not point at highlighted fields when a 400 has none', () => {
+		const error = toAppError('{oops', res(400, '{oops', 'text/plain'));
+		expect(error).toMatchObject({ kind: 'validation', fields: {} });
+		expect(error.message).toBe("Something you entered wasn't accepted. Check it and try again.");
+		expect(toAppError({ status: 400 }, res(400)).message).toBe(error.message);
+	});
+
 	it('maps an unknown JSON shape by status', () => {
 		expect(toAppError({ detail: 'x' }, res(500))).toMatchObject({ kind: 'server', status: 500 });
 	});
@@ -240,16 +278,40 @@ describe('toAppError: non-JSON responses', () => {
 	});
 });
 
-describe('toAppError: network failures', () => {
-	it('maps a fetch rejection to network with a null status', () => {
-		const error = toAppError(new TypeError('Failed to fetch'));
+describe('toAppError: failures with no response', () => {
+	it('keeps the network error the client made from a fetch rejection', () => {
+		const cause = new TypeError('Failed to fetch');
+		const error = toAppError(networkError(cause));
 		expect(error).toEqual({
 			kind: 'network',
 			status: null,
 			code: 'network_error',
 			message: "We can't reach the server. Check your connection and try again.",
-			fields: {}
+			fields: {},
+			cause
 		});
+	});
+
+	it('maps a body that is not JSON to server, not network', () => {
+		const cause = new SyntaxError('Unexpected token < in JSON');
+		expect(toAppError(cause)).toEqual({
+			kind: 'server',
+			status: null,
+			code: 'bad_response',
+			message: 'Something went wrong on our side. Wait a moment, then try again.',
+			fields: {},
+			cause
+		});
+	});
+
+	it('maps an aborted request to server with the aborted code', () => {
+		const error = toAppError(new DOMException('The operation was aborted.', 'AbortError'));
+		expect(error).toMatchObject({ kind: 'server', status: null, code: 'aborted' });
+	});
+
+	it('maps any other thrown error, such as a middleware TypeError, to server', () => {
+		const error = toAppError(new TypeError("Cannot read properties of undefined (reading 'x')"));
+		expect(error).toMatchObject({ kind: 'server', status: null, code: 'unexpected' });
 	});
 
 	it('returns an AppError unchanged', () => {

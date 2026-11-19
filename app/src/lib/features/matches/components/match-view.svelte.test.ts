@@ -265,13 +265,28 @@ describe('MatchView', () => {
 
 	it('offers to try again when the match did not load, and reads it again', async () => {
 		matchCache.reset();
-		mocked.getMatch.mockRejectedValueOnce(new Error('offline'));
+		mocked.getMatch.mockRejectedValueOnce(new Error('boom'));
 		await render(MatchView, { code: code() });
 
-		await expect.element(page.getByRole('alert').getByText(/OPEN didn.t respond/)).toBeVisible();
+		await expect.element(page.getByRole('alert').getByText(/went wrong on our side/)).toBeVisible();
 		await page.getByRole('button', { name: 'Try again' }).click();
 
 		await expect.element(page.getByTestId('status-panel')).toBeVisible();
 		expect(mocked.getMatch).toHaveBeenCalledTimes(2);
+	});
+
+	it('asks to check the connection only when the read had no connection', async () => {
+		matchCache.reset();
+		mocked.getMatch.mockRejectedValueOnce({
+			kind: 'network',
+			status: null,
+			code: 'network_error',
+			message: "We can't reach the server.",
+			fields: {}
+		} satisfies AppError);
+		await render(MatchView, { code: code() });
+
+		await expect.element(page.getByRole('status').getByText(/needs a connection/)).toBeVisible();
+		await expect.element(page.getByText(/went wrong on our side/)).not.toBeInTheDocument();
 	});
 });

@@ -150,6 +150,22 @@ describe('LoginForm', () => {
 		await expect
 			.element(screen.getByText("We can't reach the server. Check your connection and try again."))
 			.toBeVisible();
+		await expect.element(screen.getByText("We couldn't sign you in.")).toBeVisible();
+	});
+
+	it('does not point at highlighted fields when the error marks none', async () => {
+		mockedLogin.mockRejectedValue(
+			appError({ message: "Something you entered wasn't accepted. Check it and try again." })
+		);
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		await fill(screen, 'player@example.com', 'a-password');
+		await screen.getByRole('button', { name: 'Sign in' }).click();
+
+		await expect.element(screen.getByText("We couldn't sign you in.")).toBeVisible();
+		await expect.element(screen.getByText(/highlighted/)).not.toBeInTheDocument();
+		await expect
+			.element(screen.getByLabelText('Email'))
+			.not.toHaveAttribute('aria-invalid', 'true');
 	});
 
 	it('shows check your email when the account still needs confirming', async () => {

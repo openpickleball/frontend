@@ -228,6 +228,26 @@ describe('unwrap', () => {
 		expect(failure).toMatchObject({ kind: 'network', status: null });
 	});
 
+	it('throws a server AppError, not a network one, for a 200 that is not JSON', async () => {
+		const { api } = setup(
+			() =>
+				new Response('<!doctype html><html></html>', {
+					status: 200,
+					headers: { 'Content-Type': 'text/html' }
+				})
+		);
+		const failure = await unwrap(api.open.GET('/api/v1/accounts/me')).catch((e) => e);
+		expect(failure).toMatchObject({ kind: 'server', status: null, code: 'bad_response' });
+	});
+
+	it('throws a server AppError when a request is aborted', async () => {
+		const { api } = setup(() => {
+			throw new DOMException('The operation was aborted.', 'AbortError');
+		});
+		const failure = await unwrap(api.open.GET('/api/v1/accounts/me')).catch((e) => e);
+		expect(failure).toMatchObject({ kind: 'server', code: 'aborted' });
+	});
+
 	it('throws a server AppError for a non-JSON 500', async () => {
 		const { api } = setup(
 			() =>
