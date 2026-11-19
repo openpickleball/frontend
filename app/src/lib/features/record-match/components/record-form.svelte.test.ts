@@ -157,7 +157,7 @@ describe('RecordForm', () => {
 		const { screen, submit } = await setup();
 		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 
-		const summary = screen.getByRole('alert');
+		const summary = screen.getByRole('alert').filter({ hasText: 'Fix 4 things' });
 		await expect
 			.poll(() => summary.element().textContent)
 			.toMatch(/Fix 4 things to record this match/);
@@ -234,6 +234,17 @@ describe('RecordForm', () => {
 			.element(screen.getByLabelText("Game 1, your team's points"))
 			.toHaveAttribute('aria-invalid', 'true');
 		expect(onrecorded).not.toHaveBeenCalled();
+	});
+
+	it('announces a field error as an alert when focus leaves the field', async () => {
+		const { screen } = await setup(vi.fn());
+		const points = screen.getByLabelText("Game 1, your team's points");
+		await points.fill('x');
+		await points.element().blur();
+
+		const alert = screen.getByRole('alert');
+		await expect.element(alert).toBeVisible();
+		await expect.element(alert).toHaveTextContent('! Game 1: enter both scores.');
 	});
 
 	it('shows the offline message, keeps the form filled and queues nothing', async () => {

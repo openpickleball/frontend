@@ -98,10 +98,12 @@ describe('SignupForm', () => {
 		await screen.getByRole('button', { name: 'Create account' }).click();
 
 		const busy = screen.getByRole('button', { name: 'Creating account...' });
-		await expect.element(busy).toBeDisabled();
+		await expect.element(busy).toHaveAttribute('aria-disabled', 'true');
 		await expect.element(busy).toHaveAttribute('aria-busy', 'true');
 		finish();
-		await expect.element(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
+		await expect
+			.element(screen.getByRole('button', { name: 'Create account' }))
+			.not.toHaveAttribute('aria-disabled', 'true');
 	});
 
 	it('puts the backend password messages next to the password field', async () => {

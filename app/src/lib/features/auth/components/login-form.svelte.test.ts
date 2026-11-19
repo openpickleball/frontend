@@ -80,11 +80,25 @@ describe('LoginForm', () => {
 		await screen.getByRole('button', { name: 'Sign in' }).click();
 
 		const busy = screen.getByRole('button', { name: 'Signing in...' });
-		await expect.element(busy).toBeDisabled();
+		await expect.element(busy).toHaveAttribute('aria-disabled', 'true');
 		await expect.element(busy).toHaveAttribute('aria-busy', 'true');
 		finish({ status: 'signed_in', email: 'player@example.com' });
-		await expect.element(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+		await expect
+			.element(screen.getByRole('button', { name: 'Sign in' }))
+			.not.toHaveAttribute('aria-disabled', 'true');
 		expect(mockedLogin).toHaveBeenCalledOnce();
+	});
+
+	it('keeps focus on the Sign in button after a failed sign-in', async () => {
+		mockedLogin.mockRejectedValue(appError({ code: 'email_password_mismatch' }));
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		await fill(screen, 'player@example.com', 'wrong-password');
+		const button = screen.getByRole('button', { name: 'Sign in' });
+		(button.element() as HTMLButtonElement).focus();
+		await button.click();
+
+		await expect.element(screen.getByRole('alert')).toBeVisible();
+		expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Sign in' }).element());
 	});
 
 	it('says the email and password do not match', async () => {

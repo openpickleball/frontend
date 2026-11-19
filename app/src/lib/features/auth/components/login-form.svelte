@@ -108,7 +108,7 @@
 					>Forgot your password?</a
 				>
 			</div>
-			<Button type="submit" disabled={busy} aria-busy={busy} class="w-full">
+			<Button type="submit" aria-disabled={busy} aria-busy={busy} class="w-full">
 				{busy ? 'Signing in...' : 'Sign in'}
 			</Button>
 		</form>
