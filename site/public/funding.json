@@ -1,0 +1,101 @@
+{
+  "$schema": "https://fundingjson.org/schema/v1.1.0.json",
+  "version": "v1.1.0",
+  "entity": {
+    "type": "group",
+    "role": "steward",
+    "name": "OPEN (Open Pickleball Evaluation Network)",
+    "email": "info@openpb.org",
+    "phone": "",
+    "description": "OPEN is a volunteer, community-governed group building a free and open source rating standard for pickleball. A rating decides which events a player can enter, who they get matched with, and how they see their own progress, so it should be open to inspection. OPEN publishes its rating spec, its reference engine, and the platform that will serve ratings, so that players, clubs, leagues, and tournaments can see how a rating is calculated, question it, and take their record with them. OPEN is in early development and no OPEN rating is live yet. Our funding rules are fixed by our mission charter: ratings are free forever, players are never asked for money, there are no paid tiers, premium features, or ads, donors and sponsors get no say over ratings, and every dollar in and out is published on Open Collective.",
+    "webpageUrl": {
+      "url": "https://www.openpb.org",
+      "wellKnown": ""
+    }
+  },
+  "projects": [
+    {
+      "guid": "open-rating-engine",
+      "name": "OPEN Rating Engine",
+      "description": "The reference rating engine for OPEN: a Python package (openpickleball-engine) with no runtime dependencies that rates pickleball singles and doubles. A rating is a performance-based Elo rating: each match compares the share of points a team won with the share its rating predicted, each player moves by their own amount based on rating uncertainty, and every rating carries a 0 to 100 reliability score earned through recent play against varied partners and opponents. Every equation is documented next to the function that computes it, so anyone can check the model against the code. The engine is a demonstration today. It will be tested on real match results in shadow mode, and its validation results (predictive accuracy, calibration, and stability) published, before anyone relies on an OPEN rating.",
+      "webpageUrl": {
+        "url": "https://www.openpb.org",
+        "wellKnown": ""
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/openpickleball/engine",
+        "wellKnown": "https://github.com/openpickleball/engine/blob/main/.well-known/funding-manifest-urls"
+      },
+      "licenses": ["spdx:AGPL-3.0-or-later"],
+      "tags": ["pickleball", "sports", "ratings", "elo", "statistics", "python"]
+    },
+    {
+      "guid": "open-rating-spec",
+      "name": "OPEN Rating Spec",
+      "description": "The official, versioned spec for how an OPEN rating is calculated: the inputs, the math, the parameters, and how reliability is reported. Every change goes through a public request for comments, and each published version records the engine configuration that implements it, so any published rating can be reproduced from the match ledger. Anyone can read, fork, and build on the spec. No official version has been published yet.",
+      "webpageUrl": {
+        "url": "https://www.openpb.org",
+        "wellKnown": ""
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/openpickleball/rating-spec",
+        "wellKnown": "https://github.com/openpickleball/rating-spec/blob/main/.well-known/funding-manifest-urls"
+      },
+      "licenses": ["spdx:CC-BY-4.0"],
+      "tags": ["pickleball", "sports", "ratings", "specification", "open-standard"]
+    },
+    {
+      "guid": "open-backend",
+      "name": "OPEN Backend",
+      "description": "The backend services and API that will serve OPEN ratings to players, clubs, organizers, and partner apps for free. Built with Python, Django, Django Ninja, PostgreSQL, Valkey, and Celery. Today it has player accounts with email verification, privacy settings for each player, clubs and organizer verification, partner OAuth applications, an append-only audit log, and a match ledger with score validation, duplicate detection, and a confirmation workflow where both teams confirm or dispute a score. Planned next: a results API for platforms, clubs, and tournaments to submit matches, and a ratings and stats API that any app can use. The mission charter requires that players can always export their data.",
+      "webpageUrl": {
+        "url": "https://www.openpb.org",
+        "wellKnown": ""
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/openpickleball/backend",
+        "wellKnown": "https://github.com/openpickleball/backend/blob/main/.well-known/funding-manifest-urls"
+      },
+      "licenses": ["spdx:AGPL-3.0-or-later"],
+      "tags": ["pickleball", "sports", "django", "api", "python", "open-data"]
+    },
+    {
+      "guid": "open-frontend",
+      "name": "OPEN Frontend",
+      "description": "The public website at openpb.org and the OPEN web app, built with SvelteKit, TypeScript, and Tailwind. The app is in development and not deployed yet. It will give players free player profiles, clubs, rankings, match history, data export, and a clear explanation of how each rating was calculated. Apps for Android and iOS are planned later.",
+      "webpageUrl": {
+        "url": "https://www.openpb.org",
+        "wellKnown": ""
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/openpickleball/frontend",
+        "wellKnown": "https://github.com/openpickleball/frontend/blob/main/.well-known/funding-manifest-urls"
+      },
+      "licenses": ["spdx:AGPL-3.0-or-later"],
+      "tags": ["pickleball", "sports", "sveltekit", "typescript", "web-app"]
+    }
+  ],
+  "funding": {
+    "channels": [
+      {
+        "guid": "open-collective",
+        "type": "payment-provider",
+        "address": "https://opencollective.com/open-pickleball",
+        "description": "Open Source Collective, a nonprofit fiscal host, holds OPEN's funds. Every dollar in and out is public on our Open Collective page, and every expense needs a receipt and approval from a second admin."
+      }
+    ],
+    "plans": [
+      {
+        "guid": "first-year",
+        "status": "active",
+        "name": "First year of infrastructure",
+        "description": "One year of hosting for development, staging, and production (managed PostgreSQL, Valkey, and app hosting), email delivery, domain names, development tools for volunteer contributors, and accessibility and security work. No funds go to salaries, advertising, or any paid feature.",
+        "amount": 10000,
+        "currency": "USD",
+        "frequency": "one-time",
+        "channels": ["open-collective"]
+      }
+    ],
+    "history": []
+  }
+}

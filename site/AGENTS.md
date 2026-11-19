@@ -11,6 +11,7 @@ The public page at openpb.org. It stays when the app ships at app.openpb.org (fr
 - The "Get involved" button opens the Tally interest form `Kp50eD` as a popup. `https://tally.so/widgets/embed.js` loads in the `<head>`, and a short script at the end of `index.html` calls `Tally.openPopup` with `hideTitle: true`. Without that script, the link opens the form in a new tab.
 - `public/about/index.html` only redirects old `/about/` links to `/#about`.
 - `public/404.html` uses the same styles.
+- `public/funding.json` is OPEN's [funding.json](https://fundingjson.org) manifest, served at `https://www.openpb.org/funding.json`. The `engine`, `backend`, `frontend`, and `rating-spec` repositories each have a `.well-known/funding-manifest-urls` file pointing to it. Keep it true today, like the rest of the site.
 - The logo is `public/assets/img/mark.svg`. `mark.svg` and `favicon.svg` come from `design/tools/export-logo.py`; `favicon-48.png` and `apple-touch-icon.png` are browser renders of `favicon.svg`. See `plans/about-redesign/`.
 
 ## Commands
