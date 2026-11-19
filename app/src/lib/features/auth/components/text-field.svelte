@@ -48,7 +48,7 @@
 				aria-pressed={shown}
 				aria-controls={id}
 				onclick={() => (shown = !shown)}
-				class="absolute inset-y-0 right-1.5 my-1.5 rounded-full px-3.5 text-sm font-semibold text-muted hover:text-secondary focus-visible:outline-offset-0"
+				class="absolute inset-y-0 right-1.5 my-1.5 rounded-full px-3.5 text-sm font-semibold text-muted hover:text-secondary"
 			>
 				{shown ? 'Hide' : 'Show'}
 				<span class="sr-only">password</span>

@@ -187,7 +187,7 @@
 						onclick={remove}
 						aria-label="Remove {code}"
 						aria-describedby={error ? `${id}-error` : undefined}
-						class="grid size-9 place-items-center rounded-full text-muted hover:text-secondary focus-visible:outline-offset-0"
+						class="grid size-9 place-items-center rounded-full text-muted hover:text-secondary"
 					>
 						<svg
 							viewBox="0 0 24 24"

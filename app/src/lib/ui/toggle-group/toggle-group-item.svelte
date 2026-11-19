@@ -14,7 +14,7 @@
 	bind:ref
 	data-slot="toggle-group-item"
 	class={cn(
-		'grid h-[38px] min-w-22 place-items-center rounded-full px-[18px] text-[15px] font-medium text-muted transition-colors outline-none hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-secondary disabled:pointer-events-none disabled:opacity-45 data-[state=on]:bg-secondary data-[state=on]:font-semibold data-[state=on]:text-primary data-[state=on]:hover:text-primary',
+		'grid h-[38px] min-w-22 place-items-center rounded-full px-[18px] text-[15px] font-medium text-muted transition-colors hover:text-secondary disabled:pointer-events-none disabled:opacity-45 data-[state=on]:bg-secondary data-[state=on]:font-semibold data-[state=on]:text-primary data-[state=on]:hover:text-primary',
 		className
 	)}
 	{...restProps}
