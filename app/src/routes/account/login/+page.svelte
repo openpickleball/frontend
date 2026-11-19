@@ -17,7 +17,7 @@
 	<title>Sign in · OPEN Pickleball</title>
 </svelte:head>
 
-<div class="grid max-w-[420px] gap-6 pt-4">
+<div class="grid gap-6">
 	<!-- When the session could not be read, say so instead of a bare form that looks signed out. -->
 	<SessionCheck onsignedin={signedIn} />
 	<LoginForm onsuccess={signedIn} />

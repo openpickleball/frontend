@@ -64,7 +64,9 @@
 		</p>
 		<p class="text-sm text-faint">Nothing there after a few minutes? Check your spam folder.</p>
 		<div class="mt-2">
-			<Button variant="outline" href={resolve('/account/login')}>Back to sign in</Button>
+			<Button variant="outline" href={resolve('/account/login')} class="w-full"
+				>Back to sign in</Button
+			>
 		</div>
 	</section>
 {:else}

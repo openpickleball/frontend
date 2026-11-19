@@ -11,6 +11,4 @@
 	<title>Verify your email · OPEN Pickleball</title>
 </svelte:head>
 
-<div class="max-w-[420px] pt-4">
-	<VerifyEmail key={params.key} />
-</div>
+<VerifyEmail key={params.key} />

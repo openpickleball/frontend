@@ -8,6 +8,4 @@
 	<title>Create account · OPEN Pickleball</title>
 </svelte:head>
 
-<div class="max-w-[420px] pt-4">
-	<SignupForm onsuccess={() => void goto(resolve('/'))} />
-</div>
+<SignupForm onsuccess={() => void goto(resolve('/'))} />
