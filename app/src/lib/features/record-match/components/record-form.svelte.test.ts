@@ -48,9 +48,9 @@ async function addPlayer(screen: Screen, label: string, value: string) {
 
 /** A full doubles match: partner, two opponents, and one game of 11 to 7. */
 async function fillDoubles(screen: Screen) {
-	await addPlayer(screen, "Your partner's OPEN code", code('oren'));
-	await addPlayer(screen, "First opponent's OPEN code", code('kit'));
-	await addPlayer(screen, "Second opponent's OPEN code", code('bea'));
+	await addPlayer(screen, 'Your partner: name or OPEN code', code('oren'));
+	await addPlayer(screen, 'First opponent: name or OPEN code', code('kit'));
+	await addPlayer(screen, 'Second opponent: name or OPEN code', code('bea'));
 	await screen.getByLabelText("Game 1, your team's points").fill('11');
 	await screen.getByLabelText("Game 1, opponents' points").fill('7');
 }
@@ -70,18 +70,20 @@ describe('RecordForm', () => {
 
 	it('hides the partner and the second opponent in singles, and brings them back', async () => {
 		const { screen } = await setup();
-		await expect.element(screen.getByLabelText("Your partner's OPEN code")).toBeVisible();
-		await expect.element(screen.getByLabelText("Second opponent's OPEN code")).toBeVisible();
+		await expect.element(screen.getByLabelText('Your partner: name or OPEN code')).toBeVisible();
+		await expect.element(screen.getByLabelText('Second opponent: name or OPEN code')).toBeVisible();
 
 		await screen.getByText('Singles', { exact: true }).click();
-		await expect.element(screen.getByLabelText("Your partner's OPEN code")).not.toBeInTheDocument();
 		await expect
-			.element(screen.getByLabelText("Second opponent's OPEN code"))
+			.element(screen.getByLabelText('Your partner: name or OPEN code'))
 			.not.toBeInTheDocument();
-		await expect.element(screen.getByLabelText("Your opponent's OPEN code")).toBeVisible();
+		await expect
+			.element(screen.getByLabelText('Second opponent: name or OPEN code'))
+			.not.toBeInTheDocument();
+		await expect.element(screen.getByLabelText('Your opponent: name or OPEN code')).toBeVisible();
 
 		await screen.getByText('Doubles', { exact: true }).click();
-		await expect.element(screen.getByLabelText("Your partner's OPEN code")).toBeVisible();
+		await expect.element(screen.getByLabelText('Your partner: name or OPEN code')).toBeVisible();
 	});
 
 	it('adds and removes games, from 1 up to 5', async () => {
@@ -108,28 +110,30 @@ describe('RecordForm', () => {
 	it('turns a typed code into a chip in its canonical form, and takes it back off', async () => {
 		const { screen } = await setup();
 		const typed = code('oren').toLowerCase().replaceAll('-', ' ');
-		await addPlayer(screen, "Your partner's OPEN code", typed);
+		await addPlayer(screen, 'Your partner: name or OPEN code', typed);
 
 		await expect
 			.element(screen.getByRole('button', { name: `Remove ${code('oren')}` }))
 			.toBeVisible();
-		await expect.element(screen.getByLabelText("Your partner's OPEN code")).not.toBeInTheDocument();
+		await expect
+			.element(screen.getByLabelText('Your partner: name or OPEN code'))
+			.not.toBeInTheDocument();
 
 		await screen.getByRole('button', { name: `Remove ${code('oren')}` }).click();
-		await expect.element(screen.getByLabelText("Your partner's OPEN code")).toBeVisible();
+		await expect.element(screen.getByLabelText('Your partner: name or OPEN code')).toBeVisible();
 	});
 
 	it('says what is wrong with a code that does not check out', async () => {
 		const { screen } = await setup();
-		await addPlayer(screen, "Your partner's OPEN code", 'P-AAAA-AAAA');
-		const field = screen.getByLabelText("Your partner's OPEN code");
+		await addPlayer(screen, 'Your partner: name or OPEN code', 'P-AAAA-AAAA');
+		const field = screen.getByLabelText('Your partner: name or OPEN code');
 		await expect.element(field).toHaveAttribute('aria-invalid', 'true');
 		await expect.element(screen.getByText(/does not look right/)).toBeVisible();
 	});
 
 	it('refuses the same player twice', async () => {
 		const { screen } = await setup();
-		await addPlayer(screen, "Your partner's OPEN code", tamsin);
+		await addPlayer(screen, 'Your partner: name or OPEN code', tamsin);
 		await expect.element(screen.getByText('This player is already in the match.')).toBeVisible();
 	});
 
@@ -324,9 +328,9 @@ describe('RecordForm', () => {
 
 	it('says to enter both scores when one is blank', async () => {
 		const { screen } = await setup();
-		await addPlayer(screen, "Your partner's OPEN code", code('oren'));
-		await addPlayer(screen, "First opponent's OPEN code", code('kit'));
-		await addPlayer(screen, "Second opponent's OPEN code", code('bea'));
+		await addPlayer(screen, 'Your partner: name or OPEN code', code('oren'));
+		await addPlayer(screen, 'First opponent: name or OPEN code', code('kit'));
+		await addPlayer(screen, 'Second opponent: name or OPEN code', code('bea'));
 		await screen.getByLabelText("Game 1, your team's points").fill('11');
 		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 		await expect.element(screen.getByText('Game 1: enter both scores.').first()).toBeVisible();
@@ -350,9 +354,9 @@ describe('RecordForm', () => {
 
 	it('does not count a hidden partner when checking for repeats in singles', async () => {
 		const { screen } = await setup();
-		await addPlayer(screen, "Your partner's OPEN code", code('oren'));
+		await addPlayer(screen, 'Your partner: name or OPEN code', code('oren'));
 		await screen.getByText('Singles', { exact: true }).click();
-		await addPlayer(screen, "Your opponent's OPEN code", code('oren'));
+		await addPlayer(screen, 'Your opponent: name or OPEN code', code('oren'));
 		await expect
 			.element(screen.getByRole('button', { name: `Remove ${code('oren')}` }))
 			.toBeVisible();
@@ -383,5 +387,49 @@ describe('RecordForm', () => {
 		await screen.getByRole('button', { name: 'Remove game 1' }).click();
 		// Game 2 became game 1, so focus follows it.
 		await expect.element(screen.getByLabelText("Game 1, your team's points")).toHaveFocus();
+	});
+});
+
+describe('RecordForm player search', () => {
+	it('fills a slot from a search result and sends that code', async () => {
+		const search = vi.fn().mockResolvedValue({
+			ok: true,
+			items: [{ code: code('oren'), name: 'Oren Quill' }]
+		});
+		const submit = vi.fn().mockResolvedValue(recordedResult);
+		const screen = await render(RecordForm, { own: tamsin, onrecorded: vi.fn(), submit, search });
+		await screen.getByLabelText('Your partner: name or OPEN code').fill('ore');
+		await screen.getByRole('option', { name: /Oren Quill/ }).click();
+
+		await expect
+			.element(screen.getByRole('button', { name: `Remove ${code('oren')}` }))
+			.toBeVisible();
+		await expect.element(screen.getByText('Oren Quill')).toBeVisible();
+
+		await addPlayer(screen, 'First opponent: name or OPEN code', code('kit'));
+		await addPlayer(screen, 'Second opponent: name or OPEN code', code('bea'));
+		await screen.getByLabelText("Game 1, your team's points").fill('11');
+		await screen.getByLabelText("Game 1, opponents' points").fill('7');
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+		await vi.waitFor(() => expect(submit).toHaveBeenCalled());
+		expect(submit.mock.calls[0][0].teamA).toEqual([tamsin, code('oren')]);
+	});
+});
+
+describe('RecordForm half-typed name', () => {
+	it('asks to pick a player when a name is left in the box', async () => {
+		const search = vi.fn().mockResolvedValue({ ok: true, items: [] });
+		const screen = await render(RecordForm, {
+			own: tamsin,
+			onrecorded: vi.fn(),
+			submit: vi.fn(),
+			search
+		});
+		const field = screen.getByLabelText('Your partner: name or OPEN code');
+		await field.fill('mar');
+		await field.element().blur();
+		await expect
+			.element(screen.getByText('Pick a player from the list, or enter their OPEN code.'))
+			.toBeVisible();
 	});
 });

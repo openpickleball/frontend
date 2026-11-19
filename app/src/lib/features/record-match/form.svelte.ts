@@ -19,10 +19,11 @@ import {
 	type PlayerCode,
 	type ScoringType
 } from '#lib/domain/index.js';
+import { looksLikeCode } from './search.js';
 import { duplicateMatchCode, submitMatch, type SubmitResult } from './service.js';
 
 /** One place for a player's OPEN code: a chip once it checks out, a text box until then. */
-export type Slot = { code: PlayerCode | null; text: string; error: string };
+export type Slot = { code: PlayerCode | null; name: string; text: string; error: string };
 /** One game's scores as typed. */
 export type GameRow = { a: string; b: string };
 
@@ -55,7 +56,7 @@ export const FORBIDDEN_MESSAGE =
 	"We couldn't record this match. The OPEN code saved on this device may not be yours.";
 export const DUPLICATE_MESSAGE = 'This match was already recorded';
 
-const emptySlot = (): Slot => ({ code: null, text: '', error: '' });
+const emptySlot = (): Slot => ({ code: null, name: '', text: '', error: '' });
 
 /** Today in the player's own time zone, as `YYYY-MM-DD`. */
 // A plain value read once, never state, so the reactivity rule for Date does not apply.
@@ -298,7 +299,9 @@ export class RecordForm {
 		}
 		const parsed = parsePlayerCode(text);
 		if (!parsed.ok) {
-			slot.error = parsed.error.message;
+			slot.error = looksLikeCode(text)
+				? parsed.error.message
+				: 'Pick a player from the list, or enter their OPEN code.';
 			return false;
 		}
 		// Only the slots in use count. Singles ignores a partner or second opponent entered before.
@@ -312,13 +315,32 @@ export class RecordForm {
 			return false;
 		}
 		slot.code = parsed.value;
+		slot.name = '';
 		slot.text = '';
 		slot.error = '';
 		return true;
 	}
 
+	/** Fill a slot with a player found by name. A player already in the match is refused like a typed code. */
+	choose(slot: Slot, hit: { code: PlayerCode; name: string }): boolean {
+		slot.text = hit.code;
+		if (!this.commit(slot)) return false;
+		slot.name = hit.name;
+		return true;
+	}
+
+	/** Every code in the match, for the slots to leave out of their search results. */
+	get taken(): string[] {
+		return [
+			this.own,
+			...(this.doubles && this.partner.code ? [this.partner.code] : []),
+			...this.visibleOpponents.flatMap((s) => (s.code ? [s.code] : []))
+		];
+	}
+
 	remove(slot: Slot): void {
 		slot.code = null;
+		slot.name = '';
 		slot.text = '';
 		slot.error = '';
 	}

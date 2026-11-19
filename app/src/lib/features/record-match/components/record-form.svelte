@@ -6,6 +6,7 @@
 	import { Input } from '#lib/ui/input/index.js';
 	import { Label } from '#lib/ui/label/index.js';
 	import { RecordForm, todayLocal } from '../form.svelte.js';
+	import { searchPlayers, type SearchFn } from '../search.js';
 	import { submitMatch, type SubmitResult } from '../service.js';
 	import FieldError from './field-error.svelte';
 	import Notice from './notice.svelte';
@@ -16,7 +17,8 @@
 		own,
 		onrecorded,
 		onchangecode,
-		submit = submitMatch
+		submit = submitMatch,
+		search = searchPlayers
 	}: {
 		/** The signed-in player's own OPEN code. */
 		own: PlayerCode;
@@ -29,6 +31,8 @@
 		onchangecode?: () => void;
 		/** The service that sends the match. Tests pass a stand-in. */
 		submit?: typeof submitMatch;
+		/** The name search. Tests pass a stand-in. */
+		search?: SearchFn;
 	} = $props();
 
 	// The form belongs to one player. The page remounts this if their code changes.
@@ -207,8 +211,8 @@
 	<fieldset class="mt-9 grid gap-6 border-t border-line pt-5">
 		<legend class="mb-4 text-[19px] font-semibold text-secondary">Players</legend>
 		<p class="max-w-[52ch] text-[15px] text-muted">
-			Enter each player's OPEN code. They can find theirs on their Profile page. Names show once the
-			match is saved.
+			Type a player's name to find them, or enter their OPEN code. They can find theirs on their
+			Profile page.
 		</p>
 
 		<div class="grid gap-3" role="group" aria-labelledby="team-a-title">
@@ -224,9 +228,13 @@
 			{#if form.doubles}
 				<PlayerSlot
 					id="partner"
-					label="Your partner's OPEN code"
-					placeholder="Partner: P-XXXX-XXXX"
+					label="Your partner: name or OPEN code"
+					placeholder="Name or P-XXXX-XXXX"
 					code={form.partner.code}
+					name={form.partner.name}
+					exclude={form.taken}
+					{search}
+					onpick={(hit) => form.choose(form.partner, hit)}
 					bind:text={form.partner.text}
 					error={first('team_a.1') || first('team_a')}
 					oncommit={() => form.commit(form.partner)}
@@ -241,9 +249,13 @@
 				<PlayerSlot
 					id="opponent-{index}"
 					label={form.doubles
-						? `${index === 0 ? 'First' : 'Second'} opponent's OPEN code`
-						: "Your opponent's OPEN code"}
+						? `${index === 0 ? 'First' : 'Second'} opponent: name or OPEN code`
+						: 'Your opponent: name or OPEN code'}
 					code={slot.code}
+					name={slot.name}
+					exclude={form.taken}
+					{search}
+					onpick={(hit) => form.choose(slot, hit)}
 					bind:text={slot.text}
 					error={first(`team_b.${index}`) || (index === 0 ? first('team_b') : '')}
 					oncommit={() => form.commit(slot)}
