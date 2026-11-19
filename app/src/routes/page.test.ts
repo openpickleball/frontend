@@ -11,7 +11,8 @@ describe('+page.svelte', () => {
 	it('sets the meta description', () => {
 		const { head } = render(Page);
 		expect(head).toContain('name="description"');
-		expect(head).toContain('content="Your pickleball rating, always free."');
+		expect(head).toContain('content="Record and confirm your pickleball matches, always free."');
+		expect(head).not.toMatch(/rating/i);
 	});
 
 	it('has one heading, for the home screen', () => {

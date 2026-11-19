@@ -7,6 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 type Manifest = {
 	name: string;
 	short_name: string;
+	description: string;
 	start_url: string;
 	display: string;
 	icons: { src: string; sizes: string; type: string; purpose?: string }[];
@@ -35,6 +36,7 @@ test('the manifest is linked and valid', async ({ page, request }) => {
 	expect(manifest.short_name).toBe('OPEN');
 	expect(manifest.start_url).toBe('/');
 	expect(manifest.display).toBe('standalone');
+	expect(manifest.description).toBe('Record pickleball matches and confirm scores.');
 
 	for (const icon of manifest.icons) {
 		const res = await request.get(icon.src);

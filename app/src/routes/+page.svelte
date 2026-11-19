@@ -4,7 +4,7 @@
 
 <svelte:head>
 	<title>OPEN Pickleball</title>
-	<meta name="description" content="Your pickleball rating, always free." />
+	<meta name="description" content="Record and confirm your pickleball matches, always free." />
 </svelte:head>
 
 <div class="pt-4">
