@@ -51,7 +51,7 @@
 
 <a
 	href={resolve('/matches/[code]', { code: match.code })}
-	class="block py-4 pb-[18px] focus-visible:outline-offset-2"
+	class="block py-4 pb-[18px]"
 	data-testid="match-row"
 	data-status={match.status}
 >

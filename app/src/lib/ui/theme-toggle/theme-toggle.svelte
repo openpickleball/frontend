@@ -38,7 +38,7 @@
 	type="button"
 	aria-label={toggleLabel(theme)}
 	class={cn(
-		'grid size-9 place-items-center rounded-full text-muted transition-colors hover:text-secondary focus-visible:outline-offset-2',
+		'grid size-9 place-items-center rounded-full text-muted transition-colors hover:text-secondary',
 		className
 	)}
 	onclick={toggle}

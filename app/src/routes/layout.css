@@ -84,9 +84,12 @@
 }
 
 @layer base {
+	/* The one focus ring. It uses the text color token, not currentColor, because buttons
+	   set their text to the page color. Components don't override it. The only exception is
+	   the tab bar, which insets the ring where an outer one would be clipped. */
 	:focus-visible {
-		outline: 2px solid currentColor;
-		outline-offset: 4px;
+		outline: 2px solid var(--color-secondary);
+		outline-offset: 2px;
 	}
 	[hidden] {
 		display: none !important;
@@ -98,6 +101,12 @@
 ::view-transition-new(root) {
 	animation-duration: 0.5s;
 	animation-timing-function: ease-in-out;
+}
+
+/* The same ring for a wrapper that shows focus for an input inside it: has-focus-visible:focus-ring. */
+@utility focus-ring {
+	outline: 2px solid var(--color-secondary);
+	outline-offset: 2px;
 }
 
 /* The logo as a mask, so it takes the text color in both themes. */
