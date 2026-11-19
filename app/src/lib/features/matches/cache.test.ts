@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PlayerCode } from '#lib/domain/index.js';
+import { buildCode, type MatchCode, type PlayerCode } from '#lib/domain/index.js';
 import { MatchCache, ownerKey } from './cache.svelte.js';
 import { BEA, TAMSIN, sampleMatch } from './testing.js';
 
@@ -24,6 +24,16 @@ describe('MatchCache', () => {
 		const confirmed = sampleMatch({ status: 'confirmed' });
 		cache.remember(confirmed);
 		expect(cache.get(match.code)).toBe(confirmed);
+	});
+
+	it('forgets one match and keeps the rest', () => {
+		const { cache } = cacheFor(TAMSIN);
+		const kept = sampleMatch({ code: buildCode('match', 'D9PW5KXE7RM') as MatchCode });
+		const dropped = sampleMatch();
+		cache.rememberAll([kept, dropped]);
+		cache.forget(dropped.code);
+		expect(cache.get(dropped.code)).toBeUndefined();
+		expect(cache.get(kept.code)).toBe(kept);
 	});
 
 	it('fills from a list', () => {

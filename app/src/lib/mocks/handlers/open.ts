@@ -69,6 +69,18 @@ export function createOpenHandlers(store: MockStore) {
 			return response(201).json(store.matchOut(result.match, email));
 		}),
 
+		// Only the match's players can read it. Anyone else, and any unknown or malformed code,
+		// gets the same 404.
+		http.get('/api/v1/matches/{code}', ({ request, cookies, params, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const code = normalizeCode(params.code, 'match');
+			if (!code.ok) return response.untyped(notFound());
+			const match = store.matchForParticipant(email, code.value);
+			if (!match) return response.untyped(notFound());
+			return response(200).json(store.matchOut(match, email));
+		}),
+
 		change('confirm'),
 		change('dispute'),
 

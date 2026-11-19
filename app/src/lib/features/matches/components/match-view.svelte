@@ -17,7 +17,7 @@
 		matchTitle,
 		scoringName
 	} from '../format.js';
-	import { confirmMatch, disputeMatch, findMatch } from '../services.js';
+	import { confirmMatch, disputeMatch, getMatch } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import DisputeDialog from './dispute-dialog.svelte';
 	import Notice from './notice.svelte';
@@ -29,32 +29,41 @@
 
 	const parsed = $derived(parseMatchCode(raw));
 	const code = $derived(parsed.ok ? parsed.value : null);
-	const match = $derived(code ? matchCache.get(code) : undefined);
+
+	// Reading the match from the API. A cached copy shows meanwhile, and the response replaces it.
+	// `missing` is a 404: the API says the same for a match the player was not in and an unknown code.
+	let lookup = $state<'loading' | 'done' | 'missing' | 'error'>('loading');
+
+	// The cached copy shows at once, when the player came from a list or just recorded the match.
+	// A 404 hides it, because the API says it is not theirs or not there.
+	const match = $derived(code && lookup !== 'missing' ? matchCache.get(code) : undefined);
 	const title = $derived(code ? `Match ${code} · OPEN Pickleball` : 'Match · OPEN Pickleball');
 
-	// Looking the match up. The cache answers when the player came from a list. A deep link has to
-	// scan their list, because there is no `GET matches/{code}` (backend#194).
-	let lookup = $state<'loading' | 'done' | 'error'>('loading');
 	let run = 0;
 	onDestroy(() => run++);
 
-	async function find() {
-		const you = myCode.code;
-		if (!code || !you) return;
+	async function load() {
+		if (!code) return;
 		const mine = ++run;
 		lookup = 'loading';
 		try {
-			await findMatch(code, you);
+			await getMatch(code);
 			if (mine === run) lookup = 'done';
-		} catch {
-			if (mine === run) lookup = 'error';
+		} catch (cause) {
+			if (mine !== run) return;
+			if (isAppError(cause) && cause.kind === 'not_found') {
+				matchCache.forget(code);
+				lookup = 'missing';
+			} else {
+				lookup = 'error';
+			}
 		}
 	}
 
 	$effect(() => {
 		// Rerun when the address or the signed-in player changes.
 		void [code, myCode.code];
-		if (myCode.status === 'ready' && code) untrack(() => void find());
+		if (myCode.status === 'ready' && code) untrack(() => void load());
 	});
 
 	let busy = $state<MatchAction | null>(null);
@@ -88,16 +97,14 @@
 
 	/**
 	 * The API said the match can't take this action, so the page is out of date. Read the match
-	 * again, skipping the cache, and show where it stands. Returns false when that did not work.
+	 * again and show where it stands. Returns false when that did not work.
 	 */
 	async function refresh(): Promise<boolean> {
-		const you = myCode.code;
-		if (!code || !you) return false;
+		if (!code) return false;
 		try {
 			// What the page shows now. The fresh read replaces it in the cache.
 			const shown = matchCache.get(code)?.status;
-			const found = await findMatch(code, you, { fresh: true });
-			if (!found) return false;
+			const found = await getMatch(code);
 			if (found.status !== shown) toast('This match changed. Here is where it stands.');
 			return true;
 		} catch {
@@ -188,7 +195,7 @@
 	</dl>
 
 	<DisputeDialog bind:open={disputeOpen} onconfirm={() => act('dispute')} />
-{:else if myCode.status !== 'ready' || (code && lookup === 'loading')}
+{:else if code && lookup !== 'missing' && lookup !== 'error'}
 	<h1 class="page-title">Match</h1>
 	<CodeGate>
 		<p class="mt-8 text-muted" role="status">Loading the match…</p>
@@ -196,7 +203,7 @@
 {:else if code && lookup === 'error'}
 	<h1 class="page-title">Match</h1>
 	<div class="mt-8">
-		<Notice kind="error" title="This match didn't load." onretry={find}>
+		<Notice kind="error" title="This match didn't load." onretry={load}>
 			OPEN didn't respond. Check your connection, then try again.
 		</Notice>
 	</div>
@@ -204,8 +211,7 @@
 	<h1 class="page-title">We couldn't find this match</h1>
 	<div class="mt-4 grid max-w-[46ch] justify-items-start gap-5">
 		<p class="text-muted">
-			It may not be one of yours, the link may be wrong, or it's older than your last 100 matches.
-			Matches you played in are in your history.
+			Only the players in a match can see it. Check the link, or look for the match in your history.
 		</p>
 		<Button href={resolve('/matches')} variant="outline">Matches</Button>
 	</div>

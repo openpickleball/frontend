@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { allauthParams, createApi, unwrap } from '../api';
+import { buildCode } from '../domain/codes';
 import { toMatchPage } from '../domain/mappers';
 import { MOCK_KEYS, MOCK_PASSWORD, PLAYERS, UNVERIFIED_EMAIL, VERIFIED_EMAIL } from './fixtures';
 import { useMockApi } from './node';
@@ -201,6 +202,76 @@ describe('the backend rules', () => {
 		});
 		expect(result.response.status).toBe(404);
 		expect(result.error).toMatchObject({ code: 'not_found', message: 'Not found.' });
+	});
+
+	describe('get_match', () => {
+		const WAITING_ON_TAMSIN = buildCode('match', '7QK2H9WD3NF');
+		const BETWEEN_OTHERS = buildCode('match', 'C4VD8RME2TX');
+
+		it('answers 401 when signed out', async () => {
+			const { api } = browser();
+			const result = await api.open.GET('/api/v1/matches/{code}', {
+				params: { path: { code: WAITING_ON_TAMSIN } }
+			});
+			expect(result.response.status).toBe(401);
+		});
+
+		it("gives a player their match with that player's viewer fields", async () => {
+			const tamsinApi = browser().api;
+			await login(tamsinApi);
+			const mine = await unwrap(
+				tamsinApi.open.GET('/api/v1/matches/{code}', {
+					params: { path: { code: WAITING_ON_TAMSIN } }
+				})
+			);
+			expect(mine.code).toBe(WAITING_ON_TAMSIN);
+			expect(mine.my_team).toBe('A');
+
+			// The mock backend has one session at a time: sign Tamsin out first.
+			mockStore.logout();
+			const beaApi = browser().api;
+			await login(beaApi, 'bea@example.com');
+			const hers = await unwrap(
+				beaApi.open.GET('/api/v1/matches/{code}', { params: { path: { code: WAITING_ON_TAMSIN } } })
+			);
+			expect(hers.my_team).toBe('B');
+			expect(hers.my_decision).toBe('confirm');
+		});
+
+		it('reads a match in any status, and with the prefix or hyphens left off', async () => {
+			const { api } = browser();
+			await login(api);
+			const disputed = mockStore.state.matches.find((m) => m.status === 'disputed');
+			const result = await unwrap(
+				api.open.GET('/api/v1/matches/{code}', {
+					params: { path: { code: (disputed?.code as string).toLowerCase().replaceAll('-', '') } }
+				})
+			);
+			expect(result.status).toBe('disputed');
+		});
+
+		it('gives the same 404 for a match the player was not in, an unknown code and a bad code', async () => {
+			const { api } = browser();
+			await login(api);
+			const bodies = [];
+			for (const code of [BETWEEN_OTHERS, 'M-0000-0000-000', 'not-a-code']) {
+				const result = await api.open.GET('/api/v1/matches/{code}', { params: { path: { code } } });
+				expect(result.response.status).toBe(404);
+				bodies.push(result.error);
+			}
+			expect(bodies[1]).toEqual(bodies[0]);
+			expect(bodies[2]).toEqual(bodies[0]);
+			expect(bodies[0]).toMatchObject({ code: 'not_found' });
+		});
+
+		it('keeps another signed-in account out of a match', async () => {
+			const { api } = browser();
+			await login(api, 'rosa@example.com');
+			const result = await api.open.GET('/api/v1/matches/{code}', {
+				params: { path: { code: WAITING_ON_TAMSIN } }
+			});
+			expect(result.response.status).toBe(404);
+		});
 	});
 
 	it('pages the list with limit and offset, and rejects a bad limit', async () => {
