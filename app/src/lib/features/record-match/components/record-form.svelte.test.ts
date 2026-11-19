@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { AppError } from '#lib/api/index.js';
 import { parseMatchCode, parsePlayerCode, type Match, type PlayerCode } from '#lib/domain/index.js';
 import { PLAYERS } from '#lib/mocks/fixtures.js';
+import { createDraftStore, type DraftStore } from '../draft.js';
 import type { SubmitResult } from '../service.js';
 import RecordForm from './record-form.svelte';
 
@@ -33,12 +34,27 @@ const matchCode = (() => {
 const saved = { code: matchCode } as unknown as Match;
 const recordedResult: SubmitResult = { match: saved, confirmError: null };
 
+// Tests that render without a stand-in store use the real one, so start each from a clean tab.
+beforeEach(() => sessionStorage.clear());
+
 type Screen = Awaited<ReturnType<typeof render>>;
 
-async function setup(submit = vi.fn().mockResolvedValue(recordedResult)) {
+/** A draft store over a map, so tests never share the browser's sessionStorage. */
+function memoryDrafts(items = new Map<string, string>()): DraftStore {
+	return createDraftStore(() => ({
+		getItem: (key) => items.get(key) ?? null,
+		setItem: (key, value) => void items.set(key, value),
+		removeItem: (key) => void items.delete(key)
+	}));
+}
+
+async function setup(
+	submit = vi.fn().mockResolvedValue(recordedResult),
+	drafts: DraftStore = memoryDrafts()
+) {
 	const onrecorded = vi.fn();
-	const screen = await render(RecordForm, { own: tamsin, onrecorded, submit });
-	return { screen, submit, onrecorded };
+	const screen = await render(RecordForm, { own: tamsin, onrecorded, submit, drafts });
+	return { screen, submit, onrecorded, drafts };
 }
 
 async function addPlayer(screen: Screen, label: string, value: string) {
@@ -431,5 +447,49 @@ describe('RecordForm half-typed name', () => {
 		await expect
 			.element(screen.getByText('Pick a player from the list, or enter their OPEN code.'))
 			.toBeVisible();
+	});
+});
+
+describe('RecordForm draft', () => {
+	it('puts back the players and scores after a reload', async () => {
+		const drafts = memoryDrafts();
+		const first = await setup(undefined, drafts);
+		await fillDoubles(first.screen);
+		await first.screen.unmount();
+
+		const { screen } = await setup(undefined, drafts);
+		for (const key of ['oren', 'kit', 'bea']) {
+			await expect
+				.element(screen.getByRole('button', { name: `Remove ${code(key)}` }))
+				.toBeVisible();
+		}
+		await expect.element(screen.getByLabelText("Game 1, your team's points")).toHaveValue('11');
+		await expect.element(screen.getByLabelText("Game 1, opponents' points")).toHaveValue('7');
+	});
+
+	it('does not show one player a draft kept for another', async () => {
+		const drafts = memoryDrafts();
+		const first = await setup(undefined, drafts);
+		await fillDoubles(first.screen);
+		await first.screen.unmount();
+
+		const screen = await render(RecordForm, {
+			own: code('oren'),
+			onrecorded: vi.fn(),
+			drafts
+		});
+		await expect.element(screen.getByLabelText('Your partner: name or OPEN code')).toBeVisible();
+		await expect.element(screen.getByLabelText("Game 1, your team's points")).toHaveValue('');
+	});
+
+	it('drops the draft once the match is recorded', async () => {
+		const drafts = memoryDrafts();
+		const { screen, onrecorded } = await setup(undefined, drafts);
+		await fillDoubles(screen);
+		expect(drafts.read(tamsin)).not.toBeNull();
+
+		await screen.getByRole('button', { name: /record and confirm/i }).click();
+		await vi.waitFor(() => expect(onrecorded).toHaveBeenCalled());
+		expect(drafts.read(tamsin)).toBeNull();
 	});
 });
