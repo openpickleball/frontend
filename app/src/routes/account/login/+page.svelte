@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { LoginForm, safeNext } from '#lib/features/auth/index.js';
+	import { LoginForm, SessionCheck, safeNext } from '#lib/features/auth/index.js';
 
 	// Back to where the player was going, but only to a path on this site.
 	function signedIn() {
@@ -17,6 +17,8 @@
 	<title>Sign in · OPEN Pickleball</title>
 </svelte:head>
 
-<div class="max-w-[420px] pt-4">
+<div class="grid max-w-[420px] gap-6 pt-4">
+	<!-- When the session could not be read, say so instead of a bare form that looks signed out. -->
+	<SessionCheck onsignedin={signedIn} />
 	<LoginForm onsuccess={signedIn} />
 </div>

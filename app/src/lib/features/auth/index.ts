@@ -3,7 +3,9 @@
  *
  * For other features and pages:
  * - `session`: the signed-in state, a runes store. `session.status` is `signed_out`,
- *   `pending_verification` or `signed_in` (`unknown` only before the first load).
+ *   `pending_verification` or `signed_in` (`unknown` before the first load, or when the
+ *   session could not be read: the guard treats that as signed out, and `SessionCheck` on the
+ *   sign-in page says so).
  *   `session.isSignedIn` is the quick check and `session.email` is the account's address
  *   when signed in. Reading them in a component or `$derived` stays reactive.
  * - `requireSession(url)`: for a `load` function that needs a signed-in player. Resolves
@@ -29,6 +31,7 @@ export { default as SignupForm } from './components/signup-form.svelte';
 export { default as VerifyEmail } from './components/verify-email.svelte';
 export { default as ResetRequestForm } from './components/reset-request-form.svelte';
 export { default as ResetForm } from './components/reset-form.svelte';
+export { default as SessionCheck } from './components/session-check.svelte';
 
 /**
  * Read the session once (and set up CSRF), then redirect if this visit isn't allowed:
