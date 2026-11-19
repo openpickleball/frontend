@@ -6,7 +6,9 @@
  *   `onrecorded` callback, and optionally `onchangecode`, which the "Change my code" button calls
  *   when the backend refuses the saved code. This feature never imports players, so the page
  *   wires it. It validates inline, maps the server's 422 errors onto its fields, and shows the
- *   offline and duplicate notices itself. It never queues a match (Decision Q1).
+ *   offline and duplicate notices itself. It never queues a match (Decision Q1). It keeps what the
+ *   player entered in `sessionStorage` (per own code) until the match is recorded, so a reload or a
+ *   stray tap does not lose it. See `draft.ts`.
  * - `submitMatch(draft, myCode)`: create the match, then confirm it for the player's team (Q4).
  *   Resolves to `{ match, confirmError }`. `match` is the domain `Match` as the API last returned
  *   it, ready to put in a match cache. `confirmError` is set when the match exists but the

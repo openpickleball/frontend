@@ -5,6 +5,7 @@
 	import { Button } from '#lib/ui/button/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { Label } from '#lib/ui/label/index.js';
+	import { createDraftStore, isBlank, type DraftStore } from '../draft.js';
 	import { RecordForm, todayLocal } from '../form.svelte.js';
 	import { searchPlayers, type SearchFn } from '../search.js';
 	import { submitMatch, type SubmitResult } from '../service.js';
@@ -18,7 +19,8 @@
 		onrecorded,
 		onchangecode,
 		submit = submitMatch,
-		search = searchPlayers
+		search = searchPlayers,
+		drafts = createDraftStore()
 	}: {
 		/** The signed-in player's own OPEN code. */
 		own: PlayerCode;
@@ -33,11 +35,24 @@
 		submit?: typeof submitMatch;
 		/** The name search. Tests pass a stand-in. */
 		search?: SearchFn;
+		/** Where the draft is kept between visits. Tests pass a stand-in. */
+		drafts?: DraftStore;
 	} = $props();
 
 	// The form belongs to one player. The page remounts this if their code changes.
 	// svelte-ignore state_referenced_locally
 	const form = new RecordForm(own);
+
+	// Put back what this player had entered before a reload or a stray tap, and keep it current.
+	// svelte-ignore state_referenced_locally
+	const kept = drafts.read(own);
+	if (kept) form.restore(kept);
+
+	$effect(() => {
+		const draft = form.draft;
+		if (isBlank(draft, todayLocal())) drafts.clear(own);
+		else drafts.write(own, draft);
+	});
 
 	let summaryBox = $state<HTMLElement | null>(null);
 	let failureBox = $state<HTMLElement | null>(null);
@@ -52,6 +67,8 @@
 		maxDate = todayLocal();
 		const result = await form.send(submit);
 		if (result) {
+			// The match is saved, so the draft is done.
+			drafts.clear(own);
 			onrecorded(result);
 			return;
 		}

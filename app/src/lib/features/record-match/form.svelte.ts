@@ -19,6 +19,7 @@ import {
 	type PlayerCode,
 	type ScoringType
 } from '#lib/domain/index.js';
+import type { Draft } from './draft.js';
 import { looksLikeCode } from './search.js';
 import { duplicateMatchCode, submitMatch, type SubmitResult } from './service.js';
 
@@ -116,6 +117,39 @@ export class RecordForm {
 
 	constructor(own: PlayerCode) {
 		this.own = own;
+	}
+
+	/** What the player has entered, in a shape that can be kept and put back with `restore`. */
+	get draft(): Draft {
+		const slot = (s: Slot) => ({ code: s.code, name: s.code ? s.name : '' });
+		return {
+			format: this.format,
+			playedOn: this.playedOn,
+			gameTarget: this.gameTarget,
+			scoringType: this.scoringType,
+			partner: slot(this.partner),
+			opponents: [slot(this.opponents[0]), slot(this.opponents[1])],
+			games: this.games.map((g) => ({ a: g.a, b: g.b }))
+		};
+	}
+
+	/** Put a kept draft back. A code that is the player's own or is repeated is left out. */
+	restore(draft: Draft): void {
+		const seen: string[] = [this.own];
+		const fill = (target: Slot, from: { code: PlayerCode | null; name: string }) => {
+			const usable = from.code !== null && !seen.includes(from.code);
+			if (usable) seen.push(from.code!);
+			target.code = usable ? from.code : null;
+			target.name = usable ? from.name : '';
+		};
+		this.format = draft.format;
+		this.playedOn = draft.playedOn;
+		this.gameTarget = draft.gameTarget;
+		this.scoringType = draft.scoringType;
+		fill(this.partner, draft.partner);
+		fill(this.opponents[0], draft.opponents[0]);
+		fill(this.opponents[1], draft.opponents[1]);
+		this.games = draft.games.map((g) => ({ ...g }));
 	}
 
 	get doubles(): boolean {

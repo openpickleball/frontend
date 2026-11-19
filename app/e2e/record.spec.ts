@@ -58,6 +58,34 @@ test('opens the new match from the cache, waiting for the other team', async ({ 
 	await expect(page.getByText(/not found|couldn't find/i)).toHaveCount(0);
 });
 
+test('keeps the draft through a reload and drops it once the match is recorded', async ({
+	page
+}) => {
+	await openRecord(page);
+	await fillDoublesMatch(page);
+
+	// A reload keeps the chips and scores.
+	await page.reload();
+	for (const key of ['oren', 'kit', 'bea']) {
+		await expect(page.getByRole('button', { name: `Remove ${codeOf(key)}` })).toBeVisible();
+	}
+	await expect(page.getByLabel("Game 2, your team's points")).toHaveValue('11');
+	await expect(page.getByLabel("Game 2, opponents' points")).toHaveValue('8');
+
+	// Leaving by a link and coming back keeps them too.
+	await page.getByRole('link', { name: 'Matches' }).first().click();
+	await expect(page).toHaveURL(/\/matches$/);
+	await page.goBack();
+	await expect(page.getByRole('button', { name: `Remove ${codeOf('kit')}` })).toBeVisible();
+
+	// Once recorded, a new visit starts empty.
+	await page.getByRole('button', { name: 'Record and confirm score' }).click();
+	await expect(page).toHaveURL(MATCH_URL);
+	await page.goto('/record');
+	await expect(page.getByTestId('chip')).toHaveCount(1);
+	await expect(page.getByLabel("Game 1, your team's points")).toHaveValue('');
+});
+
 test('accepts a code in any spelling and shows the canonical one', async ({ page }) => {
 	await openRecord(page);
 	const field = page.getByLabel('Your partner: name or OPEN code');
