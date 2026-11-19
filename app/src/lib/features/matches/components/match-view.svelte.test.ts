@@ -63,6 +63,39 @@ afterEach(() => {
 const code = () => sampleMatch().code;
 
 describe('MatchView', () => {
+	it('makes the result the heading, with the score under it', async () => {
+		await render(MatchView, { code: code() });
+
+		await expect
+			.element(
+				page.getByRole('heading', {
+					level: 1,
+					name: 'You and Oren Quill beat Bea Marlowe and Kit Ashdown'
+				})
+			)
+			.toBeVisible();
+		await expect.element(page.getByText('11-7, 9-11, 11-4')).toBeVisible();
+		// The date and format are said once, not again in a details list.
+		await expect.element(page.getByText('Played', { exact: true })).not.toBeInTheDocument();
+	});
+
+	it('puts the status panel before the score when the player has to confirm', async () => {
+		const screen = await render(MatchView, { code: code() });
+		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
+		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
+	it('keeps the score before the status panel when there is nothing to do', async () => {
+		const confirmed = viewerMatch({ a: true, b: true }, { status: 'confirmed' });
+		matchCache.remember(confirmed);
+		mocked.getMatch.mockResolvedValue(confirmed);
+		const screen = await render(MatchView, { code: code() });
+		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
+		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		expect(board.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
 	it('puts focus back on the Dispute button when the dispute fails', async () => {
 		mocked.disputeMatch.mockRejectedValue(new Error('network'));
 		await render(MatchView, { code: code() });

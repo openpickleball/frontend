@@ -47,6 +47,7 @@ export {
 	formatLongDate,
 	formatName,
 	matchCountLabel,
+	matchHeadline,
 	matchTitle,
 	pageFromSearch,
 	rangeLabel,

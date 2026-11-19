@@ -4,7 +4,12 @@
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import { resolve } from '$app/paths';
 	import { isAppError } from '#lib/api/index.js';
-	import { parseMatchCode, type Match, type MatchCode } from '#lib/domain/index.js';
+	import {
+		needsViewerConfirmation,
+		parseMatchCode,
+		type Match,
+		type MatchCode
+	} from '#lib/domain/index.js';
 	import { myCode } from '#lib/features/players/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
@@ -18,11 +23,12 @@
 	import { matchCache, type MatchAction } from '../cache.svelte.js';
 	import {
 		STATUS_LABELS,
-		formatDate,
 		formatLongDate,
 		formatName,
-		matchTitle,
-		scoringName
+		matchHeadline,
+		scoreLine,
+		scoringName,
+		viewpoint
 	} from '../format.js';
 	import { confirmMatch, disputeMatch, getMatch } from '../services.js';
 	import CodeGate from './code-gate.svelte';
@@ -201,12 +207,12 @@
 	{@const you = myCode.code}
 	<a
 		href={resolve('/matches')}
-		class="mt-2 inline-flex items-center gap-2.5 text-[15px] text-muted underline underline-offset-4 hover:text-secondary"
+		class="mt-2 inline-flex items-center gap-2.5 text-base text-muted underline underline-offset-4 hover:text-secondary"
 		><ArrowLeftIcon class="size-4" aria-hidden="true" />Matches</a
 	>
 	{#if lookup === 'error'}
 		<div
-			class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[15px] text-muted"
+			class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-base text-muted"
 			role="status"
 		>
 			<span>Showing a saved copy.</span>
@@ -214,41 +220,46 @@
 		</div>
 	{/if}
 	<div class="pt-4">
-		<p class="label">{formatLongDate(match.playedOn)}</p>
-		<h1 class="page-title mt-2">{matchTitle(match)}</h1>
+		<p class="label">{formatName(match.format)} · {formatLongDate(match.playedOn)}</p>
+		<h1 class="page-title mt-2">{matchHeadline(match, you)}</h1>
+		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match, you))}</p>
 		<div class="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-3">
 			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
-			<span class="font-display text-xs text-faint"
+			<span class="font-display text-sm text-muted"
 				><span class="sr-only">Match code </span>{match.code}</span
 			>
 		</div>
 	</div>
 
-	<Scoreboard {match} {you} />
+	{#snippet score()}
+		<Scoreboard {match} {you} />
+	{/snippet}
+	{#snippet status()}
+		<StatusPanel
+			{match}
+			{busy}
+			{error}
+			onconfirm={() => act('confirm')}
+			ondispute={() => (disputeOpen = true)}
+		/>
+	{/snippet}
 
-	<StatusPanel
-		{match}
-		{busy}
-		{error}
-		onconfirm={() => act('confirm')}
-		ondispute={() => (disputeOpen = true)}
-	/>
+	<!-- When the player has something to do, the buttons come before the scoreboard. -->
+	{#if needsViewerConfirmation(match)}
+		{@render status()}
+		{@render score()}
+	{:else}
+		{@render score()}
+		{@render status()}
+	{/if}
 
-	<dl class="mt-7 grid grid-cols-2 gap-x-6 gap-y-[18px] sm:grid-cols-4">
+	<dl class="mt-7 grid grid-cols-2 gap-x-6">
 		<div>
-			<dt class="text-[13px] text-faint">Played</dt>
-			<dd class="mt-0.5">{formatDate(match.playedOn)}</dd>
-		</div>
-		<div>
-			<dt class="text-[13px] text-faint">Format</dt>
-			<dd class="mt-0.5">{formatName(match.format)}</dd>
-		</div>
-		<div>
-			<dt class="text-[13px] text-faint">Games to</dt>
+			<dt class="text-sm text-muted">Games to</dt>
 			<dd class="mt-0.5">{match.gameTarget}</dd>
 		</div>
 		<div>
-			<dt class="text-[13px] text-faint">Scoring</dt>
+			<dt class="text-sm text-muted">Scoring</dt>
 			<dd class="mt-0.5">{scoringName(match.scoringType)}</dd>
 		</div>
 	</dl>

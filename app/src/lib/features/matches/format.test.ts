@@ -5,6 +5,7 @@ import {
 	formatLongDate,
 	formatShortDate,
 	matchCountLabel,
+	matchHeadline,
 	matchTitle,
 	pageFromSearch,
 	rangeLabel,
@@ -133,6 +134,25 @@ describe('pageFromSearch', () => {
 		for (const bad of ['0', '-2', 'x', '1.5', '', '99999999']) {
 			expect(pageFromSearch(new URLSearchParams({ page: bad })), bad).toBe(1);
 		}
+	});
+});
+
+describe('matchHeadline', () => {
+	it('reads the result from the player’s side', () => {
+		const match = sampleMatch();
+		expect(matchHeadline(match, TAMSIN)).toBe(
+			'You and Oren Quill beat Bea Marlowe and Kit Ashdown'
+		);
+		expect(matchHeadline(match, BEA)).toBe(
+			'You and Kit Ashdown lost to Tamsin Vale and Oren Quill'
+		);
+	});
+
+	it('says "played" while there is no winner', () => {
+		const match = sampleMatch({ games: games([11, 7]) });
+		expect(matchHeadline(match, TAMSIN)).toBe(
+			'You and Oren Quill played Bea Marlowe and Kit Ashdown'
+		);
 	});
 });
 

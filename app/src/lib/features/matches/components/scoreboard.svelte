@@ -47,7 +47,7 @@
 	</div>
 	<div aria-hidden="true">
 		<div
-			class="grid items-center gap-x-1.5 pt-3 pb-2 text-right text-[13px] text-faint"
+			class="grid items-center gap-x-1.5 pt-3 pb-2 text-right text-sm text-muted"
 			style:grid-template-columns={columns}
 		>
 			<span class="text-left">Team</span>
@@ -57,32 +57,32 @@
 		</div>
 		{#each teams as row (row.side)}
 			<div
-				class="grid items-center gap-x-1.5 border-t border-line py-4 last:border-b"
+				class="grid items-start gap-x-1.5 border-t border-line py-5 last:border-b"
 				style:grid-template-columns={columns}
 				data-testid="scoreboard-team"
 			>
 				<div class="grid min-w-0 gap-1.5">
 					{#each row.team.players as player, index (index)}
 						<div class="grid gap-0.5">
-							<span class="text-[17px] wrap-anywhere {row.won ? 'font-semibold' : ''}">
+							<span class="text-lg wrap-anywhere {row.won ? 'font-semibold' : ''}">
 								{player.displayName}{you && player.code === you ? ' (you)' : ''}
 							</span>
 							{#if player.code}
-								<span class="font-display text-[11px] text-faint">{player.code}</span>
+								<span class="font-display text-sm text-muted">{player.code}</span>
 							{/if}
 						</div>
 					{/each}
 					{#if row.won}
-						<span class="mt-0.5 text-[13px] font-semibold text-secondary"
+						<span class="mt-0.5 text-sm font-semibold text-secondary"
 							>{wonTag(match, row.side)}</span
 						>
 					{/if}
 				</div>
 				{#each row.scores as score, index (index)}
 					<span
-						class="text-right text-[22px] tabular-nums {score.won
+						class="text-right text-2xl tabular-nums {score.won
 							? 'font-semibold text-secondary'
-							: 'text-faint'}">{score.points}</span
+							: 'text-muted'}">{score.points}</span
 					>
 				{/each}
 			</div>

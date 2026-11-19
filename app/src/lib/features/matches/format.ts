@@ -143,6 +143,22 @@ export function viewpoint(
 	return match.viewerSide ?? ((you && myTeam(match, you)?.side) || 'a');
 }
 
+/**
+ * The result in words, read from the player's side: "You and Oren Quill beat Bea Marlowe and Kit
+ * Ashdown". A player's own name reads "You". Reads "played" while the match has no winner.
+ */
+export function matchHeadline(match: Match, you: PlayerCode | null): string {
+	const from = viewpoint(match, you);
+	const names = (team: Team) =>
+		team.players
+			.map((player) => (you && player.code === you ? 'You' : player.displayName))
+			.join(' and ');
+	const won = winner(match);
+	const verb = won === null ? 'played' : won === from ? 'beat' : 'lost to';
+	const [mine, theirs] = from === 'a' ? [match.teamA, match.teamB] : [match.teamB, match.teamA];
+	return `${names(mine)} ${verb} ${names(theirs)}`;
+}
+
 /** One sentence for a screen reader: who played, the score and the status. */
 export function rowLabel(match: Match, you: PlayerCode | null): string {
 	const from = viewpoint(match, you);
