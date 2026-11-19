@@ -36,7 +36,9 @@
 	</h1>
 	<p class="text-muted">
 		{#if session.email}
-			We sent a link to <strong class="font-semibold text-secondary">{session.email}</strong>.
+			We sent a link to <strong class="font-semibold wrap-anywhere text-secondary"
+				>{session.email}</strong
+			>.
 		{:else}
 			We sent a link to your email address.
 		{/if}

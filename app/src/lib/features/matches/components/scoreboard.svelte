@@ -64,7 +64,7 @@
 				<div class="grid min-w-0 gap-1.5">
 					{#each row.team.players as player, index (index)}
 						<div class="grid gap-0.5">
-							<span class="text-[17px] {row.won ? 'font-semibold' : ''}">
+							<span class="text-[17px] wrap-anywhere {row.won ? 'font-semibold' : ''}">
 								{player.displayName}{you && player.code === you ? ' (you)' : ''}
 							</span>
 							{#if player.code}

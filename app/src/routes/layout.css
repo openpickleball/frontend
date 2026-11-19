@@ -146,4 +146,6 @@
 	font-weight: 500;
 	letter-spacing: -0.015em;
 	text-wrap: balance;
+	/* A long name with no spaces breaks inside the column instead of widening the page. */
+	@apply wrap-anywhere;
 }

@@ -72,9 +72,9 @@
 <div class="pt-4">
 	<h1 class="page-title">Profile</h1>
 	{#if myCode.displayName}
-		<p class="mt-2 text-muted">{myCode.displayName}</p>
+		<p class="mt-2 wrap-anywhere text-muted">{myCode.displayName}</p>
 	{:else if myCode.email}
-		<p class="mt-2 text-muted">{myCode.email}</p>
+		<p class="mt-2 wrap-anywhere text-muted">{myCode.email}</p>
 	{/if}
 </div>
 
