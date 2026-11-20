@@ -4,7 +4,6 @@ import {
 	gameWinner,
 	gamesWon,
 	isPending,
-	myTeam,
 	needsViewerConfirmation,
 	otherSide,
 	waitingOnOtherTeam,
@@ -23,8 +22,6 @@ const sam = player('SAM1111', 'Sam Example');
 const alex = player('AJX1111', 'Alex Example');
 const robin = player('RBN1111', 'Robin Example');
 const kit = player('KEN1111', 'Kit Example');
-const nobody = player('NBD1111', 'Nobody Example');
-const privatePlayer: Player = { code: null, displayName: 'Private player' };
 
 function makeMatch(overrides: Partial<Match> = {}): Match {
 	const code = parseMatchCode(buildCode('match', 'MATCH123456'));
@@ -98,24 +95,6 @@ describe('gamesWon and winner', () => {
 		expect(winner(makeMatch({ games, bestOf: 5 }))).toBeNull();
 		const decided = [...games, { number: 4, teamA: 11, teamB: 9 }];
 		expect(winner(makeMatch({ games: decided, bestOf: 5 }))).toBe('a');
-	});
-});
-
-describe('myTeam', () => {
-	it('finds the team a player is on', () => {
-		const match = makeMatch();
-		expect(myTeam(match, sam.code)).toBe(match.teamA);
-		expect(myTeam(match, kit.code)).toBe(match.teamB);
-	});
-
-	it('is null when the player did not play', () => {
-		expect(myTeam(makeMatch(), nobody.code)).toBeNull();
-	});
-
-	it('does not match private players', () => {
-		const match = makeMatch({ teamB: { side: 'b', players: [privatePlayer, kit] } });
-		expect(myTeam(match, nobody.code)).toBeNull();
-		expect(myTeam(match, kit.code)?.side).toBe('b');
 	});
 });
 

@@ -12,21 +12,26 @@
 
 	let {
 		open = $bindable(false),
-		onconfirm
+		onconfirm,
+		onclosed
 	}: {
 		open?: boolean;
 		/** Called when the player presses "Dispute score", as the dialog closes. */
 		onconfirm: () => void;
+		/** Called once the dialog is gone and has handed focus back, however it closed. */
+		onclosed?: () => void;
 	} = $props();
 
 	// After "Dispute score" the Dispute button is gone, so the dialog must not send focus back to
 	// it. The page moves focus to the new status instead. After Cancel, focus goes back as usual.
 	let disputing = false;
 
-	function keepFocusAway(event: Event) {
-		if (!disputing) return;
-		disputing = false;
-		event.preventDefault();
+	function afterClose(event: Event) {
+		if (disputing) {
+			disputing = false;
+			event.preventDefault();
+		}
+		onclosed?.();
 	}
 </script>
 
@@ -36,7 +41,7 @@
   since the API takes none.
 -->
 <AlertDialog bind:open>
-	<AlertDialogContent onCloseAutoFocus={keepFocusAway}>
+	<AlertDialogContent onCloseAutoFocus={afterClose}>
 		<AlertDialogHeader>
 			<AlertDialogTitle>Dispute this score?</AlertDialogTitle>
 			<AlertDialogDescription>

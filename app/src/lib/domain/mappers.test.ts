@@ -9,7 +9,7 @@ import {
 	toMatchPage,
 	toPlayer
 } from './mappers';
-import { isPending, myTeam, winner } from './models';
+import { isPending, winner } from './models';
 
 type MatchDto = components['schemas']['MatchOut'];
 
@@ -147,7 +147,6 @@ describe('toMatch', () => {
 		if (!sam.ok) throw new Error('fixture');
 		expect(isPending(match)).toBe(true);
 		expect(winner(match)).toBe('a');
-		expect(myTeam(match, sam.value)?.side).toBe('a');
 	});
 
 	it('maps a singles match in every status', () => {

@@ -139,17 +139,16 @@ describe('pageFromSearch', () => {
 
 describe('matchHeadline', () => {
 	it('reads the result from the player’s side', () => {
-		const match = sampleMatch();
-		expect(matchHeadline(match, TAMSIN)).toBe(
+		expect(matchHeadline(sampleMatch({ viewerSide: 'a' }), TAMSIN)).toBe(
 			'You and Oren Quill beat Bea Marlowe and Kit Ashdown'
 		);
-		expect(matchHeadline(match, BEA)).toBe(
+		expect(matchHeadline(sampleMatch({ viewerSide: 'b' }), BEA)).toBe(
 			'You and Kit Ashdown lost to Tamsin Vale and Oren Quill'
 		);
 	});
 
 	it('says "played" while there is no winner', () => {
-		const match = sampleMatch({ games: games([11, 7]) });
+		const match = sampleMatch({ games: games([11, 7]), viewerSide: 'a' });
 		expect(matchHeadline(match, TAMSIN)).toBe(
 			'You and Oren Quill played Bea Marlowe and Kit Ashdown'
 		);
@@ -158,13 +157,14 @@ describe('matchHeadline', () => {
 
 describe('rowLabel and viewpoint', () => {
 	it('reads from the player’s own team', () => {
-		const match = sampleMatch();
-		expect(viewpoint(match, TAMSIN)).toBe('a');
-		expect(viewpoint(match, BEA)).toBe('b');
+		const match = sampleMatch({ viewerSide: 'a' });
+		const beasMatch = sampleMatch({ viewerSide: 'b' });
+		expect(viewpoint(match)).toBe('a');
+		expect(viewpoint(beasMatch)).toBe('b');
 		expect(rowLabel(match, TAMSIN)).toBe(
 			'14 Nov 2026, Doubles, best of 3. Tamsin Vale (you) and Oren Quill beat Bea Marlowe and Kit Ashdown, 11-7, 9-11, 11-4. Pending.'
 		);
-		expect(rowLabel(match, BEA)).toBe(
+		expect(rowLabel(beasMatch, BEA)).toBe(
 			'14 Nov 2026, Doubles, best of 3. Bea Marlowe (you) and Kit Ashdown lost to Tamsin Vale and Oren Quill, 7-11, 11-9, 4-11. Pending.'
 		);
 	});
@@ -174,15 +174,15 @@ describe('rowLabel and viewpoint', () => {
 		expect(rowLabel(match, TAMSIN)).toContain('Tamsin Vale (you) and Oren Quill played ');
 	});
 
-	it("prefers the API's viewerSide over the side the code is on", () => {
+	it("reads the side from the API's viewerSide, not from the codes", () => {
 		// TAMSIN is on team A, but the API says the viewer is on side B.
 		const match = sampleMatch({ viewerSide: 'b' });
-		expect(viewpoint(match, TAMSIN)).toBe('b');
+		expect(viewpoint(match)).toBe('b');
 		expect(rowLabel(match, TAMSIN)).toContain('Bea Marlowe and Kit Ashdown lost to');
 	});
 
 	it('falls back to team A for someone who did not play', () => {
-		expect(viewpoint(sampleMatch(), null)).toBe('a');
+		expect(viewpoint(sampleMatch())).toBe('a');
 	});
 });
 
