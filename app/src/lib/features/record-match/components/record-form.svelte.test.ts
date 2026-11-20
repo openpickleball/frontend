@@ -126,7 +126,14 @@ describe('RecordForm', () => {
 			.not.toBeInTheDocument();
 		await userEvent.keyboard('{ArrowRight}');
 		await expect.element(doubles).toBeChecked();
-		await expect.element(screen.getByRole('radiogroup', { name: 'Format' })).toBeVisible();
+		await expect.element(screen.getByRole('group', { name: 'Format' })).toBeVisible();
+	});
+
+	it('names each section and each segmented control as a group', async () => {
+		const { screen } = await setup();
+		for (const name of ['Match', 'Players', 'Scoring', 'Games', 'Games to', 'Scoring']) {
+			await expect.element(screen.getByRole('group', { name }).first()).toBeVisible();
+		}
 	});
 
 	it('adds and removes games, from 1 up to 5', async () => {

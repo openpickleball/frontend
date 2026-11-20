@@ -3,7 +3,7 @@
 	import { onDestroy, tick, untrack } from 'svelte';
 	import { CODE_INPUT_MAX_LENGTH, type PlayerCode } from '#lib/domain/index.js';
 	import * as Combobox from '#lib/ui/combobox/index.js';
-	import { FieldError } from '#lib/ui/field/index.js';
+	import { FieldError, fieldA11y } from '#lib/ui/field/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { PlayerSearch } from '../player-search.svelte.js';
 	import {
@@ -55,6 +55,7 @@
 	} = $props();
 
 	let input = $state<HTMLInputElement | null>(null);
+	const a11y = $derived(fieldA11y({ id, error }));
 	let list = $state<HTMLElement | null>(null);
 
 	// Bits UI's Combobox owns the list: the arrow keys, the highlighted option, Enter and Escape,
@@ -185,7 +186,7 @@
 						{id}
 						onclick={remove}
 						aria-label="Remove {name || code}"
-						aria-describedby={error ? `${id}-error` : undefined}
+						aria-describedby={a11y.attrs['aria-describedby']}
 						class="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:text-secondary"
 					>
 						<XIcon aria-hidden="true" class="size-4" />
@@ -208,8 +209,7 @@
 				{onblur}
 				onfocus={() => (wanted = text.trim().length >= MIN_SEARCH_LENGTH)}
 				aria-label={label}
-				aria-invalid={error ? 'true' : undefined}
-				aria-describedby={error ? `${id}-error` : undefined}
+				{...a11y.attrs}
 				type="text"
 				autocomplete="off"
 				autocapitalize="none"
@@ -256,6 +256,6 @@
 		{announcement}
 	</div>
 	{#if error}
-		<FieldError id="{id}-error">{error}</FieldError>
+		<FieldError id={a11y.errorId}>{error}</FieldError>
 	{/if}
 </div>

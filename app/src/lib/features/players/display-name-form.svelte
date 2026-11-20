@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { Button } from '#lib/ui/button/index.js';
-	import { Field, FieldDescription, FieldError, FieldLabel } from '#lib/ui/field/index.js';
+	import {
+		Field,
+		FieldDescription,
+		FieldError,
+		FieldLabel,
+		fieldA11y
+	} from '#lib/ui/field/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import type { SaveNameResult } from './settings-store.svelte.js';
@@ -42,9 +48,7 @@
 		}
 	}
 
-	const describedBy = $derived(
-		[`${id}-hint`, error ? `${id}-error` : ''].filter(Boolean).join(' ')
-	);
+	const a11y = $derived(fieldA11y({ id, error, hint: true, keepHint: true }));
 </script>
 
 <form class="grid max-w-md gap-4" onsubmit={submit} novalidate>
@@ -57,15 +61,14 @@
 			type="text"
 			autocomplete="nickname"
 			maxlength={DISPLAY_NAME_MAX}
-			aria-invalid={error ? true : undefined}
-			aria-describedby={describedBy}
+			{...a11y.attrs}
 			oninput={() => (saved = false)}
 		/>
-		<FieldDescription id="{id}-hint">
+		<FieldDescription id={a11y.hintId}>
 			Other players see this name, and can find you by it.
 		</FieldDescription>
 		{#if error}
-			<FieldError id="{id}-error">{error}</FieldError>
+			<FieldError id={a11y.errorId}>{error}</FieldError>
 		{/if}
 	</Field>
 	<div class="flex flex-wrap items-center gap-4">

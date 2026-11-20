@@ -13,7 +13,7 @@
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
-	import { FieldError } from '#lib/ui/field/index.js';
+	import { FieldError, FieldLegend, FieldSet, fieldA11y } from '#lib/ui/field/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { Label } from '#lib/ui/label/index.js';
@@ -122,7 +122,11 @@
 	}
 
 	const first = (key: string) => errors[key]?.[0] ?? '';
-	const gameErrorId = (index: number) => `game-${index}-error`;
+	const dateA11y = $derived(
+		fieldA11y({ id: 'played-on', error: first('played_on'), hint: form.dateHint })
+	);
+	const gameA11y = (index: number) =>
+		fieldA11y({ id: `game-${index}`, error: errors[`games.${index}`]?.[0] ?? '' });
 </script>
 
 <form {onsubmit} novalidate class="grid gap-2">
@@ -207,8 +211,8 @@
 		</div>
 	{/if}
 
-	<fieldset class="mt-8 grid gap-4 border-t border-line pt-3">
-		<legend class="text-xl font-semibold text-secondary">Match</legend>
+	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
+		<FieldLegend>Match</FieldLegend>
 		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
 			<Segmented
 				name="format"
@@ -228,25 +232,20 @@
 					max={maxDate}
 					class="w-52"
 					onfocus={() => (maxDate = todayLocal())}
-					aria-invalid={errors.played_on ? 'true' : undefined}
-					aria-describedby={errors.played_on
-						? 'played-on-error'
-						: form.dateHint
-							? 'played-on-hint'
-							: undefined}
+					{...dateA11y.attrs}
 					onblur={() => form.touch('played_on')}
 				/>
 				{#if errors.played_on}
-					<FieldError id="played-on-error">{first('played_on')}</FieldError>
+					<FieldError id={dateA11y.errorId}>{first('played_on')}</FieldError>
 				{:else if form.dateHint}
-					<p id="played-on-hint" class="text-base text-muted">{form.dateHint}</p>
+					<p id={dateA11y.hintId} class="text-base text-muted">{form.dateHint}</p>
 				{/if}
 			</div>
 		</div>
-	</fieldset>
+	</FieldSet>
 
-	<fieldset class="mt-8 grid gap-4 border-t border-line pt-3">
-		<legend class="text-xl font-semibold text-secondary">Players</legend>
+	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
+		<FieldLegend>Players</FieldLegend>
 		<p class="max-w-md text-base text-muted">
 			Type a player's name to find them, or enter their OPEN code. They can find theirs on their
 			Profile page.
@@ -300,10 +299,10 @@
 				/>
 			{/each}
 		</div>
-	</fieldset>
+	</FieldSet>
 
-	<fieldset class="mt-8 grid gap-4 border-t border-line pt-3">
-		<legend class="text-xl font-semibold text-secondary">Scoring</legend>
+	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
+		<FieldLegend>Scoring</FieldLegend>
 		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
 			<Segmented
 				name="target"
@@ -327,10 +326,10 @@
 				bind:value={() => form.scoringType, (v) => (form.scoringType = v as ScoringType)}
 			/>
 		</div>
-	</fieldset>
+	</FieldSet>
 
-	<fieldset class="mt-8 grid gap-4 border-t border-line pt-3">
-		<legend class="text-xl font-semibold text-secondary">Games</legend>
+	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
+		<FieldLegend>Games</FieldLegend>
 		<div class="grid max-w-sm">
 			<div class="flex items-center gap-x-2 pb-2 text-xs text-faint" aria-hidden="true">
 				<span class="w-20"></span><span class="w-16 text-center">You</span><span class="w-4"
@@ -338,6 +337,7 @@
 			</div>
 			{#each form.games as game, index (index)}
 				{@const gameError = errors[`games.${index}`]?.[0] ?? ''}
+				{@const a11y = gameA11y(index)}
 				<div
 					class="grid gap-1.5 border-t border-line py-2.5"
 					role="group"
@@ -354,8 +354,7 @@
 							autocomplete="off"
 							maxlength={SCORE_INPUT_MAX_LENGTH}
 							aria-label="Game {index + 1}, your team's points"
-							aria-invalid={gameError ? 'true' : undefined}
-							aria-describedby={gameError ? gameErrorId(index) : undefined}
+							{...a11y.attrs}
 						/>
 						<span class="w-4 text-center text-muted" aria-hidden="true">–</span>
 						<Input
@@ -366,8 +365,7 @@
 							autocomplete="off"
 							maxlength={SCORE_INPUT_MAX_LENGTH}
 							aria-label="Game {index + 1}, opponents' points"
-							aria-invalid={gameError ? 'true' : undefined}
-							aria-describedby={gameError ? gameErrorId(index) : undefined}
+							{...a11y.attrs}
 						/>
 						{#if form.canRemoveGame}
 							<Button
@@ -380,7 +378,7 @@
 						{/if}
 					</div>
 					{#if gameError}
-						<FieldError id={gameErrorId(index)}>{gameError}</FieldError>
+						<FieldError id={a11y.errorId}>{gameError}</FieldError>
 					{/if}
 				</div>
 			{/each}
@@ -403,7 +401,7 @@
 			{/if}
 			<p class="mt-2 text-sm text-faint">Up to 5 games.</p>
 		</div>
-	</fieldset>
+	</FieldSet>
 
 	<div class="mt-8 grid gap-3 border-t border-line pt-6">
 		<div>
