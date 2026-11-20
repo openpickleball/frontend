@@ -5,11 +5,11 @@
 	let { always = false }: { always?: boolean } = $props();
 </script>
 
-<!-- Mobile only: from 960px the side nav takes over, unless `always` (pages with no side nav). -->
+<!-- Mobile only: from 1024px the side nav takes over, unless `always` (pages with no side nav). -->
 <header
 	class={[
 		'sticky top-0 z-20 flex h-(--header-height) items-center justify-between gap-4 bg-primary/80 pr-[max(var(--spacing-gutter),env(safe-area-inset-right))] pl-[max(var(--spacing-gutter),env(safe-area-inset-left))] backdrop-blur-md',
-		!always && 'shell:hidden'
+		!always && 'lg:hidden'
 	]}
 >
 	<Wordmark />

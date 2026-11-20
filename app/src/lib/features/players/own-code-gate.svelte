@@ -62,7 +62,7 @@
 	<p class={cn(fallbackClass, 'text-muted')} role="status">{loading}</p>
 {:else if myCode.status === 'signed-out'}
 	<section class={cn(fallbackClass, 'grid justify-items-start gap-3')}>
-		<p class="max-w-[44ch] text-muted">{signedOut}</p>
+		<p class="max-w-md text-muted">{signedOut}</p>
 		<Button href={resolve(ROUTES.login)}>Sign in</Button>
 	</section>
 {:else if myCode.status === 'error'}
@@ -70,7 +70,7 @@
 		{@render error(retry)}
 	{:else}
 		<section class={cn(fallbackClass, 'grid gap-3')} role="alert">
-			<p class="max-w-[44ch] text-danger">{errorText}</p>
+			<p class="max-w-md text-danger">{errorText}</p>
 			<div>
 				<Button variant="outline" onclick={retry}>Try again</Button>
 			</div>

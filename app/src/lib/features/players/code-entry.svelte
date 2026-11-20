@@ -61,7 +61,7 @@
 		<h2 id="{id}-heading" class="text-2xl font-medium tracking-tight text-secondary">
 			{heading}
 		</h2>
-		<p id="{id}-help" class="max-w-[48ch] text-muted">
+		<p id="{id}-help" class="max-w-md text-muted">
 			Your OPEN code starts with P and has two groups of four letters and numbers, like P-4RWN-8TQ3.
 			That one is an example, not yours. OPEN does not show your code in the app yet, so use the one
 			you were given. We keep it on this device only, so you only enter it once.

@@ -12,6 +12,6 @@
 <AlertDialogPrimitive.Description
 	bind:ref
 	data-slot="alert-dialog-description"
-	class={cn('max-w-[48ch] text-base text-muted', className)}
+	class={cn('max-w-md text-base text-muted', className)}
 	{...restProps}
 />

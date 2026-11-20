@@ -9,8 +9,8 @@
 <!-- Every page, signed in or out. With the tab bar it clears the bar and the home indicator. -->
 <footer
 	class={[
-		'mx-auto w-full max-w-[calc(720px+2*var(--spacing-gutter))] pr-[max(var(--spacing-gutter),env(safe-area-inset-right))] pl-[max(var(--spacing-gutter),env(safe-area-inset-left))]',
-		bare ? 'pb-12' : 'pb-[calc(var(--tabbar-height)+24px+env(safe-area-inset-bottom))] shell:pb-12'
+		'mx-auto w-full max-w-[calc(var(--container-2xl)+2*var(--spacing-gutter))] pr-[max(var(--spacing-gutter),env(safe-area-inset-right))] pl-[max(var(--spacing-gutter),env(safe-area-inset-left))]',
+		bare ? 'pb-12' : 'pb-[calc(var(--tabbar-height)+24px+env(safe-area-inset-bottom))] lg:pb-12'
 	]}
 >
 	<p class="border-t border-line pt-6 text-sm text-faint">

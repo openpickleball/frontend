@@ -58,7 +58,7 @@
 <CodeGate>
 	{#snippet children(you)}
 		{#if view.status === 'ready' && view.count > 0}
-			<p class="mt-3 max-w-[56ch] text-muted">
+			<p class="mt-3 max-w-md text-muted">
 				{matchCountLabel(view.count)}, newest first. Other signed-in players see only your confirmed
 				matches.
 			</p>

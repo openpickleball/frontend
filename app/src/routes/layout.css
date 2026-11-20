@@ -49,8 +49,6 @@
 	--color-field: var(--color-faint); /* input borders: 3:1 or better, unlike line */
 	--color-confirmed-wash: light-dark(#e9ecd2, #141a06); /* success banner background */
 	--color-danger-wash: light-dark(#f6e2d9, #1f0d09); /* error banner background */
-
-	--breakpoint-shell: 960px; /* the top and tab bars give way to the side nav */
 }
 
 /*

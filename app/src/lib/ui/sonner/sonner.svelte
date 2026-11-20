@@ -10,7 +10,7 @@
 
 	let { ...restProps }: SonnerProps = $props();
 
-	// Below 960px toasts sit above the tab bar. From 960px they go bottom right.
+	// Below 1024px toasts sit above the tab bar. From 1024px they go bottom right.
 	let wide = $state(false);
 	onMount(() => {
 		const query = window.matchMedia(WIDE_QUERY);

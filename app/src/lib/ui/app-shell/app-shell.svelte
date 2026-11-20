@@ -27,15 +27,15 @@
 	Skip to content
 </a>
 
-<div class={['min-h-svh', !bare && 'shell:grid shell:grid-cols-[248px_1fr]']}>
+<div class={['min-h-svh', !bare && 'lg:grid lg:grid-cols-[auto_1fr]']}>
 	{#if !bare}<SideNav {pathname} {account} />{/if}
 	<div>
 		<TopBar always={bare} />
-		<!-- One column, 720px wide, with the site gutter. Room below for the tab bar on mobile. -->
+		<!-- One column, 672px wide, with the site gutter. Room below for the tab bar on mobile. -->
 		<main
 			id="main"
 			class={[
-				'mx-auto w-full max-w-[calc(720px+2*var(--spacing-gutter))] pt-2 pr-[max(var(--spacing-gutter),env(safe-area-inset-right))] pl-[max(var(--spacing-gutter),env(safe-area-inset-left))] shell:pt-12',
+				'mx-auto w-full max-w-[calc(var(--container-2xl)+2*var(--spacing-gutter))] pt-2 pr-[max(var(--spacing-gutter),env(safe-area-inset-right))] pl-[max(var(--spacing-gutter),env(safe-area-inset-left))] lg:pt-12',
 				'pb-16'
 			]}
 		>
