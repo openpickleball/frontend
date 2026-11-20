@@ -104,7 +104,7 @@ describe('ResetForm', () => {
 		await expect.element(screen.getByText('This password is too common.')).toBeVisible();
 	});
 
-	it('shows any other failure above the form', async () => {
+	it('shows any other failure below the button', async () => {
 		mockedCheck.mockResolvedValue(true);
 		mockedReset.mockRejectedValue(
 			appError({ kind: 'network', status: null, code: 'network', message: 'No connection.' })

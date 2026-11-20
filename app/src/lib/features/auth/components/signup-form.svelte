@@ -4,6 +4,14 @@
 	import { PASSWORD_MIN_LENGTH, ROUTES, signupSchema } from '#lib/domain/index.js';
 	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardFooter,
+		CardHeader,
+		CardTitle
+	} from '#lib/ui/card/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
@@ -51,48 +59,54 @@
 {#if session.status === 'pending_verification'}
 	<CheckEmail />
 {:else}
-	<section aria-labelledby="signup-title" class="grid gap-4">
-		<h1 id="signup-title" class="page-title">Create account</h1>
-		<p class="text-muted">It's free. We'll send you a link to verify your email.</p>
-		<form method="post" onsubmit={submit} novalidate class="grid gap-4">
-			<TextField
-				id="signup-email"
-				name="email"
-				label="Email"
-				type="email"
-				autocomplete="email"
-				placeholder="you@example.com"
-				bind:value={email}
-				error={form.errors.email}
-			/>
-			<TextField
-				id="signup-password"
-				name="password"
-				label="Password"
-				type="password"
-				reveal
-				autocomplete="new-password"
-				hint="At least {PASSWORD_MIN_LENGTH} characters. Avoid one you use somewhere else."
-				bind:value={password}
-				error={form.errors.password}
-			/>
-			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
-				{#if form.busy}<Spinner />{/if}
-				{form.busy ? 'Creating account…' : 'Create account'}
-			</Button>
-			<!-- Below the button, so an error doesn't push the form down and move the button. -->
-			{#if form.problem}
-				<Alert variant="destructive">
-					<CircleAlertIcon aria-hidden="true" />
-					<AlertTitle>{form.problem.title}</AlertTitle>
-				</Alert>
-			{/if}
+	<Card aria-labelledby="signup-title">
+		<CardHeader>
+			<CardTitle level="h1" id="signup-title">Create account</CardTitle>
+			<CardDescription>It's free. We'll send you a link to verify your email.</CardDescription>
+		</CardHeader>
+		<form method="post" onsubmit={submit} novalidate class="grid gap-8">
+			<CardContent>
+				<TextField
+					id="signup-email"
+					name="email"
+					label="Email"
+					type="email"
+					autocomplete="email"
+					placeholder="you@example.com"
+					bind:value={email}
+					error={form.errors.email}
+				/>
+				<TextField
+					id="signup-password"
+					name="password"
+					label="Password"
+					type="password"
+					reveal
+					autocomplete="new-password"
+					hint="At least {PASSWORD_MIN_LENGTH} characters. Avoid one you use somewhere else."
+					bind:value={password}
+					error={form.errors.password}
+				/>
+			</CardContent>
+			<CardFooter>
+				<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
+					{#if form.busy}<Spinner />{/if}
+					{form.busy ? 'Creating account…' : 'Create account'}
+				</Button>
+				<!-- Below the button, so an error doesn't push the form down and move the button. -->
+				{#if form.problem}
+					<Alert variant="destructive">
+						<CircleAlertIcon aria-hidden="true" />
+						<AlertTitle>{form.problem.title}</AlertTitle>
+					</Alert>
+				{/if}
+				<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
+					Already have an account?
+					<Button variant="link" href={resolve(ROUTES.login)} class="min-h-10 px-0 text-sm"
+						>Sign in</Button
+					>
+				</p>
+			</CardFooter>
 		</form>
-		<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
-			Already have an account?
-			<Button variant="link" href={resolve(ROUTES.login)} class="min-h-10 px-0 text-sm"
-				>Sign in</Button
-			>
-		</p>
-	</section>
+	</Card>
 {/if}

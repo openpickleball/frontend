@@ -244,6 +244,23 @@ describe('LoginForm', () => {
 			.toBeVisible();
 	});
 
+	it('is a card named by its heading, with the button after the fields', async () => {
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		const card = screen.getByRole('region', { name: 'Sign in' });
+		await expect.element(card).toHaveAttribute('data-slot', 'card');
+		const field = screen.getByLabelText('Password', { exact: true }).element();
+		const button = screen.getByRole('button', { name: 'Sign in' }).element();
+		expect(field.closest('[data-slot="card-content"]')).not.toBeNull();
+		expect(button.closest('[data-slot="card-footer"]')).not.toBeNull();
+	});
+
+	it('says so in the card when the session could not be read', async () => {
+		session.reset();
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		await expect.element(screen.getByText("We couldn't check your sign-in.")).toBeVisible();
+		await expect.element(screen.getByLabelText('Email')).toBeVisible();
+	});
+
 	it('says nothing about a session on a plain visit', async () => {
 		const screen = await render(LoginForm, { onsuccess: vi.fn() });
 		await expect.element(screen.getByRole('heading', { name: 'Sign in' })).toBeVisible();

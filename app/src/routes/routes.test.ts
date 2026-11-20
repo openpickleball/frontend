@@ -47,7 +47,9 @@ describe('route pages', () => {
 		it(`${path} has one h1 and a title`, () => {
 			const { body, head } = render(pages[path].default, { props: propsFor(path) });
 			expect(body.match(/<h1[\s>]/g)).toHaveLength(1);
-			expect(body).toMatch(new RegExp(`<h1[^>]*>${heading}</h1>`));
+			// A heading from a component (CardTitle) carries Svelte's empty comment markers.
+			const text = body.match(/<h1[^>]*>(.*?)<\/h1>/)?.[1].replace(/<!--[^>]*-->/g, '');
+			expect(text).toBe(heading);
 			expect(head).toMatch(/<title>[^<]*OPEN Pickleball<\/title>/);
 		});
 	}

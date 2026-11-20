@@ -5,11 +5,20 @@
 	import { ROUTES, loginSchema } from '#lib/domain/index.js';
 	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardFooter,
+		CardHeader,
+		CardTitle
+	} from '#lib/ui/card/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { session } from '../session.svelte.js';
 	import { login } from '../services.js';
+	import SessionCheck from './session-check.svelte';
 	import TextField from './text-field.svelte';
 
 	/** Called once the player is signed in. The page decides where they go next. */
@@ -47,78 +56,87 @@
 	}
 </script>
 
-<section aria-labelledby="login-title" class="grid gap-4">
-	<h1 id="login-title" class="page-title">Sign in</h1>
-	<p class="text-muted">Sign in to record matches and see your history.</p>
-	{#if session.status === 'pending_verification'}
-		<!-- A sign-up is waiting on its link. The form stays, for a player with another account. -->
-		<Alert>
-			<MailIcon aria-hidden="true" />
-			<AlertTitle>Check your email</AlertTitle>
-			<AlertDescription>
-				{#if session.email}
-					We sent a link to <strong class="font-semibold wrap-anywhere">{session.email}</strong>.
-				{:else}
-					We sent a link to your email address.
-				{/if}
-				Open it to verify your email, then sign in below. Signing in again with the same email sends a
-				new link.
-			</AlertDescription>
-		</Alert>
-	{/if}
-	{#if session.expired}
-		<Alert variant="destructive">
-			<CircleAlertIcon aria-hidden="true" />
-			<AlertTitle>You were signed out.</AlertTitle>
-			<AlertDescription>Your session ended. Sign in again to continue.</AlertDescription>
-		</Alert>
-	{/if}
-	<form method="post" onsubmit={submit} novalidate class="grid gap-4">
-		<TextField
-			id="login-email"
-			name="email"
-			label="Email"
-			type="email"
-			autocomplete="email"
-			bind:value={email}
-			error={form.errors.email}
-		/>
-		<div class="grid gap-2">
+<Card aria-labelledby="login-title">
+	<CardHeader>
+		<CardTitle level="h1" id="login-title">Sign in</CardTitle>
+		<CardDescription>Sign in to record matches and see your history.</CardDescription>
+	</CardHeader>
+	<form method="post" onsubmit={submit} novalidate class="grid gap-8">
+		<CardContent>
+			<!-- When the session could not be read, say so instead of a bare form that looks signed out. -->
+			<SessionCheck onsignedin={onsuccess} />
+			{#if session.status === 'pending_verification'}
+				<!-- A sign-up is waiting on its link. The form stays, for a player with another account. -->
+				<Alert>
+					<MailIcon aria-hidden="true" />
+					<AlertTitle>Check your email</AlertTitle>
+					<AlertDescription>
+						{#if session.email}
+							We sent a link to <strong class="font-semibold wrap-anywhere">{session.email}</strong
+							>.
+						{:else}
+							We sent a link to your email address.
+						{/if}
+						Open it to verify your email, then sign in below. Signing in again with the same email sends
+						a new link.
+					</AlertDescription>
+				</Alert>
+			{/if}
+			{#if session.expired}
+				<Alert variant="destructive">
+					<CircleAlertIcon aria-hidden="true" />
+					<AlertTitle>You were signed out.</AlertTitle>
+					<AlertDescription>Your session ended. Sign in again to continue.</AlertDescription>
+				</Alert>
+			{/if}
 			<TextField
-				id="login-password"
-				name="password"
-				label="Password"
-				type="password"
-				reveal
-				autocomplete="current-password"
-				bind:value={password}
-				error={form.errors.password}
+				id="login-email"
+				name="email"
+				label="Email"
+				type="email"
+				autocomplete="email"
+				bind:value={email}
+				error={form.errors.email}
 			/>
-			<Button
-				variant="link"
-				href={resolve(ROUTES.passwordReset)}
-				class="min-h-10 justify-self-start px-0 text-sm">Forgot your password?</Button
-			>
-		</div>
-		<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
-			{#if form.busy}<Spinner />{/if}
-			{form.busy ? 'Signing in…' : 'Sign in'}
-		</Button>
-		<!-- Below the button, so an error doesn't push the form down and move the button. -->
-		{#if form.problem}
-			<Alert variant="destructive">
-				<CircleAlertIcon aria-hidden="true" />
-				<AlertTitle>{form.problem.title}</AlertTitle>
-				{#if form.problem.detail}
-					<AlertDescription>{form.problem.detail}</AlertDescription>
-				{/if}
-			</Alert>
-		{/if}
+			<div class="grid gap-2">
+				<TextField
+					id="login-password"
+					name="password"
+					label="Password"
+					type="password"
+					reveal
+					autocomplete="current-password"
+					bind:value={password}
+					error={form.errors.password}
+				/>
+				<Button
+					variant="link"
+					href={resolve(ROUTES.passwordReset)}
+					class="min-h-10 justify-self-start px-0 text-sm">Forgot your password?</Button
+				>
+			</div>
+		</CardContent>
+		<CardFooter>
+			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
+				{#if form.busy}<Spinner />{/if}
+				{form.busy ? 'Signing in…' : 'Sign in'}
+			</Button>
+			<!-- Below the button, so an error doesn't push the form down and move the button. -->
+			{#if form.problem}
+				<Alert variant="destructive">
+					<CircleAlertIcon aria-hidden="true" />
+					<AlertTitle>{form.problem.title}</AlertTitle>
+					{#if form.problem.detail}
+						<AlertDescription>{form.problem.detail}</AlertDescription>
+					{/if}
+				</Alert>
+			{/if}
+			<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
+				New to OPEN?
+				<Button variant="link" href={resolve(ROUTES.signup)} class="min-h-10 px-0 text-sm"
+					>Create account</Button
+				>
+			</p>
+		</CardFooter>
 	</form>
-	<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
-		New to OPEN?
-		<Button variant="link" href={resolve(ROUTES.signup)} class="min-h-10 px-0 text-sm"
-			>Create account</Button
-		>
-	</p>
-</section>
+</Card>
