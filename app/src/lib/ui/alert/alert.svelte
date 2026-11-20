@@ -3,6 +3,7 @@
 
 	// A notice with a colored rule on the left. The icon is the first child and takes the color.
 	export const alertVariants = tv({
+		// eslint-disable-next-line local/no-arbitrary-tailwind-values -- two-column grid for the icon, no default template
 		base: 'group/alert relative grid w-full gap-1 border-l-4 px-4 py-3.5 text-left text-base text-secondary has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-3 *:[svg]:row-span-2 *:[svg]:mt-0.5 *:[svg]:size-5',
 		variants: {
 			variant: {

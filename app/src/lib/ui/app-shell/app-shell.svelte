@@ -27,6 +27,7 @@
 	Skip to content
 </a>
 
+<!-- eslint-disable-next-line local/no-arbitrary-tailwind-values -- side nav column beside the page, no default template -->
 <div class={['min-h-svh', !bare && 'lg:grid lg:grid-cols-[auto_1fr]']}>
 	{#if !bare}<SideNav {pathname} {account} />{/if}
 	<div>

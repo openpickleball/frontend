@@ -45,12 +45,14 @@
 
 <section class="grid gap-3" aria-labelledby="code-title">
 	<h2 id="code-title" class="label">Your OPEN code</h2>
+	<!-- eslint-disable local/no-arbitrary-tailwind-values -- fluid size so the code fits one line on narrow phones, no default -->
 	<p
 		class="font-display text-[clamp(26px,8vw,40px)] leading-tight tracking-wide break-words text-secondary"
 		data-testid="my-code"
 	>
 		{code}
 	</p>
+	<!-- eslint-enable local/no-arbitrary-tailwind-values -->
 	<p class="max-w-md text-muted">
 		Share it with the people you play. They need it to add you to a match.
 	</p>

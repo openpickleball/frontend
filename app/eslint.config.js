@@ -1,5 +1,6 @@
 import boundaries from 'eslint-plugin-boundaries';
 import js from '@eslint/js';
+import local from './src/lint/index.js';
 import globals from 'globals';
 import prettier from 'eslint-config-prettier';
 import svelte from 'eslint-plugin-svelte';
@@ -33,6 +34,14 @@ export default ts.config(
 		languageOptions: {
 			parserOptions: { parser: ts.parser }
 		}
+	},
+	{
+		// No arbitrary Tailwind values (app/AGENTS.md, "Reuse before you build"). Class strings
+		// live in components and in the ui helpers. Tests and mocks are out of scope.
+		files: ['src/**/*.svelte', 'src/lib/ui/**/*.ts'],
+		ignores: ['src/**/*.test.ts', 'src/lib/mocks/**'],
+		plugins: { local },
+		rules: { 'local/no-arbitrary-tailwind-values': 'error' }
 	},
 	{
 		// Layering from plans/frontend-v1/proposal.md section 3. Empty folders are fine.
