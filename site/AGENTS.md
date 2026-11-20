@@ -19,6 +19,8 @@ The public page at openpb.org. It stays when the app ships at app.openpb.org (fr
 
 Follow the same order as the app's [Reuse before you build](../app/AGENTS.md#reuse-before-you-build): a native element, then Tailwind's default scales, then the color tokens in `src/input.css`. Avoid arbitrary values in square brackets unless they need `env()` or `calc()`, and say why in a comment.
 
+Values left on purpose: `clamp()` font sizes and gaps (fluid, no default), `-mr-[0.1em]`, `gap-[0.32em]` and `size-[1.25em]` (relative to the wordmark size), `max-w-[20ch]` (heading measure), the art grid rows and `object-[...]` positions (fitted to the render).
+
 ## Commands
 
 - `pnpm dev` rebuilds the CSS on change.

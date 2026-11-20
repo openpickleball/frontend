@@ -20,7 +20,7 @@
 >
 	<span
 		aria-hidden="true"
-		class="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-danger text-xs leading-none font-bold text-primary"
+		class="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-danger text-xs font-bold text-primary"
 		>!</span
 	>
 	<span>{@render children?.()}</span>
