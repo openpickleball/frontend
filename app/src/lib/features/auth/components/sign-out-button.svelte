@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { ROUTES } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { logout } from '../services.js';
 
@@ -17,7 +18,7 @@
 		} finally {
 			busy = false;
 		}
-		await goto(resolve('/account/login'));
+		await goto(resolve(ROUTES.login));
 	}
 </script>
 

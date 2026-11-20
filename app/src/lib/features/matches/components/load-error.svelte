@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { ROUTES } from '#lib/domain/index.js';
 	import type { AppErrorKind } from '#lib/api/index.js';
 	import Notice from './notice.svelte';
 
@@ -21,9 +22,8 @@
 	</Notice>
 {:else if kind === 'unauthenticated'}
 	<Notice kind="error" title="You're not signed in.">
-		<a href={resolve('/account/login')} class="font-semibold underline underline-offset-4"
-			>Sign in</a
-		> to see your matches.
+		<a href={resolve(ROUTES.login)} class="font-semibold underline underline-offset-4">Sign in</a> to
+		see your matches.
 	</Notice>
 {:else}
 	<Notice kind="error" title="Your matches didn't load." {onretry}>

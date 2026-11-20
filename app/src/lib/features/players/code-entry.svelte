@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
+	import { CODE_INPUT_MAX_LENGTH, parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { Label } from '#lib/ui/label/index.js';
@@ -80,7 +80,7 @@
 			autocapitalize="characters"
 			autocorrect="off"
 			spellcheck={false}
-			maxlength={64}
+			maxlength={CODE_INPUT_MAX_LENGTH}
 			placeholder="P-XXXX-XXXX"
 			aria-invalid={error ? 'true' : undefined}
 			aria-describedby={describedBy}

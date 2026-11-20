@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack, type Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { ROUTES } from '#lib/domain/index.js';
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { cn } from '#lib/ui/utils.js';
@@ -62,7 +63,7 @@
 {:else if myCode.status === 'signed-out'}
 	<section class={cn(fallbackClass, 'grid justify-items-start gap-3')}>
 		<p class="max-w-[44ch] text-muted">{signedOut}</p>
-		<Button href={resolve('/account/login')}>Sign in</Button>
+		<Button href={resolve(ROUTES.login)}>Sign in</Button>
 	</section>
 {:else if myCode.status === 'error'}
 	{#if error}

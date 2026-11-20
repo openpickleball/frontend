@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { ROUTES } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import {
 		Empty,
@@ -35,7 +36,7 @@
 			</EmptyDescription>
 		</EmptyHeader>
 		<EmptyContent>
-			<Button href={resolve('/record')}>Record a match</Button>
+			<Button href={resolve(ROUTES.record)}>Record a match</Button>
 		</EmptyContent>
 	</Empty>
 </section>

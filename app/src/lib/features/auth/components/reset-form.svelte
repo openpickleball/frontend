@@ -3,7 +3,7 @@
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import { onMount } from 'svelte';
-	import { PASSWORD_MIN_LENGTH, passwordResetSchema } from '#lib/domain/index.js';
+	import { PASSWORD_MIN_LENGTH, ROUTES, passwordResetSchema } from '#lib/domain/index.js';
 	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { isThrottled } from '../forms.js';
@@ -111,12 +111,12 @@
 			<AlertTitle>Your password is changed.</AlertTitle>
 			<AlertDescription>Sign in with your new password.</AlertDescription>
 		</Alert>
-		<Button href={resolve('/account/login')} class="w-full">Sign in</Button>
+		<Button href={resolve(ROUTES.login)} class="w-full">Sign in</Button>
 	{:else}
 		<h1 id="newpw-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 			This link doesn't work anymore
 		</h1>
 		<p class="text-muted">It may have expired or been used already. You can ask for a new one.</p>
-		<Button href={resolve('/account/password/reset')} class="w-full">Send a new link</Button>
+		<Button href={resolve(ROUTES.passwordReset)} class="w-full">Send a new link</Button>
 	{/if}
 </section>

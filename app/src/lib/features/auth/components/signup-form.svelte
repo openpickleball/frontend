@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
-	import { PASSWORD_MIN_LENGTH, signupSchema } from '#lib/domain/index.js';
+	import { PASSWORD_MIN_LENGTH, ROUTES, signupSchema } from '#lib/domain/index.js';
 	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { isThrottled } from '../forms.js';
@@ -88,7 +88,7 @@
 		<p class="text-sm text-muted">
 			Already have an account?
 			<a
-				href={resolve('/account/login')}
+				href={resolve(ROUTES.login)}
 				class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
 				>Sign in</a
 			>

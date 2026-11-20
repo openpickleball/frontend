@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
-	import { passwordResetRequestSchema } from '#lib/domain/index.js';
+	import { ROUTES, passwordResetRequestSchema } from '#lib/domain/index.js';
 	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { isThrottled } from '../forms.js';
@@ -53,9 +53,7 @@
 		</p>
 		<p class="text-sm text-faint">Nothing there after a few minutes? Check your spam folder.</p>
 		<div class="mt-2">
-			<Button variant="outline" href={resolve('/account/login')} class="w-full"
-				>Back to sign in</Button
-			>
+			<Button variant="outline" href={resolve(ROUTES.login)} class="w-full">Back to sign in</Button>
 		</div>
 	</section>
 {:else}
@@ -84,7 +82,7 @@
 		</form>
 		<p class="text-sm text-muted">
 			<a
-				href={resolve('/account/login')}
+				href={resolve(ROUTES.login)}
 				class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
 				>Back to sign in</a
 			>

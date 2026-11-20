@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import MailIcon from '@lucide/svelte/icons/mail';
-	import { loginSchema } from '#lib/domain/index.js';
+	import { ROUTES, loginSchema } from '#lib/domain/index.js';
 	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { isThrottled } from '../forms.js';
@@ -101,7 +101,7 @@
 				error={form.errors.password}
 			/>
 			<a
-				href={resolve('/account/password/reset')}
+				href={resolve(ROUTES.passwordReset)}
 				class="justify-self-start text-sm font-medium text-secondary underline underline-offset-4 hover:text-muted"
 				>Forgot your password?</a
 			>
@@ -113,7 +113,7 @@
 	<p class="text-sm text-muted">
 		New to OPEN?
 		<a
-			href={resolve('/account/signup')}
+			href={resolve(ROUTES.signup)}
 			class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
 			>Create account</a
 		>

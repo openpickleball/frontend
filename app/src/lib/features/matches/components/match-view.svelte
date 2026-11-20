@@ -5,6 +5,7 @@
 	import { resolve } from '$app/paths';
 	import { isAppError } from '#lib/api/index.js';
 	import {
+		ROUTES,
 		needsViewerConfirmation,
 		parseMatchCode,
 		type Match,
@@ -208,7 +209,7 @@
 {#if match && myCode.code}
 	{@const you = myCode.code}
 	<a
-		href={resolve('/matches')}
+		href={resolve(ROUTES.matches)}
 		class="mt-2 inline-flex items-center gap-2.5 text-base text-muted underline underline-offset-4 hover:text-secondary"
 		><ArrowLeftIcon class="size-4" aria-hidden="true" />Matches</a
 	>
@@ -276,7 +277,7 @@
 	<h1 class="page-title">Match</h1>
 	<section class="mt-8 grid justify-items-start gap-3">
 		<p class="max-w-[44ch] text-muted">Sign in to see your matches.</p>
-		<Button href={resolve('/account/login')}>Sign in</Button>
+		<Button href={resolve(ROUTES.login)}>Sign in</Button>
 	</section>
 {:else if code && lookup === 'error'}
 	<h1 class="page-title">Match</h1>
@@ -303,7 +304,7 @@
 			</EmptyDescription>
 		</EmptyHeader>
 		<EmptyContent>
-			<Button href={resolve('/matches')} variant="outline">Back to your matches</Button>
+			<Button href={resolve(ROUTES.matches)} variant="outline">Back to your matches</Button>
 		</EmptyContent>
 	</Empty>
 {/if}

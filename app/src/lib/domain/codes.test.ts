@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	ALPHABET,
+	CODE_INPUT_MAX_LENGTH,
 	CODE_TYPES,
 	buildCode,
 	checkCharacter,
@@ -325,7 +326,8 @@ describe('normalizeCode', () => {
 		expect(reason('P-7K3M-QXUH')).toBe('bad_character');
 		expect(reason('P-7K3M')).toBe('wrong_length');
 		expect(reason('P-7K3M-QX9ı')).toBe('not_ascii');
-		expect(reason('x'.repeat(65))).toBe('too_long');
+		expect(reason('x'.repeat(CODE_INPUT_MAX_LENGTH + 1))).toBe('too_long');
+		expect(CODE_INPUT_MAX_LENGTH).toBe(64);
 	});
 });
 

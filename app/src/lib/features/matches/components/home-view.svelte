@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { needsViewerConfirmation, waitingOnOtherTeam } from '#lib/domain/index.js';
+	import { ROUTES, needsViewerConfirmation, waitingOnOtherTeam } from '#lib/domain/index.js';
 	import { myCode } from '#lib/features/players/index.js';
 	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 	import { Button } from '#lib/ui/button/index.js';
@@ -95,7 +95,7 @@
 		<CodeStrip code={you} />
 
 		<div class="mt-7">
-			<Button href={resolve('/record')} disabled={offline}>
+			<Button href={resolve(ROUTES.record)} disabled={offline}>
 				Record a match
 				<ArrowRightIcon aria-hidden="true" />
 			</Button>
@@ -136,7 +136,7 @@
 							<p class="mt-3 text-base text-muted" data-testid="more-needs">
 								{moreNeeds === 1 ? '1 more match is' : `${moreNeeds} more matches are`} waiting for you.
 								<a
-									href={resolve('/matches')}
+									href={resolve(ROUTES.matches)}
 									class="underline underline-offset-4 hover:text-secondary">See all matches</a
 								>.
 							</p>
@@ -163,7 +163,7 @@
 				<section class="mt-10" aria-labelledby="recent-title">
 					<div class="flex items-baseline justify-between gap-4">
 						<h2 id="recent-title" class="text-2xl font-semibold tracking-tight">Recent matches</h2>
-						<Button href={resolve('/matches')} variant="link">
+						<Button href={resolve(ROUTES.matches)} variant="link">
 							All matches
 							<ArrowRightIcon aria-hidden="true" />
 						</Button>
