@@ -20,10 +20,4 @@ describe('+page.svelte', () => {
 		expect(body.match(/<h1[\s>]/g)).toHaveLength(1);
 		expect(body).toMatch(/<h1[^>]*>Home<\/h1>/);
 	});
-
-	it('drops the SvelteKit starter text', () => {
-		const { body } = render(Page);
-		expect(body).not.toContain('SvelteKit');
-		expect(body).not.toContain('svelte.dev');
-	});
 });

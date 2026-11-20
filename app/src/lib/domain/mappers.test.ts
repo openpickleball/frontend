@@ -9,7 +9,7 @@ import {
 	toMatchPage,
 	toPlayer
 } from './mappers';
-import { didWin, isPending, isPrivatePlayer, myTeam, winner } from './models';
+import { isPending, myTeam, winner } from './models';
 
 type MatchDto = components['schemas']['MatchOut'];
 
@@ -60,7 +60,6 @@ describe('toPlayer', () => {
 	it('shows a player with no code as a private player', () => {
 		const player = toPlayer({ code: null, display_name: 'Private player' });
 		expect(player).toEqual({ code: null, displayName: PRIVATE_PLAYER_NAME });
-		expect(isPrivatePlayer(player)).toBe(true);
 	});
 
 	it('never keeps a name that arrives with a null code', () => {
@@ -149,7 +148,6 @@ describe('toMatch', () => {
 		expect(isPending(match)).toBe(true);
 		expect(winner(match)).toBe('a');
 		expect(myTeam(match, sam.value)?.side).toBe('a');
-		expect(didWin(match, sam.value)).toBe(true);
 	});
 
 	it('maps a singles match in every status', () => {

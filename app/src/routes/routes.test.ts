@@ -28,8 +28,8 @@ const propsFor = (path: string): Record<string, unknown> => {
 	return { params: { key: 'example-key' } };
 };
 
-describe('route stubs', () => {
-	it('covers every route the shell links to or the auth task will fill in', () => {
+describe('route pages', () => {
+	it('covers every route the shell links to', () => {
 		expect(Object.keys(pages).sort()).toEqual(Object.keys(expected).sort());
 	});
 

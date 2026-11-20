@@ -11,6 +11,7 @@ import {
 	MAX_GAMES,
 	groupIssues,
 	parsePlayerCode,
+	todayLocal,
 	validateMatch,
 	type FieldErrors,
 	type GameTarget,
@@ -58,15 +59,6 @@ export const FORBIDDEN_MESSAGE =
 export const DUPLICATE_MESSAGE = 'This match was already recorded';
 
 const emptySlot = (): Slot => ({ code: null, name: '', text: '', error: '' });
-
-/** Today in the player's own time zone, as `YYYY-MM-DD`. */
-// A plain value read once, never state, so the reactivity rule for Date does not apply.
-// eslint-disable-next-line svelte/prefer-svelte-reactivity
-export function todayLocal(now: Date = new Date()): string {
-	const month = String(now.getMonth() + 1).padStart(2, '0');
-	const day = String(now.getDate()).padStart(2, '0');
-	return `${String(now.getFullYear()).padStart(4, '0')}-${month}-${day}`;
-}
 
 /**
  * A game's score text as a number. A leading minus is kept, so the rules can say a score cannot be
@@ -250,7 +242,6 @@ export class RecordForm {
 		return 'Check the year. This date is more than 25 years ago.';
 	}
 
-	/** The value a server error key answered, so the error can go when that value changes. */
 	/** The values the error matching reads, copied so a later edit cannot change them. */
 	#view(): FormView {
 		return {
@@ -266,6 +257,7 @@ export class RecordForm {
 		};
 	}
 
+	/** The value a server error key answered, so the error can go when that value changes. */
 	#valueOf(key: string, v: FormView = this.#view()): string {
 		if (key === 'played_on') return v.playedOn;
 		if (key === 'format') return v.format;

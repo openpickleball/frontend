@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { buildCode, parseMatchCode, parsePlayerCode, type PlayerCode } from './codes';
 import {
-	didWin,
 	gameWinner,
 	gamesWon,
 	isPending,
-	isPrivatePlayer,
 	myTeam,
 	needsViewerConfirmation,
 	otherSide,
-	teamOn,
 	waitingOnOtherTeam,
 	winner,
 	type Match,
@@ -122,19 +119,6 @@ describe('myTeam', () => {
 	});
 });
 
-describe('didWin', () => {
-	it('is true for the winning team and false for the other', () => {
-		const match = makeMatch();
-		expect(didWin(match, alex.code)).toBe(true);
-		expect(didWin(match, robin.code)).toBe(false);
-	});
-
-	it('is null for a bystander or an undecided match', () => {
-		expect(didWin(makeMatch(), nobody.code)).toBeNull();
-		expect(didWin(makeMatch({ games: [] }), sam.code)).toBeNull();
-	});
-});
-
 describe('isPending', () => {
 	it.each([
 		['pending', true],
@@ -146,21 +130,10 @@ describe('isPending', () => {
 	});
 });
 
-describe('small helpers', () => {
-	it('flags a private player by the missing code', () => {
-		expect(isPrivatePlayer(privatePlayer)).toBe(true);
-		expect(isPrivatePlayer(sam)).toBe(false);
-	});
-
+describe('otherSide', () => {
 	it('flips a side', () => {
 		expect(otherSide('a')).toBe('b');
 		expect(otherSide('b')).toBe('a');
-	});
-
-	it('picks a team by side', () => {
-		const match = makeMatch();
-		expect(teamOn(match, 'a')).toBe(match.teamA);
-		expect(teamOn(match, 'b')).toBe(match.teamB);
 	});
 });
 

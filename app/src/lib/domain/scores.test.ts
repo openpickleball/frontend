@@ -11,6 +11,7 @@ import {
 	groupIssues,
 	inferBestOf,
 	latestPlayableDate,
+	todayLocal,
 	validateGame,
 	validateMatch,
 	type Issue,
@@ -519,6 +520,17 @@ describe('game count', () => {
 		[[g(11, 5), g(-1, 11), g(12, 9), g(11, 10), { teamA: 'x', teamB: 1 }, g(11, 5)]]
 	])('too many games is the only games issue (%#)', (scores) => {
 		expect(pairs(issuesOf({ games: scores }))).toEqual([['games', 'too_many_games']]);
+	});
+});
+
+describe('todayLocal', () => {
+	it('uses the local calendar date, padded', () => {
+		expect(todayLocal(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05');
+		expect(todayLocal(new Date(2026, 11, 31, 0, 0))).toBe('2026-12-31');
+	});
+
+	it('never runs ahead of the latest playable date', () => {
+		expect(todayLocal(NOW) <= latestPlayableDate(NOW)).toBe(true);
 	});
 });
 

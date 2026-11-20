@@ -16,7 +16,7 @@ export const init: ClientInit = async () => {
 	if (PUBLIC_API_MOCK === 'off') {
 		// The app shell worker. Never in the mock modes (MSW owns the worker there) or in dev.
 		// Not awaited: the app must not wait for it.
-		if (shouldRegister({ mock: PUBLIC_API_MOCK, dev, supported: 'serviceWorker' in navigator })) {
+		if (shouldRegister({ dev, supported: 'serviceWorker' in navigator })) {
 			registerServiceWorker(offerUpdate).catch((error) => {
 				console.error('The app shell worker did not start. The app still works online.', error);
 			});

@@ -1,12 +1,18 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { resolve } from '$app/paths';
-	import type { GameTarget, MatchFormat, PlayerCode, ScoringType } from '#lib/domain/index.js';
+	import {
+		todayLocal,
+		type GameTarget,
+		type MatchFormat,
+		type PlayerCode,
+		type ScoringType
+	} from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { Label } from '#lib/ui/label/index.js';
 	import { createDraftStore, isBlank, type DraftStore } from '../draft.js';
-	import { RecordForm, todayLocal } from '../form.svelte.js';
+	import { RecordForm } from '../form.svelte.js';
 	import { searchPlayers, type SearchFn } from '../search.js';
 	import { submitMatch, type SubmitResult } from '../service.js';
 	import FieldError from './field-error.svelte';
