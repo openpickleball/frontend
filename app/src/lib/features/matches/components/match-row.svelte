@@ -61,6 +61,7 @@
 		<span>{formatShortDate(match.playedOn)} · {formatName(match.format)}, {games}</span>
 		<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
 	</div>
+	<!-- eslint-disable local/no-arbitrary-tailwind-values -- label and score columns, no default grid template -->
 	<div
 		class="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-1 {match.status === 'voided'
 			? 'line-through decoration-faint'
@@ -81,6 +82,7 @@
 			</span>
 		{/each}
 	</div>
+	<!-- eslint-enable local/no-arbitrary-tailwind-values -->
 	{#if note}
 		<p class="mt-2 text-sm text-muted">{note}</p>
 	{/if}

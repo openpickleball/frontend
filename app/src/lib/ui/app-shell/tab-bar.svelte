@@ -16,7 +16,7 @@
 		<a
 			href={resolve(item.href)}
 			aria-current={current ? 'page' : undefined}
-			class="flex flex-col items-center justify-center gap-1 text-xs tracking-wide text-muted hover:text-secondary focus-visible:outline-offset-[-6px] aria-[current=page]:font-semibold aria-[current=page]:text-secondary"
+			class="flex flex-col items-center justify-center gap-1 text-xs tracking-wide text-muted hover:text-secondary focus-visible:-outline-offset-6 aria-[current=page]:font-semibold aria-[current=page]:text-secondary"
 		>
 			<NavIcon name={item.icon} class={current ? 'size-5 stroke-2' : 'size-5'} />
 			{item.label}

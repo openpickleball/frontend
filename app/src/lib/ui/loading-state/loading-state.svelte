@@ -38,7 +38,7 @@
 			{#each placeholders as index (index)}
 				<div class="grid gap-3 border-t border-line py-4">
 					<div class="flex items-center justify-between gap-3">
-						<Skeleton class="h-4 w-40 max-w-[60%]" />
+						<Skeleton class="h-4 w-40 max-w-3/5" />
 						<Skeleton class="h-5 w-20 rounded-full" />
 					</div>
 					<div class="grid gap-2">
@@ -50,7 +50,7 @@
 		</div>
 	{:else if variant === 'detail'}
 		<div class="grid gap-4" aria-hidden="true">
-			<Skeleton class="h-4 w-48 max-w-[70%]" />
+			<Skeleton class="h-4 w-48 max-w-7/10" />
 			<Skeleton class="h-10 w-3/4" />
 			<Skeleton class="h-6 w-32" />
 			<Skeleton class="mt-4 h-24 w-full" />
