@@ -5,6 +5,7 @@
 		waitingOnOtherTeam,
 		type Match
 	} from '#lib/domain/index.js';
+	import { Alert, AlertDescription } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import type { MatchAction } from '../cache.svelte.js';
@@ -119,7 +120,9 @@
 	{/if}
 	<p class="mt-2 max-w-md text-muted">{panel.text}</p>
 	{#if error}
-		<p class="mt-4 max-w-md text-base text-danger" role="alert">{error}</p>
+		<Alert variant="destructive" class="mt-4 max-w-md">
+			<AlertDescription>{error}</AlertDescription>
+		</Alert>
 	{/if}
 	{#if panel.actions && isPending(match)}
 		<div class="mt-4 flex flex-wrap gap-3">
