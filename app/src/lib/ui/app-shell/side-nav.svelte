@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
+	import * as Sidebar from '#lib/ui/sidebar/index.js';
 	import { ThemeToggle } from '#lib/ui/theme-toggle/index.js';
 	import NavIcon from './nav-icon.svelte';
 	import Wordmark from './wordmark.svelte';
@@ -10,31 +11,42 @@
 </script>
 
 <!-- From 1024px. Below that, the top bar and the tab bar take over. The banner landmark from 1024px. -->
-<header
-	class="sticky top-0 hidden h-svh flex-col gap-8 border-r border-line pt-8 pr-6 pb-6 pl-8 lg:flex lg:w-64"
->
-	<Wordmark />
-	<nav aria-label="Main">
-		<ul class="grid gap-1">
-			{#each NAV_ITEMS as item (item.href)}
-				<li>
-					<a
-						href={resolve(item.href)}
-						aria-current={isCurrent(item, pathname) ? 'page' : undefined}
-						class="-ml-3.5 flex items-center gap-3 rounded-full px-3.5 py-2.5 text-base text-muted hover:text-secondary aria-[current=page]:bg-surface aria-[current=page]:font-semibold aria-[current=page]:text-secondary aria-[current=page]:ring-1 aria-[current=page]:ring-line aria-[current=page]:ring-inset"
-					>
-						<NavIcon name={item.icon} class="size-5" />
-						{item.sideLabel}
-					</a>
-				</li>
-			{/each}
-		</ul>
-	</nav>
-	<div class="mt-auto grid gap-4">
-		{#if account}<div class="flex">{@render account()}</div>{/if}
-		<div class="flex items-center justify-between text-sm text-faint">
-			<span>Theme</span>
-			<ThemeToggle class="-mr-3" />
-		</div>
-	</div>
+<header class="sticky top-0 hidden h-svh lg:block">
+	<Sidebar.Root class="border-r border-sidebar-border">
+		<Sidebar.Header class="p-0 pt-8 pr-6 pl-8">
+			<Wordmark />
+		</Sidebar.Header>
+		<!-- Content scrolls on a short window. Its padding leaves room for the pills and the focus ring. -->
+		<Sidebar.Content class="pt-8 pr-6 pl-8">
+			<nav aria-label="Main">
+				<!-- Pulled left so the icons line up with the wordmark. -->
+				<Sidebar.Menu class="-ml-3.5 w-auto gap-1">
+					{#each NAV_ITEMS as item (item.href)}
+						{@const current = isCurrent(item, pathname)}
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton isActive={current}>
+								{#snippet child({ props })}
+									<a
+										{...props}
+										href={resolve(item.href)}
+										aria-current={current ? 'page' : undefined}
+									>
+										<NavIcon name={item.icon} />
+										{item.sideLabel}
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+					{/each}
+				</Sidebar.Menu>
+			</nav>
+		</Sidebar.Content>
+		<Sidebar.Footer class="gap-4 p-0 pt-8 pr-6 pb-6 pl-8">
+			{#if account}<div class="flex">{@render account()}</div>{/if}
+			<div class="flex items-center justify-between text-sm text-faint">
+				<span>Theme</span>
+				<ThemeToggle class="-mr-3" />
+			</div>
+		</Sidebar.Footer>
+	</Sidebar.Root>
 </header>

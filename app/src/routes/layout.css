@@ -51,6 +51,16 @@
 	--color-danger-wash: light-dark(#f6e2d9, #1f0d09); /* error banner background */
 }
 
+/* The side nav (src/lib/ui/sidebar) keeps shadcn's sidebar color names. Each one is an existing
+   token, so there are no new colors. */
+@theme {
+	--color-sidebar: var(--color-primary); /* background */
+	--color-sidebar-foreground: var(--color-secondary); /* text */
+	--color-sidebar-accent: var(--color-surface); /* current page background */
+	--color-sidebar-accent-foreground: var(--color-secondary); /* current page and hover text */
+	--color-sidebar-border: var(--color-line); /* edge and current page outline */
+}
+
 /*
   Theme: the system setting by default. The toggle stores a choice and the script in app.html puts
   it on <html data-theme> before first paint. `light:` targets the ivory theme either way. Mirrors
