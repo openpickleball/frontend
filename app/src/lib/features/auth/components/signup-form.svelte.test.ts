@@ -79,6 +79,15 @@ describe('SignupForm', () => {
 			.not.toBeInTheDocument();
 	});
 
+	it('links to sign in without clearing the pending state', async () => {
+		session.apply({ status: 'pending_verification' }, 'tamsin.vale@example.com');
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await expect
+			.element(screen.getByRole('link', { name: 'Go to sign in' }))
+			.toHaveAttribute('href', '/account/login');
+		expect(session.status).toBe('pending_verification');
+	});
+
 	it('goes back to the form from "Start over"', async () => {
 		session.apply({ status: 'pending_verification' }, 'tamsin.vale@example.com');
 		const screen = await render(SignupForm, { onsuccess: vi.fn() });

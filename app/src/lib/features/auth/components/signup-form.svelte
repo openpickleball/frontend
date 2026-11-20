@@ -39,7 +39,7 @@
 </script>
 
 {#if session.status === 'pending_verification'}
-	<CheckEmail page="signup" />
+	<CheckEmail />
 {:else}
 	<section aria-labelledby="signup-title" class="grid gap-5">
 		<h1 id="signup-title" class="page-title">Create account</h1>

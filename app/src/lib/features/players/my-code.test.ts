@@ -319,6 +319,51 @@ describe('myCode when me/player fails', () => {
 	});
 });
 
+describe('myCode.forget (sign out)', () => {
+	it('deletes the saved code and forgets the account', async () => {
+		const storage = memoryStorage();
+		const mine = createMyCode({
+			fetchMyPlayer: async () => null,
+			accountEmail: async () => 'a@example.com',
+			store: createCodeStore(() => storage)
+		});
+		await mine.load();
+		mine.save(CODE_A);
+		expect(storage.data.has(storageKey('a@example.com'))).toBe(true);
+
+		mine.forget('a@example.com');
+		expect(storage.data.size).toBe(0);
+		expect(mine.code).toBeNull();
+		expect(mine.email).toBeNull();
+	});
+
+	it('deletes the entry of the given account even before the profile has loaded', () => {
+		const storage = memoryStorage();
+		const store = createCodeStore(() => storage);
+		store.write('a@example.com', CODE_A);
+		const mine = createMyCode({
+			fetchMyPlayer: async () => null,
+			accountEmail: async () => 'a@example.com',
+			store
+		});
+		mine.forget('A@Example.com');
+		expect(storage.data.size).toBe(0);
+	});
+
+	it('leaves another account entry alone', () => {
+		const storage = memoryStorage();
+		const store = createCodeStore(() => storage);
+		store.write('b@example.com', CODE_B);
+		const mine = createMyCode({
+			fetchMyPlayer: async () => null,
+			accountEmail: async () => 'a@example.com',
+			store
+		});
+		mine.forget('a@example.com');
+		expect(storage.data.has(storageKey('b@example.com'))).toBe(true);
+	});
+});
+
 describe('codes in these tests', () => {
 	it('are valid player codes', () => {
 		expect(parsePlayerCode(CODE_A).ok).toBe(true);

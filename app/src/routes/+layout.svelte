@@ -7,6 +7,7 @@
 	import {
 		SignOutButton,
 		isAccountPath,
+		onSignOut,
 		session,
 		sessionEmail,
 		watchSessionExpiry
@@ -41,6 +42,10 @@
 		}
 		lastAccount = account;
 	});
+
+	// Signing out on purpose also deletes the code saved in this browser, so a shared device keeps
+	// no email or code. A session that merely expired keeps it: the player is coming back.
+	onDestroy(onSignOut((email) => myCode.forget(email)));
 
 	// When the session ends mid-use, the first 401 marks this device signed out, which clears the
 	// code and the cache above. Re-running the loads lets the guard send the player to sign in,
