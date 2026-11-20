@@ -44,9 +44,9 @@ test('controls are at least 44px tall and Scoring fits on one row on a phone', a
 	const controls = [
 		page.getByRole('button', { name: 'Remove game 1' }),
 		page.getByRole('button', { name: 'Add a game' }),
-		page.locator('label:has(input[name="format"][value="singles"])'),
-		page.locator('label:has(input[name="target"][value="11"])'),
-		page.locator('label:has(input[name="scoring"][value="rally"])')
+		page.getByRole('radio', { name: 'Singles' }),
+		page.getByRole('radio', { name: '11', exact: true }),
+		page.getByRole('radio', { name: 'Rally' })
 	];
 	for (const height of await heights(controls)) expect(height).toBeGreaterThanOrEqual(44);
 	// "Games to" and "Scoring" share one row.
@@ -115,7 +115,7 @@ test('accepts a code in any spelling and shows the canonical one', async ({ page
 
 test('singles hides the partner and the second opponent', async ({ page }) => {
 	await openRecord(page);
-	await page.getByText('Singles', { exact: true }).click();
+	await page.getByRole('radio', { name: 'Singles' }).click();
 	await expect(page.getByLabel('Your partner: name or OPEN code')).toHaveCount(0);
 	await expect(page.getByLabel('Second opponent: name or OPEN code')).toHaveCount(0);
 	await addPlayer(page, 'Your opponent: name or OPEN code', codeOf('kit'));

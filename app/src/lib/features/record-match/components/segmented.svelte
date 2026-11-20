@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { RadioGroup, RadioGroupItem } from '#lib/ui/radio-group/index.js';
+
 	let {
 		name,
 		label,
 		options,
 		value = $bindable()
 	}: {
-		/** Names the radio group, and the ids the label uses. */
+		/** Names the radio group, and the id its label uses. */
 		name: string;
 		label: string;
 		options: readonly { value: string; label: string }[];
@@ -17,18 +19,9 @@
 	<span id="{name}-label" class="text-base leading-snug font-semibold text-secondary">
 		{label}
 	</span>
-	<div
-		role="radiogroup"
-		aria-labelledby="{name}-label"
-		class="inline-flex w-fit max-w-full rounded-full border border-field p-1"
-	>
+	<RadioGroup bind:value {name} orientation="horizontal" aria-labelledby="{name}-label">
 		{#each options as option (option.value)}
-			<label
-				class="flex min-h-11 cursor-pointer items-center rounded-full px-4 text-base font-semibold text-muted transition-colors select-none hover:text-secondary has-checked:bg-secondary has-checked:text-primary has-checked:hover:text-primary has-focus-visible:focus-ring"
-			>
-				<input type="radio" class="sr-only" {name} value={option.value} bind:group={value} />
-				{option.label}
-			</label>
+			<RadioGroupItem value={option.value}>{option.label}</RadioGroupItem>
 		{/each}
-	</div>
+	</RadioGroup>
 </div>

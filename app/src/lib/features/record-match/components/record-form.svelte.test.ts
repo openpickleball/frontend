@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { userEvent } from 'vitest/browser';
 import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { parseMatchCode, parsePlayerCode, type Match, type PlayerCode } from '#lib/domain/index.js';
 import { PLAYERS } from '#lib/mocks/fixtures.js';
@@ -100,7 +101,7 @@ describe('RecordForm', () => {
 		await expect.element(screen.getByLabelText('Your partner: name or OPEN code')).toBeVisible();
 		await expect.element(screen.getByLabelText('Second opponent: name or OPEN code')).toBeVisible();
 
-		await screen.getByText('Singles', { exact: true }).click();
+		await screen.getByRole('radio', { name: 'Singles' }).click();
 		await expect
 			.element(screen.getByLabelText('Your partner: name or OPEN code'))
 			.not.toBeInTheDocument();
@@ -109,8 +110,23 @@ describe('RecordForm', () => {
 			.not.toBeInTheDocument();
 		await expect.element(screen.getByLabelText('Your opponent: name or OPEN code')).toBeVisible();
 
-		await screen.getByText('Doubles', { exact: true }).click();
+		await screen.getByRole('radio', { name: 'Doubles' }).click();
 		await expect.element(screen.getByLabelText('Your partner: name or OPEN code')).toBeVisible();
+	});
+
+	it('moves between the choices with the arrow keys, as radios', async () => {
+		const { screen } = await setup();
+		const doubles = screen.getByRole('radio', { name: 'Doubles' });
+		await expect.element(doubles).toBeChecked();
+		await (doubles.element() as HTMLElement).focus();
+		await userEvent.keyboard('{ArrowLeft}');
+		await expect.element(screen.getByRole('radio', { name: 'Singles' })).toBeChecked();
+		await expect
+			.element(screen.getByLabelText('Second opponent: name or OPEN code'))
+			.not.toBeInTheDocument();
+		await userEvent.keyboard('{ArrowRight}');
+		await expect.element(doubles).toBeChecked();
+		await expect.element(screen.getByRole('radiogroup', { name: 'Format' })).toBeVisible();
 	});
 
 	it('adds and removes games, from 1 up to 5', async () => {
@@ -414,7 +430,7 @@ describe('RecordForm', () => {
 	it('does not count a hidden partner when checking for repeats in singles', async () => {
 		const { screen } = await setup();
 		await addPlayer(screen, 'Your partner: name or OPEN code', code('oren'));
-		await screen.getByText('Singles', { exact: true }).click();
+		await screen.getByRole('radio', { name: 'Singles' }).click();
 		await addPlayer(screen, 'Your opponent: name or OPEN code', code('oren'));
 		await expect
 			.element(screen.getByRole('button', { name: `Remove ${code('oren')}` }))
