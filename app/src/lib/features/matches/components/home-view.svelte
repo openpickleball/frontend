@@ -5,6 +5,7 @@
 	import { myCode } from '#lib/features/players/index.js';
 	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 	import { Button } from '#lib/ui/button/index.js';
+	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { matchCountLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
 	import { matchCache } from '../cache.svelte.js';
@@ -102,7 +103,7 @@
 		</div>
 
 		{#if status === 'loading'}
-			<p class="mt-8 text-muted" role="status">Loading your matches…</p>
+			<LoadingState label="Loading your matches…" variant="list" rows={2} class="mt-8" />
 		{:else if status === 'ready'}
 			{#if view.count === 0}
 				<EmptyMatches onHome />

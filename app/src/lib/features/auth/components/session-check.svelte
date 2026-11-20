@@ -2,6 +2,7 @@
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { session } from '../session.svelte.js';
 	import { bootstrap } from '../services.js';
 
@@ -37,6 +38,7 @@
 			</AlertDescription>
 		</Alert>
 		<Button variant="outline" size="sm" onclick={retry} disabled={busy} aria-busy={busy}>
+			{#if busy}<Spinner />{/if}
 			{busy ? 'Checking…' : 'Try again'}
 		</Button>
 	</div>

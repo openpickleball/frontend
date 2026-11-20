@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { asAppError } from '../forms.js';
 	import { verifyEmail } from '../services.js';
 
@@ -59,7 +60,7 @@
 <section aria-labelledby="verify-title" class="grid gap-5">
 	{#if phase === 'working'}
 		<h1 id="verify-title" class="page-title">Verify your email</h1>
-		<p class="text-muted" role="status">Verifying your email…</p>
+		<LoadingState label="Verifying your email…" />
 	{:else if phase === 'confirmed'}
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 			Email verified

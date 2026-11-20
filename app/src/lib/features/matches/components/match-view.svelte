@@ -14,11 +14,13 @@
 	import { myCode } from '#lib/features/players/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import {
 		Empty,
 		EmptyContent,
 		EmptyDescription,
 		EmptyHeader,
+		EmptyMedia,
 		EmptyTitle
 	} from '#lib/ui/empty/index.js';
 	import { matchCache, type MatchAction } from '../cache.svelte.js';
@@ -271,7 +273,7 @@
 {:else if code && (lookup === 'loading' || lookup === 'done')}
 	<h1 class="page-title">Match</h1>
 	<CodeGate>
-		<p class="mt-8 text-muted" role="status">Loading the match…</p>
+		<LoadingState label="Loading the match…" variant="detail" class="mt-8" />
 	</CodeGate>
 {:else if code && lookup === 'signed-out'}
 	<h1 class="page-title">Match</h1>
@@ -295,6 +297,9 @@
 {:else}
 	<Empty class="mt-4">
 		<EmptyHeader>
+			<EmptyMedia>
+				<span class="mark size-10 text-line" aria-hidden="true"></span>
+			</EmptyMedia>
 			<EmptyTitle level="h1">We couldn't find this match</EmptyTitle>
 			<EmptyDescription>
 				<p>

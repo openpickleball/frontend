@@ -11,6 +11,7 @@
 		type ScoringType
 	} from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { Label } from '#lib/ui/label/index.js';
 	import { createDraftStore, isBlank, type DraftStore } from '../draft.js';
@@ -405,6 +406,7 @@
 	<div class="mt-8 grid gap-3 border-t border-line pt-6">
 		<div>
 			<Button type="submit" aria-disabled={form.sending} aria-describedby="submit-note">
+				{#if form.sending}<Spinner />{/if}
 				{form.sending ? 'Recording…' : 'Record and confirm score'}
 			</Button>
 		</div>

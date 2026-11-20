@@ -7,6 +7,7 @@
 		EmptyContent,
 		EmptyDescription,
 		EmptyHeader,
+		EmptyMedia,
 		EmptyTitle
 	} from '#lib/ui/empty/index.js';
 
@@ -20,6 +21,9 @@
 
 <Empty class="mt-4">
 	<EmptyHeader>
+		<EmptyMedia>
+			<span class="mark size-10 text-line" aria-hidden="true"></span>
+		</EmptyMedia>
 		<EmptyTitle level="h1">{title}</EmptyTitle>
 		<EmptyDescription>
 			{#if notFound}

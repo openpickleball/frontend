@@ -2,6 +2,7 @@
 	import { untrack, type Snippet } from 'svelte';
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import CodeCard from './code-card.svelte';
 	import { myCode } from './my-code.svelte.js';
 	import OwnCodeGate from './own-code-gate.svelte';
@@ -70,7 +71,7 @@
 						{:else if stats.matchCountFailed}
 							<span class="text-base text-muted">Not available right now</span>
 						{:else}
-							<span class="text-base text-muted">Loading…</span>
+							<LoadingState label="Loading…" class="text-base" />
 						{/if}
 					</dd>
 				</div>

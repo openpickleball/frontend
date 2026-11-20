@@ -5,6 +5,9 @@ import { Button } from './button/index.js';
 import { Badge } from './badge/index.js';
 import { EmptyDescription, EmptyMedia, EmptyTitle } from './empty/index.js';
 import { Input } from './input/index.js';
+import { LoadingState } from './loading-state/index.js';
+import { Skeleton } from './skeleton/index.js';
+import { Spinner } from './spinner/index.js';
 import { cn } from './utils.js';
 
 const text = (value: string) => createRawSnippet(() => ({ render: () => `<span>${value}</span>` }));
@@ -23,7 +26,10 @@ describe('index files', () => {
 				'empty',
 				'input',
 				'label',
+				'loading-state',
+				'skeleton',
 				'sonner',
+				'spinner',
 				'theme-toggle'
 			])
 		);
@@ -93,6 +99,42 @@ describe('Empty', () => {
 		const media = render(EmptyMedia, { props: { variant: 'icon', children: text('x') } });
 		expect(media.body).toContain('bg-surface');
 		expect(media.body).not.toMatch(/bg-muted|text-foreground/);
+	});
+});
+
+describe('Skeleton and Spinner', () => {
+	it('are decoration, and their motion stops under reduced motion', () => {
+		const skeleton = render(Skeleton, { props: { class: 'h-4' } }).body;
+		expect(skeleton).toContain('aria-hidden="true"');
+		expect(skeleton).toContain('bg-line');
+		expect(skeleton).toContain('motion-safe:animate-pulse');
+		expect(skeleton).not.toMatch(/bg-muted|(?<!motion-safe:)animate-pulse/);
+		const spinner = render(Spinner).body;
+		expect(spinner).toContain('aria-hidden="true"');
+		expect(spinner).toContain('motion-safe:animate-spin');
+		expect(spinner).not.toMatch(/(?<!motion-safe:)animate-spin/);
+	});
+
+	it('lets a lone spinner name itself for screen readers', () => {
+		const { body } = render(Spinner, { props: { role: 'status', 'aria-label': 'Loading' } });
+		expect(body).toContain('role="status"');
+		expect(body).not.toContain('aria-hidden');
+	});
+});
+
+describe('LoadingState', () => {
+	it('is a busy status region whose text says what is loading', () => {
+		const { body } = render(LoadingState, { props: { label: 'Loading your matches…' } });
+		expect(body).toMatch(/<div[^>]*role="status"[^>]*aria-busy="true"/);
+		expect(body).toContain('Loading your matches…');
+	});
+
+	it('hides the placeholder shapes from screen readers', () => {
+		const list = render(LoadingState, { props: { label: 'x', variant: 'list', rows: 2 } }).body;
+		expect(list.match(/data-slot="skeleton"/g)).toHaveLength(8);
+		const detail = render(LoadingState, { props: { label: 'x', variant: 'detail' } }).body;
+		expect(detail).toContain('data-slot="skeleton"');
+		expect(detail).toContain('aria-hidden="true"');
 	});
 });
 

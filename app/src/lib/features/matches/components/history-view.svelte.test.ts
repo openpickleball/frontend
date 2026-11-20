@@ -39,7 +39,9 @@ describe('HistoryView title', () => {
 		mocked.listMatches.mockResolvedValue({ items: [], count: 26 });
 		await render(HistoryView, { page: 99 });
 
-		await expect.element(page.getByText('There are no matches on this page.')).toBeVisible();
+		await expect
+			.element(page.getByRole('heading', { name: 'There are no matches on this page' }))
+			.toBeVisible();
 		await vi.waitFor(() =>
 			expect(document.title).toBe('Matches, no matches on this page · OPEN Pickleball')
 		);

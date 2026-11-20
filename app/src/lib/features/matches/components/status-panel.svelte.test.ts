@@ -46,7 +46,10 @@ describe('StatusPanel', () => {
 				busy: 'confirm',
 				...handlers()
 			});
-			await expect.element(screen.getByRole('button', { name: 'Confirming…' })).toBeDisabled();
+			const confirming = screen.getByRole('button', { name: 'Confirming…' });
+			await expect.element(confirming).toBeDisabled();
+			await expect.element(confirming).toHaveAttribute('aria-busy', 'true');
+			expect(confirming.element().querySelector('svg[aria-hidden="true"]')).not.toBeNull();
 			await expect.element(screen.getByRole('button', { name: 'Dispute' })).toBeDisabled();
 		});
 

@@ -6,6 +6,7 @@
 		type Match
 	} from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Spinner } from '#lib/ui/spinner/index.js';
 	import type { MatchAction } from '../cache.svelte.js';
 
 	let {
@@ -117,7 +118,13 @@
 	{/if}
 	{#if panel.actions && isPending(match)}
 		<div class="mt-[18px] flex flex-wrap gap-3">
-			<Button id="confirm-button" onclick={onconfirm} disabled={busy !== null}>
+			<Button
+				id="confirm-button"
+				onclick={onconfirm}
+				disabled={busy !== null}
+				aria-busy={busy === 'confirm'}
+			>
+				{#if busy === 'confirm'}<Spinner />{/if}
 				{busy === 'confirm' ? 'Confirming…' : 'Confirm score'}
 			</Button>
 			<Button id="dispute-button" variant="destructive" onclick={ondispute} disabled={busy !== null}

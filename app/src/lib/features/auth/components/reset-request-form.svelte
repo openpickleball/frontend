@@ -4,6 +4,7 @@
 	import { ROUTES, passwordResetRequestSchema } from '#lib/domain/index.js';
 	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { requestPasswordReset } from '../services.js';
@@ -77,6 +78,7 @@
 				error={form.errors.email}
 			/>
 			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
+				{#if form.busy}<Spinner />{/if}
 				{form.busy ? 'Sending…' : 'Send reset link'}
 			</Button>
 		</form>

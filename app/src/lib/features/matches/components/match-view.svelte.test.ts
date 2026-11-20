@@ -265,7 +265,9 @@ describe('MatchView', () => {
 		mocked.getMatch.mockImplementation(() => new Promise(() => {}));
 		myCode.save(TAMSIN);
 		await render(MatchView, { code: code() });
-		await expect.element(page.getByText('Loading the match…')).toBeVisible();
+		const status = page.getByRole('status');
+		await expect.element(status).toHaveTextContent('Loading the match…');
+		await expect.element(status).toHaveAttribute('aria-busy', 'true');
 	});
 
 	it('shows a match opened with no cached copy once it is read', async () => {
