@@ -22,7 +22,7 @@
 	bind:this={element}
 	role="alert"
 	tabindex="-1"
-	class="flex items-start gap-3 border-l-[3px] border-danger bg-danger-wash px-4 py-3.5 text-base text-secondary"
+	class="flex items-start gap-3 border-l-4 border-danger bg-danger-wash px-4 py-3.5 text-base text-secondary"
 >
 	<CircleAlertIcon aria-hidden="true" class="mt-0.5 size-5 shrink-0 text-danger" />
 	<div class="grid gap-1.5">

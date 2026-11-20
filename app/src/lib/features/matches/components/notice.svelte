@@ -21,8 +21,7 @@
 
 <div
 	role={kind === 'error' ? 'alert' : 'status'}
-	class="flex items-start gap-3 border-l-[3px] px-4 py-3.5 text-base text-secondary {kind ===
-	'error'
+	class="flex items-start gap-3 border-l-4 px-4 py-3.5 text-base text-secondary {kind === 'error'
 		? 'border-danger bg-danger-wash [&_svg]:text-danger'
 		: 'border-line bg-surface [&_svg]:text-muted'}"
 >

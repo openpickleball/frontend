@@ -99,8 +99,8 @@
 /* Theme switch: the toggle wraps the change in a view transition, and the page crossfades. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-	animation-duration: 0.5s;
-	animation-timing-function: ease-in-out;
+	animation-duration: 500ms; /* Tailwind's duration-500 */
+	animation-timing-function: var(--ease-in-out);
 }
 
 /* The same ring for a wrapper that shows focus for an input inside it: has-focus-visible:focus-ring. */
@@ -135,7 +135,7 @@
 }
 @utility animate-fade-in {
 	@media (prefers-reduced-motion: no-preference) {
-		animation: fade-in 0.2s ease-out;
+		animation: fade-in 200ms var(--ease-out); /* Tailwind's duration-200 */
 	}
 }
 

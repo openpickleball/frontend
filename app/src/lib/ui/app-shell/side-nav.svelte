@@ -21,9 +21,9 @@
 					<a
 						href={resolve(item.href)}
 						aria-current={isCurrent(item, pathname) ? 'page' : undefined}
-						class="-ml-3.5 flex items-center gap-3 rounded-full px-3.5 py-2.5 text-base text-muted hover:text-secondary aria-[current=page]:bg-surface aria-[current=page]:font-semibold aria-[current=page]:text-secondary aria-[current=page]:shadow-[inset_0_0_0_1px_var(--color-line)]"
+						class="-ml-3.5 flex items-center gap-3 rounded-full px-3.5 py-2.5 text-base text-muted hover:text-secondary aria-[current=page]:bg-surface aria-[current=page]:font-semibold aria-[current=page]:text-secondary aria-[current=page]:ring-1 aria-[current=page]:ring-line aria-[current=page]:ring-inset"
 					>
-						<NavIcon name={item.icon} class="size-[22px]" />
+						<NavIcon name={item.icon} class="size-5" />
 						{item.sideLabel}
 					</a>
 				</li>

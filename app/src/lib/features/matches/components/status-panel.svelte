@@ -96,7 +96,7 @@
 </script>
 
 <section
-	class="mt-8 border border-l-[3px] border-line bg-surface px-5 pt-5 pb-[22px] {match.status ===
+	class="mt-8 border border-l-4 border-line bg-surface px-5 pt-5 pb-[22px] {match.status ===
 	'confirmed'
 		? 'border-l-confirmed'
 		: match.status === 'disputed'

@@ -16,7 +16,7 @@
 	data-slot="input-group"
 	role="group"
 	class={cn(
-		'flex h-12 w-full min-w-0 items-center rounded-full border border-field bg-surface transition-colors hover:border-muted has-[[data-slot=input-group-control]:focus-visible]:focus-ring has-[[data-slot=input-group-control][aria-invalid=true]]:border-danger has-[[data-slot=input-group-control][aria-invalid=true]]:shadow-[inset_0_0_0_1px_var(--color-danger)] has-disabled:opacity-45',
+		'flex h-12 w-full min-w-0 items-center rounded-full border border-field bg-surface transition-colors hover:border-muted has-[[data-slot=input-group-control]:focus-visible]:focus-ring has-[[data-slot=input-group-control][aria-invalid=true]]:border-danger has-[[data-slot=input-group-control][aria-invalid=true]]:ring-1 has-[[data-slot=input-group-control][aria-invalid=true]]:ring-danger has-[[data-slot=input-group-control][aria-invalid=true]]:ring-inset has-disabled:opacity-50',
 		className
 	)}
 	{...props}
