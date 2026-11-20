@@ -6,7 +6,7 @@
  * the match still exists: the result says so instead of throwing, and the caller sends
  * the player to the match page anyway.
  */
-import { AppError, api, toAppError, unwrap, type Api } from '#lib/api/index.js';
+import { AppError, api, toAppError, unwrap, type ApiOption } from '#lib/api/index.js';
 import {
 	groupIssues,
 	parseMatchCode,
@@ -28,10 +28,7 @@ export type SubmitResult = {
 	confirmError: AppError | null;
 };
 
-export type SubmitOptions = {
-	/** Another API client. For tests, which need a base URL in node. */
-	api?: Api;
-};
+export type SubmitOptions = ApiOption;
 
 /** A problem found before sending anything, shaped like a 422 so a form maps it the same way. */
 function localError(

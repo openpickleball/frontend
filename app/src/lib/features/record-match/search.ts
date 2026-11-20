@@ -6,7 +6,7 @@
  * wait from `Retry-After`), a lapsed sign-in (401) and the rest. Only a cancelled request throws, so the caller can
  * tell "stale" from "failed". Names and codes in results come from the backend as is.
  */
-import { api, toAppError, type Api } from '#lib/api/index.js';
+import { api, toAppError, type ApiOption } from '#lib/api/index.js';
 import { ALPHABET, parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
 
 /** The shortest search the backend takes. */
@@ -28,11 +28,9 @@ export type SearchResult =
 			retryAfter: number | null;
 	  };
 
-export type SearchOptions = {
+export type SearchOptions = ApiOption & {
 	/** Cancels the request. A cancelled search rejects with an `AbortError`. */
 	signal?: AbortSignal;
-	/** Another API client. For tests, which need a base URL in node. */
-	api?: Api;
 };
 
 export type SearchFn = (query: string, options?: SearchOptions) => Promise<SearchResult>;

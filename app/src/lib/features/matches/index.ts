@@ -32,7 +32,6 @@
 export { MatchCache, matchCache, ownerKey, type MatchAction } from './cache.svelte.js';
 export {
 	PAGE_SIZE,
-	configureMatchesApi,
 	confirmMatch,
 	countMatches,
 	disputeMatch,

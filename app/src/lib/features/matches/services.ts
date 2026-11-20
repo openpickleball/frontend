@@ -1,4 +1,4 @@
-import { api as appApi, unwrap, type Api } from '#lib/api/index.js';
+import { api as appApi, unwrap, type ApiOption } from '#lib/api/index.js';
 import {
 	toMatch,
 	toMatchPage,
@@ -8,13 +8,6 @@ import {
 	type PlayerCode
 } from '#lib/domain/index.js';
 import { matchCache, type MatchCache } from './cache.svelte.js';
-
-let api: Api = appApi;
-
-/** Use another API client. For tests, which need a base URL and a cookie jar in node. */
-export function configureMatchesApi(next: Api = appApi): void {
-	api = next;
-}
 
 /** Matches per page. The API's own maximum is larger, and 20 matches the mockups. */
 export const PAGE_SIZE = 20;
@@ -26,7 +19,11 @@ export const PAGE_SIZE = 20;
 export async function listMatches(
 	player: PlayerCode,
 	offset = 0,
-	{ limit = PAGE_SIZE, cache = matchCache }: { limit?: number; cache?: MatchCache } = {}
+	{
+		limit = PAGE_SIZE,
+		cache = matchCache,
+		api = appApi
+	}: { limit?: number; cache?: MatchCache } & ApiOption = {}
 ): Promise<MatchPage> {
 	const dto = await unwrap(
 		api.open.GET('/api/v1/players/{code}/matches', {
@@ -42,7 +39,10 @@ export async function listMatches(
  * How many matches the player is in, whatever their status: the list's `count`, read from a
  * one-match page. That match is not mapped or cached.
  */
-export async function countMatches(player: PlayerCode): Promise<number> {
+export async function countMatches(
+	player: PlayerCode,
+	{ api = appApi }: ApiOption = {}
+): Promise<number> {
 	const dto = await unwrap(
 		api.open.GET('/api/v1/players/{code}/matches', {
 			params: { path: { code: player }, query: { limit: 1 } }
@@ -58,7 +58,11 @@ export async function countMatches(player: PlayerCode): Promise<number> {
  */
 export async function listAwaitingConfirmation(
 	offset = 0,
-	{ limit = PAGE_SIZE, cache = matchCache }: { limit?: number; cache?: MatchCache } = {}
+	{
+		limit = PAGE_SIZE,
+		cache = matchCache,
+		api = appApi
+	}: { limit?: number; cache?: MatchCache } & ApiOption = {}
 ): Promise<MatchPage> {
 	const dto = await unwrap(
 		api.open.GET('/api/v1/me/matches/awaiting-confirmation', {
@@ -79,7 +83,11 @@ export async function listAwaitingConfirmation(
  */
 export async function getMatch(
 	code: MatchCode,
-	{ cache = matchCache, remember = true }: { cache?: MatchCache; remember?: boolean } = {}
+	{
+		cache = matchCache,
+		remember = true,
+		api = appApi
+	}: { cache?: MatchCache; remember?: boolean } & ApiOption = {}
 ): Promise<Match> {
 	const dto = await unwrap(api.open.GET('/api/v1/matches/{code}', { params: { path: { code } } }));
 	const match = toMatch(dto);
@@ -94,7 +102,7 @@ export async function getMatch(
  */
 export async function confirmMatch(
 	code: MatchCode,
-	{ cache = matchCache }: { cache?: MatchCache } = {}
+	{ cache = matchCache, api = appApi }: { cache?: MatchCache } & ApiOption = {}
 ): Promise<Match> {
 	const dto = await unwrap(
 		api.open.POST('/api/v1/matches/{code}/confirm', { params: { path: { code } } })
@@ -110,7 +118,7 @@ export async function confirmMatch(
  */
 export async function disputeMatch(
 	code: MatchCode,
-	{ cache = matchCache }: { cache?: MatchCache } = {}
+	{ cache = matchCache, api = appApi }: { cache?: MatchCache } & ApiOption = {}
 ): Promise<Match> {
 	const dto = await unwrap(
 		api.open.POST('/api/v1/matches/{code}/dispute', { params: { path: { code } } })
