@@ -111,9 +111,9 @@
 	<h2 id="status-heading" tabindex="-1" class="text-lg font-semibold outline-none">
 		{panel.title}
 	</h2>
-	<p class="mt-1.5 max-w-[56ch] text-muted">{panel.text}</p>
+	<p class="mt-1.5 max-w-md text-muted">{panel.text}</p>
 	{#if error}
-		<p class="mt-3 max-w-[56ch] text-base text-danger" role="alert">{error}</p>
+		<p class="mt-3 max-w-md text-base text-danger" role="alert">{error}</p>
 	{/if}
 	{#if panel.actions && isPending(match)}
 		<div class="mt-[18px] flex flex-wrap gap-3">

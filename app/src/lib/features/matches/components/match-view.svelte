@@ -276,7 +276,7 @@
 {:else if code && lookup === 'signed-out'}
 	<h1 class="page-title">Match</h1>
 	<section class="mt-8 grid justify-items-start gap-3">
-		<p class="max-w-[44ch] text-muted">Sign in to see your matches.</p>
+		<p class="max-w-md text-muted">Sign in to see your matches.</p>
 		<Button href={resolve(ROUTES.login)}>Sign in</Button>
 	</section>
 {:else if code && lookup === 'error'}

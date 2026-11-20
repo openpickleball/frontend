@@ -32,7 +32,7 @@
 
 <!--
   One AlertDialog for every screen size. Its content is a sheet at the bottom of the screen under
-  640px and a centered dialog above (ui/alert-dialog), and it opens on Cancel. It asks for no reason,
+  768px and a centered dialog above (ui/alert-dialog), and it opens on Cancel. It asks for no reason,
   since the API takes none.
 -->
 <AlertDialog bind:open>

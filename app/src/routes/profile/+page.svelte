@@ -14,8 +14,8 @@
 
 <ProfileView {countMatches} {sample}>
 	{#if session.isSignedIn}
-		<!-- From 960px the side nav foot has Sign out, so it is not shown twice. -->
-		<section class="border-t border-line pt-6 shell:hidden" aria-labelledby="account-heading">
+		<!-- From 1024px the side nav foot has Sign out, so it is not shown twice. -->
+		<section class="border-t border-line pt-6 lg:hidden" aria-labelledby="account-heading">
 			<h2 id="account-heading" class="label">Account</h2>
 			<div class="mt-3 flex items-center justify-between gap-4">
 				<span class="text-base text-muted">Sign out of OPEN on this device.</span>

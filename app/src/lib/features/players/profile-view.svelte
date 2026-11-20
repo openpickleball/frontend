@@ -53,7 +53,7 @@
 			<CodeCard {code} />
 
 			{#if myCode.storageFailed}
-				<p class="max-w-[48ch] text-base text-danger" role="status">
+				<p class="max-w-md text-base text-danger" role="status">
 					We couldn't save your code on this device, so you may need to enter it again next time.
 				</p>
 			{/if}
@@ -80,7 +80,7 @@
 
 			{#if myCode.canChange}
 				<div class="border-t border-line pt-6">
-					<p class="max-w-[48ch] text-base text-muted">
+					<p class="max-w-md text-base text-muted">
 						This code was entered on this device. Entered the wrong one?
 					</p>
 					<Button variant="outline" size="sm" class="mt-3" onclick={() => myCode.change()}>

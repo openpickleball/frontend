@@ -9,9 +9,9 @@
 	let { pathname, account }: { pathname: string; account?: Snippet } = $props();
 </script>
 
-<!-- From 960px. Below that, the top bar and the tab bar take over. The banner landmark from 960px. -->
+<!-- From 1024px. Below that, the top bar and the tab bar take over. The banner landmark from 1024px. -->
 <header
-	class="sticky top-0 hidden h-svh flex-col gap-10 border-r border-line pt-7 pr-6 pb-6 pl-8 shell:flex"
+	class="sticky top-0 hidden h-svh flex-col gap-10 border-r border-line pt-7 pr-6 pb-6 pl-8 lg:flex lg:w-64"
 >
 	<Wordmark />
 	<nav aria-label="Main">

@@ -244,7 +244,7 @@
 
 	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
 		<legend class="text-xl font-semibold text-secondary">Players</legend>
-		<p class="max-w-[52ch] text-base text-muted">
+		<p class="max-w-md text-base text-muted">
 			Type a player's name to find them, or enter their OPEN code. They can find theirs on their
 			Profile page.
 		</p>
@@ -408,7 +408,7 @@
 				{form.sending ? 'Recording…' : 'Record and confirm score'}
 			</Button>
 		</div>
-		<p id="submit-note" class="max-w-[52ch] text-base text-muted">
+		<p id="submit-note" class="max-w-md text-base text-muted">
 			This confirms the score for your team. The match stays pending until a player on the other
 			team confirms it too.
 		</p>

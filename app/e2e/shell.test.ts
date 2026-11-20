@@ -64,7 +64,7 @@ test('the top bar has the wordmark and a 44px theme toggle, and no Sign out', as
 	expect(box?.height).toBeGreaterThanOrEqual(44);
 });
 
-test('from 960px the side bar is the banner, with the theme toggle and the one Sign out', async ({
+test('from 1024px the side bar is the banner, with the theme toggle and the one Sign out', async ({
 	page
 }) => {
 	await page.setViewportSize({ width: 1280, height: 800 });

@@ -55,7 +55,7 @@ describe('AppShell', () => {
 		}).body;
 		expect(navs(body)).toHaveLength(0);
 		expect(body).toMatch(/<header/);
-		expect(body).not.toMatch(/<header[^>]*shell:hidden/);
+		expect(body).not.toMatch(/<header[^>]*lg:hidden/);
 		expect(body.match(/<main[\s>]/g)).toHaveLength(1);
 	});
 
@@ -85,11 +85,11 @@ describe('AppShell', () => {
 		}
 	});
 
-	it('shows the top bar and tab bar on mobile and the side nav from 960px', () => {
+	it('shows the top bar and tab bar on mobile and the side nav from 1024px', () => {
 		const body = shell('/');
-		expect(body).toMatch(/<header[^>]*shell:hidden/);
-		expect(body).toMatch(/<nav[^>]*fixed[^>]*shell:hidden/);
-		expect(body).toMatch(/<header[^>]*hidden[^>]*shell:flex/);
+		expect(body).toMatch(/<header[^>]*lg:hidden/);
+		expect(body).toMatch(/<nav[^>]*fixed[^>]*lg:hidden/);
+		expect(body).toMatch(/<header[^>]*hidden[^>]*lg:flex/);
 	});
 
 	it('puts the page in one main landmark, with a skip link to it', () => {
@@ -101,7 +101,7 @@ describe('AppShell', () => {
 
 	it('puts the side nav, its sign out and its theme toggle inside a banner landmark', () => {
 		const body = shell('/');
-		const side = body.match(/<header[^>]*shell:flex[\s\S]*?<\/header>/)![0];
+		const side = body.match(/<header[^>]*lg:flex[\s\S]*?<\/header>/)![0];
 		expect(side).toContain('<nav');
 		expect(side).toContain('aria-label="Switch to');
 		expect(body).not.toContain('<aside');

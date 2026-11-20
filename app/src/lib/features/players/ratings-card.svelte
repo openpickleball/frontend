@@ -45,11 +45,11 @@
 	{#if !sample}
 		<div class="grid gap-2 border border-line bg-surface p-5">
 			<h3 class="text-lg font-medium text-secondary">Ratings aren't live yet</h3>
-			<p class="max-w-[48ch] text-muted">
+			<p class="max-w-md text-muted">
 				Ratings will be worked out from your confirmed matches. Your matches are saved in the
 				meantime.
 			</p>
-			<p class="max-w-[48ch] text-muted">
+			<p class="max-w-md text-muted">
 				When ratings go live, you'll be able to see what changed your rating after every match, and
 				why.
 			</p>

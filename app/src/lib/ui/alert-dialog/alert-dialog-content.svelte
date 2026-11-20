@@ -31,7 +31,7 @@
 		data-slot="alert-dialog-content"
 		{onOpenAutoFocus}
 		class={cn(
-			'group/alert-dialog-content fixed inset-x-0 bottom-0 z-50 grid gap-6 border-t border-line bg-primary px-gutter pt-7 pb-[calc(28px+env(safe-area-inset-bottom))] text-secondary outline-none data-[state=open]:animate-fade-in sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-[min(480px,calc(100vw-48px))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:border sm:p-8',
+			'group/alert-dialog-content fixed inset-x-0 bottom-0 z-50 grid gap-6 border-t border-line bg-primary px-gutter pt-7 pb-[calc(28px+env(safe-area-inset-bottom))] text-secondary outline-none data-[state=open]:animate-fade-in md:inset-auto md:top-1/2 md:left-1/2 md:w-full md:max-w-md md:-translate-x-1/2 md:-translate-y-1/2 md:border md:p-8',
 			className
 		)}
 		{...restProps}

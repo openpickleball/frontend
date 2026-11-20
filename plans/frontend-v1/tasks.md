@@ -96,7 +96,7 @@ A wave starts when everything it depends on has merged. Tasks within a wave run 
 - [x] `features/matches`: list service with "load more", and a cache by code.
 - [x] Home (needs confirmation first, then recent), `/matches` paged per `mockups/history.html`, `/matches/[code]` per `mockups/match.html`. Cold deep links fall back to scanning the user's list.
 - [x] Confirm, and dispute through an AlertDialog (a Sheet on mobile). Empty and error states.
-  - Note: a single AlertDialog meets "a Sheet on mobile". Its content is a bottom sheet under 640px and a centered dialog above, so one component serves both and keeps the alert dialog's focus and Escape behavior.
+  - Note: a single AlertDialog meets "a Sheet on mobile". Its content is a bottom sheet under 768px and a centered dialog above, so one component serves both and keeps the alert dialog's focus and Escape behavior.
 
 ### T10 · PWA shell — frontend#46
 - [x] `manifest.webmanifest` and icons rendered from the favicon (192, 512, 512 maskable).

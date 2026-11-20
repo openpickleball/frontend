@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { WIDE_QUERY, toastPlacement } from './position.js';
 
 describe('toastPlacement', () => {
-	it('centers toasts above the tab bar and its safe-area inset below 960px', () => {
+	it('centers toasts above the tab bar and its safe-area inset below 1024px', () => {
 		const placement = toastPlacement(false);
 		expect(placement.position).toBe('bottom-center');
 		// The offset applies from 600px up and the mobile offset below it, so both must clear the bar.
@@ -12,7 +12,7 @@ describe('toastPlacement', () => {
 		}
 	});
 
-	it('puts toasts at the bottom right, 32px in, from 960px', () => {
+	it('puts toasts at the bottom right, 32px in, from 1024px', () => {
 		expect(toastPlacement(true)).toEqual({
 			position: 'bottom-right',
 			offset: '32px',
@@ -21,6 +21,6 @@ describe('toastPlacement', () => {
 	});
 
 	it('switches at the same width as the side nav', () => {
-		expect(WIDE_QUERY).toBe('(min-width: 960px)');
+		expect(WIDE_QUERY).toBe('(min-width: 1024px)');
 	});
 });

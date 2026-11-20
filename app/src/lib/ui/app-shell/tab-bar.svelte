@@ -6,10 +6,10 @@
 	let { pathname }: { pathname: string } = $props();
 </script>
 
-<!-- Mobile only: from 960px the side nav takes over. -->
+<!-- Mobile only: from 1024px the side nav takes over. -->
 <nav
 	aria-label="Main"
-	class="fixed inset-x-0 bottom-0 z-20 grid h-[calc(var(--tabbar-height)+env(safe-area-inset-bottom))] grid-cols-4 border-t border-line bg-primary/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md shell:hidden"
+	class="fixed inset-x-0 bottom-0 z-20 grid h-[calc(var(--tabbar-height)+env(safe-area-inset-bottom))] grid-cols-4 border-t border-line bg-primary/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
 >
 	{#each NAV_ITEMS as item (item.href)}
 		{@const current = isCurrent(item, pathname)}

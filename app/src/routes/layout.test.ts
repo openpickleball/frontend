@@ -28,7 +28,7 @@ const candidates = [
 	'border-field',
 	'bg-confirmed-wash',
 	'bg-danger-wash',
-	'shell:hidden',
+	'lg:hidden',
 	'light:hidden',
 	'mark',
 	'label',
@@ -151,9 +151,9 @@ describe('layout.css', () => {
 		expect(ruleBody(base ?? '', ':root[data-theme="dark"]')).toContain('color-scheme: dark;');
 	});
 
-	it('switches to the side nav at 960px', async () => {
+	it('switches to the side nav at 1024px', async () => {
 		const css = await buildLayoutCss();
-		expect(css).toMatch(/@media \(width >= 960px\)\s*\{[^@]*\.shell\\:hidden/);
+		expect(css).toMatch(/@media \(width >= 64rem\)\s*\{[^@]*\.lg\\:hidden/);
 	});
 
 	it('has a light: variant that follows data-theme, then the system setting', async () => {
