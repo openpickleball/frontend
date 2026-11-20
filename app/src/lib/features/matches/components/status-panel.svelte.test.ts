@@ -6,6 +6,18 @@ import StatusPanel from './status-panel.svelte';
 const handlers = () => ({ onconfirm: vi.fn(), ondispute: vi.fn() });
 
 describe('StatusPanel', () => {
+	it('says the player just recorded the match, only when told to', async () => {
+		const screen = await render(StatusPanel, {
+			match: viewerMatch(),
+			recorded: true,
+			...handlers()
+		});
+		await expect.element(screen.getByText('You just recorded this match.')).toBeVisible();
+		screen.unmount();
+		const other = await render(StatusPanel, { match: viewerMatch(), ...handlers() });
+		await expect.element(other.getByText('You just recorded this match.')).not.toBeInTheDocument();
+	});
+
 	describe("a pending match where the player's team has not confirmed", () => {
 		it('asks if the score is right and offers Confirm and Dispute', async () => {
 			const h = handlers();

@@ -13,6 +13,7 @@
 		match,
 		busy = null,
 		error = null,
+		recorded = false,
 		onconfirm,
 		ondispute
 	}: {
@@ -21,6 +22,8 @@
 		busy?: MatchAction | null;
 		/** Why the last Confirm or Dispute failed. */
 		error?: string | null;
+		/** The player just recorded this match, so the panel says so. */
+		recorded?: boolean;
 		onconfirm: () => void;
 		/** Opens the dispute dialog. The dialog's own button disputes. */
 		ondispute: () => void;
@@ -111,6 +114,9 @@
 	<h2 id="status-heading" tabindex="-1" class="text-lg font-semibold outline-none">
 		{panel.title}
 	</h2>
+	{#if recorded}
+		<p class="mt-2 max-w-md text-secondary">You just recorded this match.</p>
+	{/if}
 	<p class="mt-2 max-w-md text-muted">{panel.text}</p>
 	{#if error}
 		<p class="mt-4 max-w-md text-base text-danger" role="alert">{error}</p>

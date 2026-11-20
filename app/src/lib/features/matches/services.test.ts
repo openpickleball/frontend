@@ -263,4 +263,11 @@ describe('rememberMatch', () => {
 		rememberMatch(match, cache);
 		expect(cache.get(match.code)).toBe(match);
 	});
+
+	it('notes the match as just recorded, once', () => {
+		const match = sampleMatch();
+		rememberMatch(match, cache);
+		expect(cache.takeRecorded(match.code)).toBe(true);
+		expect(cache.takeRecorded(match.code)).toBe(false);
+	});
 });
