@@ -167,6 +167,6 @@ describe('PlayerSearch', () => {
 		broken.query('bea');
 		await vi.advanceTimersByTimeAsync(SEARCH_DELAY);
 		expect(broken.status).toBe('error');
-		expect(broken.message).toContain('We could not search just now.');
+		expect(broken.message).toContain("We couldn't search just now.");
 	});
 });

@@ -9,8 +9,8 @@
 	let { pathname, account }: { pathname: string; account?: Snippet } = $props();
 </script>
 
-<!-- From 960px. Below that, the top bar and the tab bar take over. -->
-<div
+<!-- From 960px. Below that, the top bar and the tab bar take over. The banner landmark from 960px. -->
+<header
 	class="sticky top-0 hidden h-svh flex-col gap-10 border-r border-line pt-7 pr-6 pb-6 pl-8 shell:flex"
 >
 	<Wordmark />
@@ -34,7 +34,7 @@
 		{#if account}<div class="flex">{@render account()}</div>{/if}
 		<div class="flex items-center justify-between text-[13px] text-faint">
 			<span>Theme</span>
-			<ThemeToggle />
+			<ThemeToggle class="-mr-3" />
 		</div>
 	</div>
-</div>
+</header>

@@ -44,9 +44,7 @@
 </script>
 
 <section class="grid gap-3" aria-labelledby="code-title">
-	<h2 id="code-title" class="font-display text-[11px] tracking-[0.14em] text-muted uppercase">
-		Your OPEN code
-	</h2>
+	<h2 id="code-title" class="label">Your OPEN code</h2>
 	<p
 		class="font-display text-[clamp(26px,8vw,40px)] leading-tight tracking-wide break-words text-secondary"
 		data-testid="my-code"

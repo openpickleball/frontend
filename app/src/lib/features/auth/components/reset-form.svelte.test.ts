@@ -41,6 +41,9 @@ describe('ResetForm', () => {
 			.element(screen.getByRole('heading', { name: "This link doesn't work anymore" }))
 			.toBeVisible();
 		await expect.element(screen.getByRole('link', { name: 'Send a new link' })).toBeVisible();
+		await expect
+			.poll(() => document.title)
+			.toBe("This link doesn't work anymore · OPEN Pickleball");
 	});
 
 	it('shows the form when the link cannot be checked, and lets the submit report', async () => {
@@ -73,6 +76,7 @@ describe('ResetForm', () => {
 		await expect.element(heading).toHaveFocus();
 		await expect.element(screen.getByText('Your password is changed.')).toBeVisible();
 		await expect.element(screen.getByRole('link', { name: 'Sign in' })).toBeVisible();
+		await expect.poll(() => document.title).toBe('Password changed · OPEN Pickleball');
 		expect(mockedReset).toHaveBeenCalledWith(KEY, 'a-long-enough-pass');
 	});
 

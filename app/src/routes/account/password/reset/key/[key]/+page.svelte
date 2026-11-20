@@ -8,7 +8,6 @@
 <svelte:head>
 	<!-- The key is in the URL: don't pass it on in a Referer header. -->
 	<meta name="referrer" content="no-referrer" />
-	<title>Choose a new password · OPEN Pickleball</title>
 </svelte:head>
 
 <ResetForm key={params.key} />

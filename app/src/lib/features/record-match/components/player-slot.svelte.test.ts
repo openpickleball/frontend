@@ -167,7 +167,7 @@ describe('PlayerSlot search', () => {
 		await box.fill('mar');
 		await expect
 			.element(screen.getByTestId('search-note'))
-			.toHaveTextContent('We could not search just now. Try again, or enter their OPEN code.');
+			.toHaveTextContent("We couldn't search just now. Try again, or enter their OPEN code.");
 	});
 
 	it('shows the name beside the code once a player is picked', async () => {

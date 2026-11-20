@@ -79,7 +79,7 @@ describe('LoginForm', () => {
 		await fill(screen, 'player@example.com', 'a-password');
 		await screen.getByRole('button', { name: 'Sign in' }).click();
 
-		const busy = screen.getByRole('button', { name: 'Signing in...' });
+		const busy = screen.getByRole('button', { name: 'Signing in…' });
 		await expect.element(busy).toHaveAttribute('aria-disabled', 'true');
 		await expect.element(busy).toHaveAttribute('aria-busy', 'true');
 		finish({ status: 'signed_in', email: 'player@example.com' });
@@ -182,7 +182,7 @@ describe('LoginForm', () => {
 			.not.toHaveAttribute('aria-invalid', 'true');
 	});
 
-	it('shows a check your email notice above the form when the account needs confirming', async () => {
+	it('shows a check your email notice above the form when the account needs verifying', async () => {
 		mockedLogin.mockImplementation(async ({ email }) => {
 			session.apply({ status: 'pending_verification' }, email);
 			return { status: 'pending_verification' };
@@ -212,8 +212,12 @@ describe('LoginForm', () => {
 		const screen = await render(LoginForm, { onsuccess: vi.fn() });
 		const password = screen.getByLabelText('Password', { exact: true });
 		await expect.element(password).toHaveAttribute('type', 'password');
-		await screen.getByRole('button', { name: /Show/ }).click();
+		const toggle = screen.getByRole('button', { name: 'Show password' });
+		// The name changes with the state, so the button is not also a pressed toggle.
+		await expect.element(toggle).not.toHaveAttribute('aria-pressed');
+		await toggle.click();
 		await expect.element(password).toHaveAttribute('type', 'text');
+		await expect.element(screen.getByRole('button', { name: 'Hide password' })).toBeVisible();
 	});
 
 	it('says why the player is back on sign in after the session ended', async () => {

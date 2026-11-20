@@ -59,8 +59,8 @@
 				{:else}
 					We sent a link to your email address.
 				{/if}
-				Open it to confirm your address, then sign in below. Signing in again with the same email sends
-				a new link.
+				Open it to verify your email, then sign in below. Signing in again with the same email sends a
+				new link.
 			</AlertDescription>
 		</Alert>
 	{/if}
@@ -107,7 +107,7 @@
 			>
 		</div>
 		<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
-			{form.busy ? 'Signing in...' : 'Sign in'}
+			{form.busy ? 'Signing in…' : 'Sign in'}
 		</Button>
 	</form>
 	<p class="text-sm text-muted">
@@ -115,7 +115,7 @@
 		<a
 			href={resolve('/account/signup')}
 			class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
-			>Create an account</a
+			>Create account</a
 		>
 	</p>
 </section>

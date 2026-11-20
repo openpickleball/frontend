@@ -14,8 +14,9 @@ export async function signIn(page: Page, email: string, password: string) {
 	await expect(page).toHaveURL(/\/$/);
 }
 
-/** Sign out from the shell, then wait for the sign-in page. */
+/** Sign out from the profile page (the top bar has no Sign out), then wait for the sign-in page. */
 export async function signOut(page: Page) {
+	await page.getByRole('link', { name: 'Profile' }).filter({ visible: true }).click();
 	await page.getByRole('button', { name: 'Sign out' }).filter({ visible: true }).first().click();
 	await expect(page).toHaveURL(/\/account\/login$/);
 }

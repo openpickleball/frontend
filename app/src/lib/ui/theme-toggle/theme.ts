@@ -29,7 +29,7 @@ export function nextTheme(theme: Theme): Theme {
 
 /** The label for the button while `theme` is showing: it names the theme a click switches to. */
 export function toggleLabel(theme: Theme): string {
-	return theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme';
+	return theme === 'light' ? 'Switch to black theme' : 'Switch to ivory theme';
 }
 
 interface ThemeDocument {

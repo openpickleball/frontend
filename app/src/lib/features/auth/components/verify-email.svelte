@@ -39,19 +39,33 @@
 	onMount(() => {
 		void confirm();
 	});
+
+	// The title follows the heading, so the tab and the history entry name the view.
+	const title = $derived(
+		{
+			working: 'Verify your email',
+			confirmed: 'Email verified',
+			invalid: "This link doesn't work anymore",
+			failed: "We couldn't verify your email"
+		}[phase]
+	);
 </script>
+
+<svelte:head>
+	<title>{title} · OPEN Pickleball</title>
+</svelte:head>
 
 <section aria-labelledby="verify-title" class="grid gap-5">
 	{#if phase === 'working'}
 		<h1 id="verify-title" class="page-title">Verify your email</h1>
-		<p class="text-muted" role="status">Confirming your email...</p>
+		<p class="text-muted" role="status">Verifying your email…</p>
 	{:else if phase === 'confirmed'}
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
-			Email confirmed
+			Email verified
 		</h1>
 		<Alert variant="success">
 			<CircleCheckIcon aria-hidden="true" />
-			<AlertTitle>Your email is confirmed.</AlertTitle>
+			<AlertTitle>Your email is verified.</AlertTitle>
 			<AlertDescription>Sign in to record your first match.</AlertDescription>
 		</Alert>
 		<Button href={resolve('/account/login')} class="w-full">Sign in</Button>
@@ -60,13 +74,13 @@
 			This link doesn't work anymore
 		</h1>
 		<p class="text-muted">
-			It may have expired or been used already. Sign in, and if your email still needs confirming,
+			It may have expired or been used already. Sign in, and if your email still needs verifying,
 			we'll send a new link.
 		</p>
 		<Button href={resolve('/account/login')} class="w-full">Sign in</Button>
 	{:else}
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
-			We couldn't confirm your email
+			We couldn't verify your email
 		</h1>
 		<Alert variant="destructive">
 			<CircleAlertIcon aria-hidden="true" />

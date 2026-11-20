@@ -32,7 +32,7 @@ async function keyFor(page: Page, kind: string, to: string): Promise<string> {
 	return key as string;
 }
 
-test('sign up, confirm the email from the link, sign in, then sign out', async ({ page }) => {
+test('sign up, verify the email from the link, sign in, then sign out', async ({ page }) => {
 	const email = 'new.player@example.com';
 	const password = 'a-long-enough-pass';
 
@@ -48,7 +48,7 @@ test('sign up, confirm the email from the link, sign in, then sign out', async (
 	// The link in the email. Opening it confirms the address but does not sign anyone in.
 	const key = await keyFor(page, 'verify_email', email);
 	await page.goto(`/account/verify-email/${key}`);
-	await expect(page.getByRole('heading', { level: 1, name: 'Email confirmed' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1, name: 'Email verified' })).toBeVisible();
 	await page.getByRole('link', { name: 'Sign in' }).click();
 	await expect(page).toHaveURL(/\/account\/login$/);
 
@@ -92,7 +92,7 @@ test('sign out removes the saved code and email from this browser', async ({ pag
 	const rosa = PLAYERS.find((p) => p.key === 'rosa')!;
 	// This account has no player yet, so the code is typed in and kept on the device.
 	await page.goto(`/account/verify-email/${MOCK_KEYS.verifyEmail}`);
-	await expect(page.getByRole('heading', { level: 1, name: 'Email confirmed' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1, name: 'Email verified' })).toBeVisible();
 	await signIn(page, UNVERIFIED_EMAIL, MOCK_PASSWORD);
 	await page.goto('/profile');
 	await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(rosa.code);
@@ -308,10 +308,10 @@ for (const scheme of ['dark', 'light'] as const) {
 		await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
 		await expectNoViolations(page);
 
-		// Email confirmed, and a link that no longer works.
+		// Email verified, and a link that no longer works.
 		const key = await keyFor(page, 'verify_email', 'new.player@example.com');
 		await page.goto(`/account/verify-email/${key}`);
-		await expect(page.getByRole('heading', { level: 1, name: 'Email confirmed' })).toBeVisible();
+		await expect(page.getByRole('heading', { level: 1, name: 'Email verified' })).toBeVisible();
 		await expectNoViolations(page);
 		await page.goto('/account/verify-email/not-a-real-key');
 		await expect(page.getByRole('heading', { level: 1, name: /doesn't work/ })).toBeVisible();

@@ -59,10 +59,11 @@ describe('AppShell', () => {
 		expect(body.match(/<main[\s>]/g)).toHaveLength(1);
 	});
 
-	it('shows account actions (sign out) in the top bar and the side nav when given', () => {
+	it('shows account actions (sign out) in the side nav only, once', () => {
 		const account = createRawSnippet(() => ({ render: () => '<button>Sign out</button>' }));
 		const body = render(AppShell, { props: { pathname: '/', children, account } }).body;
-		expect(body.match(/<button>Sign out<\/button>/g)).toHaveLength(2);
+		expect(body.match(/<button>Sign out<\/button>/g)).toHaveLength(1);
+		expect(body.slice(body.indexOf('<header'), body.indexOf('</header>'))).toContain('Sign out');
 		expect(shell('/')).not.toContain('Sign out');
 	});
 
@@ -88,7 +89,7 @@ describe('AppShell', () => {
 		const body = shell('/');
 		expect(body).toMatch(/<header[^>]*shell:hidden/);
 		expect(body).toMatch(/<nav[^>]*fixed[^>]*shell:hidden/);
-		expect(body).toMatch(/<div[^>]*hidden[^>]*shell:flex/);
+		expect(body).toMatch(/<header[^>]*hidden[^>]*shell:flex/);
 	});
 
 	it('puts the page in one main landmark, with a skip link to it', () => {
@@ -98,8 +99,12 @@ describe('AppShell', () => {
 		expect(body).toMatch(/<main[^>]*id="main"[^>]*>\s*<h1>Stub<\/h1>/);
 	});
 
-	it('has no extra landmark besides the Main navs, the header and main', () => {
-		expect(shell('/')).not.toContain('<aside');
+	it('puts the side nav, its sign out and its theme toggle inside a banner landmark', () => {
+		const body = shell('/');
+		const side = body.match(/<header[^>]*shell:flex[\s\S]*?<\/header>/)![0];
+		expect(side).toContain('<nav');
+		expect(side).toContain('aria-label="Switch to');
+		expect(body).not.toContain('<aside');
 	});
 
 	it('clears landscape notches on the top bar, main and footer', () => {
@@ -131,6 +136,6 @@ describe('AppShell', () => {
 
 	it('has a theme toggle in the top bar and in the side nav', () => {
 		const body = shell('/');
-		expect(body.match(/aria-label="Switch to (light|dark) theme"/g)).toHaveLength(2);
+		expect(body.match(/aria-label="Switch to (ivory|black) theme"/g)).toHaveLength(2);
 	});
 });

@@ -38,14 +38,14 @@
 	type="button"
 	aria-label={toggleLabel(theme)}
 	class={cn(
-		'grid size-9 place-items-center rounded-full text-muted transition-colors hover:text-secondary',
+		'grid size-11 place-items-center rounded-full text-muted transition-colors hover:text-secondary',
 		className
 	)}
 	onclick={toggle}
 >
 	<!-- Sun, shown in the black theme. -->
 	<svg
-		class="size-[18px] light:hidden"
+		class="size-5 light:hidden"
 		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"
@@ -60,7 +60,7 @@
 	</svg>
 	<!-- Moon, shown in the ivory theme. -->
 	<svg
-		class="hidden size-[18px] light:block"
+		class="hidden size-5 light:block"
 		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"

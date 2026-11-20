@@ -63,6 +63,7 @@ describe('SignupForm', () => {
 			.element(screen.getByRole('heading', { level: 1, name: 'Check your email' }))
 			.toBeVisible();
 		await expect.element(screen.getByText('tamsin.vale@example.com')).toBeVisible();
+		await expect.poll(() => document.title).toBe('Check your email · OPEN Pickleball');
 		expect(mockedSignup).toHaveBeenCalledWith({
 			email: 'tamsin.vale@example.com',
 			password: 'a-long-enough-pass'
@@ -106,7 +107,7 @@ describe('SignupForm', () => {
 		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass');
 		await screen.getByRole('button', { name: 'Create account' }).click();
 
-		const busy = screen.getByRole('button', { name: 'Creating account...' });
+		const busy = screen.getByRole('button', { name: 'Creating account…' });
 		await expect.element(busy).toHaveAttribute('aria-disabled', 'true');
 		await expect.element(busy).toHaveAttribute('aria-busy', 'true');
 		finish();

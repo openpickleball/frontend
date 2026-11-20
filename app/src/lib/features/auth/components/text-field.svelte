@@ -49,7 +49,7 @@
 				{...rest}
 			/>
 			<InputGroupAddon>
-				<InputGroupButton aria-pressed={shown} aria-controls={id} onclick={() => (shown = !shown)}>
+				<InputGroupButton aria-controls={id} onclick={() => (shown = !shown)}>
 					{shown ? 'Hide' : 'Show'}
 					<span class="sr-only">password</span>
 				</InputGroupButton>

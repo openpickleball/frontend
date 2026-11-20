@@ -6,7 +6,8 @@
 
 	let { code }: { code: PlayerCode } = $props();
 
-	// The home screen's short version of the profile's code card: the code and a Copy button.
+	// The compact variant of the profile's code card, for the home screen: the same label style,
+	// and the code and a Copy button. Share is on the profile.
 	async function copy() {
 		try {
 			await navigator.clipboard.writeText(code);
@@ -21,7 +22,7 @@
 	class="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-y border-line py-4"
 >
 	<p class="grid gap-1">
-		<span class="text-[15px] text-muted">Your OPEN code</span>
+		<span class="label">Your OPEN code</span>
 		<span class="font-display text-xl tracking-wide text-secondary" data-testid="my-code"
 			>{code}</span
 		>
