@@ -76,7 +76,7 @@
 	<title>{title} · OPEN Pickleball</title>
 </svelte:head>
 
-<section aria-labelledby="newpw-title" class="grid gap-5">
+<section aria-labelledby="newpw-title" class="grid gap-4">
 	{#if step === 'checking'}
 		<h1 id="newpw-title" class="page-title">Choose a new password</h1>
 		<LoadingState label="Checking your link…" />
@@ -88,7 +88,7 @@
 				<AlertTitle>{form.problem.title}</AlertTitle>
 			</Alert>
 		{/if}
-		<form method="post" onsubmit={submit} novalidate class="grid gap-5">
+		<form method="post" onsubmit={submit} novalidate class="grid gap-4">
 			<TextField
 				id="newpw-password"
 				name="password"

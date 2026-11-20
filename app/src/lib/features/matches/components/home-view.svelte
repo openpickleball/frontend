@@ -81,7 +81,7 @@
 <CodeGate>
 	{#snippet children(you)}
 		{#if status === 'error'}
-			<div class="mt-6">
+			<div class="mt-8">
 				<LoadError
 					kind={offline ? 'network' : view.errorKind}
 					onretry={() => {
@@ -95,7 +95,7 @@
 
 		<CodeStrip code={you} />
 
-		<div class="mt-7">
+		<div class="mt-8">
 			<Button href={resolve(ROUTES.record)} disabled={offline}>
 				Record a match
 				<ArrowRightIcon aria-hidden="true" />
@@ -109,7 +109,7 @@
 				<EmptyMatches onHome />
 			{:else}
 				{#if awaitingFailed}
-					<div class="mt-10" data-testid="needs-error">
+					<div class="mt-12" data-testid="needs-error">
 						<Notice
 							kind={awaiting.offline ? 'offline' : 'error'}
 							title="We couldn't check what needs your confirmation."
@@ -122,14 +122,14 @@
 						</Notice>
 					</div>
 				{:else if needs.length > 0}
-					<section class="mt-10" aria-labelledby="needs-title">
+					<section class="mt-12" aria-labelledby="needs-title">
 						<div class="flex items-baseline justify-between gap-4">
 							<h2 id="needs-title" class="text-2xl font-semibold tracking-tight">
 								Needs your confirmation
 							</h2>
 							<span class="text-base text-muted">{matchCountLabel(needs.length + moreNeeds)}</span>
 						</div>
-						<p class="mt-1 mb-3 text-base text-muted">
+						<p class="mt-2 mb-4 text-base text-muted">
 							Check the score. Confirm it if it's right, or dispute it if it's wrong.
 						</p>
 						<MatchList matches={needs} {you} label="Needs your confirmation" />
@@ -146,14 +146,14 @@
 				{/if}
 
 				{#if waiting.length > 0}
-					<section class="mt-10" aria-labelledby="waiting-title">
+					<section class="mt-12" aria-labelledby="waiting-title">
 						<div class="flex items-baseline justify-between gap-4">
 							<h2 id="waiting-title" class="text-2xl font-semibold tracking-tight">
 								Waiting for the other team
 							</h2>
 							<span class="text-base text-muted">{matchCountLabel(waiting.length)}</span>
 						</div>
-						<p class="mt-1 mb-3 text-base text-muted">
+						<p class="mt-2 mb-4 text-base text-muted">
 							Your team confirmed these scores. A match counts once a player on the other team
 							confirms it too.
 						</p>
@@ -161,7 +161,7 @@
 					</section>
 				{/if}
 
-				<section class="mt-10" aria-labelledby="recent-title">
+				<section class="mt-12" aria-labelledby="recent-title">
 					<div class="flex items-baseline justify-between gap-4">
 						<h2 id="recent-title" class="text-2xl font-semibold tracking-tight">Recent matches</h2>
 						<Button href={resolve(ROUTES.matches)} variant="link">
@@ -169,7 +169,7 @@
 							<ArrowRightIcon aria-hidden="true" />
 						</Button>
 					</div>
-					<div class="mt-3">
+					<div class="mt-4">
 						{#if recent.length > 0}
 							<MatchList matches={recent} {you} label="Recent matches" />
 						{:else}

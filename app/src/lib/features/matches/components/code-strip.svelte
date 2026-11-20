@@ -19,7 +19,7 @@
 </script>
 
 <div
-	class="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-y border-line py-4"
+	class="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-y border-line py-4"
 >
 	<p class="grid gap-1">
 		<span class="label">Your OPEN code</span>

@@ -14,7 +14,7 @@
 <div
 	bind:this={ref}
 	data-slot="empty"
-	class={cn('flex w-full min-w-0 flex-col items-start gap-5', className)}
+	class={cn('flex w-full min-w-0 flex-col items-start gap-4', className)}
 	{...restProps}
 >
 	{@render children?.()}

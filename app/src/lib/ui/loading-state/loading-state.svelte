@@ -28,7 +28,7 @@
 	const placeholders = $derived(Array.from({ length: rows }, (_, index) => index));
 </script>
 
-<div role="status" aria-busy="true" class={cn('grid gap-5', className)} data-slot="loading-state">
+<div role="status" aria-busy="true" class={cn('grid gap-4', className)} data-slot="loading-state">
 	<p class="flex items-center gap-2.5 text-muted">
 		<Spinner />
 		{label}
@@ -36,7 +36,7 @@
 	{#if variant === 'list'}
 		<div class="grid border-b border-line" aria-hidden="true">
 			{#each placeholders as index (index)}
-				<div class="grid gap-3 border-t border-line py-4 pb-[18px]">
+				<div class="grid gap-3 border-t border-line py-4">
 					<div class="flex items-center justify-between gap-3">
 						<Skeleton class="h-4 w-40 max-w-[60%]" />
 						<Skeleton class="h-5 w-20 rounded-full" />

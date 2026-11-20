@@ -14,7 +14,7 @@
 	let { onHome = false }: { onHome?: boolean } = $props();
 </script>
 
-<section class="mt-8 border-t border-line pt-10" aria-labelledby="empty-title">
+<section class="mt-8 border-t border-line pt-8" aria-labelledby="empty-title">
 	<Empty>
 		<EmptyHeader>
 			<EmptyMedia>

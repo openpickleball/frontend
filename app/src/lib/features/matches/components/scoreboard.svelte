@@ -20,7 +20,7 @@
 	const columns = $derived(`1fr repeat(${match.games.length}, 40px)`);
 </script>
 
-<section class="mt-7 border-t border-line" aria-label="Score">
+<section class="mt-8 border-t border-line" aria-label="Score">
 	<!-- The table is for screen readers. The grid below is the same data, drawn for the eye. -->
 	<div class="sr-only">
 		<table>

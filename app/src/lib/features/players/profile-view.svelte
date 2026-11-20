@@ -41,7 +41,7 @@
 	{/if}
 </div>
 
-<div class="mt-8 grid gap-10">
+<div class="mt-8 grid gap-8">
 	<OwnCodeGate
 		reloadOnOpen
 		showChange
@@ -59,7 +59,7 @@
 				</p>
 			{/if}
 
-			<dl class="flex gap-10 border-t border-line pt-6">
+			<dl class="flex gap-8 border-t border-line pt-6">
 				<div>
 					<dt class="font-display text-xs tracking-widest text-muted uppercase">Matches</dt>
 					<dd
@@ -84,7 +84,7 @@
 					<p class="max-w-md text-base text-muted">
 						This code was entered on this device. Entered the wrong one?
 					</p>
-					<Button variant="outline" size="sm" class="mt-3" onclick={() => myCode.change()}>
+					<Button variant="outline" size="sm" class="mt-4" onclick={() => myCode.change()}>
 						Change code
 					</Button>
 				</div>

@@ -51,16 +51,13 @@
 
 <a
 	href={resolve('/matches/[code]', { code: match.code })}
-	class="block py-4 pb-[18px]"
+	class="block py-4"
 	data-testid="match-row"
 	data-status={match.status}
 >
 	<!-- The link's name is this sentence. The drawn row below repeats it for the eye. -->
 	<span class="sr-only">{rowLabel(match, you)}</span>
-	<div
-		class="mb-2.5 flex items-center justify-between gap-3 text-base text-muted"
-		aria-hidden="true"
-	>
+	<div class="mb-3 flex items-center justify-between gap-3 text-base text-muted" aria-hidden="true">
 		<span>{formatShortDate(match.playedOn)} · {formatName(match.format)}, {games}</span>
 		<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
 	</div>

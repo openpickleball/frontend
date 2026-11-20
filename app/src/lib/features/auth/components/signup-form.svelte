@@ -51,7 +51,7 @@
 {#if session.status === 'pending_verification'}
 	<CheckEmail />
 {:else}
-	<section aria-labelledby="signup-title" class="grid gap-5">
+	<section aria-labelledby="signup-title" class="grid gap-4">
 		<h1 id="signup-title" class="page-title">Create account</h1>
 		<p class="text-muted">It's free. We'll send you a link to verify your email.</p>
 		{#if form.problem}
@@ -60,7 +60,7 @@
 				<AlertTitle>{form.problem.title}</AlertTitle>
 			</Alert>
 		{/if}
-		<form method="post" onsubmit={submit} novalidate class="grid gap-5">
+		<form method="post" onsubmit={submit} novalidate class="grid gap-4">
 			<TextField
 				id="signup-email"
 				name="email"

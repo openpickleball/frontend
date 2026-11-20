@@ -30,12 +30,12 @@
 
 <div class="pt-4">
 	<h1 class="page-title">Record a match</h1>
-	<p class="mt-3 max-w-md text-muted">
+	<p class="mt-4 max-w-md text-muted">
 		Enter the final score. Once it's saved, the other team can confirm it or dispute it.
 	</p>
 </div>
 
-<div class="mt-6 max-w-2xl">
+<div class="mt-8 max-w-2xl">
 	<OwnCodeGate reloadOnOpen showChange signedOut="Sign in to record a match.">
 		{#snippet children(own)}
 			{#key own}
