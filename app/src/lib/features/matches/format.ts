@@ -6,7 +6,6 @@
 import {
 	gameWinner,
 	gamesWon,
-	myTeam,
 	winner,
 	type Match,
 	type MatchStatus,
@@ -133,14 +132,11 @@ export const STATUS_LABELS: Record<MatchStatus, string> = {
 };
 
 /**
- * The side to read the match from: the signed-in player's own (`viewerSide`), else the side of the
- * player with code `you`, else team A.
+ * The side to read the match from: the signed-in player's own, as the API says (`viewerSide`).
+ * Team A for someone who did not play.
  */
-export function viewpoint(
-	match: Pick<Match, 'teamA' | 'teamB'> & { viewerSide?: Match['viewerSide'] },
-	you: PlayerCode | null
-): Side {
-	return match.viewerSide ?? ((you && myTeam(match, you)?.side) || 'a');
+export function viewpoint(match: Pick<Match, 'viewerSide'>): Side {
+	return match.viewerSide ?? 'a';
 }
 
 /**
@@ -148,7 +144,7 @@ export function viewpoint(
  * Ashdown". A player's own name reads "You". Reads "played" while the match has no winner.
  */
 export function matchHeadline(match: Match, you: PlayerCode | null): string {
-	const from = viewpoint(match, you);
+	const from = viewpoint(match);
 	const names = (team: Team) =>
 		team.players
 			.map((player) => (you && player.code === you ? 'You' : player.displayName))
@@ -161,7 +157,7 @@ export function matchHeadline(match: Match, you: PlayerCode | null): string {
 
 /** One sentence for a screen reader: who played, the score and the status. */
 export function rowLabel(match: Match, you: PlayerCode | null): string {
-	const from = viewpoint(match, you);
+	const from = viewpoint(match);
 	const mine = from === 'a' ? match.teamA : match.teamB;
 	const theirs = from === 'a' ? match.teamB : match.teamA;
 	const won = winner(match);

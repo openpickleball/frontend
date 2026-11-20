@@ -105,18 +105,6 @@ export function winner(match: Pick<Match, 'games' | 'bestOf'>): Side | null {
 	return null;
 }
 
-/**
- * The team that has the player with `myCode`, or null when they did not play. For the signed-in
- * player, read `match.viewerSide` instead: the API says it. This works from the codes in the match,
- * for a code the API does not report on.
- */
-export function myTeam(match: Pick<Match, 'teamA' | 'teamB'>, myCode: PlayerCode): Team | null {
-	for (const team of [match.teamA, match.teamB]) {
-		if (team.players.some((player) => player.code === myCode)) return team;
-	}
-	return null;
-}
-
 /** True while the match waits for confirmation. */
 export function isPending(match: Pick<Match, 'status'>): boolean {
 	return match.status === 'pending';

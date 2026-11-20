@@ -142,13 +142,20 @@
 			: "We couldn't dispute the score. Try again.";
 	}
 
-	/** Move focus to an element once the dispute dialog is gone, because the dialog traps focus. */
+	// Settles once the dispute dialog is gone. While it is open it traps focus, and it hands focus
+	// back (the dialog's onCloseAutoFocus) after it unmounts, so the page waits for that, not a timer.
+	let dialogGone: Promise<void> = Promise.resolve();
+	let dialogDone: () => void = () => {};
+
+	function openDispute() {
+		dialogGone = new Promise((done) => (dialogDone = done));
+		disputeOpen = true;
+	}
+
+	/** Move focus to an element once the buttons are enabled again and the dispute dialog is gone. */
 	async function focusAfterDialog(id: string) {
 		await tick();
-		// A dialog that is closing still traps focus, so wait until it is gone (about a second at most).
-		for (let frame = 0; frame < 60 && document.querySelector('[role="alertdialog"]'); frame++) {
-			await new Promise((done) => requestAnimationFrame(() => done(null)));
-		}
+		await dialogGone;
 		document.getElementById(id)?.focus();
 	}
 
@@ -229,7 +236,7 @@
 	<div class="pt-4">
 		<p class="label">{formatName(match.format)} · {formatLongDate(match.playedOn)}</p>
 		<h1 class="page-title mt-2">{matchHeadline(match, you)}</h1>
-		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match, you))}</p>
+		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match))}</p>
 		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
 			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
 			<span class="font-display text-sm text-muted"
@@ -242,13 +249,7 @@
 		<Scoreboard {match} {you} />
 	{/snippet}
 	{#snippet status()}
-		<StatusPanel
-			{match}
-			{busy}
-			{error}
-			onconfirm={() => act('confirm')}
-			ondispute={() => (disputeOpen = true)}
-		/>
+		<StatusPanel {match} {busy} {error} onconfirm={() => act('confirm')} ondispute={openDispute} />
 	{/snippet}
 
 	<!-- When the player has something to do, the buttons come before the scoreboard. -->
@@ -271,7 +272,11 @@
 		</div>
 	</dl>
 
-	<DisputeDialog bind:open={disputeOpen} onconfirm={() => act('dispute')} />
+	<DisputeDialog
+		bind:open={disputeOpen}
+		onconfirm={() => act('dispute')}
+		onclosed={() => dialogDone()}
+	/>
 {:else if code && (lookup === 'loading' || lookup === 'done')}
 	<h1 class="page-title">Match</h1>
 	<CodeGate>

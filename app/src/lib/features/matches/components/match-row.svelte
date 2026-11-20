@@ -27,7 +27,7 @@
 		you: PlayerCode;
 	} = $props();
 
-	const mine = $derived(viewpoint(match, you));
+	const mine = $derived(viewpoint(match));
 	const rows = $derived(
 		(mine === 'a' ? (['a', 'b'] as const) : (['b', 'a'] as const)).map((side) => ({
 			side,

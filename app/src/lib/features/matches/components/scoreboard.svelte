@@ -4,7 +4,7 @@
 
 	let { match, you }: { match: Match; you: PlayerCode } = $props();
 
-	const first = $derived(viewpoint(match, you));
+	const first = $derived(viewpoint(match));
 	const teams = $derived(
 		(first === 'a' ? (['a', 'b'] as const) : (['b', 'a'] as const)).map((side) => {
 			const team = side === 'a' ? match.teamA : match.teamB;
