@@ -1,6 +1,5 @@
 import { SvelteMap } from 'svelte/reactivity';
 import type { Match, MatchCode, PlayerCode } from '#lib/domain/index.js';
-import { myCode } from '#lib/features/players/index.js';
 
 /** What a player can do to a match they played in. */
 export type MatchAction = 'confirm' | 'dispute';
@@ -18,8 +17,9 @@ export function ownerKey(email: string | null, code: PlayerCode | null): string 
  * which teams confirmed (`viewerSide`, `viewerDecision`, `confirmedBySide`), so the cache keeps
  * nothing else. A confirm or dispute replaces the match with the one the API returns.
  *
- * The cache belongs to one account and player (`ownerKey`). When either changes, or is gone,
- * everything in it is dropped, so one account never sees another's matches. Reads are safe in a
+ * The cache belongs to one account and player (`ownerKey`), which it reads from its one owner
+ * source. When either changes, or is gone, everything in it is dropped, so one account never sees
+ * another's matches. `reset()` drops everything at once, for a sign out. Reads are safe in a
  * `$derived` or a template. Writes drop the old player's data first, so they must not run in one.
  */
 export class MatchCache {
@@ -27,23 +27,19 @@ export class MatchCache {
 	// Reactive, so a read that found nothing (no owner yet) reruns once the first write sets it.
 	#owner = $state<string | null>(null);
 	#currentOwner: () => string | null;
-	#ownerSource: (() => string | null) | null = null;
 
 	/**
-	 * `currentOwner` says who is signed in. By default it asks the source set with
-	 * `setOwnerSource`, and with none set it is the player's code alone.
+	 * `currentOwner` says who is signed in, for example `ownerKey(session.email, myCode.code)`. With
+	 * none, there is no owner and nothing is cached. The app-wide cache gets its owner from the root
+	 * layout (`setOwnerSource`), because this feature does not import the auth feature.
 	 */
-	constructor(currentOwner?: () => string | null) {
-		this.#currentOwner = currentOwner ?? (() => (this.#ownerSource ?? (() => myCode.code))());
+	constructor(currentOwner: () => string | null = () => null) {
+		this.#currentOwner = currentOwner;
 	}
 
-	/**
-	 * Say who the cache belongs to, for example `ownerKey(session.email, myCode.code)`. This
-	 * feature does not import the auth feature, so the root layout wires it. Pass null to go back
-	 * to the player's code alone.
-	 */
-	setOwnerSource(source: (() => string | null) | null): void {
-		this.#ownerSource = source;
+	/** Replace who the cache belongs to. The root layout calls it once for the app-wide cache. */
+	setOwnerSource(source: () => string | null): void {
+		this.#currentOwner = source;
 	}
 
 	/** Drop everything when the player changed, and say whether there is a player to cache for. */

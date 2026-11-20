@@ -1,17 +1,7 @@
-import type { Client } from 'openapi-fetch';
-import { api, isAppError, unwrap } from '#lib/api/index.js';
-import type { paths as ProvisionalPaths } from '#lib/api/provisional.js';
+import { isAppError, provisionalApi, unwrap } from '#lib/api/index.js';
 import { parsePlayerCode } from '#lib/domain/index.js';
 import { toPlayerRatings } from './ratings.js';
 import type { MyPlayer, PlayerRatings } from './types.js';
-
-/**
- * `me/player` and `players/{code}/ratings` are not in the generated schema yet, so the
- * generated client has no type for them. The hand-written paths in `api/provisional.ts`
- * describe them. Same client, same CSRF and error handling, only the types differ.
- * Delete this cast when the backend ships them and `provisional.ts` goes (frontend#35).
- */
-const provisional = api.open as unknown as Client<ProvisionalPaths>;
 
 function isMissing(error: unknown): boolean {
 	return isAppError(error) && (error.status === 404 || error.status === 405);
@@ -24,7 +14,7 @@ function isMissing(error: unknown): boolean {
  */
 export async function fetchMyPlayer(): Promise<MyPlayer | null> {
 	try {
-		const dto = await unwrap(provisional.GET('/api/v1/me/player'));
+		const dto = await unwrap(provisionalApi.GET('/api/v1/me/player'));
 		const code = parsePlayerCode(dto.code);
 		if (!code.ok) return null;
 		return { code: code.value, displayName: dto.display_name };
@@ -41,7 +31,7 @@ export async function fetchMyPlayer(): Promise<MyPlayer | null> {
 export async function fetchRatings(code: string): Promise<PlayerRatings | null> {
 	try {
 		const dto = await unwrap(
-			provisional.GET('/api/v1/players/{code}/ratings', { params: { path: { code } } })
+			provisionalApi.GET('/api/v1/players/{code}/ratings', { params: { path: { code } } })
 		);
 		return toPlayerRatings(dto);
 	} catch (error) {

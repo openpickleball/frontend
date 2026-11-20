@@ -50,6 +50,7 @@ beforeEach(() => {
 	vi.resetAllMocks();
 	matchCache.reset();
 	myCode.reset();
+	matchCache.setOwnerSource(() => myCode.code);
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
 	myCode.save(TAMSIN);
 	matchCache.remember(viewerMatch());
