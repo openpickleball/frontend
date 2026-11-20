@@ -1,4 +1,5 @@
 <script lang="ts">
+	import XIcon from '@lucide/svelte/icons/x';
 	import { onDestroy, tick } from 'svelte';
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Input } from '#lib/ui/input/index.js';
@@ -189,17 +190,7 @@
 						aria-describedby={error ? `${id}-error` : undefined}
 						class="grid size-9 place-items-center rounded-full text-muted hover:text-secondary"
 					>
-						<svg
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.75"
-							stroke-linecap="round"
-							aria-hidden="true"
-							class="size-4"
-						>
-							<path d="M6 6l12 12M18 6 6 18" />
-						</svg>
+						<XIcon aria-hidden="true" class="size-4" />
 					</button>
 				{/if}
 			</span>

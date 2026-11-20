@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import MailIcon from '@lucide/svelte/icons/mail';
 	import { onMount } from 'svelte';
 	import { Button } from '#lib/ui/button/index.js';
 	import { session } from '../session.svelte.js';
@@ -10,18 +11,7 @@
 </script>
 
 <section aria-labelledby="check-title" class="grid gap-4">
-	<svg
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.25"
-		stroke-linejoin="round"
-		aria-hidden="true"
-		class="size-10 text-muted"
-	>
-		<rect x="3" y="5.5" width="18" height="13" rx="1.5" />
-		<path d="m3.5 6.5 8.5 6.5 8.5-6.5" />
-	</svg>
+	<MailIcon aria-hidden="true" class="size-10 text-muted" />
 	<h1 id="check-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 		Check your email
 	</h1>
