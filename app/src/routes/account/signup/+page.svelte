@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { SignupForm } from '#lib/features/auth/index.js';
+	import { page } from '$app/state';
+	import { SignupForm, goAfterSignIn } from '#lib/features/auth/index.js';
 </script>
 
 <svelte:head>
 	<title>Create account · OPEN Pickleball</title>
 </svelte:head>
 
-<SignupForm onsuccess={() => void goto(resolve('/'))} />
+<SignupForm onsuccess={() => void goAfterSignIn(page.url.searchParams)} />

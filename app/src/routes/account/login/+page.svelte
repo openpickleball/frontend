@@ -1,15 +1,10 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { LoginForm, SessionCheck, safeNext } from '#lib/features/auth/index.js';
+	import { LoginForm, SessionCheck, goAfterSignIn } from '#lib/features/auth/index.js';
 
 	// Back to where the player was going, but only to a path on this site.
 	function signedIn() {
-		const next = safeNext(page.url.searchParams.get('next')) ?? '/';
-		// If that page can't be opened, go home rather than leave a signed-in player on Sign in.
-		// eslint-disable-next-line svelte/no-navigation-without-resolve -- safeNext() allows only same-site paths
-		goto(next).catch(() => goto(resolve('/')));
+		void goAfterSignIn(page.url.searchParams);
 	}
 </script>
 

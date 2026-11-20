@@ -182,7 +182,7 @@ describe('LoginForm', () => {
 			.not.toHaveAttribute('aria-invalid', 'true');
 	});
 
-	it('shows check your email when the account still needs confirming', async () => {
+	it('shows a check your email notice above the form when the account needs confirming', async () => {
 		mockedLogin.mockImplementation(async ({ email }) => {
 			session.apply({ status: 'pending_verification' }, email);
 			return { status: 'pending_verification' };
@@ -192,29 +192,20 @@ describe('LoginForm', () => {
 		await fill(screen, 'unverified@example.com', 'a-password');
 		await screen.getByRole('button', { name: 'Sign in' }).click();
 
-		await expect
-			.element(screen.getByRole('heading', { level: 1, name: 'Check your email' }))
-			.toBeVisible();
+		await expect.element(screen.getByText('Check your email')).toBeVisible();
 		await expect.element(screen.getByText('unverified@example.com')).toBeVisible();
-		await expect
-			.element(screen.getByRole('button', { name: 'Sign in for a new link' }))
-			.toBeVisible();
+		await expect.element(screen.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+		await expect.element(screen.getByLabelText('Email')).toBeVisible();
 		expect(onsuccess).not.toHaveBeenCalled();
 	});
 
-	it('shows check your email on load when the session is already pending', async () => {
+	it('keeps the sign-in form when the session is already pending', async () => {
 		session.apply({ status: 'pending_verification' });
 		const screen = await render(LoginForm, { onsuccess: vi.fn() });
-		await expect
-			.element(screen.getByRole('heading', { level: 1, name: 'Check your email' }))
-			.toBeVisible();
-	});
-
-	it('goes back to the form from "Sign in for a new link"', async () => {
-		session.apply({ status: 'pending_verification' }, 'unverified@example.com');
-		const screen = await render(LoginForm, { onsuccess: vi.fn() });
-		await screen.getByRole('button', { name: 'Sign in for a new link' }).click();
 		await expect.element(screen.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+		await expect.element(screen.getByLabelText('Email')).toBeVisible();
+		await expect.element(screen.getByLabelText('Password', { exact: true })).toBeVisible();
+		await expect.element(screen.getByText('Check your email')).toBeVisible();
 	});
 
 	it('shows the Show and Hide toggle for the password', async () => {

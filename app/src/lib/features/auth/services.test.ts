@@ -12,6 +12,7 @@ import {
 	configureAuthApi,
 	login,
 	logout,
+	onSignOut,
 	requestPasswordReset,
 	resetBootstrap,
 	resetPassword,
@@ -258,6 +259,49 @@ describe('logout', () => {
 		server.use(http.delete(`${AUTH}/session`, () => HttpResponse.error()));
 		await expect(logout()).rejects.toMatchObject({ kind: 'network' });
 		expect(session.status).toBe('signed_out');
+	});
+});
+
+describe('onSignOut', () => {
+	it('tells listeners the account email before the session ends', async () => {
+		await login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD });
+		const heard: [string | null, boolean][] = [];
+		const stop = onSignOut((email) => heard.push([email, session.isSignedIn]));
+		await logout();
+		stop();
+		expect(heard).toEqual([[VERIFIED_EMAIL, true]]);
+	});
+
+	it('still signs out when a listener throws, and stops after it is removed', async () => {
+		await login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD });
+		let calls = 0;
+		const stopBad = onSignOut(() => {
+			throw new Error('storage is blocked');
+		});
+		const stop = onSignOut(() => calls++);
+		await logout();
+		expect(session.status).toBe('signed_out');
+		expect(calls).toBe(1);
+
+		stop();
+		stopBad();
+		await login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD });
+		await logout();
+		expect(calls).toBe(1);
+	});
+
+	it('is not called when a session expires', async () => {
+		const api = browserApi();
+		configureAuthApi(api);
+		await login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD });
+		let signedOut = 0;
+		const stop = onSignOut(() => signedOut++);
+		const stopWatch = watchSessionExpiry(() => {});
+		mockStore.logout();
+		await api.open.GET('/api/v1/accounts/me');
+		stop();
+		stopWatch();
+		expect(signedOut).toBe(0);
 	});
 });
 

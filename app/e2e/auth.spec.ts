@@ -1,6 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { MOCK_KEYS, MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
+import {
+	MOCK_KEYS,
+	MOCK_PASSWORD,
+	PLAYERS,
+	UNVERIFIED_EMAIL,
+	VERIFIED_EMAIL
+} from '../src/lib/mocks/fixtures';
 import { signIn, signOut, submitSignIn } from './helpers';
 
 // Runs against PUBLIC_API_MOCK=all (see playwright.config.ts). Every test gets a new browser
@@ -63,6 +69,47 @@ test('signing up with an address that has an account looks the same', async ({ p
 	await page.getByRole('button', { name: 'Create account' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
 	await expect(page.getByText(VERIFIED_EMAIL)).toBeVisible();
+});
+
+test('sign in stays usable while a sign-up is waiting for its link', async ({ page }) => {
+	await page.goto('/account/signup');
+	await page.getByLabel('Email').fill('waiting.player@example.com');
+	await page.getByLabel('Password', { exact: true }).fill('a-long-enough-pass');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
+
+	await page.getByRole('link', { name: 'Go to sign in' }).click();
+	await expect(page).toHaveURL(/\/account\/login$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+	await expect(page.getByText('waiting.player@example.com')).toBeVisible();
+
+	// Someone with a verified account can sign in right here.
+	await submitSignIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+	await expect(page).toHaveURL(/\/$/);
+});
+
+test('sign out removes the saved code and email from this browser', async ({ page }) => {
+	const rosa = PLAYERS.find((p) => p.key === 'rosa')!;
+	// This account has no player yet, so the code is typed in and kept on the device.
+	await page.goto(`/account/verify-email/${MOCK_KEYS.verifyEmail}`);
+	await expect(page.getByRole('heading', { level: 1, name: 'Email confirmed' })).toBeVisible();
+	await signIn(page, UNVERIFIED_EMAIL, MOCK_PASSWORD);
+	await page.goto('/profile');
+	await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(rosa.code);
+	await page.getByRole('button', { name: 'Save code' }).click();
+	await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
+	const saved = () =>
+		page.evaluate(() =>
+			Object.keys(localStorage).filter((key) => key.startsWith('open:v1:my-player-code:'))
+		);
+	expect(await saved()).toHaveLength(1);
+
+	await page
+		.getByRole('region', { name: 'Account' })
+		.getByRole('button', { name: 'Sign out' })
+		.click();
+	await expect(page).toHaveURL(/\/account\/login/);
+	expect(await saved()).toEqual([]);
 });
 
 test('a wrong password shows an error and stays on sign in', async ({ page }) => {

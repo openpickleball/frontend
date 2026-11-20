@@ -143,8 +143,28 @@ export async function signup({ email, password }: Credentials): Promise<SessionS
 	return state;
 }
 
+const signOutListeners = new Set<(email: string | null) => void>();
+
+/**
+ * Run `listener` when the player signs out on purpose (not when a session expires), before the
+ * session ends, with the account's email. Other features use it to delete what they keep on
+ * this device. A throwing listener never stops the sign out. Returns a function that removes it.
+ */
+export function onSignOut(listener: (email: string | null) => void): () => void {
+	signOutListeners.add(listener);
+	return () => void signOutListeners.delete(listener);
+}
+
 /** Sign out. The backend answers 401, which is the signed-out session. */
 export async function logout(): Promise<void> {
+	const email = session.email;
+	for (const listener of signOutListeners) {
+		try {
+			listener(email);
+		} catch {
+			// Cleaning up must never keep a player signed in.
+		}
+	}
 	try {
 		const result = await settle(
 			api.allauth.DELETE('/_allauth/{client}/v1/auth/session', { params: allauthParams })

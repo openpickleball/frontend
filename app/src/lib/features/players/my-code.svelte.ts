@@ -131,6 +131,16 @@ export class MyCode {
 		return { ok: true, code: parsed.value };
 	}
 
+	/**
+	 * Sign out: delete the code saved on this device for `email` (default: the loaded account),
+	 * then forget everything. Pass the session's email, because this store only knows the account
+	 * after the profile has loaded.
+	 */
+	forget(email: string | null = this.email): void {
+		if (email) this.#deps.store.remove(email);
+		this.reset();
+	}
+
 	/** Forget everything, including the account, and drop loads still in flight. */
 	reset(): void {
 		this.#run++;

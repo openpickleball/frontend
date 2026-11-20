@@ -15,6 +15,10 @@
  * - `sessionEmail()`: the account email as a promise that waits for the session. Hand it to
  *   `setAccountEmailSource` (the root layout does).
  * - `SignOutButton`: a sign out button, for the profile page.
+ * - `onSignOut(listener)`: the root layout calls it once, so what the app keeps on this device
+ *   (the saved player code) is deleted when the player signs out on purpose.
+ * - `goAfterSignIn(searchParams)`: go to `next`, or home, once signed in. The sign-in and
+ *   sign-up pages call it.
  * - `watchSessionExpiry(onExpired)`: the root layout calls it once. The first 401 from the API
  *   marks the session signed out (so the layout clears the player's code and cached matches)
  *   and calls `onExpired`, which re-runs the guard to send the player to sign in.
@@ -27,8 +31,9 @@ import { session } from './session.svelte.js';
 import { bootstrap } from './services.js';
 
 export { session, type SessionStatus } from './session.svelte.js';
-export { watchSessionExpiry } from './services.js';
+export { watchSessionExpiry, onSignOut } from './services.js';
 export { isAccountPath, safeNext } from './guard.js';
+export { goAfterSignIn } from './navigation.js';
 export { default as SignOutButton } from './components/sign-out-button.svelte';
 export { default as LoginForm } from './components/login-form.svelte';
 export { default as SignupForm } from './components/signup-form.svelte';

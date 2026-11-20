@@ -1,21 +1,12 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { Button } from '#lib/ui/button/index.js';
 	import { session } from '../session.svelte.js';
 
-	/** Which page this is on. "Sign in again" goes to the sign-in page from sign-up. */
-	let { page }: { page: 'login' | 'signup' } = $props();
-
 	let heading = $state<HTMLHeadingElement>();
 	// Tell screen reader users the page changed.
 	onMount(() => heading?.focus());
-
-	function signInAgain() {
-		session.clearPending();
-		if (page === 'signup') void goto(resolve('/account/login'));
-	}
 </script>
 
 <section aria-labelledby="check-title" class="grid gap-4">
@@ -54,22 +45,15 @@
 		will send a new one.
 	</p>
 	<div class="mt-2 flex flex-wrap gap-3">
-		<Button variant="outline" onclick={signInAgain} class="w-full">Sign in for a new link</Button>
+		<!-- The sign-in page keeps the pending notice above its form, so nothing is cleared here. -->
+		<Button variant="outline" href={resolve('/account/login')} class="w-full">Go to sign in</Button>
 	</div>
 	<p class="text-sm text-muted">
 		Wrong address?
-		{#if page === 'signup'}
-			<button
-				type="button"
-				class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
-				onclick={() => session.clearPending()}>Start over</button
-			>
-		{:else}
-			<a
-				href={resolve('/account/signup')}
-				class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
-				onclick={() => session.clearPending()}>Start over</a
-			>
-		{/if}
+		<button
+			type="button"
+			class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
+			onclick={() => session.clearPending()}>Start over</button
+		>
 	</p>
 </section>
