@@ -123,18 +123,17 @@
 				{:else if needs.length > 0}
 					<section class="mt-10" aria-labelledby="needs-title">
 						<div class="flex items-baseline justify-between gap-4">
-							<h2 id="needs-title" class="text-[22px] font-semibold tracking-tight">
+							<h2 id="needs-title" class="text-2xl font-semibold tracking-tight">
 								Needs your confirmation
 							</h2>
-							<span class="text-[15px] text-muted">{matchCountLabel(needs.length + moreNeeds)}</span
-							>
+							<span class="text-base text-muted">{matchCountLabel(needs.length + moreNeeds)}</span>
 						</div>
-						<p class="mt-1 mb-3 text-[15px] text-muted">
+						<p class="mt-1 mb-3 text-base text-muted">
 							Check the score. Confirm it if it's right, or dispute it if it's wrong.
 						</p>
 						<MatchList matches={needs} {you} label="Needs your confirmation" />
 						{#if moreNeeds > 0}
-							<p class="mt-3 text-[15px] text-muted" data-testid="more-needs">
+							<p class="mt-3 text-base text-muted" data-testid="more-needs">
 								{moreNeeds === 1 ? '1 more match is' : `${moreNeeds} more matches are`} waiting for you.
 								<a
 									href={resolve('/matches')}
@@ -148,12 +147,12 @@
 				{#if waiting.length > 0}
 					<section class="mt-10" aria-labelledby="waiting-title">
 						<div class="flex items-baseline justify-between gap-4">
-							<h2 id="waiting-title" class="text-[22px] font-semibold tracking-tight">
+							<h2 id="waiting-title" class="text-2xl font-semibold tracking-tight">
 								Waiting for the other team
 							</h2>
-							<span class="text-[15px] text-muted">{matchCountLabel(waiting.length)}</span>
+							<span class="text-base text-muted">{matchCountLabel(waiting.length)}</span>
 						</div>
-						<p class="mt-1 mb-3 text-[15px] text-muted">
+						<p class="mt-1 mb-3 text-base text-muted">
 							Your team confirmed these scores. A match counts once a player on the other team
 							confirms it too.
 						</p>
@@ -163,9 +162,7 @@
 
 				<section class="mt-10" aria-labelledby="recent-title">
 					<div class="flex items-baseline justify-between gap-4">
-						<h2 id="recent-title" class="text-[22px] font-semibold tracking-tight">
-							Recent matches
-						</h2>
+						<h2 id="recent-title" class="text-2xl font-semibold tracking-tight">Recent matches</h2>
 						<Button href={resolve('/matches')} variant="link">
 							All matches
 							<ArrowRightIcon aria-hidden="true" />

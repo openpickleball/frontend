@@ -86,7 +86,7 @@
 			>
 				<MatchList matches={view.matches} {you} label="Your matches" />
 				<nav class="mt-5 flex flex-wrap items-center justify-between gap-3" aria-label="Pages">
-					<span class="text-[15px] text-muted" data-testid="range"
+					<span class="text-base text-muted" data-testid="range"
 						>{rangeLabel(view.offset, view.items.length, view.count)}</span
 					>
 					<div class="flex gap-2">

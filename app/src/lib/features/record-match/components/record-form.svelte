@@ -233,7 +233,7 @@
 				{#if errors.played_on}
 					<FieldError id="played-on-error" message={first('played_on')} />
 				{:else if form.dateHint}
-					<p id="played-on-hint" class="text-[15px] text-muted">{form.dateHint}</p>
+					<p id="played-on-hint" class="text-base text-muted">{form.dateHint}</p>
 				{/if}
 			</div>
 		</div>
@@ -241,13 +241,13 @@
 
 	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
 		<legend class="text-xl font-semibold text-secondary">Players</legend>
-		<p class="max-w-[52ch] text-[15px] text-muted">
+		<p class="max-w-[52ch] text-base text-muted">
 			Type a player's name to find them, or enter their OPEN code. They can find theirs on their
 			Profile page.
 		</p>
 
 		<div class="grid gap-3" role="group" aria-labelledby="team-a-title">
-			<h2 id="team-a-title" class="text-[15px] font-semibold text-secondary">Your team</h2>
+			<h2 id="team-a-title" class="text-base font-semibold text-secondary">Your team</h2>
 			<PlayerSlot
 				id="you"
 				label="Your OPEN code"
@@ -275,7 +275,7 @@
 		</div>
 
 		<div class="grid gap-3" role="group" aria-labelledby="team-b-title">
-			<h2 id="team-b-title" class="text-[15px] font-semibold text-secondary">Opponents</h2>
+			<h2 id="team-b-title" class="text-base font-semibold text-secondary">Opponents</h2>
 			{#each form.visibleOpponents as slot, index (index)}
 				<PlayerSlot
 					id="opponent-{index}"
@@ -339,7 +339,7 @@
 					onfocusout={(event) => leaveRow(event, index)}
 				>
 					<div class="flex items-center gap-x-2">
-						<span class="w-20 text-[15px] font-semibold text-secondary">Game {index + 1}</span>
+						<span class="w-20 text-base font-semibold text-secondary">Game {index + 1}</span>
 						<Input
 							id="game-{index}-a"
 							bind:value={game.a}
@@ -405,7 +405,7 @@
 				{form.sending ? 'Recording…' : 'Record and confirm score'}
 			</Button>
 		</div>
-		<p id="submit-note" class="max-w-[52ch] text-[15px] text-muted">
+		<p id="submit-note" class="max-w-[52ch] text-base text-muted">
 			This confirms the score for your team. The match stays pending until a player on the other
 			team confirms it too.
 		</p>

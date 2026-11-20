@@ -170,13 +170,13 @@
 				]}
 			>
 				{#if locked}
-					<span class="text-[13px] font-semibold text-muted">You</span>
+					<span class="text-sm font-semibold text-muted">You</span>
 				{/if}
 				<span class={['font-display tracking-wide', error && 'text-danger']} data-testid="chip"
 					>{code}</span
 				>
 				{#if name}
-					<span class="text-[15px] text-muted" data-testid="chip-name">{name}</span>
+					<span class="text-base text-muted" data-testid="chip-name">{name}</span>
 				{/if}
 				{#if locked}
 					<span class="mr-2.5"></span>

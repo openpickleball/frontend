@@ -34,7 +34,7 @@
 	style="--normal-bg: var(--color-secondary); --normal-text: var(--color-primary); --normal-border: var(--color-secondary); --border-radius: 999px;"
 	toastOptions={{
 		classes: {
-			toast: 'font-body! text-[15px]! font-medium!'
+			toast: 'font-body! text-base! font-medium!'
 		}
 	}}
 	{...restProps}
