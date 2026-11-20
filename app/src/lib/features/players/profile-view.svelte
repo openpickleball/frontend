@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
 	import type { PlayerCode } from '#lib/domain/index.js';
+	import { Alert, AlertDescription } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import CodeCard from './code-card.svelte';
@@ -54,14 +55,17 @@
 			<CodeCard {code} />
 
 			{#if myCode.storageFailed}
-				<p class="max-w-md text-base text-danger" role="status">
-					We couldn't save your code on this device, so you may need to enter it again next time.
-				</p>
+				<!-- A warning, not an interruption: announced politely, like the text it replaces. -->
+				<Alert variant="destructive" role="status" class="max-w-md">
+					<AlertDescription>
+						We couldn't save your code on this device, so you may need to enter it again next time.
+					</AlertDescription>
+				</Alert>
 			{/if}
 
 			<dl class="flex gap-8 border-t border-line pt-6">
 				<div>
-					<dt class="font-display text-xs tracking-widest text-muted uppercase">Matches</dt>
+					<dt class="label">Matches</dt>
 					<dd
 						class="mt-1 text-3xl font-medium tabular-nums text-secondary"
 						data-testid="match-count"

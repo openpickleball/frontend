@@ -41,8 +41,7 @@
 		<CircleAlertIcon aria-hidden="true" />
 		<AlertTitle>You're not signed in.</AlertTitle>
 		<AlertDescription>
-			<a href={resolve(ROUTES.login)} class="font-semibold underline underline-offset-4">Sign in</a> to
-			see your matches.
+			<Button variant="link" size="inline" href={resolve(ROUTES.login)}>Sign in</Button> to see your matches.
 		</AlertDescription>
 	</Alert>
 {:else}

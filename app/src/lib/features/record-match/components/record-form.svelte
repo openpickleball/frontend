@@ -142,10 +142,11 @@
 							<li>
 								{#if entry.target}
 									{@const target = entry.target}
-									<a
+									<Button
+										variant="link"
+										size="inline"
 										href="#{target}"
-										class="underline underline-offset-4"
-										onclick={(event) => focusField(event, target)}>{entry.message}</a
+										onclick={(event) => focusField(event, target)}>{entry.message}</Button
 									>
 								{:else}
 									{entry.message}
@@ -174,17 +175,18 @@
 					{:else if form.failure.kind === 'duplicate'}
 						{#if form.failure.matchCode}
 							<p>
-								<a
+								<Button
+									variant="link"
+									size="inline"
 									href={resolve('/matches/[code]', { code: form.failure.matchCode })}
-									class="font-semibold text-secondary underline underline-offset-4">See the match</a
+									>See the match</Button
 								>
 							</p>
 							<p>You may still need to confirm it.</p>
 						{:else}
 							<p>
-								Look in <a
-									href={resolve(ROUTES.matches)}
-									class="font-semibold text-secondary underline underline-offset-4">your matches</a
+								Look in <Button variant="link" size="inline" href={resolve(ROUTES.matches)}
+									>your matches</Button
 								> to find it. You may still need to confirm it.
 							</p>
 						{/if}

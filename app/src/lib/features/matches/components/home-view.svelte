@@ -149,9 +149,8 @@
 						{#if moreNeeds > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-needs">
 								{moreNeeds === 1 ? '1 more match is' : `${moreNeeds} more matches are`} waiting for you.
-								<a
-									href={resolve(ROUTES.matches)}
-									class="underline underline-offset-4 hover:text-secondary">See all matches</a
+								<Button variant="link" size="inline" href={resolve(ROUTES.matches)}
+									>See all matches</Button
 								>.
 							</p>
 						{/if}
