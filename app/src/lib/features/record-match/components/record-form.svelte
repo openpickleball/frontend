@@ -217,11 +217,17 @@
 					class="w-52"
 					onfocus={() => (maxDate = todayLocal())}
 					aria-invalid={errors.played_on ? 'true' : undefined}
-					aria-describedby={errors.played_on ? 'played-on-error' : undefined}
+					aria-describedby={errors.played_on
+						? 'played-on-error'
+						: form.dateHint
+							? 'played-on-hint'
+							: undefined}
 					onblur={() => form.touch('played_on')}
 				/>
 				{#if errors.played_on}
 					<FieldError id="played-on-error" message={first('played_on')} />
+				{:else if form.dateHint}
+					<p id="played-on-hint" class="text-[15px] text-muted">{form.dateHint}</p>
 				{/if}
 			</div>
 		</div>

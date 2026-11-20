@@ -114,3 +114,35 @@ describe('RecordForm players found by name', () => {
 		expect(form.partner.error).toBe('That OPEN code is the wrong length.');
 	});
 });
+
+describe('RecordForm score and date checks', () => {
+	it('says a negative score cannot be negative, not that it is not a whole number', () => {
+		const form = filled();
+		form.games[0] = { a: '-1', b: '5' };
+		form.submitted = true;
+		expect(form.errors['games.0']).toEqual(['Game 1: scores cannot be negative.']);
+	});
+
+	it('still refuses text that is not a whole number', () => {
+		const form = filled();
+		form.games[0] = { a: '1.5', b: '5' };
+		form.submitted = true;
+		expect(form.errors['games.0']).toEqual(['Game 1: enter each score as a whole number.']);
+	});
+
+	it('hints, without blocking, at a date long ago', () => {
+		const form = filled();
+		form.playedOn = '0001-01-01';
+		form.submitted = true;
+		expect(form.dateHint).toBe('Check the year. This date is more than 25 years ago.');
+		expect(form.errors.played_on).toBeUndefined();
+		expect(form.input.playedOn).toBe('0001-01-01');
+	});
+
+	it('gives no hint for a recent date', () => {
+		const form = filled();
+		expect(form.dateHint).toBeNull();
+		form.playedOn = '2000-01-01';
+		expect(form.dateHint).toBeNull();
+	});
+});
