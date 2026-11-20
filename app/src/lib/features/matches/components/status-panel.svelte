@@ -128,15 +128,19 @@
 		<div class="mt-4 flex flex-wrap gap-3">
 			<Button
 				id="confirm-button"
-				onclick={onconfirm}
-				disabled={busy !== null}
+				onclick={() => busy === null && onconfirm()}
+				aria-disabled={busy !== null}
 				aria-busy={busy === 'confirm'}
 			>
 				{#if busy === 'confirm'}<Spinner />{/if}
 				{busy === 'confirm' ? 'Confirming…' : 'Confirm score'}
 			</Button>
-			<Button id="dispute-button" variant="destructive" onclick={ondispute} disabled={busy !== null}
-				>Dispute</Button
+			<Button
+				id="dispute-button"
+				variant="destructive"
+				onclick={() => busy === null && ondispute()}
+				aria-disabled={busy !== null}
+				aria-busy={busy === 'dispute'}>Dispute</Button
 			>
 		</div>
 	{/if}
