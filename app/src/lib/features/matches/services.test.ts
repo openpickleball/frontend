@@ -1,13 +1,12 @@
 import { HttpResponse, http } from 'msw';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { allauthParams, createApi, isAppError, type AppError } from '#lib/api/index.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { allauthParams, createApi, isAppError, type Api, type AppError } from '#lib/api/index.js';
 import { buildCode, type MatchCode, type PlayerCode } from '#lib/domain/index.js';
 import { MATCHES, MOCK_PASSWORD, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
 import { MatchCache } from './cache.svelte.js';
 import {
 	PAGE_SIZE,
-	configureMatchesApi,
 	confirmMatch,
 	countMatches,
 	disputeMatch,
@@ -52,23 +51,22 @@ function browserApi() {
 	return { api: createApi({ baseUrl: BASE, fetch: fetchWithJar, getCookies }), calls };
 }
 
+let api: Api;
 let calls: string[];
 let cache: MatchCache;
 
 beforeEach(async () => {
 	const browser = browserApi();
+	api = browser.api;
 	calls = browser.calls;
-	configureMatchesApi(browser.api);
-	await browser.api.initCsrf();
-	await browser.api.allauth.POST('/_allauth/{client}/v1/auth/login', {
+	await api.initCsrf();
+	await api.allauth.POST('/_allauth/{client}/v1/auth/login', {
 		params: allauthParams,
 		body: { email: VERIFIED_EMAIL, password: MOCK_PASSWORD }
 	});
 	calls.length = 0;
 	cache = new MatchCache(() => TAMSIN);
 });
-
-afterEach(() => configureMatchesApi());
 
 async function failure(promise: Promise<unknown>): Promise<AppError> {
 	try {
@@ -82,7 +80,7 @@ async function failure(promise: Promise<unknown>): Promise<AppError> {
 
 describe('listMatches', () => {
 	it('returns a page of 20 and the total, newest first, and caches them', async () => {
-		const page = await listMatches(TAMSIN, 0, { cache });
+		const page = await listMatches(TAMSIN, 0, { cache, api });
 		expect(page.count).toBe(26);
 		expect(page.items).toHaveLength(PAGE_SIZE);
 		expect(page.items[0].code).toBe(WAITING_ON_ME);
@@ -91,38 +89,38 @@ describe('listMatches', () => {
 	});
 
 	it('returns the rest on the next page', async () => {
-		const page = await listMatches(TAMSIN, 20, { cache });
+		const page = await listMatches(TAMSIN, 20, { cache, api });
 		expect(page.items).toHaveLength(6);
 		expect(page.count).toBe(26);
 	});
 
 	it('shows every status to the owner', async () => {
-		const page = await listMatches(TAMSIN, 0, { cache });
+		const page = await listMatches(TAMSIN, 0, { cache, api });
 		const statuses = new Set(page.items.map((m) => m.status));
 		expect(statuses).toEqual(new Set(['pending', 'confirmed', 'disputed', 'voided']));
 	});
 
 	it('fails with an AppError for a player who does not exist', async () => {
 		const missing = buildCode('player', '0000000') as PlayerCode;
-		expect((await failure(listMatches(missing, 0, { cache }))).kind).toBe('not_found');
+		expect((await failure(listMatches(missing, 0, { cache, api }))).kind).toBe('not_found');
 	});
 });
 
 describe('countMatches', () => {
 	it('reads the total from a one-match page', async () => {
-		expect(await countMatches(TAMSIN)).toBe(26);
+		expect(await countMatches(TAMSIN, { api })).toBe(26);
 		expect(calls).toEqual([`GET /api/v1/players/${TAMSIN}/matches?limit=1`]);
 	});
 
 	it('fails with an AppError for a player who does not exist', async () => {
 		const missing = buildCode('player', '0000000') as PlayerCode;
-		expect((await failure(countMatches(missing))).kind).toBe('not_found');
+		expect((await failure(countMatches(missing, { api }))).kind).toBe('not_found');
 	});
 });
 
 describe('listAwaitingConfirmation', () => {
 	it("lists the pending matches no one on the player's team has confirmed, newest first", async () => {
-		const page = await listAwaitingConfirmation(0, { cache });
+		const page = await listAwaitingConfirmation(0, { cache, api });
 		expect(calls).toEqual(['GET /api/v1/me/matches/awaiting-confirmation?limit=20&offset=0']);
 		expect(page.items.map((m) => m.code)).toEqual([WAITING_ON_ME, code('3FTB8ZRMK6P')]);
 		expect(page.count).toBe(2);
@@ -135,23 +133,23 @@ describe('listAwaitingConfirmation', () => {
 	});
 
 	it("leaves out a match the player's team confirmed", async () => {
-		const page = await listAwaitingConfirmation(0, { cache });
+		const page = await listAwaitingConfirmation(0, { cache, api });
 		expect(page.items.map((m) => m.code)).not.toContain(ALREADY_CONFIRMED);
 	});
 
 	it('drops a match once the player confirms it', async () => {
-		await confirmMatch(WAITING_ON_ME, { cache });
-		const page = await listAwaitingConfirmation(0, { cache });
+		await confirmMatch(WAITING_ON_ME, { cache, api });
+		const page = await listAwaitingConfirmation(0, { cache, api });
 		expect(page.items.map((m) => m.code)).toEqual([code('3FTB8ZRMK6P')]);
 	});
 
 	it('drops a match once the player disputes it', async () => {
-		await disputeMatch(WAITING_ON_ME, { cache });
-		expect((await listAwaitingConfirmation(0, { cache })).count).toBe(1);
+		await disputeMatch(WAITING_ON_ME, { cache, api });
+		expect((await listAwaitingConfirmation(0, { cache, api })).count).toBe(1);
 	});
 
 	it('pages with limit and offset', async () => {
-		const page = await listAwaitingConfirmation(1, { limit: 1, cache });
+		const page = await listAwaitingConfirmation(1, { limit: 1, cache, api });
 		expect(page.items.map((m) => m.code)).toEqual([code('3FTB8ZRMK6P')]);
 		expect(page.count).toBe(2);
 	});
@@ -159,7 +157,7 @@ describe('listAwaitingConfirmation', () => {
 
 describe('getMatch', () => {
 	it('reads the match from the API and remembers it', async () => {
-		const found = await getMatch(CONFIRMED, { cache });
+		const found = await getMatch(CONFIRMED, { cache, api });
 		expect(found.code).toBe(CONFIRMED);
 		expect(found.status).toBe('confirmed');
 		expect(found.viewerSide).not.toBeNull();
@@ -169,47 +167,47 @@ describe('getMatch', () => {
 
 	it('asks the API even when the cache has the match, and replaces the cached copy', async () => {
 		cache.remember(sampleMatch({ code: CONFIRMED, status: 'pending' }));
-		const found = await getMatch(CONFIRMED, { cache });
+		const found = await getMatch(CONFIRMED, { cache, api });
 		expect(calls).toHaveLength(1);
 		expect(found.status).toBe('confirmed');
 		expect(cache.get(CONFIRMED)?.status).toBe('confirmed');
 	});
 
 	it('keeps the match out of the cache with `remember: false`', async () => {
-		const found = await getMatch(CONFIRMED, { cache, remember: false });
+		const found = await getMatch(CONFIRMED, { cache, remember: false, api });
 		expect(found.code).toBe(CONFIRMED);
 		expect(cache.get(CONFIRMED)).toBeUndefined();
 	});
 
 	it('finds the oldest match with one request, with no scan of the list', async () => {
-		const found = await getMatch(code(oldest.random), { cache });
+		const found = await getMatch(code(oldest.random), { cache, api });
 		expect(found.code).toBe(code(oldest.random));
 		expect(calls).toHaveLength(1);
 	});
 
 	it('reads a match in every status the player is in', async () => {
-		expect((await getMatch(WAITING_ON_ME, { cache })).status).toBe('pending');
-		expect((await getMatch(DISPUTED, { cache })).status).toBe('disputed');
+		expect((await getMatch(WAITING_ON_ME, { cache, api })).status).toBe('pending');
+		expect((await getMatch(DISPUTED, { cache, api })).status).toBe('disputed');
 	});
 
 	it('throws not_found for a match the player was not in', async () => {
-		expect((await failure(getMatch(NOT_MINE, { cache }))).kind).toBe('not_found');
+		expect((await failure(getMatch(NOT_MINE, { cache, api }))).kind).toBe('not_found');
 		expect(cache.get(NOT_MINE)).toBeUndefined();
 	});
 
 	it('throws not_found for an unknown code', async () => {
-		expect((await failure(getMatch(code('00000000000'), { cache }))).kind).toBe('not_found');
+		expect((await failure(getMatch(code('00000000000'), { cache, api }))).kind).toBe('not_found');
 	});
 
 	it('throws a network AppError when the API cannot be reached', async () => {
 		server.use(http.get('*/api/v1/matches/:code', () => HttpResponse.error()));
-		expect((await failure(getMatch(CONFIRMED, { cache }))).kind).toBe('network');
+		expect((await failure(getMatch(CONFIRMED, { cache, api }))).kind).toBe('network');
 	});
 });
 
 describe('confirmMatch', () => {
 	it("confirms and caches the new state, with the player's own decision", async () => {
-		const match = await confirmMatch(WAITING_ON_ME, { cache });
+		const match = await confirmMatch(WAITING_ON_ME, { cache, api });
 		// Bea's team confirmed first, so Tamsin's confirmation makes it count.
 		expect(match.status).toBe('confirmed');
 		expect(calls).toEqual([`POST /api/v1/matches/${WAITING_ON_ME}/confirm`]);
@@ -219,30 +217,30 @@ describe('confirmMatch', () => {
 	});
 
 	it('leaves a match pending when the other team has not confirmed', async () => {
-		const match = await confirmMatch(ALREADY_CONFIRMED, { cache });
+		const match = await confirmMatch(ALREADY_CONFIRMED, { cache, api });
 		// The mock has Tamsin's team confirmed already and the other team still to go.
 		expect(match.status).toBe('pending');
 		expect(match.confirmedBySide).toEqual({ a: true, b: false });
 	});
 
 	it('is safe to repeat', async () => {
-		await confirmMatch(WAITING_ON_ME, { cache });
-		expect((await confirmMatch(WAITING_ON_ME, { cache })).status).toBe('confirmed');
+		await confirmMatch(WAITING_ON_ME, { cache, api });
+		expect((await confirmMatch(WAITING_ON_ME, { cache, api })).status).toBe('confirmed');
 	});
 
 	it('fails with a conflict for a disputed match', async () => {
-		const error = await failure(confirmMatch(DISPUTED, { cache }));
+		const error = await failure(confirmMatch(DISPUTED, { cache, api }));
 		expect(error.kind).toBe('conflict');
 	});
 
 	it('fails with not found for a match the player is not in', async () => {
-		expect((await failure(confirmMatch(NOT_MINE, { cache }))).kind).toBe('not_found');
+		expect((await failure(confirmMatch(NOT_MINE, { cache, api }))).kind).toBe('not_found');
 	});
 });
 
 describe('disputeMatch', () => {
 	it('disputes with no body and caches the new state', async () => {
-		const match = await disputeMatch(WAITING_ON_ME, { cache });
+		const match = await disputeMatch(WAITING_ON_ME, { cache, api });
 		expect(match.status).toBe('disputed');
 		expect(calls).toEqual([`POST /api/v1/matches/${WAITING_ON_ME}/dispute`]);
 		expect(cache.get(WAITING_ON_ME)).toBe(match);
@@ -250,12 +248,12 @@ describe('disputeMatch', () => {
 	});
 
 	it('is safe to repeat', async () => {
-		await disputeMatch(WAITING_ON_ME, { cache });
-		expect((await disputeMatch(WAITING_ON_ME, { cache })).status).toBe('disputed');
+		await disputeMatch(WAITING_ON_ME, { cache, api });
+		expect((await disputeMatch(WAITING_ON_ME, { cache, api })).status).toBe('disputed');
 	});
 
 	it('fails with not found for a match the player is not in', async () => {
-		expect((await failure(disputeMatch(NOT_MINE, { cache }))).kind).toBe('not_found');
+		expect((await failure(disputeMatch(NOT_MINE, { cache, api }))).kind).toBe('not_found');
 	});
 });
 

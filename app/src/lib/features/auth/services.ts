@@ -17,17 +17,10 @@ import {
 	allauthParams,
 	api as appApi,
 	toAppError,
-	type Api,
+	type ApiOption,
 	type AppError
 } from '#lib/api/index.js';
 import { session, type SessionState } from './session.svelte.js';
-
-let api: Api = appApi;
-
-/** Use another API client. For tests, which need a base URL and a cookie jar in node. */
-export function configureAuthApi(next: Api = appApi): void {
-	api = next;
-}
 
 type Settled = { data?: unknown; error?: unknown; response: Response };
 
@@ -67,7 +60,7 @@ function stateOf(result: Settled): SessionState {
 }
 
 /** Ask the backend who is signed in, and update the store. */
-export async function refreshSession(): Promise<SessionState> {
+export async function refreshSession({ api = appApi }: ApiOption = {}): Promise<SessionState> {
 	const state = stateOf(
 		await settle(api.allauth.GET('/_allauth/{client}/v1/auth/session', { params: allauthParams }))
 	);
@@ -81,13 +74,13 @@ let booting: Promise<void> | null = null;
  * Start up once: set the CSRF cookie, then read the session. Call it before anything that
  * needs the session or an unsafe request. Later calls share the first one. If the backend
  * can't be reached the session stays `unknown` (treated as signed out) and the next call
- * tries again.
+ * tries again. A later call shares the first one's client too.
  */
-export function bootstrap(): Promise<void> {
+export function bootstrap({ api = appApi }: ApiOption = {}): Promise<void> {
 	booting ??= (async () => {
 		await api.initCsrf();
 		try {
-			await refreshSession();
+			await refreshSession({ api });
 		} catch {
 			booting = null;
 		}
@@ -103,9 +96,9 @@ export function resetBootstrap(): void {
 export type Credentials = { email: string; password: string };
 
 /** If the backend says we are already signed in (409), take its word for it. */
-async function alreadySignedIn(result: Settled): Promise<SessionState> {
+async function alreadySignedIn(result: Settled, options: ApiOption): Promise<SessionState> {
 	if (result.response.status !== 409) fail(result);
-	return refreshSession();
+	return refreshSession(options);
 }
 
 /**
@@ -113,14 +106,18 @@ async function alreadySignedIn(result: Settled): Promise<SessionState> {
  * confirmed yet (the backend also sends a new link then). A wrong password is an
  * `AppError` with code `email_password_mismatch`.
  */
-export async function login({ email, password }: Credentials): Promise<SessionState> {
+export async function login(
+	{ email, password }: Credentials,
+	{ api = appApi }: ApiOption = {}
+): Promise<SessionState> {
 	const result = await settle(
 		api.allauth.POST('/_allauth/{client}/v1/auth/login', {
 			params: allauthParams,
 			body: { email, password }
 		})
 	);
-	const state = result.response.status === 409 ? await alreadySignedIn(result) : stateOf(result);
+	const state =
+		result.response.status === 409 ? await alreadySignedIn(result, { api }) : stateOf(result);
 	if (state.status === 'signed_out') fail(result);
 	session.apply(state, email);
 	return state;
@@ -130,14 +127,18 @@ export async function login({ email, password }: Credentials): Promise<SessionSt
  * Create an account. Resolves to `pending_verification`: the backend answers the same
  * for a new address and for one that already has an account, and so do we.
  */
-export async function signup({ email, password }: Credentials): Promise<SessionState> {
+export async function signup(
+	{ email, password }: Credentials,
+	{ api = appApi }: ApiOption = {}
+): Promise<SessionState> {
 	const result = await settle(
 		api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
 			params: allauthParams,
 			body: { email, password }
 		})
 	);
-	const state = result.response.status === 409 ? await alreadySignedIn(result) : stateOf(result);
+	const state =
+		result.response.status === 409 ? await alreadySignedIn(result, { api }) : stateOf(result);
 	if (state.status === 'signed_out') fail(result);
 	session.apply(state, email);
 	return state;
@@ -156,7 +157,7 @@ export function onSignOut(listener: (email: string | null) => void): () => void 
 }
 
 /** Sign out. The backend answers 401, which is the signed-out session. */
-export async function logout(): Promise<void> {
+export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
 	const email = session.email;
 	for (const listener of signOutListeners) {
 		try {
@@ -181,7 +182,7 @@ export async function logout(): Promise<void> {
  * not sign anyone in. An unknown, used or expired key is an `AppError` with code
  * `invalid_or_expired_key`.
  */
-export async function verifyEmail(key: string): Promise<void> {
+export async function verifyEmail(key: string, { api = appApi }: ApiOption = {}): Promise<void> {
 	const result = await settle(
 		api.allauth.POST('/_allauth/{client}/v1/auth/email/verify', {
 			params: allauthParams,
@@ -191,11 +192,14 @@ export async function verifyEmail(key: string): Promise<void> {
 	// 401 is the success answer: confirmed, still signed out.
 	if (result.response.status !== 401) fail(result);
 	// A sign-up in this browser may have been waiting on this link.
-	await refreshSession().catch(() => undefined);
+	await refreshSession({ api }).catch(() => undefined);
 }
 
 /** Ask for a reset link. The answer is the same whether or not the address has an account. */
-export async function requestPasswordReset(email: string): Promise<void> {
+export async function requestPasswordReset(
+	email: string,
+	{ api = appApi }: ApiOption = {}
+): Promise<void> {
 	const result = await settle(
 		api.allauth.POST('/_allauth/{client}/v1/auth/password/request', {
 			params: allauthParams,
@@ -209,7 +213,10 @@ export async function requestPasswordReset(email: string): Promise<void> {
  * Is this reset link still good? False for an unknown, used or expired key. Any other
  * failure (such as no network) throws, so the caller doesn't call a good link bad.
  */
-export async function checkResetKey(key: string): Promise<boolean> {
+export async function checkResetKey(
+	key: string,
+	{ api = appApi }: ApiOption = {}
+): Promise<boolean> {
 	const result = await settle(
 		api.allauth.GET('/_allauth/{client}/v1/auth/password/reset', {
 			params: { ...allauthParams, header: { 'X-Password-Reset-Key': key } }
@@ -226,7 +233,11 @@ export async function checkResetKey(key: string): Promise<boolean> {
  * which does not sign anyone in. A bad password is an `AppError` with `fields.password`;
  * a bad key has `fields.key`.
  */
-export async function resetPassword(key: string, password: string): Promise<void> {
+export async function resetPassword(
+	key: string,
+	password: string,
+	{ api = appApi }: ApiOption = {}
+): Promise<void> {
 	const result = await settle(
 		api.allauth.POST('/_allauth/{client}/v1/auth/password/reset', {
 			params: allauthParams,
@@ -243,7 +254,10 @@ export async function resetPassword(key: string, password: string): Promise<void
  * `onExpired` once so the caller can send the player to sign in. A 401 while already signed
  * out changes nothing. Returns a function that stops watching.
  */
-export function watchSessionExpiry(onExpired: () => void): () => void {
+export function watchSessionExpiry(
+	onExpired: () => void,
+	{ api = appApi }: ApiOption = {}
+): () => void {
 	return api.onUnauthenticated(() => {
 		if (!session.isSignedIn) return;
 		session.expire();

@@ -1,5 +1,5 @@
 import type { Client } from 'openapi-fetch';
-import { createApi } from './client';
+import { createApi, type Api } from './client';
 import type { paths as ProvisionalPaths } from './provisional';
 
 export { createApi, allauthParams, ALLAUTH_CLIENT, type Api } from './client';
@@ -12,6 +12,12 @@ export type { components as AllauthComponents, paths as AllauthPaths } from './g
 
 /** The app-wide clients, same-origin. */
 export const api = createApi();
+
+/**
+ * The one way to swap the client: every service that calls the API takes this option, and uses
+ * the app-wide `api` without it. For tests, which need a base URL and a cookie jar in node.
+ */
+export type ApiOption = { api?: Api };
 
 /**
  * The open client typed by the hand-written `provisional.ts` paths, for endpoints the backend
