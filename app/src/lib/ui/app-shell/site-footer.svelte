@@ -13,7 +13,7 @@
 		bare ? 'pb-12' : 'pb-[calc(var(--tabbar-height)+24px+env(safe-area-inset-bottom))] shell:pb-12'
 	]}
 >
-	<p class="border-t border-line pt-6 text-[13px] text-faint">
+	<p class="border-t border-line pt-6 text-sm text-faint">
 		OpenPB is open-source software under the AGPL-3.0-or-later license.
 		<a
 			href={SOURCE_URL}

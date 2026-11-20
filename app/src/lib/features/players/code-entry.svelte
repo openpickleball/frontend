@@ -87,15 +87,15 @@
 			onblur={() => (touched = true)}
 		/>
 		{#if error}
-			<p id="{id}-error" class="flex items-start gap-2 text-[15px] text-danger" role="alert">
+			<p id="{id}-error" class="flex items-start gap-2 text-base text-danger" role="alert">
 				<span
-					class="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-danger text-[11px] leading-none font-bold text-primary"
+					class="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-danger text-xs leading-none font-bold text-primary"
 					aria-hidden="true">!</span
 				>
 				{error}
 			</p>
 		{/if}
-		<p id="{id}-preview" class="min-h-6 text-[15px] text-muted" role="status">
+		<p id="{id}-preview" class="min-h-6 text-base text-muted" role="status">
 			{#if code}
 				{fixed ? 'We will save it as' : 'Looks right:'}
 				<span class="font-display text-secondary">{code}</span>

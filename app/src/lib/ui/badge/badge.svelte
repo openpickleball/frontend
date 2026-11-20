@@ -3,7 +3,7 @@
 
 	export const badgeVariants = tv({
 		// Outline pill with a dot. Status always names itself in text, so color is never the only signal.
-		base: "inline-flex h-[26px] w-fit shrink-0 items-center gap-[7px] rounded-full border border-current pr-[11px] pl-2.5 text-[13px] leading-none font-medium whitespace-nowrap before:size-[7px] before:rounded-full before:bg-current before:content-['']",
+		base: "inline-flex h-[26px] w-fit shrink-0 items-center gap-[7px] rounded-full border border-current pr-[11px] pl-2.5 text-sm leading-none font-medium whitespace-nowrap before:size-[7px] before:rounded-full before:bg-current before:content-['']",
 		variants: {
 			variant: {
 				// Neutral and dashed with a hollow dot.

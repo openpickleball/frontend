@@ -57,6 +57,6 @@
 	<div class="flex flex-wrap items-center gap-3">
 		<Button variant="outline" size="sm" onclick={onCopy}>Copy code</Button>
 		<Button variant="outline" size="sm" onclick={onShare}>Share</Button>
-		<span class="min-h-6 text-[15px] text-muted" role="status">{message}</span>
+		<span class="min-h-6 text-base text-muted" role="status">{message}</span>
 	</div>
 </section>

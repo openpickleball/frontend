@@ -30,12 +30,12 @@
 
 <section class="grid gap-3.5" aria-labelledby="rating-title">
 	<div class="flex items-center justify-between gap-3">
-		<h2 id="rating-title" class="font-display text-[11px] tracking-[0.14em] text-muted uppercase">
+		<h2 id="rating-title" class="font-display text-xs tracking-[0.14em] text-muted uppercase">
 			Rating
 		</h2>
 		{#if sample}
 			<span
-				class="rounded-full border border-dashed border-field px-2.5 py-1 text-[13px] leading-none font-medium text-muted"
+				class="rounded-full border border-dashed border-field px-2.5 py-1 text-sm leading-none font-medium text-muted"
 			>
 				Sample data
 			</span>
@@ -59,7 +59,7 @@
 			class="grid gap-3 border border-dashed border-field bg-surface p-5"
 			aria-describedby="sample-note"
 		>
-			<p id="sample-note" class="text-[15px] font-semibold text-secondary">
+			<p id="sample-note" class="text-base font-semibold text-secondary">
 				Sample numbers. This is not your rating, and ratings are not live yet.
 			</p>
 			{#if loading}

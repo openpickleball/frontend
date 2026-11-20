@@ -21,7 +21,7 @@
 	bind:this={element}
 	role="alert"
 	tabindex="-1"
-	class="flex items-start gap-3 border-l-[3px] border-danger bg-danger-wash px-4 py-3.5 text-[15px] text-secondary"
+	class="flex items-start gap-3 border-l-[3px] border-danger bg-danger-wash px-4 py-3.5 text-base text-secondary"
 >
 	<svg
 		viewBox="0 0 24 24"

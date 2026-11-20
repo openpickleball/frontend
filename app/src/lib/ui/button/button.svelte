@@ -19,7 +19,7 @@
 			},
 			size: {
 				default: 'min-h-12 px-7 py-3 text-base',
-				sm: 'min-h-10 px-[18px] py-2 text-[15px]',
+				sm: 'min-h-10 px-[18px] py-2 text-base',
 				icon: 'size-9 p-0'
 			}
 		},

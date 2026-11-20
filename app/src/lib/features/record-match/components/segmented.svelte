@@ -14,7 +14,7 @@
 </script>
 
 <div class="grid gap-2">
-	<span id="{name}-label" class="text-[15px] leading-snug font-semibold text-secondary">
+	<span id="{name}-label" class="text-base leading-snug font-semibold text-secondary">
 		{label}
 	</span>
 	<div
@@ -24,7 +24,7 @@
 	>
 		{#each options as option (option.value)}
 			<label
-				class="flex min-h-11 cursor-pointer items-center rounded-full px-4 text-[15px] font-semibold text-muted transition-colors select-none hover:text-secondary has-checked:bg-secondary has-checked:text-primary has-checked:hover:text-primary has-focus-visible:focus-ring"
+				class="flex min-h-11 cursor-pointer items-center rounded-full px-4 text-base font-semibold text-muted transition-colors select-none hover:text-secondary has-checked:bg-secondary has-checked:text-primary has-checked:hover:text-primary has-focus-visible:focus-ring"
 			>
 				<input type="radio" class="sr-only" {name} value={option.value} bind:group={value} />
 				{option.label}
