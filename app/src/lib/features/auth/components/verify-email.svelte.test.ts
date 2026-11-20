@@ -27,8 +27,7 @@ describe('VerifyEmail', () => {
 
 		const heading = screen.getByRole('heading', { name: 'Email verified' });
 		await expect.element(heading).toHaveFocus();
-		await expect.element(screen.getByRole('status')).toBeVisible();
-		await expect.element(screen.getByText('Your email is verified.')).toBeVisible();
+		await expect.element(screen.getByText('Sign in to record your first match.')).toBeVisible();
 		await expect.element(screen.getByRole('link', { name: 'Sign in' })).toBeVisible();
 		await expect.poll(() => document.title).toBe('Email verified · OPEN Pickleball');
 		expect(mockedVerify).toHaveBeenCalledExactlyOnceWith('k1');

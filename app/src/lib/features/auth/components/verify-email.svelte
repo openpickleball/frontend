@@ -2,9 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { ROUTES } from '#lib/domain/index.js';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
-	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import { onMount } from 'svelte';
-	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
+	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { asAppError } from '../forms.js';
@@ -65,11 +64,7 @@
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 			Email verified
 		</h1>
-		<Alert variant="success">
-			<CircleCheckIcon aria-hidden="true" />
-			<AlertTitle>Your email is verified.</AlertTitle>
-			<AlertDescription>Sign in to record your first match.</AlertDescription>
-		</Alert>
+		<p class="text-muted">Sign in to record your first match.</p>
 		<Button href={resolve(ROUTES.login)} class="w-full">Sign in</Button>
 	{:else if phase === 'invalid'}
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">

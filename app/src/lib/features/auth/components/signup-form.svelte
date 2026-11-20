@@ -54,12 +54,6 @@
 	<section aria-labelledby="signup-title" class="grid gap-4">
 		<h1 id="signup-title" class="page-title">Create account</h1>
 		<p class="text-muted">It's free. We'll send you a link to verify your email.</p>
-		{#if form.problem}
-			<Alert variant="destructive">
-				<CircleAlertIcon aria-hidden="true" />
-				<AlertTitle>{form.problem.title}</AlertTitle>
-			</Alert>
-		{/if}
 		<form method="post" onsubmit={submit} novalidate class="grid gap-4">
 			<TextField
 				id="signup-email"
@@ -86,13 +80,18 @@
 				{#if form.busy}<Spinner />{/if}
 				{form.busy ? 'Creating account…' : 'Create account'}
 			</Button>
+			<!-- Below the button, so an error doesn't push the form down and move the button. -->
+			{#if form.problem}
+				<Alert variant="destructive">
+					<CircleAlertIcon aria-hidden="true" />
+					<AlertTitle>{form.problem.title}</AlertTitle>
+				</Alert>
+			{/if}
 		</form>
-		<p class="text-sm text-muted">
+		<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
 			Already have an account?
-			<a
-				href={resolve(ROUTES.login)}
-				class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
-				>Sign in</a
+			<Button variant="link" href={resolve(ROUTES.login)} class="min-h-10 px-0 text-sm"
+				>Sign in</Button
 			>
 		</p>
 	</section>

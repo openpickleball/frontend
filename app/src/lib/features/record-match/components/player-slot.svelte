@@ -3,6 +3,7 @@
 	import { onDestroy, tick, untrack } from 'svelte';
 	import { CODE_INPUT_MAX_LENGTH, type PlayerCode } from '#lib/domain/index.js';
 	import * as Combobox from '#lib/ui/combobox/index.js';
+	import { FieldError } from '#lib/ui/field/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { PlayerSearch } from '../player-search.svelte.js';
 	import {
@@ -12,7 +13,6 @@
 		type PlayerHit,
 		type SearchFn
 	} from '../search.js';
-	import FieldError from './field-error.svelte';
 
 	let {
 		id,
@@ -256,6 +256,6 @@
 		{announcement}
 	</div>
 	{#if error}
-		<FieldError id="{id}-error" message={error} />
+		<FieldError id="{id}-error">{error}</FieldError>
 	{/if}
 </div>

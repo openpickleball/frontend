@@ -49,6 +49,7 @@
 
 <section aria-labelledby="login-title" class="grid gap-4">
 	<h1 id="login-title" class="page-title">Sign in</h1>
+	<p class="text-muted">Sign in to record matches and see your history.</p>
 	{#if session.status === 'pending_verification'}
 		<!-- A sign-up is waiting on its link. The form stays, for a player with another account. -->
 		<Alert>
@@ -65,15 +66,7 @@
 			</AlertDescription>
 		</Alert>
 	{/if}
-	{#if form.problem}
-		<Alert variant="destructive">
-			<CircleAlertIcon aria-hidden="true" />
-			<AlertTitle>{form.problem.title}</AlertTitle>
-			{#if form.problem.detail}
-				<AlertDescription>{form.problem.detail}</AlertDescription>
-			{/if}
-		</Alert>
-	{:else if session.expired}
+	{#if session.expired}
 		<Alert variant="destructive">
 			<CircleAlertIcon aria-hidden="true" />
 			<AlertTitle>You were signed out.</AlertTitle>
@@ -101,23 +94,31 @@
 				bind:value={password}
 				error={form.errors.password}
 			/>
-			<a
+			<Button
+				variant="link"
 				href={resolve(ROUTES.passwordReset)}
-				class="justify-self-start text-sm font-medium text-secondary underline underline-offset-4 hover:text-muted"
-				>Forgot your password?</a
+				class="min-h-10 justify-self-start px-0 text-sm">Forgot your password?</Button
 			>
 		</div>
 		<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
 			{#if form.busy}<Spinner />{/if}
 			{form.busy ? 'Signing in…' : 'Sign in'}
 		</Button>
+		<!-- Below the button, so an error doesn't push the form down and move the button. -->
+		{#if form.problem}
+			<Alert variant="destructive">
+				<CircleAlertIcon aria-hidden="true" />
+				<AlertTitle>{form.problem.title}</AlertTitle>
+				{#if form.problem.detail}
+					<AlertDescription>{form.problem.detail}</AlertDescription>
+				{/if}
+			</Alert>
+		{/if}
 	</form>
-	<p class="text-sm text-muted">
+	<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
 		New to OPEN?
-		<a
-			href={resolve(ROUTES.signup)}
-			class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
-			>Create account</a
+		<Button variant="link" href={resolve(ROUTES.signup)} class="min-h-10 px-0 text-sm"
+			>Create account</Button
 		>
 	</p>
 </section>

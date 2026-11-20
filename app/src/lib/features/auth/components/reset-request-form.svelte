@@ -61,12 +61,6 @@
 	<section aria-labelledby="reset-title" class="grid gap-4">
 		<h1 id="reset-title" class="page-title">Reset your password</h1>
 		<p class="text-muted">Enter your email and we'll send you a link to choose a new password.</p>
-		{#if form.problem}
-			<Alert variant="destructive">
-				<CircleAlertIcon aria-hidden="true" />
-				<AlertTitle>{form.problem.title}</AlertTitle>
-			</Alert>
-		{/if}
 		<form method="post" onsubmit={submit} novalidate class="grid gap-4">
 			<TextField
 				id="reset-email"
@@ -81,13 +75,18 @@
 				{#if form.busy}<Spinner />{/if}
 				{form.busy ? 'Sending…' : 'Send reset link'}
 			</Button>
+			<!-- Below the button, so an error doesn't push the form down and move the button. -->
+			{#if form.problem}
+				<Alert variant="destructive">
+					<CircleAlertIcon aria-hidden="true" />
+					<AlertTitle>{form.problem.title}</AlertTitle>
+				</Alert>
+			{/if}
 		</form>
-		<p class="text-sm text-muted">
-			<a
-				href={resolve(ROUTES.login)}
-				class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
-				>Back to sign in</a
-			>
-		</p>
+		<Button
+			variant="link"
+			href={resolve(ROUTES.login)}
+			class="min-h-10 justify-self-start px-0 text-sm">Back to sign in</Button
+		>
 	</section>
 {/if}

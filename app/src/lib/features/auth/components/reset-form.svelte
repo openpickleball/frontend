@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
-	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import { onMount } from 'svelte';
 	import { PASSWORD_MIN_LENGTH, ROUTES, passwordResetSchema } from '#lib/domain/index.js';
-	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
+	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
@@ -82,12 +81,7 @@
 		<LoadingState label="Checking your link…" />
 	{:else if step === 'form'}
 		<h1 id="newpw-title" class="page-title">Choose a new password</h1>
-		{#if form.problem}
-			<Alert variant="destructive">
-				<CircleAlertIcon aria-hidden="true" />
-				<AlertTitle>{form.problem.title}</AlertTitle>
-			</Alert>
-		{/if}
+		<p class="text-muted">Pick one you don't use anywhere else.</p>
 		<form method="post" onsubmit={submit} novalidate class="grid gap-4">
 			<TextField
 				id="newpw-password"
@@ -104,16 +98,19 @@
 				{#if form.busy}<Spinner />{/if}
 				{form.busy ? 'Saving…' : 'Save new password'}
 			</Button>
+			<!-- Below the button, so an error doesn't push the form down and move the button. -->
+			{#if form.problem}
+				<Alert variant="destructive">
+					<CircleAlertIcon aria-hidden="true" />
+					<AlertTitle>{form.problem.title}</AlertTitle>
+				</Alert>
+			{/if}
 		</form>
 	{:else if step === 'done'}
 		<h1 id="newpw-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 			Password changed
 		</h1>
-		<Alert variant="success">
-			<CircleCheckIcon aria-hidden="true" />
-			<AlertTitle>Your password is changed.</AlertTitle>
-			<AlertDescription>Sign in with your new password.</AlertDescription>
-		</Alert>
+		<p class="text-muted">Sign in with your new password.</p>
 		<Button href={resolve(ROUTES.login)} class="w-full">Sign in</Button>
 	{:else}
 		<h1 id="newpw-title" bind:this={heading} tabindex="-1" class="page-title outline-none">

@@ -39,12 +39,10 @@
 		<!-- The sign-in page keeps the pending notice above its form, so nothing is cleared here. -->
 		<Button variant="outline" href={resolve(ROUTES.login)} class="w-full">Go to sign in</Button>
 	</div>
-	<p class="text-sm text-muted">
+	<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
 		Wrong address?
-		<button
-			type="button"
-			class="font-semibold text-secondary underline underline-offset-4 hover:text-muted"
-			onclick={() => session.clearPending()}>Start over</button
+		<Button variant="link" class="min-h-10 px-0 text-sm" onclick={() => session.clearPending()}
+			>Start over</Button
 		>
 	</p>
 </section>

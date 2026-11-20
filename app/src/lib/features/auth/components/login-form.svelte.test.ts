@@ -117,6 +117,20 @@ describe('LoginForm', () => {
 			.toBeVisible();
 	});
 
+	it('puts the failure banner below the button, so the form does not move', async () => {
+		mockedLogin.mockRejectedValue(appError({ code: 'email_password_mismatch' }));
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		await fill(screen, 'player@example.com', 'wrong-password');
+		const button = screen.getByRole('button', { name: 'Sign in' });
+		const before = button.element().getBoundingClientRect().top;
+		await button.click();
+
+		await expect.element(screen.getByRole('alert')).toBeVisible();
+		expect(button.element().getBoundingClientRect().top).toBe(before);
+		const after = screen.getByRole('alert').element().getBoundingClientRect().top;
+		expect(after).toBeGreaterThan(before);
+	});
+
 	it('shows the throttled message from the backend', async () => {
 		mockedLogin.mockRejectedValue(
 			appError({

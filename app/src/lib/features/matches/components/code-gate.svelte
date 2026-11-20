@@ -2,7 +2,9 @@
 	import type { Snippet } from 'svelte';
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { OwnCodeGate } from '#lib/features/players/index.js';
-	import Notice from './notice.svelte';
+	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
+	import { Button } from '#lib/ui/button/index.js';
 
 	let { children }: { children: Snippet<[PlayerCode]> } = $props();
 </script>
@@ -19,8 +21,13 @@
 
 {#snippet error(retry: () => void)}
 	<div class="mt-8">
-		<Notice kind="error" title="We can't load your account." onretry={retry}>
-			Check your connection, then try again.
-		</Notice>
+		<Alert variant="destructive">
+			<CircleAlertIcon aria-hidden="true" />
+			<AlertTitle>We can't load your account.</AlertTitle>
+			<AlertDescription>Check your connection, then try again.</AlertDescription>
+			<AlertAction
+				><Button variant="outline" size="sm" onclick={retry}>Try again</Button></AlertAction
+			>
+		</Alert>
 	</div>
 {/snippet}

@@ -59,7 +59,7 @@ describe('Button', () => {
 			props: { href: '/record', variant: 'outline', children: text('Record') }
 		});
 		expect(body).toMatch(/<a[^>]*href="\/record"/);
-		expect(body).toContain('border-line');
+		expect(body).toContain('border-field');
 	});
 
 	it('does not use shadcn color names', () => {
