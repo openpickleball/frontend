@@ -4,7 +4,7 @@
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
 
 	export const buttonVariants = tv({
-		base: "inline-flex shrink-0 items-center justify-center gap-2.5 rounded-full border border-transparent font-semibold leading-tight whitespace-nowrap transition-colors select-none disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[18px]",
+		base: "inline-flex shrink-0 items-center justify-center gap-2.5 rounded-full border border-transparent font-semibold leading-tight whitespace-nowrap transition-colors select-none disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 		variants: {
 			variant: {
 				// The site call to action: solid text color on the page color.
@@ -12,8 +12,7 @@
 				outline: 'border-line text-secondary hover:border-muted',
 				// Outline in the danger color. Use destructive-solid only inside a confirm dialog.
 				destructive: 'border-current text-danger hover:bg-danger-wash',
-				'destructive-solid':
-					'bg-danger text-primary hover:bg-[color-mix(in_srgb,var(--color-danger)_80%,var(--color-secondary))]',
+				'destructive-solid': 'bg-danger text-primary hover:bg-danger/90',
 				ghost: 'px-1 font-medium text-secondary hover:text-muted',
 				link: 'px-0 font-medium text-secondary underline underline-offset-4 hover:text-muted'
 			},

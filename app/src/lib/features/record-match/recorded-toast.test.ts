@@ -14,7 +14,8 @@ describe('recordedToast', () => {
 		const confirmError = { kind: 'network' } as AppError;
 		expect(recordedToast({ match, confirmError })).toEqual({
 			title: "Match recorded. We couldn't confirm your score.",
-			description: 'Confirm it on the match page.'
+			description: 'Confirm it on the match page.',
+			duration: 10_000
 		});
 	});
 });

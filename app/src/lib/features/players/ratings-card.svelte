@@ -30,7 +30,7 @@
 
 <section class="grid gap-3.5" aria-labelledby="rating-title">
 	<div class="flex items-center justify-between gap-3">
-		<h2 id="rating-title" class="font-display text-xs tracking-[0.14em] text-muted uppercase">
+		<h2 id="rating-title" class="font-display text-xs tracking-widest text-muted uppercase">
 			Rating
 		</h2>
 		{#if sample}

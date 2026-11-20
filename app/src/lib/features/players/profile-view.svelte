@@ -60,7 +60,7 @@
 
 			<dl class="flex gap-10 border-t border-line pt-6">
 				<div>
-					<dt class="font-display text-xs tracking-[0.14em] text-muted uppercase">Matches</dt>
+					<dt class="font-display text-xs tracking-widest text-muted uppercase">Matches</dt>
 					<dd
 						class="mt-1 text-3xl font-medium tabular-nums text-secondary"
 						data-testid="match-count"

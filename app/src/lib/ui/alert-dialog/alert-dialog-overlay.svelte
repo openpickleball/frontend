@@ -12,6 +12,6 @@
 <AlertDialogPrimitive.Overlay
 	bind:ref
 	data-slot="alert-dialog-overlay"
-	class={cn('fixed inset-0 z-50 bg-black/55 data-[state=open]:animate-fade-in', className)}
+	class={cn('fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-fade-in', className)}
 	{...restProps}
 />

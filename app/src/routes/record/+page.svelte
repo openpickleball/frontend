@@ -15,7 +15,7 @@
 		toast(message.title, {
 			description: message.description,
 			// The match exists. Only the player's own confirmation is missing, so give it time to be read.
-			duration: result.confirmError ? 10_000 : undefined
+			duration: message.duration
 		});
 		// Hand the match to its page so it opens from the cache. It is shown as the API last returned
 		// it, so a failed confirm leaves the team unconfirmed and Confirm still shows.
