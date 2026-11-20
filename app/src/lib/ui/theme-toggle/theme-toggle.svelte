@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import MoonIcon from '@lucide/svelte/icons/moon';
+	import SunIcon from '@lucide/svelte/icons/sun';
+	import { Button } from '#lib/ui/button/index.js';
 	import { cn } from '#lib/ui/utils.js';
 	import { applyTheme, currentTheme, nextTheme, toggleLabel, type Theme } from './theme.js';
 
@@ -34,40 +37,15 @@
 	}
 </script>
 
-<button
-	type="button"
+<!-- 44px target (size-11), larger than the icon size: the pull-in from the edge stays in the caller. -->
+<Button
+	variant="ghost"
+	size="icon"
 	aria-label={toggleLabel(theme)}
-	class={cn(
-		'grid size-11 place-items-center rounded-full text-muted transition-colors hover:text-secondary',
-		className
-	)}
+	class={cn('size-11 text-muted hover:text-secondary', className)}
 	onclick={toggle}
 >
-	<!-- Sun, shown in the black theme. -->
-	<svg
-		class="size-5 light:hidden"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.5"
-		stroke-linecap="round"
-		aria-hidden="true"
-	>
-		<circle cx="12" cy="12" r="4.25" />
-		<path
-			d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"
-		/>
-	</svg>
-	<!-- Moon, shown in the ivory theme. -->
-	<svg
-		class="hidden size-5 light:block"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.5"
-		stroke-linejoin="round"
-		aria-hidden="true"
-	>
-		<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" />
-	</svg>
-</button>
+	<!-- Sun, shown in the black theme. Moon, shown in the ivory theme. -->
+	<SunIcon class="size-5 light:hidden" aria-hidden="true" />
+	<MoonIcon class="hidden size-5 light:block" aria-hidden="true" />
+</Button>

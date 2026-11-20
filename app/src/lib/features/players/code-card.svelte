@@ -1,19 +1,9 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 
 	let { code }: { code: PlayerCode } = $props();
-
-	let message = $state('');
-	onDestroy(() => clearTimeout(timer));
-	let timer: ReturnType<typeof setTimeout> | undefined;
-
-	function say(text: string) {
-		message = text;
-		clearTimeout(timer);
-		timer = setTimeout(() => (message = ''), 4000);
-	}
 
 	async function copy(): Promise<boolean> {
 		try {
@@ -25,7 +15,7 @@
 	}
 
 	async function onCopy() {
-		say((await copy()) ? 'Code copied' : "Couldn't copy. Select the code and copy it by hand.");
+		toast((await copy()) ? 'Code copied' : "Couldn't copy. Select the code and copy it by hand.");
 	}
 
 	// Share with the device's own share sheet when there is one, and copy otherwise.
@@ -39,7 +29,7 @@
 				if (error instanceof DOMException && error.name === 'AbortError') return;
 			}
 		}
-		say((await copy()) ? 'Code copied' : "Couldn't share. Select the code and copy it by hand.");
+		toast((await copy()) ? 'Code copied' : "Couldn't share. Select the code and copy it by hand.");
 	}
 </script>
 
@@ -59,6 +49,5 @@
 	<div class="flex flex-wrap items-center gap-3">
 		<Button variant="outline" size="sm" onclick={onCopy}>Copy code</Button>
 		<Button variant="outline" size="sm" onclick={onShare}>Share</Button>
-		<span class="min-h-6 text-base text-muted" role="status">{message}</span>
 	</div>
 </section>

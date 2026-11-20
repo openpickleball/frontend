@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Badge } from '#lib/ui/badge/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { formatRating } from './ratings.js';
 	import type { PlayerRatings, Rating } from './types.js';
@@ -33,11 +34,7 @@
 	<div class="flex items-center justify-between gap-3">
 		<h2 id="rating-title" class="label">Rating</h2>
 		{#if sample}
-			<span
-				class="rounded-full border border-dashed border-field px-2.5 py-1 text-sm leading-none font-medium text-muted"
-			>
-				Sample data
-			</span>
+			<Badge variant="outline">Sample data</Badge>
 		{/if}
 	</div>
 

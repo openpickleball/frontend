@@ -265,10 +265,11 @@
 
 {#if match && myCode.code}
 	{@const you = myCode.code}
-	<a
+	<Button
+		variant="link"
 		href={resolve(ROUTES.matches)}
-		class="mt-2 inline-flex items-center gap-2.5 text-base text-muted underline underline-offset-4 hover:text-secondary"
-		><ArrowLeftIcon class="size-4" aria-hidden="true" />Matches</a
+		class="mt-2 min-h-10 px-0 text-base font-normal text-muted"
+		><ArrowLeftIcon class="size-4" aria-hidden="true" />Matches</Button
 	>
 	{#if lookup === 'error' || retrying}
 		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-base text-muted">

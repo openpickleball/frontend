@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { toast } from 'svelte-sonner';
 import { buildCode, type PlayerCode } from '#lib/domain/index.js';
 import CodeCard from './code-card.svelte';
+
+// No Toaster is mounted here, so the toast call is what is checked.
+vi.mock('svelte-sonner', () => ({ toast: vi.fn() }));
 
 const CODE = buildCode('player', '4RWN8TQ') as PlayerCode;
 
@@ -18,6 +22,7 @@ function fakeNavigator({ share, writeText }: Fakes) {
 
 describe('CodeCard', () => {
 	afterEach(() => {
+		vi.mocked(toast).mockClear();
 		// Dropping the own property uncovers the browser's own again.
 		Reflect.deleteProperty(navigator, 'share');
 		Reflect.deleteProperty(navigator, 'clipboard');
@@ -30,7 +35,7 @@ describe('CodeCard', () => {
 		await expect.element(screen.getByTestId('my-code')).toHaveTextContent(CODE);
 		await screen.getByRole('button', { name: 'Copy code' }).click();
 		expect(writeText).toHaveBeenCalledWith(CODE);
-		await expect.element(screen.getByRole('status')).toHaveTextContent('Code copied');
+		expect(toast).toHaveBeenCalledWith('Code copied');
 	});
 
 	it('shares through the share sheet when there is one', async () => {
@@ -50,7 +55,7 @@ describe('CodeCard', () => {
 		const screen = await render(CodeCard, { code: CODE });
 		await screen.getByRole('button', { name: 'Share' }).click();
 		expect(writeText).toHaveBeenCalledWith(CODE);
-		await expect.element(screen.getByRole('status')).toHaveTextContent('Code copied');
+		expect(toast).toHaveBeenCalledWith('Code copied');
 	});
 
 	it('does not copy, or complain, when the player closes the share sheet', async () => {
@@ -61,13 +66,13 @@ describe('CodeCard', () => {
 		await screen.getByRole('button', { name: 'Share' }).click();
 		expect(share).toHaveBeenCalledOnce();
 		expect(writeText).not.toHaveBeenCalled();
-		await expect.element(screen.getByRole('status')).toHaveTextContent('');
+		expect(toast).not.toHaveBeenCalled();
 	});
 
 	it('says so when copying fails', async () => {
 		fakeNavigator({ writeText: async () => Promise.reject(new Error('denied')) });
 		const screen = await render(CodeCard, { code: CODE });
 		await screen.getByRole('button', { name: 'Copy code' }).click();
-		await expect.element(screen.getByText(/Couldn't copy/)).toBeVisible();
+		expect(toast).toHaveBeenCalledWith(expect.stringMatching(/Couldn't copy/));
 	});
 });
