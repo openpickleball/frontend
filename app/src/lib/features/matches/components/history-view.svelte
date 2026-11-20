@@ -28,14 +28,18 @@
 	}
 
 	// The title changes with the page, so a screen reader hears that a new page loaded. The total is
-	// known once a page has loaded.
+	// known once a page with matches has loaded. A page past the end has no matches, so it never
+	// reads "page 99 of 2".
 	const totalPages = $derived(
-		view.status === 'ready' && view.count > 0 ? Math.ceil(view.count / PAGE_SIZE) : null
+		view.status === 'ready' && view.items.length > 0 ? Math.ceil(view.count / PAGE_SIZE) : null
 	);
+	const pastTheEnd = $derived(view.status === 'ready' && view.count > 0 && view.items.length === 0);
 	const title = $derived(
-		totalPages === null
-			? `Matches, page ${page} · OPEN Pickleball`
-			: `Matches, page ${page} of ${totalPages} · OPEN Pickleball`
+		pastTheEnd
+			? 'Matches, no matches on this page · OPEN Pickleball'
+			: totalPages === null
+				? `Matches, page ${page} · OPEN Pickleball`
+				: `Matches, page ${page} of ${totalPages} · OPEN Pickleball`
 	);
 
 	const hasNewer = $derived(view.offset > 0);
