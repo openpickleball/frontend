@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { formatRating } from './ratings.js';
 	import type { PlayerRatings, Rating } from './types.js';
 
@@ -63,7 +64,7 @@
 				Sample numbers. This is not your rating, and ratings are not live yet.
 			</p>
 			{#if loading}
-				<p class="text-muted" role="status">Loading the sample…</p>
+				<LoadingState label="Loading the sample…" />
 			{:else if headline}
 				<p class="flex items-baseline gap-3">
 					<span class="font-display text-5xl tracking-tight text-secondary tabular-nums">

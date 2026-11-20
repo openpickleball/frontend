@@ -5,6 +5,7 @@
 	import { ROUTES, loginSchema } from '#lib/domain/index.js';
 	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { session } from '../session.svelte.js';
@@ -107,6 +108,7 @@
 			>
 		</div>
 		<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
+			{#if form.busy}<Spinner />{/if}
 			{form.busy ? 'Signing in…' : 'Sign in'}
 		</Button>
 	</form>

@@ -121,7 +121,9 @@ test.describe('match history', () => {
 
 	test('shows a page past the end as empty, with a way back', async ({ page }) => {
 		await page.goto('/matches?page=9');
-		await expect(page.getByText('There are no matches on this page.')).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: 'There are no matches on this page' })
+		).toBeVisible();
 		await page.getByRole('link', { name: 'Back to the newest' }).click();
 		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
 	});

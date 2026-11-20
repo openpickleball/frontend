@@ -4,6 +4,7 @@
 	import { PASSWORD_MIN_LENGTH, ROUTES, signupSchema } from '#lib/domain/index.js';
 	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { session } from '../session.svelte.js';
@@ -82,6 +83,7 @@
 				error={form.errors.password}
 			/>
 			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
+				{#if form.busy}<Spinner />{/if}
 				{form.busy ? 'Creating account…' : 'Create account'}
 			</Button>
 		</form>

@@ -4,6 +4,7 @@
 	import { ROUTES } from '#lib/domain/index.js';
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { cn } from '#lib/ui/utils.js';
 	import CodeEntry from './code-entry.svelte';
 	import { myCode } from './my-code.svelte.js';
@@ -59,7 +60,7 @@
 </script>
 
 {#if myCode.status === 'idle' || myCode.status === 'loading'}
-	<p class={cn(fallbackClass, 'text-muted')} role="status">{loading}</p>
+	<LoadingState label={loading} class={fallbackClass} />
 {:else if myCode.status === 'signed-out'}
 	<section class={cn(fallbackClass, 'grid justify-items-start gap-3')}>
 		<p class="max-w-[44ch] text-muted">{signedOut}</p>

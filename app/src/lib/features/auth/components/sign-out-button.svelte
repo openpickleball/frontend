@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { ROUTES } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { logout } from '../services.js';
 
 	let { class: className }: { class?: string } = $props();
@@ -22,6 +23,14 @@
 	}
 </script>
 
-<Button variant="outline" size="sm" disabled={busy} onclick={signOut} class={className}>
+<Button
+	variant="outline"
+	size="sm"
+	disabled={busy}
+	aria-busy={busy}
+	onclick={signOut}
+	class={className}
+>
+	{#if busy}<Spinner />{/if}
 	Sign out
 </Button>

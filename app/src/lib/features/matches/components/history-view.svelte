@@ -4,6 +4,8 @@
 	import { ROUTES } from '#lib/domain/index.js';
 	import { myCode } from '#lib/features/players/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from '#lib/ui/empty/index.js';
+	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { rangeLabel, matchCountLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
 	import { PAGE_SIZE } from '../services.js';
@@ -69,17 +71,19 @@
 				<LoadError kind={view.errorKind} onretry={() => view.load(you, (page - 1) * PAGE_SIZE)} />
 			</div>
 		{:else if view.status === 'loading'}
-			<p class="mt-8 text-muted" role="status">Loading your matches…</p>
+			<LoadingState label="Loading your matches…" variant="list" class="mt-8" />
 		{:else if view.count === 0}
 			<EmptyMatches />
 		{:else if view.items.length === 0}
 			<!-- A page number past the end, such as an old link. -->
-			<section class="mt-8 grid justify-items-start gap-3">
-				<p class="text-muted">There are no matches on this page.</p>
-				<Button href={resolve(ROUTES.matches)} variant="outline" size="sm"
-					>Back to the newest</Button
-				>
-			</section>
+			<Empty class="mt-8">
+				<EmptyHeader>
+					<EmptyTitle>There are no matches on this page</EmptyTitle>
+				</EmptyHeader>
+				<EmptyContent>
+					<Button href={resolve(ROUTES.matches)} variant="outline">Back to the newest</Button>
+				</EmptyContent>
+			</Empty>
 		{:else}
 			<section
 				class="mt-7"

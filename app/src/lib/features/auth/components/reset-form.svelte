@@ -6,6 +6,8 @@
 	import { PASSWORD_MIN_LENGTH, ROUTES, passwordResetSchema } from '#lib/domain/index.js';
 	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { LoadingState } from '#lib/ui/loading-state/index.js';
+	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { checkResetKey, resetPassword } from '../services.js';
@@ -77,7 +79,7 @@
 <section aria-labelledby="newpw-title" class="grid gap-5">
 	{#if step === 'checking'}
 		<h1 id="newpw-title" class="page-title">Choose a new password</h1>
-		<p class="text-muted" role="status">Checking your link…</p>
+		<LoadingState label="Checking your link…" />
 	{:else if step === 'form'}
 		<h1 id="newpw-title" class="page-title">Choose a new password</h1>
 		{#if form.problem}
@@ -99,6 +101,7 @@
 				error={form.errors.password}
 			/>
 			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
+				{#if form.busy}<Spinner />{/if}
 				{form.busy ? 'Saving…' : 'Save new password'}
 			</Button>
 		</form>
