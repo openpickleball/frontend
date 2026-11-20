@@ -63,7 +63,7 @@ describe('PlayerSlot search', () => {
 		await expect
 			.element(screen.getByRole('status'))
 			.toHaveTextContent(
-				'2 players found, starting with Bea Marlowe. Use the up and down arrow keys to choose.'
+				'2 players found, starting with Bea Marlowe. Use the up and down arrow keys to choose, then Enter.'
 			);
 		// Each option shows the name and the code.
 		await expect
@@ -71,24 +71,21 @@ describe('PlayerSlot search', () => {
 			.toContain(code('bea'));
 	});
 
-	it('moves through the options with the arrow keys and picks with Enter', async () => {
+	it('highlights the first option, moves with the arrow keys and picks with Enter', async () => {
 		const { screen, box, onpick, oncommit } = await setup();
 		await box.fill('mar');
-		await expect.element(screen.getByRole('option').first()).toBeVisible();
-
-		await userEvent.keyboard('{ArrowDown}');
 		const first = screen.getByRole('option').first();
-		await expect.element(first).toHaveAttribute('aria-selected', 'true');
-		const firstId = first.element().id;
-		await expect.element(box).toHaveAttribute('aria-activedescendant', firstId);
+		const second = screen.getByRole('option').nth(1);
+		await expect.element(first).toBeVisible();
+		// The first option is highlighted as soon as the list opens.
+		await expect.element(first).toHaveAttribute('data-highlighted');
+		await expect.element(box).toHaveAttribute('aria-activedescendant', first.element().id);
 
 		await userEvent.keyboard('{ArrowDown}');
-		await expect.element(first).toHaveAttribute('aria-selected', 'false');
-		await userEvent.keyboard('{ArrowUp}{ArrowUp}');
-		// Past the first option it wraps to the last.
-		await expect
-			.element(screen.getByRole('option').nth(1))
-			.toHaveAttribute('aria-selected', 'true');
+		await expect.element(second).toHaveAttribute('data-highlighted');
+		await expect.element(box).toHaveAttribute('aria-activedescendant', second.element().id);
+		await userEvent.keyboard('{ArrowUp}{ArrowDown}');
+		await expect.element(second).toHaveAttribute('data-highlighted');
 
 		await userEvent.keyboard('{Enter}');
 		expect(onpick).toHaveBeenCalledWith({ code: code('rosa'), name: 'Rosa Fenwick' });
@@ -96,12 +93,35 @@ describe('PlayerSlot search', () => {
 		await expect.element(box).toHaveAttribute('aria-expanded', 'false');
 	});
 
-	it('picks an option with the pointer, keeping focus in the box', async () => {
+	it('picks the only result with Enter, without the arrow keys', async () => {
+		const { box, onpick, oncommit, screen } = await setup({
+			ok: true,
+			items: [{ code: code('bea'), name: 'Bea Marlowe' }]
+		});
+		await box.fill('bea marlowe');
+		await expect.element(screen.getByRole('option')).toBeVisible();
+		await userEvent.keyboard('{Enter}');
+		expect(onpick).toHaveBeenCalledWith({ code: code('bea'), name: 'Bea Marlowe' });
+		expect(oncommit).not.toHaveBeenCalled();
+	});
+
+	it('picks an option with the pointer', async () => {
 		const { screen, box, onpick } = await setup();
 		await box.fill('mar');
 		await screen.getByRole('option', { name: /Bea Marlowe/ }).click();
 		expect(onpick).toHaveBeenCalledWith({ code: code('bea'), name: 'Bea Marlowe' });
+	});
+
+	it('keeps focus in the box when the list padding is pressed', async () => {
+		const { screen, box, oncommit } = await setup();
+		await box.fill('mar');
+		await expect.element(screen.getByRole('option').first()).toBeVisible();
+		const list = screen.getByRole('listbox').element();
+		const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+		list.dispatchEvent(event);
+		expect(event.defaultPrevented).toBe(true);
 		await expect.element(box).toHaveFocus();
+		expect(oncommit).not.toHaveBeenCalled();
 	});
 
 	it('closes on Escape without clearing the text, and opens again on typing', async () => {
@@ -132,6 +152,21 @@ describe('PlayerSlot search', () => {
 		expect(search).not.toHaveBeenCalled();
 	});
 
+	it('says so when every player found is already in the match', async () => {
+		const { screen, box } = await setup(two, [code('bea'), code('rosa')]);
+		await box.fill('mar');
+		const message = 'Those players are already in this match.';
+		await expect.element(screen.getByTestId('search-note')).toHaveTextContent(message);
+		await expect.element(screen.getByRole('status')).toHaveTextContent(message);
+	});
+
+	it('searches names that look a little like a code', async () => {
+		const { box, search } = await setup();
+		await box.fill('P Smith');
+		await expect.poll(() => search.mock.calls.length).toBe(1);
+		expect(search.mock.calls[0][0]).toBe('P Smith');
+	});
+
 	it('leaves out players who are already in the match', async () => {
 		const { screen, box } = await setup(two, [code('bea')]);
 		await box.fill('mar');
@@ -141,7 +176,7 @@ describe('PlayerSlot search', () => {
 		await expect
 			.element(screen.getByRole('status'))
 			.toHaveTextContent(
-				'1 player found, starting with Rosa Fenwick. Use the up and down arrow keys to choose.'
+				'1 player found, starting with Rosa Fenwick. Use the up and down arrow keys to choose, then Enter.'
 			);
 	});
 
@@ -170,17 +205,35 @@ describe('PlayerSlot search', () => {
 			.toHaveTextContent("We couldn't search just now. Try again, or enter their OPEN code.");
 	});
 
-	it('shows the name beside the code once a player is picked', async () => {
+	it('leads the chip with the name, keeps the code on one line, and names the player to remove', async () => {
+		const long = 'Bartholomew Fitzgerald-Montgomery Abernathy-Whitcombe of Lower Puddleton on Sea';
 		const screen = await render(PlayerSlot, {
 			id: 'partner',
 			label: 'Your partner: name or OPEN code',
 			code: code('bea'),
-			name: 'Bea Marlowe',
+			name: long,
 			oncommit: () => {},
 			onremove: () => {}
 		});
 		await expect.element(screen.getByTestId('chip')).toHaveTextContent(code('bea'));
-		await expect.element(screen.getByTestId('chip-name')).toHaveTextContent('Bea Marlowe');
+		await expect.element(screen.getByTestId('chip-name')).toHaveTextContent(long);
+		// The name comes first.
+		const name = screen.getByTestId('chip-name').element();
+		const chip = screen.getByTestId('chip').element();
+		expect(name.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		// The code stays on one line, however long the name. (The e2e test checks the layout.)
+		expect(chip.classList).toContain('whitespace-nowrap');
+		await expect.element(screen.getByRole('button', { name: `Remove ${long}` })).toBeVisible();
+	});
+
+	it('names a typed code on its remove button', async () => {
+		const screen = await render(PlayerSlot, {
+			id: 'partner',
+			label: 'Your partner: name or OPEN code',
+			code: code('bea'),
+			oncommit: () => {},
+			onremove: () => {}
+		});
 		await expect
 			.element(screen.getByRole('button', { name: `Remove ${code('bea')}` }))
 			.toBeVisible();
@@ -213,13 +266,13 @@ describe('PlayerSlot search', () => {
 		await expect
 			.element(screen.getByRole('status'))
 			.toHaveTextContent(
-				'1 player found, starting with Bea Marlowe. Use the up and down arrow keys to choose.'
+				'1 player found, starting with Bea Marlowe. Use the up and down arrow keys to choose, then Enter.'
 			);
 		await box.fill('rosa');
 		await expect
 			.element(screen.getByRole('status'))
 			.toHaveTextContent(
-				'1 player found, starting with Rosa Fenwick. Use the up and down arrow keys to choose.'
+				'1 player found, starting with Rosa Fenwick. Use the up and down arrow keys to choose, then Enter.'
 			);
 	});
 });

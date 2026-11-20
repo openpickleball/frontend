@@ -3,11 +3,11 @@
  *
  * `searchPlayers` calls `GET /api/v1/players/search` and answers with a result, never a throw,
  * for every failure the form words itself: a bad query (422), too many searches (429, with the
- * wait from `Retry-After`) and the rest. Only a cancelled request throws, so the caller can
+ * wait from `Retry-After`), a lapsed sign-in (401) and the rest. Only a cancelled request throws, so the caller can
  * tell "stale" from "failed". Names and codes in results come from the backend as is.
  */
 import { api, toAppError, type Api } from '#lib/api/index.js';
-import { parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
+import { ALPHABET, parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
 
 /** The shortest search the backend takes. */
 export const MIN_SEARCH_LENGTH = 3;
@@ -17,7 +17,7 @@ export const SEARCH_LIMIT = 10;
 /** A player found by name. Nothing else about them is shown. */
 export type PlayerHit = { code: PlayerCode; name: string };
 
-export type SearchFailure = 'invalid' | 'throttled' | 'offline' | 'other';
+export type SearchFailure = 'invalid' | 'throttled' | 'signed-out' | 'offline' | 'other';
 
 export type SearchResult =
 	| { ok: true; items: PlayerHit[] }
@@ -69,7 +69,8 @@ export const searchPlayers: SearchFn = async (query, options = {}) => {
 				retryAfter: parseRetryAfter(result.response.headers.get('Retry-After'))
 			};
 		}
-		return { ok: false, kind: status === 422 ? 'invalid' : 'other', retryAfter: null };
+		const kind = status === 422 ? 'invalid' : status === 401 ? 'signed-out' : 'other';
+		return { ok: false, kind, retryAfter: null };
 	}
 
 	const items: PlayerHit[] = [];
@@ -92,11 +93,20 @@ export function waitText(seconds: number | null): string {
 	return `in ${hours} ${hours === 1 ? 'hour' : 'hours'}`;
 }
 
+/** The longest player code without its hyphens and spaces: the P and eight characters. */
+const CODE_LENGTH = 9;
+
 /**
- * Does this text look like an OPEN code, whole or part? It has a digit and no space (a name
- * never does), or it starts with the "P-" prefix.
+ * Does this text look like an OPEN code, whole or part? Then it is not searched as a name.
+ *
+ * It must use only characters a code has (the OPEN alphabet, hyphens and spaces), be no longer
+ * than a code, and have a digit, or start with "P-" and have no space. So "P-7K3M", "P-JH" and
+ * "7k3m qx9h" are codes, while "P Smith", "P-J Harvey" and "Jo3" are names.
  */
 export function looksLikeCode(text: string): boolean {
-	const t = text.trim();
-	return (/\d/.test(t) && !/\s/.test(t)) || /^p[-\s]/i.test(t);
+	const t = text.trim().toUpperCase();
+	const compact = t.replaceAll('-', '').replaceAll(' ', '');
+	if (compact === '' || compact.length > CODE_LENGTH) return false;
+	if ([...compact].some((char) => !ALPHABET.includes(char))) return false;
+	return /\d/.test(t) || (t.startsWith('P-') && !t.includes(' '));
 }

@@ -195,16 +195,24 @@ test('records a doubles match by finding the players by name', async ({ page }) 
 	await partner.fill('or');
 	await expect(page.getByRole('listbox')).toBeHidden();
 
-	// The keyboard path: arrow to the option, Enter to pick.
-	await partner.fill('oren');
+	// The keyboard path: type a name, arrow to the player, Enter to pick, Tab on.
+	await partner.fill('');
+	await partner.pressSequentially('ore');
 	await expect(page.getByRole('option', { name: /Oren Quill/ })).toBeVisible();
-	await expect(page.getByTestId('search-status').first()).toHaveText(/1 player found/);
+	await expect(page.getByTestId('search-status').nth(1)).toHaveText(/1 player found/);
 	await partner.press('ArrowDown');
 	await partner.press('Enter');
-	await expect(page.getByRole('button', { name: `Remove ${codeOf('oren')}` })).toBeVisible();
-	await expect(page.getByText('Oren Quill')).toBeVisible();
+	// Focus lands on the new chip, and a screen reader hears who was added.
+	const removeOren = page.getByRole('button', { name: 'Remove Oren Quill' });
+	await expect(removeOren).toBeFocused();
+	await expect(page.getByTestId('search-status').nth(1)).toHaveText('Added Oren Quill.');
+	await expect(page.getByTestId('chip-name')).toHaveText('Oren Quill');
 	// Enter picked the player. It did not submit the form.
 	await expect(page).toHaveURL(/\/record$/);
+	await page.keyboard.press('Tab');
+	await expect(
+		page.getByRole('combobox', { name: 'First opponent: name or OPEN code' })
+	).toBeFocused();
 
 	// The pointer path, matching a later word of the name, in any case.
 	await page.getByRole('combobox', { name: 'First opponent: name or OPEN code' }).fill('ASHD');
@@ -212,7 +220,7 @@ test('records a doubles match by finding the players by name', async ({ page }) 
 	await expect(kit).toBeVisible();
 	expect((await kit.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 	await kit.click();
-	await expect(page.getByRole('button', { name: `Remove ${codeOf('kit')}` })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Remove Kit Ashdown' })).toBeFocused();
 
 	// A code still works in the last slot.
 	await addPlayer(page, 'Second opponent: name or OPEN code', codeOf('bea'));
@@ -244,11 +252,53 @@ test('does not offer a player already in the match', async ({ page }) => {
 	await addPlayer(page, 'Your partner: name or OPEN code', codeOf('oren'));
 	const box = page.getByRole('combobox', { name: 'First opponent: name or OPEN code' });
 	await box.fill('oren');
-	await expect(page.getByText('No players found.').first()).toBeVisible();
+	await expect(page.getByTestId('search-note')).toHaveText('That player is already in this match.');
 	await expect(page.getByRole('option')).toHaveCount(0);
 	// Neither is the signed-in player.
 	await box.fill('tamsin');
-	await expect(page.getByText('No players found.').first()).toBeVisible();
+	await expect(page.getByTestId('search-note')).toHaveText('That player is already in this match.');
+});
+
+test('Enter picks the only result without the arrow keys', async ({ page }) => {
+	await openRecord(page);
+	const box = page.getByRole('combobox', { name: 'First opponent: name or OPEN code' });
+	await box.fill('oren quill');
+	await expect(page.getByRole('option', { name: /Oren Quill/ })).toBeVisible();
+	await box.press('Enter');
+	await expect(page.getByRole('button', { name: 'Remove Oren Quill' })).toBeFocused();
+	await expect(page.getByText('Pick a player from the list')).toHaveCount(0);
+});
+
+test('a long picked name wraps and keeps the code on one line', async ({ page }) => {
+	await openRecord(page);
+	const long = 'Bartholomew Fitzgerald-Montgomery Abernathy-Whitcombe of Lower Puddleton on Sea';
+	// Give a mock player a made-up long name in the saved mock state, then reload. Wait for the
+	// page's own requests first: each mocked answer saves the state again.
+	await page.waitForLoadState('networkidle');
+	await page.evaluate(
+		({ code, name }) => {
+			const key = 'open-mock-state-v1';
+			const state = JSON.parse(sessionStorage.getItem(key)!);
+			state.players.find((p: { code: string }) => p.code === code).displayName = name;
+			sessionStorage.setItem(key, JSON.stringify(state));
+		},
+		{ code: codeOf('oren'), name: long }
+	);
+	await page.reload();
+	const box = page.getByRole('combobox', { name: 'First opponent: name or OPEN code' });
+	await box.fill('bartholomew');
+	await page.getByRole('option', { name: new RegExp(long) }).click();
+	const code = page.getByTestId('chip').nth(1);
+	await expect(code).toHaveText(codeOf('oren'));
+	// The code is one line high, and the page does not scroll sideways.
+	expect((await code.boundingBox())!.height).toBeLessThan(30);
+	const remove = page.getByRole('button', { name: `Remove ${long}` });
+	const target = (await remove.boundingBox())!;
+	expect(target.width).toBeGreaterThanOrEqual(44);
+	expect(target.height).toBeGreaterThanOrEqual(44);
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+		page.viewportSize()!.width
+	);
 });
 
 test('the search list has no WCAG 2.1 AA violations in either theme', async ({ page }) => {
