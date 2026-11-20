@@ -28,7 +28,7 @@ export function asAppError(cause: unknown): AppError {
 		kind: 'server',
 		status: null,
 		code: 'unexpected',
-		message: 'Something went wrong. Please try again.',
+		message: 'Something went wrong. Try again.',
 		fields: {}
 	};
 }

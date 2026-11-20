@@ -84,6 +84,17 @@ describe('RecordForm', () => {
 			.not.toBeInTheDocument();
 	});
 
+	it('steps the headings down one level at a time', async () => {
+		const { screen } = await setup();
+		await expect
+			.element(screen.getByRole('heading', { level: 2, name: 'Your team' }))
+			.toBeVisible();
+		await expect
+			.element(screen.getByRole('heading', { level: 2, name: 'Opponents' }))
+			.toBeVisible();
+		await expect.element(screen.getByRole('heading', { level: 3 })).not.toBeInTheDocument();
+	});
+
 	it('hides the partner and the second opponent in singles, and brings them back', async () => {
 		const { screen } = await setup();
 		await expect.element(screen.getByLabelText('Your partner: name or OPEN code')).toBeVisible();
@@ -347,7 +358,7 @@ describe('RecordForm', () => {
 		});
 		await fillDoubles(screen);
 		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
-		await expect.element(screen.getByText('We could not record this match')).toBeVisible();
+		await expect.element(screen.getByText("We couldn't record this match")).toBeVisible();
 		await expect
 			.element(screen.getByRole('button', { name: 'Change my code' }))
 			.not.toBeInTheDocument();

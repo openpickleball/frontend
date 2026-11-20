@@ -442,7 +442,7 @@ export class RecordForm {
 
 	#fail(cause: unknown, sent: FormView): void {
 		if (!isAppError(cause)) {
-			this.failure = { kind: 'other', message: 'Something went wrong. Please try again.' };
+			this.failure = { kind: 'other', message: 'Something went wrong. Try again.' };
 			return;
 		}
 		const error: AppError = cause;

@@ -189,7 +189,7 @@
 		</div>
 	{:else if form.failure?.kind === 'other'}
 		<div class="mt-6">
-			<Notice bind:element={failureBox} title="We could not record this match">
+			<Notice bind:element={failureBox} title="We couldn't record this match">
 				<p class="text-muted">{form.failure.message}</p>
 			</Notice>
 		</div>
@@ -241,7 +241,7 @@
 		</p>
 
 		<div class="grid gap-3" role="group" aria-labelledby="team-a-title">
-			<h3 id="team-a-title" class="text-[15px] font-semibold text-secondary">Your team</h3>
+			<h2 id="team-a-title" class="text-[15px] font-semibold text-secondary">Your team</h2>
 			<PlayerSlot
 				id="you"
 				label="Your OPEN code"
@@ -269,7 +269,7 @@
 		</div>
 
 		<div class="grid gap-3" role="group" aria-labelledby="team-b-title">
-			<h3 id="team-b-title" class="text-[15px] font-semibold text-secondary">Opponents</h3>
+			<h2 id="team-b-title" class="text-[15px] font-semibold text-secondary">Opponents</h2>
 			{#each form.visibleOpponents as slot, index (index)}
 				<PlayerSlot
 					id="opponent-{index}"
@@ -322,7 +322,7 @@
 		<div class="grid max-w-sm">
 			<div class="flex items-center gap-x-2 pb-2 text-xs text-faint" aria-hidden="true">
 				<span class="w-20"></span><span class="w-16 text-center">You</span><span class="w-4"
-				></span><span class="w-16 text-center">Them</span>
+				></span><span class="w-16 text-center">Opponents</span>
 			</div>
 			{#each form.games as game, index (index)}
 				{@const gameError = errors[`games.${index}`]?.[0] ?? ''}

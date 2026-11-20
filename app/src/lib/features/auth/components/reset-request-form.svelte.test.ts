@@ -42,6 +42,7 @@ describe('ResetRequestForm', () => {
 		const heading = screen.getByRole('heading', { level: 1, name: 'Check your email' });
 		await expect.element(heading).toBeVisible();
 		await expect.element(heading).toHaveFocus();
+		await expect.poll(() => document.title).toBe('Check your email · OPEN Pickleball');
 		await expect.element(screen.getByText('tamsin.vale@example.com')).toBeVisible();
 		expect(mockedRequest).toHaveBeenCalledWith('tamsin.vale@example.com');
 	});
@@ -53,7 +54,7 @@ describe('ResetRequestForm', () => {
 		await screen.getByLabelText('Email').fill('tamsin.vale@example.com');
 		await screen.getByRole('button', { name: 'Send reset link' }).click();
 
-		const busy = screen.getByRole('button', { name: 'Sending...' });
+		const busy = screen.getByRole('button', { name: 'Sending…' });
 		await expect.element(busy).toHaveAttribute('aria-disabled', 'true');
 		await expect.element(busy).toHaveAttribute('aria-busy', 'true');
 		finish();

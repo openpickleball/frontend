@@ -32,7 +32,14 @@
 			}
 		});
 	}
+
+	// The title follows the heading, so the tab and the history entry name the view.
+	const title = $derived(sentTo ? 'Check your email' : 'Reset your password');
 </script>
+
+<svelte:head>
+	<title>{title} · OPEN Pickleball</title>
+</svelte:head>
 
 {#if sentTo}
 	<section aria-labelledby="reset-title" class="grid gap-4">
@@ -72,7 +79,7 @@
 				error={form.errors.email}
 			/>
 			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
-				{form.busy ? 'Sending...' : 'Send reset link'}
+				{form.busy ? 'Sending…' : 'Send reset link'}
 			</Button>
 		</form>
 		<p class="text-sm text-muted">

@@ -25,18 +25,19 @@ describe('VerifyEmail', () => {
 		mockedVerify.mockResolvedValue(undefined);
 		const screen = await render(VerifyEmail, { key: 'k1' });
 
-		const heading = screen.getByRole('heading', { name: 'Email confirmed' });
+		const heading = screen.getByRole('heading', { name: 'Email verified' });
 		await expect.element(heading).toHaveFocus();
 		await expect.element(screen.getByRole('status')).toBeVisible();
-		await expect.element(screen.getByText('Your email is confirmed.')).toBeVisible();
+		await expect.element(screen.getByText('Your email is verified.')).toBeVisible();
 		await expect.element(screen.getByRole('link', { name: 'Sign in' })).toBeVisible();
+		await expect.poll(() => document.title).toBe('Email verified · OPEN Pickleball');
 		expect(mockedVerify).toHaveBeenCalledExactlyOnceWith('k1');
 	});
 
 	it('says so while it works', async () => {
 		mockedVerify.mockReturnValue(new Promise(() => {}));
 		const screen = await render(VerifyEmail, { key: 'k1' });
-		await expect.element(screen.getByText('Confirming your email...')).toBeVisible();
+		await expect.element(screen.getByText('Verifying your email…')).toBeVisible();
 	});
 
 	it.each([400, 404, 410])('treats a %i as a link that does not work', async (status) => {
@@ -45,6 +46,9 @@ describe('VerifyEmail', () => {
 		await expect
 			.element(screen.getByRole('heading', { name: "This link doesn't work anymore" }))
 			.toBeVisible();
+		await expect
+			.poll(() => document.title)
+			.toBe("This link doesn't work anymore · OPEN Pickleball");
 		await expect.element(screen.getByRole('alert')).not.toBeInTheDocument();
 	});
 
@@ -56,8 +60,9 @@ describe('VerifyEmail', () => {
 		const screen = await render(VerifyEmail, { key: 'k1' });
 
 		await expect.element(screen.getByRole('alert')).toHaveTextContent('No connection.');
+		await expect.poll(() => document.title).toBe("We couldn't verify your email · OPEN Pickleball");
 		await screen.getByRole('button', { name: 'Try again' }).click();
-		await expect.element(screen.getByRole('heading', { name: 'Email confirmed' })).toBeVisible();
+		await expect.element(screen.getByRole('heading', { name: 'Email verified' })).toBeVisible();
 		expect(mockedVerify).toHaveBeenCalledTimes(2);
 	});
 });

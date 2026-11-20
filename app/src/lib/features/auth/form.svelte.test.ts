@@ -101,7 +101,7 @@ describe('createAuthForm', () => {
 		});
 		expect(onError.mock.calls[0][0]).toMatchObject({
 			kind: 'server',
-			message: 'Something went wrong. Please try again.'
+			message: 'Something went wrong. Try again.'
 		});
 	});
 

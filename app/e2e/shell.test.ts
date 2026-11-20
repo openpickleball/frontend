@@ -52,3 +52,30 @@ test('an unknown route shows a not-found page with a way home', async ({ page })
 	await expect(page).toHaveURL(/\/$/);
 	await expect(page.getByRole('link', { name: 'Record a match' })).toBeVisible();
 });
+
+test('the top bar has the wordmark and a 44px theme toggle, and no Sign out', async ({ page }) => {
+	await signInAsPlayer(page);
+	const bar = page.getByRole('banner');
+	const toggle = bar.getByRole('button', { name: /^Switch to/ });
+	await expect(toggle).toBeVisible();
+	await expect(bar.getByRole('button', { name: 'Sign out' })).toHaveCount(0);
+	const box = await toggle.boundingBox();
+	expect(box?.width).toBeGreaterThanOrEqual(44);
+	expect(box?.height).toBeGreaterThanOrEqual(44);
+});
+
+test('from 960px the side bar is the banner, with the theme toggle and the one Sign out', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await signInAsPlayer(page);
+	await page.goto('/profile');
+	const bar = page.getByRole('banner');
+	await expect(bar.getByRole('navigation', { name: 'Main' })).toBeVisible();
+	await expect(bar.getByRole('button', { name: /^Switch to/ })).toBeVisible();
+	await expect(bar.getByRole('button', { name: 'Sign out' })).toBeVisible();
+	// The Account section is for phones, so there is one Sign out on screen.
+	await expect(
+		page.getByRole('button', { name: 'Sign out' }).filter({ visible: true })
+	).toHaveCount(1);
+});

@@ -17,7 +17,7 @@ export type SearchStatus = 'idle' | 'loading' | 'results' | 'empty' | 'throttled
 
 export const SEARCH_DELAY = 250;
 
-const GENERIC = 'We could not search just now. Try again, or enter their OPEN code.';
+const GENERIC = "We couldn't search just now. Try again, or enter their OPEN code.";
 
 export type PlayerSearchOptions = {
 	search?: SearchFn;

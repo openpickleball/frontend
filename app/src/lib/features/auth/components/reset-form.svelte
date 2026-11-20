@@ -58,12 +58,26 @@
 			}
 		});
 	}
+
+	// The title follows the heading, so the tab and the history entry name the view.
+	const title = $derived(
+		{
+			checking: 'Choose a new password',
+			form: 'Choose a new password',
+			done: 'Password changed',
+			invalid: "This link doesn't work anymore"
+		}[step]
+	);
 </script>
+
+<svelte:head>
+	<title>{title} · OPEN Pickleball</title>
+</svelte:head>
 
 <section aria-labelledby="newpw-title" class="grid gap-5">
 	{#if step === 'checking'}
 		<h1 id="newpw-title" class="page-title">Choose a new password</h1>
-		<p class="text-muted" role="status">Checking your link...</p>
+		<p class="text-muted" role="status">Checking your link…</p>
 	{:else if step === 'form'}
 		<h1 id="newpw-title" class="page-title">Choose a new password</h1>
 		{#if form.problem}
@@ -85,7 +99,7 @@
 				error={form.errors.password}
 			/>
 			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
-				{form.busy ? 'Saving...' : 'Save new password'}
+				{form.busy ? 'Saving…' : 'Save new password'}
 			</Button>
 		</form>
 	{:else if step === 'done'}

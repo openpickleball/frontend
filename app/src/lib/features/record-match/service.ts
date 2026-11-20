@@ -63,7 +63,7 @@ export async function submitMatch(
 		throw localError(
 			'validation',
 			'invalid_match',
-			'Please check the highlighted fields.',
+			'Check the highlighted fields.',
 			groupIssues(checked.error)
 		);
 	}

@@ -8,15 +8,21 @@ describe('ThemeToggle in a browser', () => {
 		localStorage.clear();
 	});
 
+	it('is 44px square (size-11), as big as a touch target', async () => {
+		const screen = await render(ThemeToggle);
+		// The component tests load no CSS, so the e2e shell test measures the real size.
+		await expect.element(screen.getByRole('button')).toHaveClass('size-11');
+	});
+
 	it('flips data-theme and its label when clicked', async () => {
 		document.documentElement.dataset.theme = 'dark';
 		const screen = await render(ThemeToggle);
 
 		const toggle = screen.getByRole('button');
-		await expect.element(toggle).toHaveAccessibleName('Switch to light theme');
+		await expect.element(toggle).toHaveAccessibleName('Switch to ivory theme');
 		await toggle.click();
 
-		await expect.element(toggle).toHaveAccessibleName('Switch to dark theme');
+		await expect.element(toggle).toHaveAccessibleName('Switch to black theme');
 		expect(document.documentElement.dataset.theme).toBe('light');
 	});
 });

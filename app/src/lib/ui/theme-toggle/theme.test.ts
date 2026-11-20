@@ -47,8 +47,8 @@ describe('nextTheme and toggleLabel', () => {
 	});
 
 	it('names the theme a click switches to, as the site does', () => {
-		expect(toggleLabel('light')).toBe('Switch to dark theme');
-		expect(toggleLabel('dark')).toBe('Switch to light theme');
+		expect(toggleLabel('light')).toBe('Switch to black theme');
+		expect(toggleLabel('dark')).toBe('Switch to ivory theme');
 	});
 });
 
@@ -86,7 +86,7 @@ describe('ThemeToggle', () => {
 	it('renders a button with an accessible name and both icons', () => {
 		const { body } = render(ThemeToggle);
 		expect(body).toMatch(/<button[^>]*type="button"/);
-		expect(body).toContain('aria-label="Switch to light theme"');
+		expect(body).toContain('aria-label="Switch to ivory theme"');
 		// The sun shows in the black theme and the moon in the ivory theme, by the light: variant.
 		expect(body).toContain('light:hidden');
 		expect(body).toContain('light:block');
@@ -94,7 +94,7 @@ describe('ThemeToggle', () => {
 	});
 
 	it('takes extra classes', () => {
-		const { body } = render(ThemeToggle, { props: { class: '-mr-2' } });
-		expect(body).toContain('-mr-2');
+		const { body } = render(ThemeToggle, { props: { class: '-mr-3' } });
+		expect(body).toContain('-mr-3');
 	});
 });

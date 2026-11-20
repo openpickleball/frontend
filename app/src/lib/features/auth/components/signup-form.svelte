@@ -36,14 +36,23 @@
 			}
 		});
 	}
+
+	// The title follows the heading, so the tab and the history entry name the view.
+	const title = $derived(
+		session.status === 'pending_verification' ? 'Check your email' : 'Create account'
+	);
 </script>
+
+<svelte:head>
+	<title>{title} · OPEN Pickleball</title>
+</svelte:head>
 
 {#if session.status === 'pending_verification'}
 	<CheckEmail />
 {:else}
 	<section aria-labelledby="signup-title" class="grid gap-5">
 		<h1 id="signup-title" class="page-title">Create account</h1>
-		<p class="text-muted">It's free. We'll send you an email to confirm your address.</p>
+		<p class="text-muted">It's free. We'll send you a link to verify your email.</p>
 		{#if form.problem}
 			<Alert variant="destructive">
 				<CircleAlertIcon aria-hidden="true" />
@@ -73,7 +82,7 @@
 				error={form.errors.password}
 			/>
 			<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy} class="w-full">
-				{form.busy ? 'Creating account...' : 'Create account'}
+				{form.busy ? 'Creating account…' : 'Create account'}
 			</Button>
 		</form>
 		<p class="text-sm text-muted">

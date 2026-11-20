@@ -33,7 +33,7 @@
 		{:else}
 			We sent a link to your email address.
 		{/if}
-		Open it to confirm your address, then sign in.
+		Open it to verify your email, then sign in.
 	</p>
 	<p class="text-sm text-faint">Nothing there after a few minutes? Check your spam folder.</p>
 	<!--

@@ -1,9 +1,8 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
 	import { ThemeToggle } from '#lib/ui/theme-toggle/index.js';
 	import Wordmark from './wordmark.svelte';
 
-	let { always = false, account }: { always?: boolean; account?: Snippet } = $props();
+	let { always = false }: { always?: boolean } = $props();
 </script>
 
 <!-- Mobile only: from 960px the side nav takes over, unless `always` (pages with no side nav). -->
@@ -14,8 +13,5 @@
 	]}
 >
 	<Wordmark />
-	<div class="flex items-center gap-3">
-		{@render account?.()}
-		<ThemeToggle class="-mr-2" />
-	</div>
+	<ThemeToggle class="-mr-3" />
 </header>

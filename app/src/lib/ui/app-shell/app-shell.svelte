@@ -15,7 +15,7 @@
 		children: Snippet;
 		/** No side nav or tab bar, for the sign-in and other account pages. */
 		bare?: boolean;
-		/** Account actions, such as a sign out button: in the top bar and the foot of the side nav. */
+		/** Account actions, such as a sign out button, at the foot of the side nav. On a phone, the profile page has them. */
 		account?: Snippet;
 	} = $props();
 </script>
@@ -30,7 +30,7 @@
 <div class={['min-h-svh', !bare && 'shell:grid shell:grid-cols-[248px_1fr]']}>
 	{#if !bare}<SideNav {pathname} {account} />{/if}
 	<div>
-		<TopBar always={bare} {account} />
+		<TopBar always={bare} />
 		<!-- One column, 720px wide, with the site gutter. Room below for the tab bar on mobile. -->
 		<main
 			id="main"

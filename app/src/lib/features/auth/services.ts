@@ -177,7 +177,7 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * Confirm an email with the key from the link. Resolves when it is confirmed, which does
+ * Verify an email with the key from the link. Resolves when it is verified, which does
  * not sign anyone in. An unknown, used or expired key is an `AppError` with code
  * `invalid_or_expired_key`.
  */
