@@ -68,11 +68,17 @@ export function todayLocal(now: Date = new Date()): string {
 	return `${String(now.getFullYear()).padStart(4, '0')}-${month}-${day}`;
 }
 
-/** A game's score text as a number. Anything that is not a whole number becomes NaN, which the rules refuse. */
+/**
+ * A game's score text as a number. A leading minus is kept, so the rules can say a score cannot be
+ * negative. Anything else that is not a whole number becomes NaN, which the rules refuse.
+ */
 function scoreOf(text: string): number {
 	const trimmed = text.trim();
-	return /^\d{1,3}$/.test(trimmed) ? Number(trimmed) : NaN;
+	return /^-?\d{1,3}$/.test(trimmed) ? Number(trimmed) : NaN;
 }
+
+/** Dates before this get a hint to check the year. The backend sets no earliest date, so it is only a hint. */
+export const HINT_BEFORE_DATE = '2000-01-01';
 
 /** The `games.<i>` bucket a game error belongs to, so `games.1.team_a` shows with `games.1`. */
 function bucket(key: string): string {
@@ -232,6 +238,16 @@ export class RecordForm {
 			rules.played_on = ['The date played cannot be in the future.'];
 		}
 		return rules;
+	}
+
+	/**
+	 * A hint, never an error, for a date that is a valid date but long ago. The backend accepts any
+	 * past date, so this does not block recording the match.
+	 */
+	get dateHint(): string | null {
+		const valid = /^\d{4}-\d{2}-\d{2}$/.test(this.playedOn) && !this.#rules.played_on;
+		if (!valid || this.playedOn >= HINT_BEFORE_DATE) return null;
+		return 'Check the year. This date is more than 25 years ago.';
 	}
 
 	/** The value a server error key answered, so the error can go when that value changes. */
