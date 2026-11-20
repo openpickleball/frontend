@@ -47,7 +47,7 @@
 	}
 </script>
 
-<section aria-labelledby="login-title" class="grid gap-5">
+<section aria-labelledby="login-title" class="grid gap-4">
 	<h1 id="login-title" class="page-title">Sign in</h1>
 	{#if session.status === 'pending_verification'}
 		<!-- A sign-up is waiting on its link. The form stays, for a player with another account. -->
@@ -80,7 +80,7 @@
 			<AlertDescription>Your session ended. Sign in again to continue.</AlertDescription>
 		</Alert>
 	{/if}
-	<form method="post" onsubmit={submit} novalidate class="grid gap-5">
+	<form method="post" onsubmit={submit} novalidate class="grid gap-4">
 		<TextField
 			id="login-email"
 			name="email"

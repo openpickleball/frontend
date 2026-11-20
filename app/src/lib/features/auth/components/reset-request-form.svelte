@@ -58,7 +58,7 @@
 		</div>
 	</section>
 {:else}
-	<section aria-labelledby="reset-title" class="grid gap-5">
+	<section aria-labelledby="reset-title" class="grid gap-4">
 		<h1 id="reset-title" class="page-title">Reset your password</h1>
 		<p class="text-muted">Enter your email and we'll send you a link to choose a new password.</p>
 		{#if form.problem}
@@ -67,7 +67,7 @@
 				<AlertTitle>{form.problem.title}</AlertTitle>
 			</Alert>
 		{/if}
-		<form method="post" onsubmit={submit} novalidate class="grid gap-5">
+		<form method="post" onsubmit={submit} novalidate class="grid gap-4">
 			<TextField
 				id="reset-email"
 				name="email"

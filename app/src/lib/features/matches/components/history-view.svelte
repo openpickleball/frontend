@@ -60,14 +60,14 @@
 <CodeGate>
 	{#snippet children(you)}
 		{#if view.status === 'ready' && view.count > 0}
-			<p class="mt-3 max-w-md text-muted">
+			<p class="mt-4 max-w-md text-muted">
 				{matchCountLabel(view.count)}, newest first. Other signed-in players see only your confirmed
 				matches.
 			</p>
 		{/if}
 
 		{#if view.status === 'error'}
-			<div class="mt-7">
+			<div class="mt-8">
 				<LoadError kind={view.errorKind} onretry={() => view.load(you, (page - 1) * PAGE_SIZE)} />
 			</div>
 		{:else if view.status === 'loading'}
@@ -86,13 +86,13 @@
 			</Empty>
 		{:else}
 			<section
-				class="mt-7"
+				class="mt-8"
 				aria-label="Page {Math.floor(view.offset / PAGE_SIZE) + 1} of {Math.ceil(
 					view.count / PAGE_SIZE
 				)}"
 			>
 				<MatchList matches={view.matches} {you} label="Your matches" />
-				<nav class="mt-5 flex flex-wrap items-center justify-between gap-3" aria-label="Pages">
+				<nav class="mt-4 flex flex-wrap items-center justify-between gap-3" aria-label="Pages">
 					<span class="text-base text-muted" data-testid="range"
 						>{rangeLabel(view.offset, view.items.length, view.count)}</span
 					>

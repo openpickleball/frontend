@@ -56,7 +56,7 @@
 	);
 </script>
 
-<form class="grid gap-5" onsubmit={submit} novalidate aria-labelledby="{id}-heading">
+<form class="grid gap-4" onsubmit={submit} novalidate aria-labelledby="{id}-heading">
 	<div class="grid gap-3">
 		<h2 id="{id}-heading" class="text-2xl font-medium tracking-tight text-secondary">
 			{heading}

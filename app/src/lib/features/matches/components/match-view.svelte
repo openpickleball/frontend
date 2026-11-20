@@ -228,7 +228,7 @@
 		<p class="label">{formatName(match.format)} · {formatLongDate(match.playedOn)}</p>
 		<h1 class="page-title mt-2">{matchHeadline(match, you)}</h1>
 		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match, you))}</p>
-		<div class="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-3">
+		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
 			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
 			<span class="font-display text-sm text-muted"
 				><span class="sr-only">Match code </span>{match.code}</span
@@ -258,7 +258,7 @@
 		{@render status()}
 	{/if}
 
-	<dl class="mt-7 grid grid-cols-2 gap-x-6">
+	<dl class="mt-8 grid grid-cols-2 gap-x-6">
 		<div>
 			<dt class="text-sm text-muted">Games to</dt>
 			<dd class="mt-0.5">{match.gameTarget}</dd>

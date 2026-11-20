@@ -126,7 +126,7 @@
 
 <form {onsubmit} novalidate class="grid gap-2">
 	{#if summary.length > 0}
-		<div class="mt-6">
+		<div class="mt-8">
 			<Notice
 				id="error-summary"
 				bind:element={summaryBox}
@@ -155,7 +155,7 @@
 	{/if}
 
 	{#if form.failure?.kind === 'offline'}
-		<div class="mt-6">
+		<div class="mt-8">
 			<Notice bind:element={failureBox} title={form.failure.message}>
 				<p class="text-muted">
 					Everything you entered is still here. Check your matches before you try again, so the same
@@ -164,7 +164,7 @@
 			</Notice>
 		</div>
 	{:else if form.failure?.kind === 'duplicate'}
-		<div class="mt-6">
+		<div class="mt-8">
 			<Notice bind:element={failureBox} title={form.failure.message}>
 				{#if form.failure.matchCode}
 					<p>
@@ -185,7 +185,7 @@
 			</Notice>
 		</div>
 	{:else if form.failure?.kind === 'forbidden'}
-		<div class="mt-6">
+		<div class="mt-8">
 			<Notice bind:element={failureBox} title={form.failure.message}>
 				<p class="text-muted">Everything you entered is still here.</p>
 				{#if onchangecode}
@@ -198,14 +198,14 @@
 			</Notice>
 		</div>
 	{:else if form.failure?.kind === 'other'}
-		<div class="mt-6">
+		<div class="mt-8">
 			<Notice bind:element={failureBox} title="We couldn't record this match">
 				<p class="text-muted">{form.failure.message}</p>
 			</Notice>
 		</div>
 	{/if}
 
-	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
+	<fieldset class="mt-8 grid gap-4 border-t border-line pt-3">
 		<legend class="text-xl font-semibold text-secondary">Match</legend>
 		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
 			<Segmented
@@ -243,7 +243,7 @@
 		</div>
 	</fieldset>
 
-	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
+	<fieldset class="mt-8 grid gap-4 border-t border-line pt-3">
 		<legend class="text-xl font-semibold text-secondary">Players</legend>
 		<p class="max-w-md text-base text-muted">
 			Type a player's name to find them, or enter their OPEN code. They can find theirs on their
@@ -300,7 +300,7 @@
 		</div>
 	</fieldset>
 
-	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
+	<fieldset class="mt-8 grid gap-4 border-t border-line pt-3">
 		<legend class="text-xl font-semibold text-secondary">Scoring</legend>
 		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
 			<Segmented
@@ -327,7 +327,7 @@
 		</div>
 	</fieldset>
 
-	<fieldset class="mt-6 grid gap-4 border-t border-line pt-3">
+	<fieldset class="mt-8 grid gap-4 border-t border-line pt-3">
 		<legend class="text-xl font-semibold text-secondary">Games</legend>
 		<div class="grid max-w-sm">
 			<div class="flex items-center gap-x-2 pb-2 text-xs text-faint" aria-hidden="true">

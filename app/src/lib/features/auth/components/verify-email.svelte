@@ -57,7 +57,7 @@
 	<title>{title} · OPEN Pickleball</title>
 </svelte:head>
 
-<section aria-labelledby="verify-title" class="grid gap-5">
+<section aria-labelledby="verify-title" class="grid gap-4">
 	{#if phase === 'working'}
 		<h1 id="verify-title" class="page-title">Verify your email</h1>
 		<LoadingState label="Verifying your email…" />

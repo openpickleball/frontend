@@ -11,7 +11,7 @@
 
 <!-- From 1024px. Below that, the top bar and the tab bar take over. The banner landmark from 1024px. -->
 <header
-	class="sticky top-0 hidden h-svh flex-col gap-10 border-r border-line pt-7 pr-6 pb-6 pl-8 lg:flex lg:w-64"
+	class="sticky top-0 hidden h-svh flex-col gap-8 border-r border-line pt-8 pr-6 pb-6 pl-8 lg:flex lg:w-64"
 >
 	<Wordmark />
 	<nav aria-label="Main">
