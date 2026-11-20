@@ -71,7 +71,7 @@ describe('ResetRequestForm', () => {
 		await expect.element(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true');
 	});
 
-	it('shows the error message for a throttle or any other failure above the form', async () => {
+	it('shows the error message for a throttle or any other failure below the button', async () => {
 		mockedRequest.mockRejectedValue(
 			appError({
 				kind: 'throttled',

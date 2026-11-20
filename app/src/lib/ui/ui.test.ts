@@ -3,6 +3,7 @@ import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { Button } from './button/index.js';
 import { Badge } from './badge/index.js';
+import { Card, CardDescription, CardFooter, CardTitle } from './card/index.js';
 import { EmptyDescription, EmptyMedia, EmptyTitle } from './empty/index.js';
 import { Input } from './input/index.js';
 import { LoadingState } from './loading-state/index.js';
@@ -23,6 +24,7 @@ describe('index files', () => {
 				'alert-dialog',
 				'badge',
 				'button',
+				'card',
 				'empty',
 				'input',
 				'label',
@@ -99,6 +101,33 @@ describe('Empty', () => {
 		const media = render(EmptyMedia, { props: { variant: 'icon', children: text('x') } });
 		expect(media.body).toContain('bg-surface');
 		expect(media.body).not.toMatch(/bg-muted|text-foreground/);
+	});
+});
+
+describe('Card', () => {
+	it('is a borderless section, so a title id in aria-labelledby makes it a region', () => {
+		const { body } = render(Card, {
+			props: { 'aria-labelledby': 'card-title', children: text('x') }
+		});
+		expect(body).toMatch(/<section[^>]*data-slot="card"/);
+		expect(body).toContain('aria-labelledby="card-title"');
+		expect(body).not.toMatch(/ring-1|border|rounded-xl|shadow/);
+	});
+
+	it('renders its title as a heading, h2 by default and h1 on request', () => {
+		const h2 = render(CardTitle, { props: { children: text('Ratings') } });
+		expect(h2.body).toMatch(/<h2[^>]*data-slot="card-title"/);
+		const h1 = render(CardTitle, { props: { level: 'h1', children: text('Sign in') } });
+		expect(h1.body).toMatch(/<h1[^>]*class="[^"]*page-title/);
+	});
+
+	it('uses the site tokens, not shadcn color names', () => {
+		const description = render(CardDescription, { props: { children: text('x') } });
+		expect(description.body).toContain('text-muted');
+		const footer = render(CardFooter, { props: { children: text('x') } });
+		for (const { body } of [description, footer]) {
+			expect(body).not.toMatch(/text-muted-foreground|bg-muted|bg-card|border-t/);
+		}
 	});
 });
 

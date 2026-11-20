@@ -5,6 +5,14 @@
 	import { onMount } from 'svelte';
 	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardFooter,
+		CardHeader,
+		CardTitle
+	} from '#lib/ui/card/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { asAppError } from '../forms.js';
 	import { verifyEmail } from '../services.js';
@@ -14,7 +22,7 @@
 
 	let phase = $state<'working' | 'confirmed' | 'invalid' | 'failed'>('working');
 	let failure = $state('');
-	let heading = $state<HTMLHeadingElement>();
+	let heading = $state<HTMLElement | null>(null);
 
 	async function confirm() {
 		phase = 'working';
@@ -56,33 +64,51 @@
 	<title>{title} · OPEN Pickleball</title>
 </svelte:head>
 
-<section aria-labelledby="verify-title" class="grid gap-4">
+<Card aria-labelledby="verify-title">
 	{#if phase === 'working'}
-		<h1 id="verify-title" class="page-title">Verify your email</h1>
-		<LoadingState label="Verifying your email…" />
+		<CardHeader>
+			<CardTitle level="h1" id="verify-title">Verify your email</CardTitle>
+		</CardHeader>
+		<CardContent>
+			<LoadingState label="Verifying your email…" />
+		</CardContent>
 	{:else if phase === 'confirmed'}
-		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
-			Email verified
-		</h1>
-		<p class="text-muted">Sign in to record your first match.</p>
-		<Button href={resolve(ROUTES.login)} class="w-full">Sign in</Button>
+		<CardHeader>
+			<CardTitle level="h1" id="verify-title" bind:ref={heading} tabindex={-1} class="outline-none"
+				>Email verified</CardTitle
+			>
+			<CardDescription>Sign in to record your first match.</CardDescription>
+		</CardHeader>
+		<CardFooter>
+			<Button href={resolve(ROUTES.login)} class="w-full">Sign in</Button>
+		</CardFooter>
 	{:else if phase === 'invalid'}
-		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
-			This link doesn't work anymore
-		</h1>
-		<p class="text-muted">
-			It may have expired or been used already. Sign in, and if your email still needs verifying,
-			we'll send a new link.
-		</p>
-		<Button href={resolve(ROUTES.login)} class="w-full">Sign in</Button>
+		<CardHeader>
+			<CardTitle level="h1" id="verify-title" bind:ref={heading} tabindex={-1} class="outline-none"
+				>This link doesn't work anymore</CardTitle
+			>
+			<CardDescription>
+				It may have expired or been used already. Sign in, and if your email still needs verifying,
+				we'll send a new link.
+			</CardDescription>
+		</CardHeader>
+		<CardFooter>
+			<Button href={resolve(ROUTES.login)} class="w-full">Sign in</Button>
+		</CardFooter>
 	{:else}
-		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
-			We couldn't verify your email
-		</h1>
-		<Alert variant="destructive">
-			<CircleAlertIcon aria-hidden="true" />
-			<AlertTitle>{failure}</AlertTitle>
-		</Alert>
-		<Button variant="outline" onclick={confirm} class="w-full">Try again</Button>
+		<CardHeader>
+			<CardTitle level="h1" id="verify-title" bind:ref={heading} tabindex={-1} class="outline-none"
+				>We couldn't verify your email</CardTitle
+			>
+		</CardHeader>
+		<CardContent>
+			<Alert variant="destructive">
+				<CircleAlertIcon aria-hidden="true" />
+				<AlertTitle>{failure}</AlertTitle>
+			</Alert>
+		</CardContent>
+		<CardFooter>
+			<Button variant="outline" onclick={confirm} class="w-full">Try again</Button>
+		</CardFooter>
 	{/if}
-</section>
+</Card>

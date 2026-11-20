@@ -1,7 +1,7 @@
 import type { AppError } from '#lib/api/index.js';
 import { asAppError, focusFirstError, issueMessages, serverMessages } from './forms.js';
 
-/** A problem with a form as a whole, shown in a notice above it. */
+/** A problem with a form as a whole, shown in a notice below its submit button. */
 export type FormProblem = { title: string; detail?: string };
 
 type Parsed<T> =
