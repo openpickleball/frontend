@@ -17,6 +17,26 @@ export type Rating = {
 	updatedAt: string;
 };
 
+/** Who may see a profile detail: other signed-in players, or only the player. */
+export type Visibility = 'signed_in' | 'private';
+
+/** The profile details that have a privacy setting. The display name has none. */
+export type PrivacyKey = 'match_history' | 'stats' | 'rating_history' | 'home_club' | 'city_region';
+
+export type Privacy = Record<PrivacyKey, Visibility>;
+
+/** What the player can change on their own profile, from `GET me/player` (backend#124). */
+export type MySettings = {
+	displayName: string;
+	privacy: Privacy;
+};
+
+/** A change to send. Only what changes. */
+export type MySettingsChange = {
+	displayName?: string;
+	privacy?: Partial<Privacy>;
+};
+
 export type PlayerRatings = {
 	singles: Rating | null;
 	doubles: Rating | null;

@@ -104,9 +104,56 @@ test.describe('an account that has a player (me/player exists)', () => {
 		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(tamsin.code);
 	});
 
+	test('changes the display name, and keeps it after a reload', async ({ page }) => {
+		const field = page.getByRole('textbox', { name: 'Display name' });
+		await expect(field).toHaveValue(tamsin.displayName);
+
+		await field.fill('   ');
+		await page.getByRole('button', { name: 'Save name' }).click();
+		await expect(page.getByText('Enter a display name.')).toBeVisible();
+
+		await field.fill('  Tamsin Q  ');
+		await page.getByRole('button', { name: 'Save name' }).click();
+		await expect(page.getByText('Name saved.')).toBeVisible();
+		await expect(field).toHaveValue('Tamsin Q');
+		// The name under the page title follows.
+		await expect(page.getByText('Tamsin Q', { exact: true })).toBeVisible();
+
+		await page.reload();
+		await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveValue('Tamsin Q');
+	});
+
+	test('changes who can see a detail, and keeps it after a reload', async ({ page }) => {
+		const matches = page.getByRole('switch', { name: 'Match history' });
+		await expect(matches).toBeChecked();
+		await expect(page.getByRole('switch')).toHaveCount(5);
+
+		await matches.click();
+		await expect(matches).not.toBeChecked();
+		await expect(page.locator('#privacy-match_history-state')).toHaveText('Only me');
+
+		await page.reload();
+		await expect(page.getByRole('switch', { name: 'Match history' })).not.toBeChecked();
+		await expect(page.getByRole('switch', { name: 'Stats' })).toBeChecked();
+
+		// The keyboard works too.
+		await page.getByRole('switch', { name: 'Match history' }).focus();
+		await page.keyboard.press('Space');
+		await expect(page.getByRole('switch', { name: 'Match history' })).toBeChecked();
+	});
+
+	test('says how to get a copy of your data', async ({ page }) => {
+		await expect(page.getByRole('heading', { level: 2, name: 'Your data' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'info@openpb.org' })).toHaveAttribute(
+			'href',
+			'mailto:info@openpb.org'
+		);
+	});
+
 	for (const scheme of ['dark', 'light'] as const) {
 		test(`has no WCAG 2.1 AA violations (${scheme})`, async ({ page }) => {
 			await page.emulateMedia({ colorScheme: scheme });
+			await expect(page.getByRole('switch', { name: 'Match history' })).toBeVisible();
 			await expect(page.getByTestId('my-code')).toBeVisible();
 			await expect(page.getByTestId('match-count')).toHaveText(/^\d+$/);
 			await expect(page.getByText('Sample data', { exact: true })).toBeVisible();
@@ -142,6 +189,17 @@ test.describe('an account with no player yet (me/player answers 404)', () => {
 		await page.reload();
 		await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
 		await expect(page.getByRole('heading', { name: 'Enter your OPEN code' })).toHaveCount(0);
+	});
+
+	test('says name and privacy settings are not available yet, and still offers the data copy', async ({
+		page
+	}) => {
+		await expect(
+			page.getByText("You can't change your display name or privacy settings in the app yet.")
+		).toBeVisible();
+		await expect(page.getByRole('switch')).toHaveCount(0);
+		await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveCount(0);
+		await expect(page.getByRole('link', { name: 'info@openpb.org' })).toBeVisible();
 	});
 
 	test('changes a code that was entered on this device', async ({ page }) => {

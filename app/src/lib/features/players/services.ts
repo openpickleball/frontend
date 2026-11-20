@@ -1,7 +1,8 @@
 import { isAppError, provisionalApi, unwrap } from '#lib/api/index.js';
+import type { MyPlayerUpdateIn, PrivacySettings } from '#lib/api/provisional.js';
 import { parsePlayerCode } from '#lib/domain/index.js';
 import { toPlayerRatings } from './ratings.js';
-import type { MyPlayer, PlayerRatings } from './types.js';
+import type { MyPlayer, MySettings, MySettingsChange, PlayerRatings, PrivacyKey } from './types.js';
 
 function isMissing(error: unknown): boolean {
 	return isAppError(error) && (error.status === 404 || error.status === 405);
@@ -22,6 +23,58 @@ export async function fetchMyPlayer(): Promise<MyPlayer | null> {
 		if (isMissing(error)) return null;
 		throw error;
 	}
+}
+
+type MyPlayerDto = { display_name: string; privacy: PrivacySettings };
+
+function toMySettings(dto: MyPlayerDto): MySettings {
+	const p = dto.privacy;
+	return {
+		displayName: dto.display_name,
+		privacy: {
+			match_history: p.match_history_visibility,
+			stats: p.stats_visibility,
+			rating_history: p.rating_history_visibility,
+			home_club: p.home_club_visibility,
+			city_region: p.city_region_visibility
+		}
+	};
+}
+
+function toUpdateIn(change: MySettingsChange): MyPlayerUpdateIn {
+	const body: MyPlayerUpdateIn = {};
+	if (change.displayName !== undefined) body.display_name = change.displayName;
+	if (change.privacy) {
+		const privacy: Partial<PrivacySettings> = {};
+		for (const [key, value] of Object.entries(change.privacy)) {
+			privacy[`${key as PrivacyKey}_visibility`] = value;
+		}
+		body.privacy = privacy;
+	}
+	return body;
+}
+
+/**
+ * The player's display name and privacy settings, or `null` when the backend has no
+ * `me/player` endpoint yet (a 404 or 405) or the account has no player. Throws an `AppError`
+ * for anything else.
+ */
+export async function fetchMySettings(): Promise<MySettings | null> {
+	try {
+		return toMySettings(await unwrap(provisionalApi.GET('/api/v1/me/player')));
+	} catch (error) {
+		if (isMissing(error)) return null;
+		throw error;
+	}
+}
+
+/**
+ * Save a change with `PATCH me/player` and return the settings the backend now holds.
+ * The backend decides what the player may change. Throws an `AppError` on failure.
+ */
+export async function updateMySettings(change: MySettingsChange): Promise<MySettings> {
+	const dto = await unwrap(provisionalApi.PATCH('/api/v1/me/player', { body: toUpdateIn(change) }));
+	return toMySettings(dto);
 }
 
 /**
