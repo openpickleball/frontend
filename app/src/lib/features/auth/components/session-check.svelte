@@ -37,7 +37,7 @@
 				below.
 			</AlertDescription>
 		</Alert>
-		<Button variant="outline" size="sm" onclick={retry} disabled={busy} aria-busy={busy}>
+		<Button variant="outline" size="sm" onclick={retry} aria-disabled={busy} aria-busy={busy}>
 			{#if busy}<Spinner />{/if}
 			{busy ? 'Checking…' : 'Try again'}
 		</Button>

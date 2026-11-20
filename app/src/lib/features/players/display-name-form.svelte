@@ -69,7 +69,7 @@
 		{/if}
 	</Field>
 	<div class="flex flex-wrap items-center gap-4">
-		<Button type="submit" variant="outline" size="sm" disabled={busy}>
+		<Button type="submit" variant="outline" size="sm" aria-disabled={busy} aria-busy={busy}>
 			{#if busy}<Spinner />{/if}
 			Save name
 		</Button>

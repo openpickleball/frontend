@@ -26,7 +26,7 @@
 <Button
 	variant="outline"
 	size="sm"
-	disabled={busy}
+	aria-disabled={busy}
 	aria-busy={busy}
 	onclick={signOut}
 	class={className}

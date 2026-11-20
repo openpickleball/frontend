@@ -65,4 +65,23 @@ describe('SessionCheck', () => {
 		await vi.waitFor(() => expect(mockedBootstrap).toHaveBeenCalledTimes(2));
 		await expect.element(screen.getByText("We couldn't check your sign-in.")).toBeVisible();
 	});
+
+	it('ignores a second click while checking and keeps focus on Try again', async () => {
+		let finish: () => void = () => {};
+		mockedBootstrap.mockReturnValue(new Promise<void>((resolve) => (finish = resolve)));
+		const screen = await render(SessionCheck, { onsignedin: vi.fn() });
+		const button = screen.getByRole('button', { name: 'Try again' }).element() as HTMLButtonElement;
+		button.focus();
+		button.click();
+		const busy = screen.getByRole('button', { name: 'Checking…' });
+		await expect.element(busy).toHaveAttribute('aria-disabled', 'true');
+		await expect.element(busy).toHaveAttribute('aria-busy', 'true');
+		button.click();
+		expect(mockedBootstrap).toHaveBeenCalledOnce();
+		expect(button.disabled).toBe(false);
+		expect(document.activeElement).toBe(button);
+		finish();
+		await expect.element(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
+		expect(document.activeElement).toBe(button);
+	});
 });

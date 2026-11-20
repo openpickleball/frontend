@@ -231,7 +231,7 @@
 		// A first read still out must not overwrite what this action gets.
 		run++;
 		if (result.code === code && result.state === 'loading') result.state = 'done';
-		// Where focus goes once the buttons are enabled again. A disabled button can't take focus.
+		// Where focus goes once the buttons are enabled again. A button that is aria-disabled keeps focus, so this does not move it a second time.
 		let focusId = 'status-heading';
 		try {
 			if (action === 'confirm') {

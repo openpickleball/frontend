@@ -59,11 +59,35 @@ describe('StatusPanel', () => {
 				...handlers()
 			});
 			const confirming = screen.getByRole('button', { name: 'Confirming…' });
-			await expect.element(confirming).toBeDisabled();
+			await expect.element(confirming).toHaveAttribute('aria-disabled', 'true');
 			await expect.element(confirming).toHaveAttribute('aria-busy', 'true');
 			expect(confirming.element().querySelector('svg[aria-hidden="true"]')).not.toBeNull();
-			await expect.element(screen.getByRole('button', { name: 'Dispute' })).toBeDisabled();
+			await expect
+				.element(screen.getByRole('button', { name: 'Dispute' }))
+				.toHaveAttribute('aria-disabled', 'true');
 		});
+
+		it.each([
+			['Confirm score', 'confirm'],
+			['Dispute', 'dispute']
+		] as const)(
+			'ignores a second click on %s while busy and keeps focus on it',
+			async (name, busy) => {
+				const h = handlers();
+				const screen = await render(StatusPanel, { match: viewerMatch(), busy, ...h });
+				const button = screen
+					.getByRole('button', { name: busy === 'confirm' ? 'Confirming…' : name })
+					.element() as HTMLButtonElement;
+				button.focus();
+				// A DOM click, as Enter or Space on the focused button sends it.
+				button.click();
+				button.click();
+				expect(h.onconfirm).not.toHaveBeenCalled();
+				expect(h.ondispute).not.toHaveBeenCalled();
+				expect(document.activeElement).toBe(button);
+				expect(button.disabled).toBe(false);
+			}
+		);
 
 		it('shows why the last action failed', async () => {
 			const screen = await render(StatusPanel, {

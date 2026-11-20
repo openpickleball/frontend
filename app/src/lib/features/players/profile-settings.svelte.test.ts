@@ -57,6 +57,26 @@ describe('ProfileSettings', () => {
 		expect(updateMySettings).toHaveBeenCalledWith({ displayName: 'Fern Quill' });
 	});
 
+	it('ignores a second click on Save name while saving and keeps focus on it', async () => {
+		let finish: (value: MySettings) => void = () => {};
+		const updateMySettings = vi.fn(() => new Promise<MySettings>((resolve) => (finish = resolve)));
+		const { screen } = await renderReady(updateMySettings);
+		await screen.getByLabelText('Display name').fill('Fern Quill');
+		const button = screen.getByRole('button', { name: 'Save name' }).element() as HTMLButtonElement;
+		button.focus();
+		button.click();
+		const busy = screen.getByRole('button', { name: 'Save name' });
+		await expect.element(busy).toHaveAttribute('aria-busy', 'true');
+		await expect.element(busy).toHaveAttribute('aria-disabled', 'true');
+		button.click();
+		expect(updateMySettings).toHaveBeenCalledOnce();
+		expect(button.disabled).toBe(false);
+		expect(document.activeElement).toBe(button);
+		finish({ ...SAVED, displayName: 'Fern Quill' });
+		await expect.element(screen.getByText('Name saved.')).toBeVisible();
+		expect(document.activeElement).toBe(button);
+	});
+
 	it('says what is wrong with an empty name and does not send it', async () => {
 		const { screen, updateMySettings } = await renderReady();
 		const field = screen.getByLabelText('Display name');
