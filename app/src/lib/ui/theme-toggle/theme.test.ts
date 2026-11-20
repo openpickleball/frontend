@@ -86,6 +86,7 @@ describe('ThemeToggle', () => {
 	it('renders a button with an accessible name and both icons', () => {
 		const { body } = render(ThemeToggle);
 		expect(body).toMatch(/<button[^>]*type="button"/);
+		expect(body).toContain('size-11');
 		expect(body).toContain('aria-label="Switch to ivory theme"');
 		// The sun shows in the black theme and the moon in the ivory theme, by the light: variant.
 		expect(body).toContain('light:hidden');

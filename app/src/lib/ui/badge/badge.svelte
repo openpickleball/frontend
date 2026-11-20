@@ -12,7 +12,9 @@
 				confirmed: 'text-confirmed',
 				disputed: 'text-disputed',
 				voided: 'text-voided before:h-0.5 before:w-2',
-				neutral: 'text-muted before:hidden'
+				neutral: 'text-muted before:hidden',
+				// Dashed and neutral, with no dot: marks content as an example.
+				outline: 'border-dashed border-field text-muted before:hidden'
 			}
 		},
 		defaultVariants: {
