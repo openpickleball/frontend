@@ -1,6 +1,7 @@
 import type { ClientInit } from '@sveltejs/kit/hooks';
 import { PUBLIC_API_MOCK } from '$app/env/public';
 import { asset } from '$app/paths';
+import type { AssetPath } from '$app/types';
 import { dev } from '$app/env';
 import { toast } from 'svelte-sonner';
 import { registerServiceWorker, shouldRegister } from './pwa/register';
@@ -10,10 +11,13 @@ import { registerServiceWorker, shouldRegister } from './pwa/register';
  * `off` (default), `missing` or `all` (see `src/lib/mocks/`). The mock module and its
  * service worker load only when it is not `off`.
  *
+ * `__API_MOCKS__` is `false` in an `off` build (see `vite.config.ts`). The check is then
+ * constant, so the build drops the mock import below and ships no mock code.
+ *
  * A failed worker start must not stop the app from starting: it is logged instead.
  */
 export const init: ClientInit = async () => {
-	if (PUBLIC_API_MOCK === 'off') {
+	if (!__API_MOCKS__ || PUBLIC_API_MOCK === 'off') {
 		// The app shell worker. Never in the mock modes (MSW owns the worker there) or in dev.
 		// Not awaited: the app must not wait for it.
 		if (shouldRegister({ dev, supported: 'serviceWorker' in navigator })) {
@@ -25,7 +29,9 @@ export const init: ClientInit = async () => {
 	}
 	try {
 		const { startMocks } = await import('./lib/mocks/browser');
-		await startMocks(PUBLIC_API_MOCK, { workerUrl: asset('mockServiceWorker.js') });
+		// Not in static/: vite.config.ts serves the worker in dev and adds it to mock builds.
+		const workerUrl = asset('mockServiceWorker.js' as AssetPath);
+		await startMocks(PUBLIC_API_MOCK, { workerUrl });
 	} catch (error) {
 		console.error(
 			`PUBLIC_API_MOCK=${PUBLIC_API_MOCK} is set, but the API mocks did not start. ` +

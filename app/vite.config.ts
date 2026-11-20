@@ -2,10 +2,50 @@ import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { playwright } from '@vitest/browser-playwright';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig({
+/**
+ * Keeps the API mocks out of builds with `PUBLIC_API_MOCK=off` (frontend#57).
+ *
+ * - `__API_MOCKS__` is replaced at build time. It is `false` in an `off` build, so the
+ *   `import('./lib/mocks/browser')` in `src/hooks.client.ts` is dead code and no mock chunk is
+ *   emitted. In dev and in tests it is always `true`, and `PUBLIC_API_MOCK` decides.
+ * - `mockServiceWorker.js` comes from the installed msw package, so it always matches the msw
+ *   version. Dev serves it, and a mock build copies it into the client output. An `off` build
+ *   has no such file.
+ *
+ * `scripts/check-build.mjs` (`pnpm check:build`) checks an `off` build for leftovers.
+ */
+function apiMocks(command: 'build' | 'serve', mode: string): Plugin {
+	// The same rule as `src/env.ts`: anything but `missing` or `all` is `off`.
+	const value = loadEnv(mode, process.cwd(), 'PUBLIC_').PUBLIC_API_MOCK;
+	const on = command === 'serve' || value === 'missing' || value === 'all';
+	const worker = () =>
+		readFileSync(createRequire(import.meta.url).resolve('msw/mockServiceWorker.js'));
+
+	return {
+		name: 'open-api-mocks',
+		config: () => ({ define: { __API_MOCKS__: JSON.stringify(on) } }),
+		configureServer(server) {
+			server.middlewares.use((req, res, next) => {
+				if (!req.url?.split('?')[0].endsWith('/mockServiceWorker.js')) return next();
+				res.setHeader('Content-Type', 'text/javascript');
+				res.end(worker());
+			});
+		},
+		generateBundle() {
+			if (!on || this.environment.name !== 'client') return;
+			this.emitFile({ type: 'asset', fileName: 'mockServiceWorker.js', source: worker() });
+		}
+	};
+}
+
+export default defineConfig(({ command, mode }) => ({
 	plugins: [
+		apiMocks(command, mode),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {
@@ -78,4 +118,4 @@ export default defineConfig({
 			}
 		]
 	}
-});
+}));
