@@ -24,6 +24,31 @@ function appError(kind: AppError['kind'], status: number | null): AppError {
 
 const SERVER_PLAYER: MyPlayer = { code: CODE_A, displayName: 'Sample Player' };
 
+describe('myCode.rename', () => {
+	it('shows a saved display name for a code from the server', async () => {
+		const mine = createMyCode({
+			fetchMyPlayer: async () => SERVER_PLAYER,
+			accountEmail: async () => 'a@example.com',
+			store: createCodeStore(() => memoryStorage())
+		});
+		await mine.load();
+		mine.rename('Fern Quill');
+		expect(mine.displayName).toBe('Fern Quill');
+	});
+
+	it('leaves a code entered on this device without a name', async () => {
+		const mine = createMyCode({
+			fetchMyPlayer: async () => null,
+			accountEmail: async () => 'a@example.com',
+			store: createCodeStore(() => memoryStorage())
+		});
+		await mine.load();
+		mine.save(CODE_B);
+		mine.rename('Fern Quill');
+		expect(mine.displayName).toBeNull();
+	});
+});
+
 describe('myCode with me/player available', () => {
 	it('uses the server code and never asks for entry', async () => {
 		const storage = memoryStorage();

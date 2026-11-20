@@ -32,6 +32,12 @@
  *   sample mode, the result of `fetchRatings(code)`. The real backend has no ratings, so
  *   `sample={false}` shows "Ratings aren't live yet".
  *
+ * - `ProfileSettings` is the "Name and privacy" and "Your data" sections. It reads
+ *   `GET me/player` and saves with `PATCH me/player` (backend#124, provisional). Until the backend
+ *   has them, it says the player can't change these in the app yet. The backend checks every
+ *   change and decides who may make it. Saving a name updates `myCode.displayName`. "Your data"
+ *   says how to ask for a copy, until a data export endpoint exists (backend#39).
+ *
  * When backend#124 and backend#53 ship, `api/provisional.ts` goes (frontend#35): switch
  * `services.ts` to the generated types. Nothing else here changes.
  */
@@ -40,3 +46,4 @@ export { setAccountEmailSource } from './account.js';
 export { isSampleMode } from './ratings.js';
 export { default as OwnCodeGate } from './own-code-gate.svelte';
 export { default as ProfileView } from './profile-view.svelte';
+export { default as ProfileSettings } from './profile-settings.svelte';

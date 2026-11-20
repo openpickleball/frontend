@@ -153,6 +153,11 @@ export class MyCode {
 		this.status = 'idle';
 	}
 
+	/** Show a display name the player just saved. Only a code from the server has one. */
+	rename(displayName: string): void {
+		if (this.source === 'server') this.displayName = displayName;
+	}
+
 	/** Start replacing the code. `cancel()` goes back to the old one. */
 	change(): void {
 		if (this.canChange) this.editing = true;
