@@ -15,6 +15,16 @@ function cacheFor(initial: PlayerCode | null) {
 }
 
 describe('MatchCache', () => {
+	it('caches nothing until it has an owner source', () => {
+		const cache = new MatchCache();
+		const match = sampleMatch();
+		cache.remember(match);
+		expect(cache.get(match.code)).toBeUndefined();
+		cache.setOwnerSource(() => TAMSIN);
+		cache.remember(match);
+		expect(cache.get(match.code)).toEqual(match);
+	});
+
 	it('keeps a match by code and hands back the newest copy', () => {
 		const { cache } = cacheFor(TAMSIN);
 		const match = sampleMatch();
