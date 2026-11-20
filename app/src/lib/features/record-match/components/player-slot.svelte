@@ -1,7 +1,7 @@
 <script lang="ts">
 	import XIcon from '@lucide/svelte/icons/x';
 	import { onDestroy, tick } from 'svelte';
-	import type { PlayerCode } from '#lib/domain/index.js';
+	import { CODE_INPUT_MAX_LENGTH, type PlayerCode } from '#lib/domain/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { PlayerSearch } from '../player-search.svelte.js';
 	import {
@@ -218,7 +218,7 @@
 				autocapitalize="none"
 				autocorrect="off"
 				spellcheck={false}
-				maxlength={64}
+				maxlength={CODE_INPUT_MAX_LENGTH}
 				{placeholder}
 			/>
 			<ul

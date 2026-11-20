@@ -13,8 +13,8 @@ import { err, ok, type Result } from './result';
 export const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const BASE = ALPHABET.length;
 const GROUP = 4;
-/** Longer input is refused before any other work. */
-const MAX_INPUT = 64;
+/** Longer input is refused before any other work. Code inputs use it as their `maxlength`. */
+export const CODE_INPUT_MAX_LENGTH = 64;
 /** Letters people type for digits. No prefix is one of these. */
 const LOOKALIKES: Record<string, string> = { I: '1', L: '1', O: '0' };
 
@@ -116,7 +116,7 @@ function isAscii(text: string): boolean {
  */
 export function normalizeCode(raw: unknown, type: CodeTypeName): Result<string, CodeError> {
 	if (typeof raw !== 'string') return err(codeError('not_text'));
-	if (raw.length > MAX_INPUT) return err(codeError('too_long'));
+	if (raw.length > CODE_INPUT_MAX_LENGTH) return err(codeError('too_long'));
 	// Refuse non-ASCII before changing case: uppercasing some Unicode letters (a
 	// dotless i) gives an ASCII letter.
 	if (!isAscii(raw)) return err(codeError('not_ascii'));

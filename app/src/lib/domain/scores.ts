@@ -40,6 +40,8 @@ export const WIN_MARGIN = 2;
 export const DEFAULT_GAME_TARGET: GameTarget = 11;
 /** The scoring type when none is given. */
 export const DEFAULT_SCORING_TYPE: ScoringType = 'side_out';
+/** The most characters a score input takes. Scores are whole numbers, so three digits is plenty. */
+export const SCORE_INPUT_MAX_LENGTH = 3;
 /** The highest UTC offset anywhere on Earth, in minutes (UTC+14). */
 const MAX_UTC_OFFSET_MINUTES = 840;
 

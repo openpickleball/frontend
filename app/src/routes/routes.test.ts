@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import type { Component } from 'svelte';
-import { buildCode } from '#lib/domain/index.js';
+import { ROUTES, buildCode } from '#lib/domain/index.js';
 import appHtml from '../app.html?raw';
 
 // Every route page, keyed by its path under src/routes.
@@ -31,6 +31,16 @@ const propsFor = (path: string): Record<string, unknown> => {
 describe('route pages', () => {
 	it('covers every route the shell links to', () => {
 		expect(Object.keys(pages).sort()).toEqual(Object.keys(expected).sort());
+	});
+
+	it('has a page for every path in ROUTES', () => {
+		// `account` is a layout, not a page, so it has no +page.svelte of its own.
+		const { account, ...pagePaths } = ROUTES;
+		expect(account).toBe('/account');
+		for (const path of Object.values(pagePaths)) {
+			const file = path === '/' ? './+page.svelte' : `.${path}/+page.svelte`;
+			expect(Object.keys(pages), path).toContain(file);
+		}
 	});
 
 	for (const [path, heading] of Object.entries(expected)) {

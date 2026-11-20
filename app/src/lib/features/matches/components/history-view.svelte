@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { ROUTES } from '#lib/domain/index.js';
 	import { myCode } from '#lib/features/players/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { rangeLabel, matchCountLabel } from '../format.js';
@@ -24,7 +25,7 @@
 	});
 
 	function pageHref(target: number): string {
-		return target <= 1 ? resolve('/matches') : `${resolve('/matches')}?page=${target}`;
+		return target <= 1 ? resolve(ROUTES.matches) : `${resolve(ROUTES.matches)}?page=${target}`;
 	}
 
 	// The title changes with the page, so a screen reader hears that a new page loaded. The total is
@@ -75,7 +76,9 @@
 			<!-- A page number past the end, such as an old link. -->
 			<section class="mt-8 grid justify-items-start gap-3">
 				<p class="text-muted">There are no matches on this page.</p>
-				<Button href={resolve('/matches')} variant="outline" size="sm">Back to the newest</Button>
+				<Button href={resolve(ROUTES.matches)} variant="outline" size="sm"
+					>Back to the newest</Button
+				>
 			</section>
 		{:else}
 			<section

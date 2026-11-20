@@ -2,6 +2,8 @@
 	import { tick } from 'svelte';
 	import { resolve } from '$app/paths';
 	import {
+		ROUTES,
+		SCORE_INPUT_MAX_LENGTH,
 		todayLocal,
 		type GameTarget,
 		type MatchFormat,
@@ -173,8 +175,9 @@
 					<p class="text-muted">You may still need to confirm it.</p>
 				{:else}
 					<p class="text-muted">
-						Look in <a href={resolve('/matches')} class="font-semibold underline underline-offset-4"
-							>your matches</a
+						Look in <a
+							href={resolve(ROUTES.matches)}
+							class="font-semibold underline underline-offset-4">your matches</a
 						> to find it. You may still need to confirm it.
 					</p>
 				{/if}
@@ -346,7 +349,7 @@
 							class="w-16 px-0 text-center text-lg font-semibold tabular-nums"
 							inputmode="numeric"
 							autocomplete="off"
-							maxlength={3}
+							maxlength={SCORE_INPUT_MAX_LENGTH}
 							aria-label="Game {index + 1}, your team's points"
 							aria-invalid={gameError ? 'true' : undefined}
 							aria-describedby={gameError ? gameErrorId(index) : undefined}
@@ -358,7 +361,7 @@
 							class="w-16 px-0 text-center text-lg font-semibold tabular-nums"
 							inputmode="numeric"
 							autocomplete="off"
-							maxlength={3}
+							maxlength={SCORE_INPUT_MAX_LENGTH}
 							aria-label="Game {index + 1}, opponents' points"
 							aria-invalid={gameError ? 'true' : undefined}
 							aria-describedby={gameError ? gameErrorId(index) : undefined}

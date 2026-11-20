@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { ROUTES } from '#lib/domain/index.js';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import { onMount } from 'svelte';
@@ -68,7 +69,7 @@
 			<AlertTitle>Your email is verified.</AlertTitle>
 			<AlertDescription>Sign in to record your first match.</AlertDescription>
 		</Alert>
-		<Button href={resolve('/account/login')} class="w-full">Sign in</Button>
+		<Button href={resolve(ROUTES.login)} class="w-full">Sign in</Button>
 	{:else if phase === 'invalid'}
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 			This link doesn't work anymore
@@ -77,7 +78,7 @@
 			It may have expired or been used already. Sign in, and if your email still needs verifying,
 			we'll send a new link.
 		</p>
-		<Button href={resolve('/account/login')} class="w-full">Sign in</Button>
+		<Button href={resolve(ROUTES.login)} class="w-full">Sign in</Button>
 	{:else}
 		<h1 id="verify-title" bind:this={heading} tabindex="-1" class="page-title outline-none">
 			We couldn't verify your email

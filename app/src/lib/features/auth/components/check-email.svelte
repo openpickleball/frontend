@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import MailIcon from '@lucide/svelte/icons/mail';
+	import { ROUTES } from '#lib/domain/index.js';
 	import { onMount } from 'svelte';
 	import { Button } from '#lib/ui/button/index.js';
 	import { session } from '../session.svelte.js';
@@ -36,7 +37,7 @@
 	</p>
 	<div class="mt-2 flex flex-wrap gap-3">
 		<!-- The sign-in page keeps the pending notice above its form, so nothing is cleared here. -->
-		<Button variant="outline" href={resolve('/account/login')} class="w-full">Go to sign in</Button>
+		<Button variant="outline" href={resolve(ROUTES.login)} class="w-full">Go to sign in</Button>
 	</div>
 	<p class="text-sm text-muted">
 		Wrong address?

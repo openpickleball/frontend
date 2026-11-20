@@ -3,9 +3,11 @@
  * so they are easy to test. The layout load applies them.
  */
 
-export const LOGIN_PATH = '/account/login';
+import { ROUTES } from '#lib/domain/index.js';
 
-const GUARDED_BASES = ['/record', '/matches', '/profile'];
+export const LOGIN_PATH = ROUTES.login;
+
+const GUARDED_BASES: readonly string[] = [ROUTES.record, ROUTES.matches, ROUTES.profile];
 
 function under(pathname: string, base: string): boolean {
 	return pathname === base || pathname.startsWith(`${base}/`);
@@ -13,14 +15,14 @@ function under(pathname: string, base: string): boolean {
 
 /** The account pages (sign in, sign up, verify, reset). They are for signed-out players. */
 export function isAccountPath(pathname: string): boolean {
-	return under(pathname, '/account');
+	return under(pathname, ROUTES.account);
 }
 
 /**
  * The account pages a signed-in player has no use for. The verify and reset-key pages are
  * left out: the backend allows changing an email, so a signed-in player can get a verify link.
  */
-const SIGNED_OUT_ONLY = ['/account/login', '/account/signup', '/account/password/reset'];
+const SIGNED_OUT_ONLY: readonly string[] = [ROUTES.login, ROUTES.signup, ROUTES.passwordReset];
 
 export function isSignedOutOnlyPath(pathname: string): boolean {
 	return SIGNED_OUT_ONLY.includes(pathname.replace(/\/+$/, ''));
@@ -28,7 +30,7 @@ export function isSignedOutOnlyPath(pathname: string): boolean {
 
 /** Does this page need a signed-in player? Home, record, matches (and one match) and profile do. */
 export function isGuardedPath(pathname: string): boolean {
-	return pathname === '/' || GUARDED_BASES.some((base) => under(pathname, base));
+	return pathname === ROUTES.home || GUARDED_BASES.some((base) => under(pathname, base));
 }
 
 /**
@@ -73,7 +75,7 @@ export function redirectFor(
 	url: Pick<URL, 'pathname' | 'search'>,
 	signedIn: boolean
 ): string | null {
-	if (signedIn) return isSignedOutOnlyPath(url.pathname) ? '/' : null;
+	if (signedIn) return isSignedOutOnlyPath(url.pathname) ? ROUTES.home : null;
 	if (isGuardedPath(url.pathname)) return loginUrl(url.pathname + url.search);
 	return null;
 }
