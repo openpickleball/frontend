@@ -1,18 +1,16 @@
-# Weekly dependency updates. Minor and patch bumps are grouped into one PR per directory.
+# Weekly dependency updates. Minor and patch bumps are grouped into one PR.
 version: 2
 updates:
+  # One entry for both projects, so a group can span them. app/ and site/ must use the same
+  # exact tailwindcss version (see AGENTS.md), so one PR bumps it in both. The tailwindcss group
+  # comes first, so it wins over minor-and-patch for these packages.
   - package-ecosystem: npm
-    directory: /app
+    directories: [/app, /site]
     schedule:
       interval: weekly
     groups:
-      minor-and-patch:
-        update-types: [minor, patch]
-  - package-ecosystem: npm
-    directory: /site
-    schedule:
-      interval: weekly
-    groups:
+      tailwindcss:
+        patterns: ["tailwindcss", "@tailwindcss/*"]
       minor-and-patch:
         update-types: [minor, patch]
   - package-ecosystem: github-actions

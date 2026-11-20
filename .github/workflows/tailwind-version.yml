@@ -1,0 +1,28 @@
+# Fails when app/ and site/ pin different tailwindcss versions (see AGENTS.md, Conventions).
+# Remove it together with the static pages.
+name: Tailwind version
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tailwind-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check app/ and site/ use the same tailwindcss version
+        run: |
+          app=$(jq -r '.devDependencies.tailwindcss // .dependencies.tailwindcss' app/package.json)
+          site=$(jq -r '.devDependencies.tailwindcss // .dependencies.tailwindcss' site/package.json)
+          echo "app: $app, site: $site"
+          if [ -z "$app" ] || [ "$app" = null ] || [ "$app" != "$site" ]; then
+            echo "::error::tailwindcss differs between app/package.json and site/package.json"
+            exit 1
+          fi
