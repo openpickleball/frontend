@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { Field, FieldDescription, FieldError, FieldLabel } from '#lib/ui/field/index.js';
+	import {
+		Field,
+		FieldDescription,
+		FieldError,
+		FieldLabel,
+		fieldA11y
+	} from '#lib/ui/field/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import {
 		InputGroup,
@@ -31,21 +37,14 @@
 	} = $props();
 
 	let shown = $state(false);
-	const describedBy = $derived((error ? `${id}-error` : hint ? `${id}-hint` : '') || undefined);
+	const a11y = $derived(fieldA11y({ id, error, hint }));
 </script>
 
 <Field>
 	<FieldLabel for={id}>{label}</FieldLabel>
 	{#if reveal}
 		<InputGroup>
-			<InputGroupInput
-				{id}
-				bind:value
-				type={shown ? 'text' : type}
-				aria-invalid={error ? true : undefined}
-				aria-describedby={describedBy}
-				{...rest}
-			/>
+			<InputGroupInput {id} bind:value type={shown ? 'text' : type} {...a11y.attrs} {...rest} />
 			<InputGroupAddon>
 				<InputGroupButton aria-controls={id} onclick={() => (shown = !shown)}>
 					{shown ? 'Hide' : 'Show'}
@@ -54,19 +53,12 @@
 			</InputGroupAddon>
 		</InputGroup>
 	{:else}
-		<Input
-			{id}
-			bind:value
-			{type}
-			aria-invalid={error ? true : undefined}
-			aria-describedby={describedBy}
-			{...rest}
-		/>
+		<Input {id} bind:value {type} {...a11y.attrs} {...rest} />
 	{/if}
 	<!-- One line of guidance: the error takes the place of the hint. -->
 	{#if error}
-		<FieldError id="{id}-error">{error}</FieldError>
+		<FieldError id={a11y.errorId}>{error}</FieldError>
 	{:else if hint}
-		<FieldDescription id="{id}-hint">{hint}</FieldDescription>
+		<FieldDescription id={a11y.hintId}>{hint}</FieldDescription>
 	{/if}
 </Field>

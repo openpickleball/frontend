@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { CODE_INPUT_MAX_LENGTH, parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
-	import { Field, FieldError, FieldLabel } from '#lib/ui/field/index.js';
+	import { Field, FieldError, FieldLabel, fieldA11y } from '#lib/ui/field/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 
 	let {
@@ -49,10 +49,8 @@
 		else input?.focus();
 	}
 
-	const describedBy = $derived(
-		[`${id}-help`, error ? `${id}-error` : null, code ? `${id}-preview` : null]
-			.filter(Boolean)
-			.join(' ')
+	const a11y = $derived(
+		fieldA11y({ id, error, before: [`${id}-help`], after: code ? [`${id}-preview`] : [] })
 	);
 </script>
 
@@ -82,12 +80,11 @@
 			spellcheck={false}
 			maxlength={CODE_INPUT_MAX_LENGTH}
 			placeholder="P-XXXX-XXXX"
-			aria-invalid={error ? 'true' : undefined}
-			aria-describedby={describedBy}
+			{...a11y.attrs}
 			onblur={() => (touched = true)}
 		/>
 		{#if error}
-			<FieldError id="{id}-error">{error}</FieldError>
+			<FieldError id={a11y.errorId}>{error}</FieldError>
 		{/if}
 		<p id="{id}-preview" class="min-h-6 text-base text-muted" role="status">
 			{#if code}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FieldLegend, FieldSet } from '#lib/ui/field/index.js';
 	import { RadioGroup, RadioGroupItem } from '#lib/ui/radio-group/index.js';
 
 	let {
@@ -7,7 +8,7 @@
 		options,
 		value = $bindable()
 	}: {
-		/** Names the radio group, and the id its label uses. */
+		/** Names the radio group. */
 		name: string;
 		label: string;
 		options: readonly { value: string; label: string }[];
@@ -15,13 +16,11 @@
 	} = $props();
 </script>
 
-<div class="grid gap-2">
-	<span id="{name}-label" class="text-base leading-snug font-semibold text-secondary">
-		{label}
-	</span>
-	<RadioGroup bind:value {name} orientation="horizontal" aria-labelledby="{name}-label">
+<FieldSet>
+	<FieldLegend variant="label">{label}</FieldLegend>
+	<RadioGroup bind:value {name} orientation="horizontal">
 		{#each options as option (option.value)}
 			<RadioGroupItem value={option.value}>{option.label}</RadioGroupItem>
 		{/each}
 	</RadioGroup>
-</div>
+</FieldSet>
