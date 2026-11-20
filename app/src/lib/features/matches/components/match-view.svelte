@@ -5,6 +5,7 @@
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import WifiOffIcon from '@lucide/svelte/icons/wifi-off';
 	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
+	import CopyIcon from '@lucide/svelte/icons/copy';
 	import { resolve } from '$app/paths';
 	import { isAppError } from '#lib/api/index.js';
 	import {
@@ -123,6 +124,22 @@
 		if (myCode.status === 'ready' && code) untrack(() => void load());
 	});
 
+	// The record page hands the match over, and this page says once that the player just recorded it.
+	let justRecorded = $state(false);
+	$effect(() => {
+		const current = code;
+		untrack(() => (justRecorded = current ? matchCache.takeRecorded(current) : false));
+	});
+
+	async function copyCode(text: string) {
+		try {
+			await navigator.clipboard.writeText(text);
+			toast('Match code copied');
+		} catch {
+			toast("Couldn't copy. Select the code and copy it by hand.");
+		}
+	}
+
 	let busy = $state<MatchAction | null>(null);
 	let error = $state<string | null>(null);
 	let disputeOpen = $state(false);
@@ -239,9 +256,13 @@
 		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match))}</p>
 		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
 			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
-			<span class="font-display text-sm text-muted"
+			<span class="font-display text-base text-muted"
 				><span class="sr-only">Match code </span>{match.code}</span
 			>
+			<Button variant="outline" size="sm" onclick={() => copyCode(match.code)}>
+				<CopyIcon aria-hidden="true" />
+				Copy code
+			</Button>
 		</div>
 	</div>
 
@@ -249,7 +270,14 @@
 		<Scoreboard {match} {you} />
 	{/snippet}
 	{#snippet status()}
-		<StatusPanel {match} {busy} {error} onconfirm={() => act('confirm')} ondispute={openDispute} />
+		<StatusPanel
+			{match}
+			{busy}
+			{error}
+			recorded={justRecorded}
+			onconfirm={() => act('confirm')}
+			ondispute={openDispute}
+		/>
 	{/snippet}
 
 	<!-- When the player has something to do, the buttons come before the scoreboard. -->

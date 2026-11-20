@@ -72,11 +72,12 @@
 			<span class="min-w-0 truncate {row.won ? 'font-semibold text-secondary' : 'text-muted'}"
 				>{row.names}</span
 			>
-			<span class="flex gap-1 tabular-nums">
+			<span class="flex divide-x divide-line tabular-nums">
 				{#each row.scores as score, index (index)}
 					<span
-						class="min-w-8 text-right {score.won ? 'font-semibold text-secondary' : 'text-muted'}"
-						>{score.points}</span
+						class="min-w-10 px-2 text-right {score.won
+							? 'font-semibold text-secondary'
+							: 'text-muted'}">{score.points}</span
 					>
 				{/each}
 			</span>

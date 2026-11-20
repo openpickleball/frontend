@@ -131,8 +131,10 @@ export async function disputeMatch(
 /**
  * Seed the app-wide cache with a match the player just recorded. Pass the match as the API last
  * returned it (after the confirm for the player's own team, Decision Q4), so the match detail
- * shows where it stands. Call it after `POST matches/` succeeds, before going to the match.
+ * shows where it stands, and says once that the player just recorded it. Call it after
+ * `POST matches/` succeeds, before going to the match.
  */
 export function rememberMatch(match: Match, cache: MatchCache = matchCache): void {
 	cache.remember(match);
+	cache.markRecorded(match.code);
 }

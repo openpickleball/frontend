@@ -1,4 +1,4 @@
-import { SvelteMap } from 'svelte/reactivity';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import type { Match, MatchCode, PlayerCode } from '#lib/domain/index.js';
 
 /** What a player can do to a match they played in. */
@@ -27,6 +27,8 @@ export class MatchCache {
 	// Reactive, so a read that found nothing (no owner yet) reruns once the first write sets it.
 	#owner = $state<string | null>(null);
 	#currentOwner: () => string | null;
+	// Matches the player has just recorded, until their page says so once.
+	#recorded = new SvelteSet<MatchCode>();
 
 	/**
 	 * `currentOwner` says who is signed in, for example `ownerKey(session.email, myCode.code)`. With
@@ -75,7 +77,18 @@ export class MatchCache {
 		this.#matches.delete(code);
 	}
 
+	/** Note that the player just recorded this match, so its page can say so once. */
+	markRecorded(code: MatchCode): void {
+		this.#recorded.add(code);
+	}
+
+	/** True once after `markRecorded`, then false. Not reactive: call it from an effect, not a `$derived`. */
+	takeRecorded(code: MatchCode): boolean {
+		return this.#recorded.delete(code);
+	}
+
 	reset(): void {
+		this.#recorded.clear();
 		this.#matches.clear();
 		this.#owner = null;
 	}

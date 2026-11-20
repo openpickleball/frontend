@@ -80,6 +80,23 @@ describe('MatchView', () => {
 		await expect.element(page.getByText('Played', { exact: true })).not.toBeInTheDocument();
 	});
 
+	it('says once that the player just recorded the match', async () => {
+		matchCache.markRecorded(code());
+		const first = await render(MatchView, { code: code() });
+		await expect.element(page.getByText('You just recorded this match.')).toBeVisible();
+		first.unmount();
+		await render(MatchView, { code: code() });
+		await expect.element(page.getByText('You just recorded this match.')).not.toBeInTheDocument();
+	});
+
+	it('copies the match code', async () => {
+		// The toast has no Toaster in this test, so only the copy is checked.
+		const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+		await render(MatchView, { code: code() });
+		await page.getByRole('button', { name: 'Copy code' }).click();
+		expect(write).toHaveBeenCalledWith(code());
+	});
+
 	it('puts the status panel before the score when the player has to confirm', async () => {
 		const screen = await render(MatchView, { code: code() });
 		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
