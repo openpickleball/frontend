@@ -29,6 +29,7 @@ describe('index files', () => {
 				'input',
 				'label',
 				'loading-state',
+				'sidebar',
 				'skeleton',
 				'sonner',
 				'spinner',

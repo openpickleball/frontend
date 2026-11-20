@@ -71,8 +71,15 @@ test('from 1024px the side bar is the banner, with the theme toggle and the one 
 	await signInAsPlayer(page);
 	await page.goto('/profile');
 	const bar = page.getByRole('banner');
-	await expect(bar.getByRole('navigation', { name: 'Main' })).toBeVisible();
-	await expect(bar.getByRole('button', { name: /^Switch to/ })).toBeVisible();
+	await expect(bar).toHaveCount(1);
+	expect((await bar.boundingBox())?.width).toBe(256);
+	const nav = bar.getByRole('navigation', { name: 'Main' });
+	await expect(nav).toBeVisible();
+	await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+	await expect(nav.getByRole('link', { name: 'Profile' })).toHaveAttribute('aria-current', 'page');
+	const toggle = bar.getByRole('button', { name: /^Switch to/ });
+	await expect(toggle).toBeVisible();
+	expect((await toggle.boundingBox())?.width).toBeGreaterThanOrEqual(44);
 	await expect(bar.getByRole('button', { name: 'Sign out' })).toBeVisible();
 	// The Account section is for phones, so there is one Sign out on screen.
 	await expect(

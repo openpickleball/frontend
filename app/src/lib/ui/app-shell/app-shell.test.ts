@@ -82,14 +82,25 @@ describe('AppShell', () => {
 		}
 		for (const nav of navs(shell('/account/login'))) {
 			expect(nav).not.toContain('aria-current');
+			expect(nav).not.toContain('data-active=');
 		}
+	});
+
+	it('builds the side nav on the Sidebar parts and highlights only the current page', () => {
+		const [side] = navs(shell('/matches'));
+		const body = shell('/matches');
+		expect(body).toMatch(/<header[^>]*>\s*(<!--[^>]*-->)*<div data-slot="sidebar"/);
+		expect(side).toContain('data-slot="sidebar-menu"');
+		expect(side.match(/data-slot="sidebar-menu-button"/g)).toHaveLength(NAV_ITEMS.length);
+		expect(side.match(/data-active=/g)).toHaveLength(1);
+		expect(side).toMatch(/data-active="true"[^>]*href="\/matches"/);
 	});
 
 	it('shows the top bar and tab bar on mobile and the side nav from 1024px', () => {
 		const body = shell('/');
 		expect(body).toMatch(/<header[^>]*lg:hidden/);
 		expect(body).toMatch(/<nav[^>]*fixed[^>]*lg:hidden/);
-		expect(body).toMatch(/<header[^>]*hidden[^>]*lg:flex/);
+		expect(body).toMatch(/<header[^>]*hidden[^>]*lg:block/);
 	});
 
 	it('puts the page in one main landmark, with a skip link to it', () => {
@@ -101,7 +112,7 @@ describe('AppShell', () => {
 
 	it('puts the side nav, its sign out and its theme toggle inside a banner landmark', () => {
 		const body = shell('/');
-		const side = body.match(/<header[^>]*lg:flex[\s\S]*?<\/header>/)![0];
+		const side = body.match(/<header[^>]*lg:block[\s\S]*?<\/header>/)![0];
 		expect(side).toContain('<nav');
 		expect(side).toContain('aria-label="Switch to');
 		expect(body).not.toContain('<aside');
