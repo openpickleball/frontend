@@ -11,7 +11,7 @@
  *   sign-up: 401 with a pending `verify_email` flow. We never reveal which it was.
  * - A 401 that carries `flows` is session state, not an error. A pending `verify_email`
  *   flow means "check your email".
- * - Too many logins is a 429, which `toAppError` turns into code `throttled`.
+ * - Too many logins is a 429, which `toAppError` turns into kind `throttled`.
  */
 import {
 	allauthParams,

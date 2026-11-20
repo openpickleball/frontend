@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { AppError } from '#lib/api/index.js';
+import { AppError } from '#lib/api/index.js';
 import { buildCode, parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
 import { createMyCode, type MyCode } from './my-code.svelte.js';
 import { createCodeStore, storageKey, type CodeStorage } from './storage.js';
@@ -19,7 +19,7 @@ function memoryStorage(): CodeStorage & { data: Map<string, string> } {
 }
 
 function appError(kind: AppError['kind'], status: number | null): AppError {
-	return { kind, status, code: 'x', message: 'x', fields: {} };
+	return new AppError({ kind, status, code: 'x', message: 'x', fields: {} });
 }
 
 const SERVER_PLAYER: MyPlayer = { code: CODE_A, displayName: 'Sample Player' };

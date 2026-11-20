@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { AppError } from '#lib/api/index.js';
+import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { parseMatchCode, parsePlayerCode, type Match, type PlayerCode } from '#lib/domain/index.js';
 import { PLAYERS } from '#lib/mocks/fixtures.js';
 import { createDraftStore, type DraftStore } from '../draft.js';
@@ -14,15 +14,15 @@ function code(key: string): PlayerCode {
 }
 const tamsin = code('tamsin');
 
-function appError(overrides: Partial<AppError>): AppError {
-	return {
+function appError(overrides: Partial<AppErrorFields>): AppError {
+	return new AppError({
 		kind: 'validation',
 		status: 422,
 		code: 'validation_error',
 		message: 'The request is not valid.',
 		fields: {},
 		...overrides
-	};
+	});
 }
 
 const matchCode = (() => {
@@ -280,6 +280,27 @@ describe('RecordForm', () => {
 		submit.mockResolvedValue(recordedResult);
 		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 		await vi.waitFor(() => expect(onrecorded).toHaveBeenCalledOnce());
+	});
+
+	it('asks the player to wait and keeps the form filled after too many requests', async () => {
+		const submit = vi.fn().mockRejectedValue(
+			appError({
+				kind: 'throttled',
+				status: 429,
+				code: 'throttled',
+				message: 'Too many attempts. Wait a moment and try again.'
+			})
+		);
+		const { screen, onrecorded } = await setup(submit);
+		await fillDoubles(screen);
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+
+		await expect.element(screen.getByText("We couldn't record this match")).toBeVisible();
+		await expect
+			.element(screen.getByText('Too many attempts. Wait a moment and try again.'))
+			.toBeVisible();
+		await expect.element(screen.getByLabelText("Game 1, your team's points")).toHaveValue('11');
+		expect(onrecorded).not.toHaveBeenCalled();
 	});
 
 	it('links a duplicate to the earlier match', async () => {

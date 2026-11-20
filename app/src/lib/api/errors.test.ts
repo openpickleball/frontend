@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAppError, networkError, toAppError } from './errors';
+import { AppError, isAppError, networkError, timeoutError, toAppError } from './errors';
 
 function res(status: number, body?: string, contentType = 'application/json'): Response {
 	return new Response(body, { status, headers: { 'Content-Type': contentType } });
@@ -19,16 +19,18 @@ describe('toAppError: ninja errors', () => {
 			},
 			res(422)
 		);
-		expect(error).toEqual({
-			kind: 'validation',
-			status: 422,
-			code: 'validation_error',
-			message: 'The request is not valid.',
-			fields: {
-				'games.1': ['Scores cannot be tied.', 'Win by two.'],
-				'team_a.0': ['Unknown player.']
-			}
-		});
+		expect(error).toEqual(
+			new AppError({
+				kind: 'validation',
+				status: 422,
+				code: 'validation_error',
+				message: 'The request is not valid.',
+				fields: {
+					'games.1': ['Scores cannot be tied.', 'Win by two.'],
+					'team_a.0': ['Unknown player.']
+				}
+			})
+		);
 	});
 
 	it('maps the 401 unauthorized body', () => {
@@ -136,9 +138,20 @@ describe('toAppError: ninja errors', () => {
 		expect(error).toMatchObject({ kind: 'conflict', status: 409, code: 'conflict' });
 	});
 
-	it('maps a ninja 429 to server with the throttled code', () => {
+	it('maps a ninja 429 to the throttled kind', () => {
 		const error = toAppError({ code: 'throttled', message: 'Slow down.', errors: [] }, res(429));
-		expect(error).toMatchObject({ kind: 'server', status: 429, code: 'throttled' });
+		expect(error).toMatchObject({
+			kind: 'throttled',
+			status: 429,
+			code: 'throttled',
+			message: 'Too many attempts. Wait a moment and try again.'
+		});
+	});
+
+	it('gives any 429 the throttled kind and message, whatever its code', () => {
+		const error = toAppError({ code: 'rate_limited', message: 'Nope.', errors: [] }, res(429));
+		expect(error).toMatchObject({ kind: 'throttled', code: 'rate_limited' });
+		expect(error.message).toBe('Too many attempts. Wait a moment and try again.');
 	});
 });
 
@@ -154,13 +167,15 @@ describe('toAppError: allauth errors', () => {
 			},
 			res(400)
 		);
-		expect(error).toEqual({
-			kind: 'validation',
-			status: 400,
-			code: 'invalid',
-			message: 'Enter a valid email address.',
-			fields: { email: ['Enter a valid email address.'], password: ['Too short.'] }
-		});
+		expect(error).toEqual(
+			new AppError({
+				kind: 'validation',
+				status: 400,
+				code: 'invalid',
+				message: 'Enter a valid email address.',
+				fields: { email: ['Enter a valid email address.'], password: ['Too short.'] }
+			})
+		);
 	});
 
 	it('keeps an error with no param as the message only', () => {
@@ -206,13 +221,29 @@ describe('toAppError: allauth errors', () => {
 		expect(error).toMatchObject({ kind: 'conflict', status: 409 });
 	});
 
-	it('maps an allauth {status: 429} to a throttled server error', () => {
+	it('maps an allauth {status: 429} to the throttled kind', () => {
 		const error = toAppError({ status: 429 }, res(429));
 		expect(error).toMatchObject({
-			kind: 'server',
+			kind: 'throttled',
 			status: 429,
 			code: 'throttled',
 			message: 'Too many attempts. Wait a moment and try again.'
+		});
+	});
+
+	it('maps an allauth login lockout to the throttled kind and keeps its text', () => {
+		const error = toAppError(
+			{
+				status: 400,
+				errors: [{ code: 'too_many_login_attempts', message: 'Too many failed login attempts.' }]
+			},
+			res(400)
+		);
+		expect(error).toMatchObject({
+			kind: 'throttled',
+			status: 400,
+			code: 'too_many_login_attempts',
+			message: 'Too many failed login attempts.'
 		});
 	});
 
@@ -270,9 +301,9 @@ describe('toAppError: non-JSON responses', () => {
 		expect(toAppError({ detail: 'x' }, res(500))).toMatchObject({ kind: 'server', status: 500 });
 	});
 
-	it('maps a 429 with no JSON to server throttled', () => {
+	it('maps a 429 with no JSON to the throttled kind', () => {
 		expect(toAppError('Too many', res(429, 'Too many', 'text/plain'))).toMatchObject({
-			kind: 'server',
+			kind: 'throttled',
 			code: 'throttled'
 		});
 	});
@@ -282,26 +313,30 @@ describe('toAppError: failures with no response', () => {
 	it('keeps the network error the client made from a fetch rejection', () => {
 		const cause = new TypeError('Failed to fetch');
 		const error = toAppError(networkError(cause));
-		expect(error).toEqual({
-			kind: 'network',
-			status: null,
-			code: 'network_error',
-			message: "We can't reach the server. Check your connection and try again.",
-			fields: {},
-			cause
-		});
+		expect(error).toEqual(
+			new AppError({
+				kind: 'network',
+				status: null,
+				code: 'network_error',
+				message: "We can't reach the server. Check your connection and try again.",
+				fields: {},
+				cause
+			})
+		);
 	});
 
 	it('maps a body that is not JSON to server, not network', () => {
 		const cause = new SyntaxError('Unexpected token < in JSON');
-		expect(toAppError(cause)).toEqual({
-			kind: 'server',
-			status: null,
-			code: 'bad_response',
-			message: 'Something went wrong on our side. Wait a moment, then try again.',
-			fields: {},
-			cause
-		});
+		expect(toAppError(cause)).toEqual(
+			new AppError({
+				kind: 'server',
+				status: null,
+				code: 'bad_response',
+				message: 'Something went wrong on our side. Wait a moment, then try again.',
+				fields: {},
+				cause
+			})
+		);
 	});
 
 	it('maps an aborted request to server with the aborted code', () => {
@@ -319,5 +354,43 @@ describe('toAppError: failures with no response', () => {
 		expect(toAppError(original)).toBe(original);
 		expect(isAppError(original)).toBe(true);
 		expect(isAppError({ kind: 'x' })).toBe(false);
+	});
+});
+
+describe('AppError', () => {
+	it('is a real Error with a stack, a name and the cause', () => {
+		const cause = new TypeError('Failed to fetch');
+		const error = networkError(cause);
+		expect(error).toBeInstanceOf(Error);
+		expect(error).toBeInstanceOf(AppError);
+		expect(error.name).toBe('AppError');
+		expect(error.stack).toContain('AppError');
+		expect(error.cause).toBe(cause);
+	});
+
+	it('is what every failure becomes, with or without a response', () => {
+		expect(toAppError({ code: 'x', message: 'y', errors: [] }, res(500))).toBeInstanceOf(AppError);
+		expect(toAppError({ status: 400, errors: [] }, res(400))).toBeInstanceOf(AppError);
+		expect(toAppError('<html>', res(502, '<html>', 'text/html'))).toBeInstanceOf(AppError);
+		expect(toAppError(new SyntaxError('bad'))).toBeInstanceOf(AppError);
+	});
+
+	it('turns a plain object with the same fields into a real AppError', () => {
+		const plain = { kind: 'network', status: null, code: 'x', message: 'm', fields: {} } as const;
+		expect(isAppError(plain)).toBe(true);
+		const error = toAppError(plain);
+		expect(error).toBeInstanceOf(AppError);
+		expect(error).toMatchObject(plain);
+	});
+});
+
+describe('timeoutError', () => {
+	it('is a network error with its own code and a message that says what to do', () => {
+		expect(timeoutError()).toMatchObject({
+			kind: 'network',
+			status: null,
+			code: 'timeout',
+			message: 'The server is taking too long to answer. Check your connection and try again.'
+		});
 	});
 });

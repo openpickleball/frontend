@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { AppError } from '#lib/api/index.js';
+import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { session } from '../session.svelte.js';
 import { login } from '../services.js';
 import LoginForm from './login-form.svelte';
@@ -9,15 +9,15 @@ import LoginForm from './login-form.svelte';
 vi.mock('../services.js', () => ({ login: vi.fn() }));
 const mockedLogin = vi.mocked(login);
 
-function appError(overrides: Partial<AppError>): AppError {
-	return {
+function appError(overrides: Partial<AppErrorFields>): AppError {
+	return new AppError({
 		kind: 'validation',
 		status: 400,
 		code: 'error',
 		message: 'Something went wrong.',
 		fields: {},
 		...overrides
-	};
+	});
 }
 
 beforeEach(() => {
@@ -120,7 +120,7 @@ describe('LoginForm', () => {
 	it('shows the throttled message from the backend', async () => {
 		mockedLogin.mockRejectedValue(
 			appError({
-				kind: 'server',
+				kind: 'throttled',
 				status: 429,
 				code: 'throttled',
 				message: 'Too many attempts. Wait a moment and try again.'

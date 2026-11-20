@@ -6,7 +6,7 @@
  * the match still exists: the result says so instead of throwing, and the caller sends
  * the player to the match page anyway.
  */
-import { api, toAppError, unwrap, type Api, type AppError } from '#lib/api/index.js';
+import { AppError, api, toAppError, unwrap, type Api } from '#lib/api/index.js';
 import {
 	groupIssues,
 	parseMatchCode,
@@ -40,7 +40,7 @@ function localError(
 	message: string,
 	fields: AppError['fields'] = {}
 ): AppError {
-	return { kind, status: null, code, message, fields };
+	return new AppError({ kind, status: null, code, message, fields });
 }
 
 /**

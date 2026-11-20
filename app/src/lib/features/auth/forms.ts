@@ -1,4 +1,4 @@
-import { isAppError, type AppError } from '#lib/api/index.js';
+import { AppError, isAppError } from '#lib/api/index.js';
 
 /** The first message for each field, from a Zod result's `issues`. */
 export function issueMessages(
@@ -23,14 +23,16 @@ export function serverMessages(error: AppError): Record<string, string> {
 
 /** Anything thrown by a service, as an `AppError`. Other errors become a plain server error. */
 export function asAppError(cause: unknown): AppError {
-	if (isAppError(cause)) return cause;
-	return {
+	if (cause instanceof AppError) return cause;
+	if (isAppError(cause)) return new AppError(cause);
+	return new AppError({
 		kind: 'server',
 		status: null,
 		code: 'unexpected',
 		message: 'Something went wrong. Try again.',
-		fields: {}
-	};
+		fields: {},
+		cause
+	});
 }
 
 /** Move focus to the first field in `order` that has an error, once the page has updated. */
@@ -41,12 +43,9 @@ export function focusFirstError(errors: Record<string, string>, order: string[],
 }
 
 /**
- * Too many attempts. allauth answers a rate limit with a bare `{"status":429}`, which
- * `toAppError` maps to code `throttled` with the app's message. A login lockout is a 400 with
- * code `too_many_login_attempts`.
+ * Too many attempts. `toAppError` gives both kinds of limit the `throttled` kind: a 429 (allauth
+ * answers a bare `{"status":429}`) and a login lockout (a 400 with code `too_many_login_attempts`).
  */
 export function isThrottled(error: AppError): boolean {
-	return (
-		error.status === 429 || error.code === 'throttled' || error.code === 'too_many_login_attempts'
-	);
+	return error.kind === 'throttled';
 }
