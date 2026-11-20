@@ -74,7 +74,7 @@ describe('ResetForm', () => {
 
 		const heading = screen.getByRole('heading', { name: 'Password changed' });
 		await expect.element(heading).toHaveFocus();
-		await expect.element(screen.getByText('Your password is changed.')).toBeVisible();
+		await expect.element(screen.getByText('Sign in with your new password.')).toBeVisible();
 		await expect.element(screen.getByRole('link', { name: 'Sign in' })).toBeVisible();
 		await expect.poll(() => document.title).toBe('Password changed · OPEN Pickleball');
 		expect(mockedReset).toHaveBeenCalledWith(KEY, 'a-long-enough-pass');

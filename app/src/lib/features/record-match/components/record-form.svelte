@@ -10,7 +10,10 @@
 		type PlayerCode,
 		type ScoringType
 	} from '#lib/domain/index.js';
+	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { FieldError } from '#lib/ui/field/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { Label } from '#lib/ui/label/index.js';
@@ -18,8 +21,6 @@
 	import { RecordForm } from '../form.svelte.js';
 	import { searchPlayers, type SearchFn } from '../search.js';
 	import { submitMatch, type SubmitResult } from '../service.js';
-	import FieldError from './field-error.svelte';
-	import Notice from './notice.svelte';
 	import PlayerSlot from './player-slot.svelte';
 	import Segmented from './segmented.svelte';
 
@@ -63,8 +64,8 @@
 		else drafts.write(own, draft);
 	});
 
-	let summaryBox = $state<HTMLElement | null>(null);
-	let failureBox = $state<HTMLElement | null>(null);
+	let summaryBox = $state<HTMLDivElement | null>(null);
+	let failureBox = $state<HTMLDivElement | null>(null);
 
 	const errors = $derived(form.errors);
 	const summary = $derived(form.submitted ? form.summary : []);
@@ -127,81 +128,80 @@
 <form {onsubmit} novalidate class="grid gap-2">
 	{#if summary.length > 0}
 		<div class="mt-8">
-			<Notice
-				id="error-summary"
-				bind:element={summaryBox}
-				title={summary.length === 1
-					? 'Fix 1 thing to record this match'
-					: `Fix ${summary.length} things to record this match`}
-			>
-				<ul class="grid gap-1">
-					{#each summary as entry (entry.key)}
-						<li>
-							{#if entry.target}
-								{@const target = entry.target}
-								<a
-									href="#{target}"
-									class="underline underline-offset-4"
-									onclick={(event) => focusField(event, target)}>{entry.message}</a
-								>
-							{:else}
-								{entry.message}
-							{/if}
-						</li>
-					{/each}
-				</ul>
-			</Notice>
+			<!-- Focusable, so a failed submit can move focus here. -->
+			<Alert variant="destructive" id="error-summary" bind:ref={summaryBox} tabindex={-1}>
+				<CircleAlertIcon aria-hidden="true" />
+				<AlertTitle>
+					{summary.length === 1
+						? 'Fix 1 thing to record this match'
+						: `Fix ${summary.length} things to record this match`}
+				</AlertTitle>
+				<AlertDescription>
+					<ul class="grid gap-1 text-secondary">
+						{#each summary as entry (entry.key)}
+							<li>
+								{#if entry.target}
+									{@const target = entry.target}
+									<a
+										href="#{target}"
+										class="underline underline-offset-4"
+										onclick={(event) => focusField(event, target)}>{entry.message}</a
+									>
+								{:else}
+									{entry.message}
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</AlertDescription>
+			</Alert>
 		</div>
 	{/if}
 
-	{#if form.failure?.kind === 'offline'}
+	{#if form.failure}
 		<div class="mt-8">
-			<Notice bind:element={failureBox} title={form.failure.message}>
-				<p class="text-muted">
-					Everything you entered is still here. Check your matches before you try again, so the same
-					match is not recorded twice. Then connect to the internet and send it again.
-				</p>
-			</Notice>
-		</div>
-	{:else if form.failure?.kind === 'duplicate'}
-		<div class="mt-8">
-			<Notice bind:element={failureBox} title={form.failure.message}>
-				{#if form.failure.matchCode}
-					<p>
-						<a
-							href={resolve('/matches/[code]', { code: form.failure.matchCode })}
-							class="font-semibold underline underline-offset-4">See the match</a
-						>
-					</p>
-					<p class="text-muted">You may still need to confirm it.</p>
-				{:else}
-					<p class="text-muted">
-						Look in <a
-							href={resolve(ROUTES.matches)}
-							class="font-semibold underline underline-offset-4">your matches</a
-						> to find it. You may still need to confirm it.
-					</p>
-				{/if}
-			</Notice>
-		</div>
-	{:else if form.failure?.kind === 'forbidden'}
-		<div class="mt-8">
-			<Notice bind:element={failureBox} title={form.failure.message}>
-				<p class="text-muted">Everything you entered is still here.</p>
-				{#if onchangecode}
-					<div>
+			<Alert variant="destructive" bind:ref={failureBox} tabindex={-1}>
+				<CircleAlertIcon aria-hidden="true" />
+				<AlertTitle>
+					{form.failure.kind === 'other' ? "We couldn't record this match" : form.failure.message}
+				</AlertTitle>
+				<AlertDescription class="grid gap-1.5">
+					{#if form.failure.kind === 'offline'}
+						<p>
+							Everything you entered is still here. Check your matches before you try again, so the
+							same match is not recorded twice. Then connect to the internet and send it again.
+						</p>
+					{:else if form.failure.kind === 'duplicate'}
+						{#if form.failure.matchCode}
+							<p>
+								<a
+									href={resolve('/matches/[code]', { code: form.failure.matchCode })}
+									class="font-semibold text-secondary underline underline-offset-4">See the match</a
+								>
+							</p>
+							<p>You may still need to confirm it.</p>
+						{:else}
+							<p>
+								Look in <a
+									href={resolve(ROUTES.matches)}
+									class="font-semibold text-secondary underline underline-offset-4">your matches</a
+								> to find it. You may still need to confirm it.
+							</p>
+						{/if}
+					{:else if form.failure.kind === 'forbidden'}
+						<p>Everything you entered is still here.</p>
+					{:else}
+						<p>{form.failure.message}</p>
+					{/if}
+				</AlertDescription>
+				{#if form.failure.kind === 'forbidden' && onchangecode}
+					<AlertAction>
 						<Button type="button" variant="outline" size="sm" onclick={onchangecode}>
 							Change my code
 						</Button>
-					</div>
+					</AlertAction>
 				{/if}
-			</Notice>
-		</div>
-	{:else if form.failure?.kind === 'other'}
-		<div class="mt-8">
-			<Notice bind:element={failureBox} title="We couldn't record this match">
-				<p class="text-muted">{form.failure.message}</p>
-			</Notice>
+			</Alert>
 		</div>
 	{/if}
 
@@ -235,7 +235,7 @@
 					onblur={() => form.touch('played_on')}
 				/>
 				{#if errors.played_on}
-					<FieldError id="played-on-error" message={first('played_on')} />
+					<FieldError id="played-on-error">{first('played_on')}</FieldError>
 				{:else if form.dateHint}
 					<p id="played-on-hint" class="text-base text-muted">{form.dateHint}</p>
 				{/if}
@@ -378,12 +378,12 @@
 						{/if}
 					</div>
 					{#if gameError}
-						<FieldError id={gameErrorId(index)} message={gameError} />
+						<FieldError id={gameErrorId(index)}>{gameError}</FieldError>
 					{/if}
 				</div>
 			{/each}
 			{#if errors.games}
-				<FieldError id="games-error" message={first('games')} />
+				<FieldError id="games-error">{first('games')}</FieldError>
 			{/if}
 		</div>
 		<div>

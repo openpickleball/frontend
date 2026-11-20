@@ -2,6 +2,9 @@
 	import { onDestroy, tick, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+	import WifiOffIcon from '@lucide/svelte/icons/wifi-off';
+	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { resolve } from '$app/paths';
 	import { isAppError } from '#lib/api/index.js';
 	import {
@@ -36,7 +39,6 @@
 	import { confirmMatch, disputeMatch, getMatch } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import DisputeDialog from './dispute-dialog.svelte';
-	import Notice from './notice.svelte';
 	import Scoreboard from './scoreboard.svelte';
 	import StatusPanel from './status-panel.svelte';
 
@@ -284,15 +286,26 @@
 {:else if code && lookup === 'error'}
 	<h1 class="page-title">Match</h1>
 	<div class="mt-8">
-		<Notice kind={offline ? 'offline' : 'error'} title="This match didn't load." onretry={load}>
+		<Alert variant={offline ? 'default' : 'destructive'}>
 			{#if offline}
-				It needs a connection. Check it, then try again.
-			{:else if throttled}
-				Too many requests in a short time. Wait a minute, then try again.
+				<WifiOffIcon aria-hidden="true" />
 			{:else}
-				Something went wrong on our side. Wait a moment, then try again.
+				<CircleAlertIcon aria-hidden="true" />
 			{/if}
-		</Notice>
+			<AlertTitle>This match didn't load.</AlertTitle>
+			<AlertDescription>
+				{#if offline}
+					It needs a connection. Check it, then try again.
+				{:else if throttled}
+					Too many requests in a short time. Wait a minute, then try again.
+				{:else}
+					Something went wrong on our side. Wait a moment, then try again.
+				{/if}
+			</AlertDescription>
+			<AlertAction
+				><Button variant="outline" size="sm" onclick={load}>Try again</Button></AlertAction
+			>
+		</Alert>
 	</div>
 {:else}
 	<Empty class="mt-4">

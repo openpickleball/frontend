@@ -4,6 +4,9 @@
 	import { ROUTES, needsViewerConfirmation, waitingOnOtherTeam } from '#lib/domain/index.js';
 	import { myCode } from '#lib/features/players/index.js';
 	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+	import WifiOffIcon from '@lucide/svelte/icons/wifi-off';
+	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { matchCountLabel } from '../format.js';
@@ -15,7 +18,6 @@
 	import EmptyMatches from './empty-matches.svelte';
 	import LoadError from './load-error.svelte';
 	import MatchList from './match-list.svelte';
-	import Notice from './notice.svelte';
 
 	/** How many recent matches the home screen shows. "All matches" has the rest. */
 	const RECENT = 5;
@@ -110,16 +112,27 @@
 			{:else}
 				{#if awaitingFailed}
 					<div class="mt-12" data-testid="needs-error">
-						<Notice
-							kind={awaiting.offline ? 'offline' : 'error'}
-							title="We couldn't check what needs your confirmation."
-							onretry={() => {
-								retryingAwaiting = true;
-								void awaiting.load(you);
-							}}
-						>
-							The rest of your matches are below. Try again to see what needs you.
-						</Notice>
+						<Alert variant={awaiting.offline ? 'default' : 'destructive'}>
+							{#if awaiting.offline}
+								<WifiOffIcon aria-hidden="true" />
+							{:else}
+								<CircleAlertIcon aria-hidden="true" />
+							{/if}
+							<AlertTitle>We couldn't check what needs your confirmation.</AlertTitle>
+							<AlertDescription>
+								The rest of your matches are below. Try again to see what needs you.
+							</AlertDescription>
+							<AlertAction>
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={() => {
+										retryingAwaiting = true;
+										void awaiting.load(you);
+									}}>Try again</Button
+								>
+							</AlertAction>
+						</Alert>
 					</div>
 				{:else if needs.length > 0}
 					<section class="mt-12" aria-labelledby="needs-title">

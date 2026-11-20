@@ -43,10 +43,8 @@ describe('SignupForm', () => {
 		await expect.element(screen.getByText('Use at least 8 characters.')).toBeVisible();
 		const password = screen.getByLabelText('Password', { exact: true });
 		await expect.element(password).toHaveAttribute('aria-invalid', 'true');
-		// The hint stays tied to the field next to the error.
-		await expect
-			.element(password)
-			.toHaveAttribute('aria-describedby', 'signup-password-hint signup-password-error');
+		// The error takes the hint's place, and the field points at it.
+		await expect.element(password).toHaveAttribute('aria-describedby', 'signup-password-error');
 		expect(mockedSignup).not.toHaveBeenCalled();
 	});
 

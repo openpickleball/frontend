@@ -31,9 +31,7 @@
 	} = $props();
 
 	let shown = $state(false);
-	const describedBy = $derived(
-		[hint ? `${id}-hint` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined
-	);
+	const describedBy = $derived((error ? `${id}-error` : hint ? `${id}-hint` : '') || undefined);
 </script>
 
 <Field>
@@ -65,10 +63,10 @@
 			{...rest}
 		/>
 	{/if}
-	{#if hint}
-		<FieldDescription id="{id}-hint">{hint}</FieldDescription>
-	{/if}
+	<!-- One line of guidance: the error takes the place of the hint. -->
 	{#if error}
 		<FieldError id="{id}-error">{error}</FieldError>
+	{:else if hint}
+		<FieldDescription id="{id}-hint">{hint}</FieldDescription>
 	{/if}
 </Field>

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { CODE_INPUT_MAX_LENGTH, parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Field, FieldError, FieldLabel } from '#lib/ui/field/index.js';
 	import { Input } from '#lib/ui/input/index.js';
-	import { Label } from '#lib/ui/label/index.js';
 
 	let {
 		onsave,
@@ -68,8 +68,8 @@
 		</p>
 	</div>
 
-	<div class="grid gap-2">
-		<Label for="{id}-input">Your OPEN code</Label>
+	<Field>
+		<FieldLabel for="{id}-input">Your OPEN code</FieldLabel>
 		<Input
 			id="{id}-input"
 			bind:ref={input}
@@ -87,13 +87,7 @@
 			onblur={() => (touched = true)}
 		/>
 		{#if error}
-			<p id="{id}-error" class="flex items-start gap-2 text-base text-danger" role="alert">
-				<span
-					class="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-danger text-xs leading-none font-bold text-primary"
-					aria-hidden="true">!</span
-				>
-				{error}
-			</p>
+			<FieldError id="{id}-error">{error}</FieldError>
 		{/if}
 		<p id="{id}-preview" class="min-h-6 text-base text-muted" role="status">
 			{#if code}
@@ -101,7 +95,7 @@
 				<span class="font-display text-secondary">{code}</span>
 			{/if}
 		</p>
-	</div>
+	</Field>
 
 	<div class="flex flex-wrap gap-3">
 		<Button type="submit">Save code</Button>
