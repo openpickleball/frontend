@@ -23,10 +23,8 @@ describe('index files', () => {
 				'empty',
 				'input',
 				'label',
-				'sheet',
 				'sonner',
-				'theme-toggle',
-				'toggle-group'
+				'theme-toggle'
 			])
 		);
 		for (const [path, mod] of Object.entries(indexes)) {

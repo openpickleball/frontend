@@ -14,7 +14,7 @@
  *   the API: the layout's own guard may not have redirected yet.
  * - `sessionEmail()`: the account email as a promise that waits for the session. Hand it to
  *   `setAccountEmailSource` (the root layout does).
- * - `SignOutButton`: a sign out button, for the profile page.
+ * - `SignOutButton`: a sign out button. The root layout shows it in the top bar and the side nav, and the profile page too.
  * - `onSignOut(listener)`: the root layout calls it once, so what the app keeps on this device
  *   (the saved player code) is deleted when the player signs out on purpose.
  * - `goAfterSignIn(searchParams)`: go to `next`, or home, once signed in. The sign-in and

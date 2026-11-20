@@ -35,25 +35,8 @@
  * When backend#124 and backend#53 ship, `api/provisional.ts` goes (frontend#35): switch
  * `services.ts` to the generated types. Nothing else here changes.
  */
-export { myCode, createMyCode, MyCode } from './my-code.svelte.js';
-export type {
-	MyCodeDeps,
-	MyCodeSource,
-	MyCodeStatus,
-	SaveError,
-	SaveResult
-} from './my-code.svelte.js';
-export { setAccountEmailSource, currentAccountEmail } from './account.js';
-export type { AccountEmailSource } from './account.js';
-export { createCodeStore, storageKey } from './storage.js';
-export type { CodeStorage, CodeStore } from './storage.js';
-export { fetchMyPlayer, fetchRatings } from './services.js';
-export { ProfileStats } from './profile-stats.svelte.js';
-export type { ProfileStatsDeps } from './profile-stats.svelte.js';
-export { isSampleMode, formatRating, toPlayerRatings } from './ratings.js';
-export type { MyPlayer, PlayerRatings, Rating } from './types.js';
-export { default as CodeEntry } from './code-entry.svelte';
-export { default as CodeCard } from './code-card.svelte';
-export { default as RatingsCard } from './ratings-card.svelte';
+export { myCode } from './my-code.svelte.js';
+export { setAccountEmailSource } from './account.js';
+export { isSampleMode } from './ratings.js';
 export { default as OwnCodeGate } from './own-code-gate.svelte';
 export { default as ProfileView } from './profile-view.svelte';

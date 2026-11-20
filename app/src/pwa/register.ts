@@ -4,17 +4,16 @@
  * because MSW owns the service worker in the mock modes and a page can't run two at one scope.
  */
 
+/** The caller has already checked that the API mock is off, because MSW owns the worker otherwise. */
 export type RegisterContext = {
-	/** `PUBLIC_API_MOCK`. */
-	mock: string;
 	/** Vite dev server. */
 	dev: boolean;
 	/** `'serviceWorker' in navigator`. */
 	supported: boolean;
 };
 
-export function shouldRegister({ mock, dev, supported }: RegisterContext): boolean {
-	return mock === 'off' && !dev && supported;
+export function shouldRegister({ dev, supported }: RegisterContext): boolean {
+	return !dev && supported;
 }
 
 /** Calls `onUpdate` with a function that applies the update, when a new worker is waiting. */

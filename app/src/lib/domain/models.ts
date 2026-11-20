@@ -1,6 +1,6 @@
 /**
  * Domain models: camelCase types the UI works with. The mappers from the API's
- * `MatchOut` and `ParticipantOut` (a later task) build these. Field names follow
+ * `MatchOut` and `ParticipantOut` (`mappers.ts`) build these. Field names follow
  * the API's, converted to camelCase, so the mappers are renames plus `parsePlayerCode`
  * and `parseMatchCode`.
  */
@@ -76,16 +76,8 @@ export type Match = {
 	createdAt: string;
 };
 
-export function isPrivatePlayer(player: Player): boolean {
-	return player.code === null;
-}
-
 export function otherSide(side: Side): Side {
 	return side === 'a' ? 'b' : 'a';
-}
-
-export function teamOn(match: Match, side: Side): Team {
-	return side === 'a' ? match.teamA : match.teamB;
 }
 
 /** The side that won a game, or null for a tie (which the backend refuses). */
@@ -151,12 +143,4 @@ export function waitingOnOtherTeam(
 	return (
 		match.confirmedBySide[match.viewerSide] && !match.confirmedBySide[otherSide(match.viewerSide)]
 	);
-}
-
-/** Whether the player with `myCode` won. Null when they did not play or the match is undecided. */
-export function didWin(match: Match, myCode: PlayerCode): boolean | null {
-	const mine = myTeam(match, myCode);
-	const won = winner(match);
-	if (!mine || !won) return null;
-	return mine.side === won;
 }

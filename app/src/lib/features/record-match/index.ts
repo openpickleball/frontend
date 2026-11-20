@@ -20,4 +20,4 @@ export { default as RecordMatchForm } from './components/record-form.svelte';
 export { submitMatch, duplicateMatchCode } from './service.js';
 export type { SubmitResult, SubmitOptions } from './service.js';
 export { recordedToast } from './recorded-toast.js';
-export { RecordForm, todayLocal } from './form.svelte.js';
+export { RecordForm } from './form.svelte.js';

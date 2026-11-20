@@ -38,7 +38,7 @@ describe('client init', () => {
 		const init = await loadInit('off');
 		await init();
 
-		expect(shouldRegister).toHaveBeenCalledWith({ mock: 'off', dev: false, supported: true });
+		expect(shouldRegister).toHaveBeenCalledWith({ dev: false, supported: true });
 		expect(registerServiceWorker).toHaveBeenCalledOnce();
 		expect(startMocks).not.toHaveBeenCalled();
 	});
