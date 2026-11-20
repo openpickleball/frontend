@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AppError } from '#lib/api/index.js';
+import { AppError } from '#lib/api/index.js';
 import { parseMatchCode, parsePlayerCode, type Match, type PlayerCode } from '#lib/domain/index.js';
 import { PLAYERS } from '#lib/mocks/fixtures.js';
 import { RecordForm } from './form.svelte.js';
@@ -20,13 +20,13 @@ function filled(): RecordForm {
 	return form;
 }
 
-const rejection: AppError = {
+const rejection = new AppError({
 	kind: 'validation',
 	status: 422,
 	code: 'validation_error',
 	message: 'The request is not valid.',
 	fields: { 'games.0.team_b': ['Not a valid score.'] }
-};
+});
 
 describe('RecordForm server errors', () => {
 	it('attaches a 422 to the values that were sent, not to edits made while it was in flight', async () => {

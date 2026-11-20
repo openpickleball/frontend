@@ -1,6 +1,6 @@
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { allauthParams, createApi, isAppError, type Api, type AppError } from '#lib/api/index.js';
+import { AppError, allauthParams, createApi, isAppError, type Api } from '#lib/api/index.js';
 import { buildCode, parsePlayerCode, type MatchInput, type PlayerCode } from '#lib/domain/index.js';
 import { MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
@@ -190,13 +190,13 @@ describe('submitMatch', () => {
 	});
 
 	it('reports a duplicate that names no match as null', () => {
-		const error: AppError = {
+		const error = new AppError({
 			kind: 'duplicate',
 			status: 409,
 			code: 'duplicate_match',
 			message: 'This match was already submitted.',
 			fields: {}
-		};
+		});
 		expect(duplicateMatchCode(error)).toBeNull();
 		expect(duplicateMatchCode({ ...error, kind: 'validation', code: 'x' })).toBeNull();
 	});

@@ -55,6 +55,7 @@
 	let result = $state<Result>({ code: null, state: 'loading', fetched: null });
 	// When the read failed: was it the connection, or a problem on our side?
 	let offline = $state(false);
+	let throttled = $state(false);
 	const mine = $derived(result.code === code);
 	const lookup = $derived(mine ? result.state : 'loading');
 
@@ -105,6 +106,7 @@
 				result = { code, state: 'signed-out', fetched: null };
 			} else {
 				offline = isAppError(cause) && cause.kind === 'network';
+				throttled = isAppError(cause) && cause.kind === 'throttled';
 				result = { code, state: 'error', fetched: result.fetched };
 			}
 		}
@@ -282,6 +284,8 @@
 		<Notice kind={offline ? 'offline' : 'error'} title="This match didn't load." onretry={load}>
 			{#if offline}
 				It needs a connection. Check it, then try again.
+			{:else if throttled}
+				Too many requests in a short time. Wait a minute, then try again.
 			{:else}
 				Something went wrong on our side. Wait a moment, then try again.
 			{/if}

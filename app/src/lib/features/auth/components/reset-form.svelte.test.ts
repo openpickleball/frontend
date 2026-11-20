@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { AppError } from '#lib/api/index.js';
+import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { checkResetKey, resetPassword } from '../services.js';
 import ResetForm from './reset-form.svelte';
 
@@ -10,15 +10,15 @@ const mockedReset = vi.mocked(resetPassword);
 
 const KEY = 'abc-123';
 
-function appError(overrides: Partial<AppError>): AppError {
-	return {
+function appError(overrides: Partial<AppErrorFields>): AppError {
+	return new AppError({
 		kind: 'validation',
 		status: 400,
 		code: 'error',
 		message: 'Something went wrong.',
 		fields: {},
 		...overrides
-	};
+	});
 }
 
 afterEach(() => {

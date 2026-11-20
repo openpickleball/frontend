@@ -1,21 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { AppError } from '#lib/api/index.js';
+import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { verifyEmail } from '../services.js';
 import VerifyEmail from './verify-email.svelte';
 
 vi.mock('../services.js', () => ({ verifyEmail: vi.fn() }));
 const mockedVerify = vi.mocked(verifyEmail);
 
-function appError(overrides: Partial<AppError>): AppError {
-	return {
+function appError(overrides: Partial<AppErrorFields>): AppError {
+	return new AppError({
 		kind: 'validation',
 		status: 400,
 		code: 'error',
 		message: 'Something went wrong.',
 		fields: {},
 		...overrides
-	};
+	});
 }
 
 afterEach(() => mockedVerify.mockReset());

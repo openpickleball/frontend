@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { allauthParams, createApi } from './client';
+import { allauthParams, createApi, REQUEST_TIMEOUT_MS } from './client';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, readCookie } from './csrf';
-import { isAppError } from './errors';
+import { AppError, isAppError } from './errors';
 import { unwrap } from './unwrap';
 import type { components as OpenComponents } from './generated/open';
 
@@ -292,5 +292,124 @@ describe('unwrap', () => {
 		);
 		const failure = await unwrap(api.open.GET('/api/v1/accounts/me')).catch((e) => e);
 		expect(failure).toMatchObject({ kind: 'server', status: 500 });
+	});
+});
+
+describe('request timeout', () => {
+	/** A server that never answers. The request ends only when its signal aborts. */
+	function silentServer() {
+		const signals: AbortSignal[] = [];
+		const fetchStub = vi.fn(
+			(input: RequestInfo | URL, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					// As in fetch, a signal in `init` wins over the request's own.
+					const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+					if (!signal) return;
+					signals.push(signal);
+					signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+				})
+		);
+		return { fetchStub: fetchStub as unknown as typeof fetch, signals };
+	}
+
+	it('gives up after the timeout with a network AppError the screen can retry', async () => {
+		vi.useFakeTimers();
+		try {
+			const { fetchStub } = silentServer();
+			const api = createApi({ baseUrl: BASE, fetch: fetchStub, getCookies: () => '' });
+			const failure = unwrap(api.open.GET('/api/v1/accounts/me')).catch((e) => e);
+			await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS - 1);
+			let settled = false;
+			void failure.then(() => (settled = true));
+			await Promise.resolve();
+			expect(settled).toBe(false);
+			await vi.advanceTimersByTimeAsync(1);
+			const error = await failure;
+			expect(error).toBeInstanceOf(AppError);
+			expect(error).toMatchObject({
+				kind: 'network',
+				status: null,
+				code: 'timeout',
+				message: 'The server is taking too long to answer. Check your connection and try again.'
+			});
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('uses the timeout it is given', async () => {
+		vi.useFakeTimers();
+		try {
+			const { fetchStub } = silentServer();
+			const api = createApi({
+				baseUrl: BASE,
+				fetch: fetchStub,
+				getCookies: () => '',
+				timeoutMs: 50
+			});
+			const failure = unwrap(api.open.GET('/api/v1/accounts/me')).catch((e) => e);
+			await vi.advanceTimersByTimeAsync(50);
+			expect(await failure).toMatchObject({ kind: 'network', code: 'timeout' });
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('times out a POST too, so a confirm never spins forever', async () => {
+		vi.useFakeTimers();
+		try {
+			const { fetchStub } = silentServer();
+			const api = createApi({
+				baseUrl: BASE,
+				fetch: fetchStub,
+				getCookies: () => `${CSRF_COOKIE_NAME}=token`,
+				timeoutMs: 50
+			});
+			const failure = unwrap(
+				api.open.POST('/api/v1/matches/{code}/confirm', {
+					params: { path: { code: 'M-AAAA-AAAA-AAAA' } }
+				})
+			).catch((e) => e);
+			await vi.advanceTimersByTimeAsync(50);
+			expect(await failure).toMatchObject({ kind: 'network', code: 'timeout' });
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('keeps an abort the caller asked for as an abort, not a timeout', async () => {
+		const { fetchStub } = silentServer();
+		const api = createApi({ baseUrl: BASE, fetch: fetchStub, getCookies: () => '' });
+		const controller = new AbortController();
+		const failure = unwrap(
+			api.open.GET('/api/v1/accounts/me', { signal: controller.signal })
+		).catch((e) => e);
+		await Promise.resolve();
+		controller.abort();
+		expect(await failure).toMatchObject({ kind: 'server', code: 'aborted' });
+	});
+
+	it('does not abort a request that answered in time', async () => {
+		vi.useFakeTimers();
+		try {
+			let signal: AbortSignal | undefined;
+			const fetchStub = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+				signal = init?.signal ?? undefined;
+				return json(200, { email: 'a@example.test' });
+			});
+			const api = createApi({
+				baseUrl: BASE,
+				fetch: fetchStub as unknown as typeof fetch,
+				getCookies: () => '',
+				timeoutMs: 50
+			});
+			await expect(unwrap(api.open.GET('/api/v1/accounts/me'))).resolves.toEqual({
+				email: 'a@example.test'
+			});
+			await vi.advanceTimersByTimeAsync(100);
+			expect(signal?.aborted).toBe(false);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

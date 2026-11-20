@@ -9,6 +9,9 @@ Transport only: generated types, the two openapi-fetch clients, CSRF handling an
 - `csrf.ts`: copies the `csrftoken` cookie into `X-CSRFToken` on unsafe methods and retries once after a CSRF 403.
 - `errors.ts`: `toAppError(error, response?)`. `unwrap.ts`: `unwrap(call)` returns data or throws an `AppError`.
   - Only a `fetch` that got no answer is kind `network`. The clients mark it as it happens. A 200 that is not JSON, an aborted call or any other thrown error is kind `server`, with the thrown value in `cause`.
+  - `AppError` is a class that extends `Error`, so it has a stack and a cause. `isAppError` also accepts a plain object with the same fields, as tests build them.
+  - A request with no answer after 20 seconds (`REQUEST_TIMEOUT_MS`, or `timeoutMs` on `createApi`) is aborted and becomes kind `network` with code `timeout`. An abort the caller asked for stays kind `server` with code `aborted`.
+  - A 429, and allauth's login lockout (a 400 with code `too_many_login_attempts`), are kind `throttled`.
   - `message` is safe to show and says what to do next. It is the backend's text only for `validation` and `duplicate`, where it names the field or the match. A `validation` error with no field says so instead of pointing at highlighted fields.
 
 ## Refreshing the snapshots

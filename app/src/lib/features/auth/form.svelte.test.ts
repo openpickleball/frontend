@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AppError } from '#lib/api/index.js';
+import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { createAuthForm } from './form.svelte.js';
 
 const submitEvent = () => ({ preventDefault: vi.fn() }) as unknown as SubmitEvent;
@@ -10,15 +10,15 @@ const invalid = (field: string, message: string) => ({
 	error: { issues: [{ path: [field], message }] }
 });
 
-function appError(overrides: Partial<AppError>): AppError {
-	return {
+function appError(overrides: Partial<AppErrorFields>): AppError {
+	return new AppError({
 		kind: 'validation',
 		status: 400,
 		code: 'error',
 		message: 'Something went wrong.',
 		fields: {},
 		...overrides
-	};
+	});
 }
 
 describe('createAuthForm', () => {

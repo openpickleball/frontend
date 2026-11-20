@@ -12,10 +12,11 @@ export type AppErrorKind =
 	| 'conflict'
 	| 'duplicate'
 	| 'validation'
+	| 'throttled'
 	| 'server';
 
-/** The one error type every failed API call becomes. */
-export type AppError = {
+/** The fields of an `AppError`, as a plain object. */
+export type AppErrorFields = {
 	kind: AppErrorKind;
 	/** HTTP status, or null for a network failure. */
 	status: number | null;
@@ -35,6 +36,29 @@ export type AppError = {
 };
 
 /**
+ * The one error type every failed API call becomes. It is a real `Error`, so it has a stack and
+ * a name for the console and error reporting. Check for it with `isAppError`, which also accepts
+ * a plain object with the same fields (as tests build them).
+ */
+export class AppError extends Error implements AppErrorFields {
+	kind: AppErrorKind;
+	status: number | null;
+	code: string;
+	fields: Record<string, string[]>;
+	declare flows?: AllauthFlow[];
+
+	constructor(fields: AppErrorFields) {
+		super(fields.message, fields.cause === undefined ? undefined : { cause: fields.cause });
+		this.name = 'AppError';
+		this.kind = fields.kind;
+		this.status = fields.status;
+		this.code = fields.code;
+		this.fields = fields.fields;
+		if (fields.flows) this.flows = fields.flows;
+	}
+}
+
+/**
  * What a player reads for each kind: what happened and what to do next. Only `validation` and
  * `duplicate` show the backend's own text, because it names the field or the match. Every other
  * kind uses these, so a player never sees text such as "Internal".
@@ -48,13 +72,22 @@ const MESSAGES: Record<AppErrorKind, string> = {
 	conflict: "That can't be done right now. Reload the page to see the latest, then try again.",
 	duplicate: 'That has already been recorded.',
 	validation: 'Please check the highlighted fields.',
+	throttled: 'Too many attempts. Wait a moment and try again.',
 	server: 'Something went wrong on our side. Wait a moment, then try again.'
 };
 
 /** A validation error with no field to highlight. */
 const FORM_MESSAGE = "Something you entered wasn't accepted. Check it and try again.";
 
-const THROTTLED_MESSAGE = 'Too many attempts. Wait a moment and try again.';
+/** A request that got no answer in time. */
+const TIMEOUT_MESSAGE =
+	'The server is taking too long to answer. Check your connection and try again.';
+
+/**
+ * allauth answers too many failed sign-ins with a 400 and this code. It is a lockout, so it is a
+ * `throttled` error, with allauth's own text, which says it was the sign-ins.
+ */
+const LOGIN_LOCKOUT = 'too_many_login_attempts';
 
 /** The message for an error. `serverText` is the backend's own message, if it sent one. */
 function messageFor(
@@ -63,13 +96,18 @@ function messageFor(
 	fields: Record<string, string[]>,
 	serverText?: string
 ): string {
-	if (code === 'throttled') return THROTTLED_MESSAGE;
+	if (code === LOGIN_LOCKOUT && serverText) return serverText;
 	if ((kind === 'validation' || kind === 'duplicate') && serverText) return serverText;
 	if (kind === 'validation' && Object.keys(fields).length === 0) return FORM_MESSAGE;
 	return MESSAGES[kind];
 }
 
+/**
+ * Is this an `AppError`? Also true for a plain object with the same fields, such as one a test
+ * builds by hand. Such an object has no stack; `toAppError` turns it into a real `AppError`.
+ */
 export function isAppError(value: unknown): value is AppError {
+	if (value instanceof AppError) return true;
 	if (typeof value !== 'object' || value === null) return false;
 	const v = value as Record<string, unknown>;
 	return (
@@ -118,6 +156,7 @@ function stripBody(field: string): string {
 
 function kindForStatus(status: number, body: unknown, code: string): AppErrorKind {
 	if (isCsrfFailure(status, body)) return 'csrf';
+	if (code === LOGIN_LOCKOUT) return 'throttled';
 	switch (status) {
 		case 400:
 		case 422:
@@ -131,6 +170,8 @@ function kindForStatus(status: number, body: unknown, code: string): AppErrorKin
 			return 'not_found';
 		case 409:
 			return code.startsWith('duplicate') ? 'duplicate' : 'conflict';
+		case 429:
+			return 'throttled';
 		default:
 			return 'server';
 	}
@@ -148,8 +189,8 @@ function fromNinja(status: number, body: Json): AppError {
 		const message = str(item.message);
 		if (field && message) addField(fields, stripBody(field), message);
 	}
-	const message = messageFor(kind, status === 429 ? 'throttled' : code, fields, str(body.message));
-	return { kind, status, code, message, fields };
+	const message = messageFor(kind, code, fields, str(body.message));
+	return new AppError({ kind, status, code, message, fields });
 }
 
 function codeForStatus(status: number): string {
@@ -171,17 +212,18 @@ function fromAllauth(status: number, body: Json): AppError {
 		const message = str(item.message);
 		if (param && message) addField(fields, param, message);
 	}
-	const error: AppError = {
+	const flows =
+		isObject(body.data) && Array.isArray(body.data.flows)
+			? (body.data.flows as AllauthFlow[])
+			: undefined;
+	return new AppError({
 		kind,
 		status,
 		code,
 		message: messageFor(kind, code, fields, str(first?.message)),
-		fields
-	};
-	if (isObject(body.data) && Array.isArray(body.data.flows)) {
-		error.flows = body.data.flows as AllauthFlow[];
-	}
-	return error;
+		fields,
+		...(flows ? { flows } : {})
+	});
 }
 
 function isNinjaBody(body: Json): boolean {
@@ -193,14 +235,29 @@ function isNinjaBody(body: Json): boolean {
  * rejection into this error (see `client.ts`), so nothing else is mistaken for it.
  */
 export function networkError(cause?: unknown): AppError {
-	return {
+	return new AppError({
 		kind: 'network',
 		status: null,
 		code: 'network_error',
 		message: MESSAGES.network,
 		fields: {},
 		cause
-	};
+	});
+}
+
+/**
+ * A request the client gave up on because no answer came in time (see `client.ts`). It is a
+ * `network` error, so screens offer to try again, with code `timeout` and its own message.
+ */
+export function timeoutError(cause?: unknown): AppError {
+	return new AppError({
+		kind: 'network',
+		status: null,
+		code: 'timeout',
+		message: TIMEOUT_MESSAGE,
+		fields: {},
+		cause
+	});
 }
 
 /** A request that was cancelled or timed out on purpose, not lost. */
@@ -218,7 +275,8 @@ export function isAbortError(cause: unknown): boolean {
  * middleware, is not a connection problem, so it is a `server` error with a generic message.
  */
 export function toAppError(error: unknown, response?: Response): AppError {
-	if (isAppError(error)) return error;
+	if (error instanceof AppError) return error;
+	if (isAppError(error)) return new AppError(error);
 	if (!response) {
 		const code =
 			error instanceof SyntaxError
@@ -226,14 +284,14 @@ export function toAppError(error: unknown, response?: Response): AppError {
 				: isAbortError(error)
 					? 'aborted'
 					: 'unexpected';
-		return {
+		return new AppError({
 			kind: 'server',
 			status: null,
 			code,
 			message: MESSAGES.server,
 			fields: {},
 			cause: error
-		};
+		});
 	}
 	const { status } = response;
 	if (isObject(error)) {
@@ -244,5 +302,5 @@ export function toAppError(error: unknown, response?: Response): AppError {
 	// unknown JSON shape: use a generic message, never the raw body.
 	const kind = kindForStatus(status, error, 'non_json');
 	const code = kind === 'csrf' ? 'csrf_failed' : status === 429 ? 'throttled' : 'non_json_response';
-	return { kind, status, code, message: messageFor(kind, code, {}), fields: {} };
+	return new AppError({ kind, status, code, message: messageFor(kind, code, {}), fields: {} });
 }

@@ -158,6 +158,7 @@ describe('login', () => {
 		);
 		const error = await failure(login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD }));
 		expect(error.code).toBe('throttled');
+		expect(error.kind).toBe('throttled');
 		expect(isThrottled(error)).toBe(true);
 		expect(error.message).toBe('Too many attempts. Wait a moment and try again.');
 		expect(session.isSignedIn).toBe(false);
@@ -178,6 +179,7 @@ describe('login', () => {
 			)
 		);
 		const error = await failure(login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD }));
+		expect(error.kind).toBe('throttled');
 		expect(isThrottled(error)).toBe(true);
 		expect(error.message).toBe('Too many failed login attempts.');
 	});

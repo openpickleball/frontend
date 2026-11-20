@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import type { AppError } from '#lib/api/index.js';
+import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { buildCode, type MatchCode } from '#lib/domain/index.js';
 import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
@@ -19,21 +19,21 @@ vi.mock('../services.js', async (importOriginal) => ({
 }));
 const mocked = vi.mocked(services);
 
-const notFound: AppError = {
+const notFound = new AppError({
 	kind: 'not_found',
 	status: 404,
 	code: 'not_found',
 	message: 'Not found.',
 	fields: {}
-};
+});
 
-const conflict: AppError = {
+const conflict = new AppError({
 	kind: 'conflict',
 	status: 409,
 	code: 'conflict',
 	message: 'Conflict.',
 	fields: {}
-};
+});
 
 // The fresh read of the match: by default it finds the cached copy still current.
 const freshRead = () => {
@@ -255,7 +255,7 @@ describe('MatchView', () => {
 			code: 'unauthorized',
 			message: 'Authentication required.',
 			fields: {}
-		} satisfies AppError);
+		} satisfies AppErrorFields);
 		await render(MatchView, { code: code() });
 		await expect.element(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
 	});
@@ -317,10 +317,45 @@ describe('MatchView', () => {
 			code: 'network_error',
 			message: "We can't reach the server.",
 			fields: {}
-		} satisfies AppError);
+		} satisfies AppErrorFields);
 		await render(MatchView, { code: code() });
 
 		await expect.element(page.getByRole('status').getByText(/needs a connection/)).toBeVisible();
 		await expect.element(page.getByText(/went wrong on our side/)).not.toBeInTheDocument();
+	});
+
+	it('asks the player to wait when there were too many requests', async () => {
+		matchCache.reset();
+		mocked.getMatch.mockRejectedValueOnce(
+			new AppError({
+				kind: 'throttled',
+				status: 429,
+				code: 'throttled',
+				message: 'Too many attempts. Wait a moment and try again.',
+				fields: {}
+			})
+		);
+		await render(MatchView, { code: code() });
+
+		await expect.element(page.getByText(/Wait a minute, then try again/)).toBeVisible();
+		await expect.element(page.getByText(/went wrong on our side/)).not.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+	});
+
+	it('offers Try again when the read timed out', async () => {
+		matchCache.reset();
+		mocked.getMatch.mockRejectedValueOnce(
+			new AppError({
+				kind: 'network',
+				status: null,
+				code: 'timeout',
+				message: 'The server is taking too long to answer. Check your connection and try again.',
+				fields: {}
+			})
+		);
+		await render(MatchView, { code: code() });
+
+		await expect.element(page.getByRole('status').getByText(/needs a connection/)).toBeVisible();
+		await expect.element(page.getByRole('button', { name: 'Try again' })).toBeVisible();
 	});
 });

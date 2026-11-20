@@ -1,21 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { AppError } from '#lib/api/index.js';
+import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { requestPasswordReset } from '../services.js';
 import ResetRequestForm from './reset-request-form.svelte';
 
 vi.mock('../services.js', () => ({ requestPasswordReset: vi.fn() }));
 const mockedRequest = vi.mocked(requestPasswordReset);
 
-function appError(overrides: Partial<AppError>): AppError {
-	return {
+function appError(overrides: Partial<AppErrorFields>): AppError {
+	return new AppError({
 		kind: 'validation',
 		status: 400,
 		code: 'error',
 		message: 'Something went wrong.',
 		fields: {},
 		...overrides
-	};
+	});
 }
 
 afterEach(() => mockedRequest.mockReset());
@@ -74,7 +74,7 @@ describe('ResetRequestForm', () => {
 	it('shows the error message for a throttle or any other failure above the form', async () => {
 		mockedRequest.mockRejectedValue(
 			appError({
-				kind: 'server',
+				kind: 'throttled',
 				status: 429,
 				code: 'throttled',
 				message: 'Too many attempts. Wait a moment and try again.',

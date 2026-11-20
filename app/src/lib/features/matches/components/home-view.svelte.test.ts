@@ -1,7 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import type { AppError, AppErrorKind } from '#lib/api/index.js';
+import { AppError, type AppErrorKind } from '#lib/api/index.js';
 import { buildCode, type Match, type MatchCode } from '#lib/domain/index.js';
 import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
@@ -177,6 +177,18 @@ describe('HomeView', () => {
 		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
 	});
 
+	it('asks the player to wait, with Try again, when there were too many requests', async () => {
+		mocked.listMatches.mockRejectedValue(failure('throttled'));
+		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [], count: 0 });
+		await render(HomeView);
+		await expect.element(page.getByText("Your matches didn't load.")).toBeVisible();
+		await expect.element(page.getByText(/Wait a minute, then try again/)).toBeVisible();
+		await expect.element(page.getByText(/went wrong on our side/)).not.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('alert').getByRole('button', { name: 'Try again' }))
+			.toBeVisible();
+	});
+
 	it('links to sign in, with no Try again, when the player is signed out', async () => {
 		mocked.listMatches.mockRejectedValue(failure('unauthenticated'));
 		mocked.listAwaitingConfirmation.mockRejectedValue(failure('unauthenticated'));
@@ -190,5 +202,5 @@ describe('HomeView', () => {
 });
 
 function failure(kind: AppErrorKind): AppError {
-	return { kind, status: null, code: kind, message: 'Backend text', fields: {} };
+	return new AppError({ kind, status: null, code: kind, message: 'Backend text', fields: {} });
 }
