@@ -9,13 +9,9 @@ import { cacheName, route, staleCaches } from '../pwa/routing';
 // The SPA fallback page. adapter-static writes it, but it is not in the build or static files.
 const SHELL = '/index.html';
 
-// mockServiceWorker.js belongs to the mock modes, which never register this worker.
 // The manifest paths have no leading slash.
 const abs = (path: string) => (path.startsWith('/') ? path : `/${path}`);
-const assets = [
-	...immutable.map((file) => abs(file.path)),
-	...staticFiles.map((file) => abs(file.path)).filter((path) => path !== '/mockServiceWorker.js')
-];
+const assets = [...immutable, ...staticFiles].map((file) => abs(file.path));
 const precached = new Set<string>(assets);
 precached.add(SHELL);
 const CACHE = cacheName(version);

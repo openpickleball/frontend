@@ -133,13 +133,14 @@ print(Player.objects.get(account__email='your.email@example.com').public_code)
 
 ## Tests
 
-| Command           | What it runs                                                                                                                                                 |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm test`       | Unit and component tests.                                                                                                                                    |
-| `pnpm e2e`        | Playwright tests against a production build with `PUBLIC_API_MOCK=all`. No backend.                                                                          |
-| `pnpm e2e:webkit` | The same tests in WebKit (iPhone 15). Needs `pnpm exec playwright install webkit`.                                                                           |
-| `pnpm e2e:pwa`    | Manifest, service worker and offline shell, against a build with the mocks off (port 4184, or `E2E_PWA_PORT`). Do not run it at the same time as `pnpm e2e`. |
-| `pnpm e2e:live`   | One happy path against the real local backend. Local only, never run in CI.                                                                                  |
+| Command            | What it runs                                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm test`        | Unit and component tests.                                                                                                                                    |
+| `pnpm e2e`         | Playwright tests against a production build with `PUBLIC_API_MOCK=all`. No backend.                                                                          |
+| `pnpm e2e:webkit`  | The same tests in WebKit (iPhone 15). Needs `pnpm exec playwright install webkit`.                                                                           |
+| `pnpm e2e:pwa`     | Manifest, service worker and offline shell, against a build with the mocks off (port 4184, or `E2E_PWA_PORT`). Do not run it at the same time as `pnpm e2e`. |
+| `pnpm e2e:live`    | One happy path against the real local backend. Local only, never run in CI.                                                                                  |
+| `pnpm check:build` | After `pnpm build` with the mocks off: checks that `build/` has no msw code, no mock fixtures and no `mockServiceWorker.js`.                                 |
 
 `pnpm e2e` serves the build on port 4183. Set `E2E_PORT` to use another port, for example when two checkouts run at the same time:
 

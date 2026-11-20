@@ -8,8 +8,8 @@ import { defineEnvVars } from '@sveltejs/kit/env';
  * `parseMockMode` in `lib/mocks/mode.ts` on purpose, so this file imports nothing from
  * `lib/`. Anything else counts as `off`, so a typo never turns mocks on.
  *
- * Today an `off` build still emits the MSW and fixtures chunk (never loaded) and ships
- * `static/mockServiceWorker.js`. Stripping them is tracked in frontend#57.
+ * An `off` build ships no mock code and no `mockServiceWorker.js` (see `vite.config.ts`, and
+ * `pnpm check:build`, which checks it).
  */
 export const variables = defineEnvVars({
 	PUBLIC_API_MOCK: {
