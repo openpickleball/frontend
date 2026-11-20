@@ -247,6 +247,9 @@ describe('MatchView', () => {
 
 	it('shows the match it read when the cache cannot keep it', async () => {
 		matchCache.reset();
+		// With no owner the cache refuses every write, so only the response itself can show.
+		matchCache.setOwnerSource(() => null);
+		expect(matchCache.get(code())).toBeUndefined();
 		mocked.getMatch.mockImplementation(async () => viewerMatch());
 		await render(MatchView, { code: code() });
 		await expect.element(page.getByTestId('status-panel')).toBeVisible();
@@ -262,6 +265,100 @@ describe('MatchView', () => {
 		// The status panel takes focus, because the Confirm button that was there is gone.
 		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toBeVisible();
 		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toHaveFocus();
+	});
+
+	it('moves focus when the read changes what the player can do, though the status stays', async () => {
+		let answer: (match: ReturnType<typeof viewerMatch>) => void = () => {};
+		mocked.getMatch.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
+		await render(MatchView, { code: code() });
+		await page.getByRole('button', { name: 'Confirm score' }).element().focus();
+		// Still pending, but the player's team has confirmed, so Confirm is gone.
+		const found = viewerMatch({ a: true, decision: 'confirm' });
+		matchCache.remember(found);
+		answer(found);
+		await expect
+			.element(page.getByRole('button', { name: 'Confirm score' }))
+			.not.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('heading', { name: 'Waiting for the other team' }))
+			.toHaveFocus();
+	});
+
+	it('does not take focus from a control the player is using', async () => {
+		let answer: (match: ReturnType<typeof viewerMatch>) => void = () => {};
+		mocked.getMatch.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
+		await render(MatchView, { code: code() });
+		const copy = page.getByRole('button', { name: 'Copy code' });
+		await copy.element().focus();
+		answer(viewerMatch({}, { status: 'disputed' }));
+		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toBeVisible();
+		await expect.element(copy).toHaveFocus();
+	});
+
+	it('keeps the saved-copy line and focus while Try again runs, then hands focus on', async () => {
+		let reads = 0;
+		let answer: (match: ReturnType<typeof viewerMatch>) => void = () => {};
+		mocked.getMatch.mockImplementation(() => {
+			if (reads++ === 0) return Promise.reject(new Error('offline'));
+			return new Promise((resolve) => (answer = resolve));
+		});
+		await render(MatchView, { code: code() });
+		await page.getByRole('button', { name: 'Try again' }).click();
+
+		// The line and its button stay, and focus stays on the button.
+		const trying = page.getByRole('button', { name: 'Trying…' });
+		await expect.element(trying).toBeVisible();
+		await expect.element(trying).toHaveFocus();
+		await expect.element(page.getByText('Showing a saved copy.')).toBeVisible();
+		// A second click while it runs sends no second read.
+		(trying.element() as HTMLElement).click();
+		expect(mocked.getMatch).toHaveBeenCalledTimes(2);
+
+		answer(viewerMatch({}, { status: 'disputed' }));
+		await expect.element(page.getByText('Showing a saved copy.')).not.toBeInTheDocument();
+		// The button is gone, so focus went to the status.
+		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toHaveFocus();
+	});
+
+	it('keeps the Try again button out of the status region', async () => {
+		mocked.getMatch.mockRejectedValue(new Error('offline'));
+		await render(MatchView, { code: code() });
+		const status = page.getByRole('status');
+		await expect.element(status).toHaveTextContent('Showing a saved copy.');
+		await expect.element(status.getByRole('button')).not.toBeInTheDocument();
+	});
+
+	it('never shows the not-found page for match B while B has a cached copy', async () => {
+		const other = sampleMatch({ code: buildCode('match', 'D9PW5KXE7RM') as MatchCode });
+		matchCache.remember(viewerMatch({}, { code: other.code }));
+		mocked.getMatch.mockImplementation(async (wanted) => {
+			if (wanted === code()) throw notFound;
+			return new Promise(() => {});
+		});
+		const screen = await render(MatchView, { code: code() });
+		await expect.element(page.getByText("We couldn't find this match")).toBeVisible();
+
+		// B's read stays pending. Every check while it is out must see B's copy, not the not-found page.
+		await screen.rerender({ code: other.code });
+		expect(screen.container.textContent).not.toContain("We couldn't find this match");
+		await expect.element(page.getByTestId('status-panel')).toBeVisible();
+		await new Promise((done) => setTimeout(done, 50));
+		expect(screen.container.textContent).not.toContain("We couldn't find this match");
+	});
+
+	it('asks a signed-out player to sign in, and returns to the match after', async () => {
+		matchCache.reset();
+		mocked.getMatch.mockRejectedValue({
+			kind: 'unauthenticated',
+			status: 401,
+			code: 'unauthorized',
+			message: 'Authentication required.',
+			fields: {}
+		} satisfies AppErrorFields);
+		await render(MatchView, { code: code() });
+		await expect
+			.element(page.getByRole('link', { name: 'Sign in' }))
+			.toHaveAttribute('href', `/account/login?next=${encodeURIComponent(`/matches/${code()}`)}`);
 	});
 
 	it('asks a signed-out player to sign in', async () => {

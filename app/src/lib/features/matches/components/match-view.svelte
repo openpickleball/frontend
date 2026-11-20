@@ -85,23 +85,52 @@
 		if (result.code === found.code) result.fetched = found;
 	}
 
+	/** Move focus to the status heading, but only when the page lost it (it was on a control that is gone). */
+	function rescueFocus() {
+		if (!document.activeElement || document.activeElement === document.body) {
+			document.getElementById('status-heading')?.focus();
+		}
+	}
+
+	/** Did the read change what the player sees or can do? */
+	function changed(before: Match, after: Match): boolean {
+		return (
+			before.status !== after.status ||
+			before.viewerDecision !== after.viewerDecision ||
+			JSON.stringify(before.confirmedBySide) !== JSON.stringify(after.confirmedBySide)
+		);
+	}
+
+	// True while Try again on the saved-copy line is running, so the line stays and focus stays on it.
+	let retrying = $state(false);
+	async function retry() {
+		if (retrying) return;
+		retrying = true;
+		try {
+			await load();
+		} finally {
+			retrying = false;
+		}
+	}
+
 	async function load() {
 		if (!code) return;
 		const token = ++run;
-		const shown = match?.status;
+		const shown = match;
 		result = { code, state: 'loading', fetched: null };
 		try {
 			const found = await getMatch(code, { remember: false });
 			if (token !== run) return;
 			adopt(found);
 			result = { code, state: 'done', fetched: found };
-			if (shown && found.status !== shown) {
-				toast('This match changed. Here is where it stands.');
-				// The button that had focus may be gone now.
+			// The saved-copy line goes with the retry, so focus has to move on after this.
+			retrying = false;
+			if (shown) {
+				if (changed(shown, found)) toast('This match changed. Here is where it stands.');
+				// The control that had focus may be gone now, even when the status did not change.
 				await tick();
-				if (!document.activeElement || document.activeElement === document.body) {
-					document.getElementById('status-heading')?.focus();
-				}
+				// The player may have left, or acted, while the page updated.
+				if (token === run) rescueFocus();
 			}
 		} catch (cause) {
 			if (token !== run) return;
@@ -241,13 +270,12 @@
 		class="mt-2 inline-flex items-center gap-2.5 text-base text-muted underline underline-offset-4 hover:text-secondary"
 		><ArrowLeftIcon class="size-4" aria-hidden="true" />Matches</a
 	>
-	{#if lookup === 'error'}
-		<div
-			class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-base text-muted"
-			role="status"
-		>
-			<span>Showing a saved copy.</span>
-			<Button variant="outline" size="sm" onclick={load}>Try again</Button>
+	{#if lookup === 'error' || retrying}
+		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-base text-muted">
+			<span role="status">Showing a saved copy.</span>
+			<Button variant="outline" size="sm" onclick={retry} aria-disabled={retrying || undefined}>
+				{retrying ? 'Trying…' : 'Try again'}
+			</Button>
 		</div>
 	{/if}
 	<div class="pt-4">
@@ -314,7 +342,11 @@
 	<h1 class="page-title">Match</h1>
 	<section class="mt-8 grid justify-items-start gap-3">
 		<p class="max-w-md text-muted">Sign in to see your matches.</p>
-		<Button href={resolve(ROUTES.login)}>Sign in</Button>
+		<!-- Sign-in returns to this match. The code was checked above, so the path is safe. -->
+		<Button
+			href={`${resolve(ROUTES.login)}?next=${encodeURIComponent(resolve('/matches/[code]', { code }))}`}
+			>Sign in</Button
+		>
 	</section>
 {:else if code && lookup === 'error'}
 	<h1 class="page-title">Match</h1>

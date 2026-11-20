@@ -225,6 +225,32 @@ test.describe('match detail', () => {
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toHaveCount(0);
 	});
 
+	test('tabs through the match in reading order and returns focus to Dispute after Cancel', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		const copy = page.getByRole('button', { name: 'Copy code' });
+		await copy.focus();
+		// Confirm and Dispute come right after the code, before the scoreboard.
+		await page.keyboard.press('Tab');
+		await expect(page.getByRole('button', { name: 'Confirm score' })).toBeFocused();
+		await page.keyboard.press('Tab');
+		await expect(page.getByRole('button', { name: 'Dispute', exact: true })).toBeFocused();
+
+		await page.keyboard.press('Enter');
+		const dialog = page.getByRole('alertdialog', { name: 'Dispute this score?' });
+		await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+		// Tab stays inside the dialog.
+		await page.keyboard.press('Tab');
+		await expect(dialog.getByRole('button', { name: 'Dispute score' })).toBeFocused();
+		await page.keyboard.press('Tab');
+		await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+
+		await page.keyboard.press('Escape');
+		await expect(dialog).toBeHidden();
+		await expect(page.getByRole('button', { name: 'Dispute', exact: true })).toBeFocused();
+	});
+
 	test('opens a match from its URL on a fresh page load, with nothing cached', async ({ page }) => {
 		const code = matchCode(oldest.random);
 		await page.goto(`/matches/${code}`);
