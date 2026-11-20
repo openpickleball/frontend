@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PLAYERS } from '#lib/mocks/fixtures.js';
 import { parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
-import { PlayerSearch, SEARCH_DELAY } from './player-search.svelte.js';
+import { PlayerSearch, SEARCH_DELAY, nameMatches } from './player-search.svelte.js';
 import type { SearchFn, SearchResult } from './search.js';
 
 function code(raw: string): PlayerCode {
@@ -136,6 +136,65 @@ describe('PlayerSearch', () => {
 		expect(finder.status).toBe('results');
 	});
 
+	it('searches again by itself once the 429 wait is over', async () => {
+		const search = vi
+			.fn<SearchFn>()
+			.mockResolvedValueOnce({ ok: false, kind: 'throttled', retryAfter: 30 })
+			.mockResolvedValue(found('Bea'));
+		const finder = new PlayerSearch({ search });
+		finder.query('bea');
+		await vi.advanceTimersByTimeAsync(SEARCH_DELAY);
+		expect(finder.status).toBe('throttled');
+		await vi.advanceTimersByTimeAsync(29_000);
+		expect(search).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(1_000 + SEARCH_DELAY);
+		expect(search).toHaveBeenCalledTimes(2);
+		expect(search.mock.calls[1][0]).toBe('bea');
+		expect(finder.status).toBe('results');
+	});
+
+	it('does not search again after the wait once the text is cleared', async () => {
+		const search = vi
+			.fn<SearchFn>()
+			.mockResolvedValue({ ok: false, kind: 'throttled', retryAfter: 5 });
+		const finder = new PlayerSearch({ search });
+		finder.query('bea');
+		await vi.advanceTimersByTimeAsync(SEARCH_DELAY);
+		finder.clear();
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(search).toHaveBeenCalledTimes(1);
+	});
+
+	it('drops old results that no longer fit the text while the new search runs', async () => {
+		const { search, calls } = manual();
+		const finder = new PlayerSearch({ search });
+		finder.query('ors');
+		await vi.advanceTimersByTimeAsync(SEARCH_DELAY);
+		calls[0].resolve({
+			ok: true,
+			items: [
+				{ code: BEA, name: 'Orson Wells' },
+				{ code: BEA, name: 'Morse Tandy' }
+			]
+		});
+		await vi.advanceTimersByTimeAsync(0);
+		expect(finder.items).toHaveLength(2);
+
+		// Still fits one of them: that one stays up, so the list does not flicker.
+		finder.query('orso');
+		expect(finder.items.map((i) => i.name)).toEqual(['Orson Wells']);
+		// Fits neither: the list empties at once and says it is searching.
+		finder.query('orszq');
+		expect(finder.items).toEqual([]);
+		expect(finder.status).toBe('loading');
+	});
+
+	it('matches every typed word somewhere in the name, in any case', () => {
+		expect(nameMatches('Kit Ashdown', 'ASHD')).toBe(true);
+		expect(nameMatches('Kit Ashdown', 'kit ash')).toBe(true);
+		expect(nameMatches('Kit Ashdown', 'kit z')).toBe(false);
+	});
+
 	it('uses a minute when the 429 names no wait', async () => {
 		const finder = new PlayerSearch({
 			search: async () => ({ ok: false, kind: 'throttled', retryAfter: null })
@@ -146,7 +205,7 @@ describe('PlayerSearch', () => {
 	});
 
 	it('gives plain messages for the other failures, and for a search that throws', async () => {
-		const kinds = ['offline', 'invalid', 'other'] as const;
+		const kinds = ['offline', 'invalid', 'signed-out', 'other'] as const;
 		const seen = new Set<string>();
 		for (const kind of kinds) {
 			const finder = new PlayerSearch({
@@ -157,7 +216,7 @@ describe('PlayerSearch', () => {
 			expect(finder.status).toBe('error');
 			seen.add(finder.message);
 		}
-		expect(seen.size).toBe(3);
+		expect(seen.size).toBe(4);
 
 		const broken = new PlayerSearch({
 			search: async () => {

@@ -4,7 +4,7 @@ import { MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
 import { createSearchHandlers } from '#lib/mocks/handlers/search.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
 import { mockStore } from '#lib/mocks/store.js';
-import { parseRetryAfter, searchPlayers, waitText } from './search';
+import { looksLikeCode, parseRetryAfter, searchPlayers, waitText } from './search';
 
 useMockApi();
 
@@ -75,11 +75,11 @@ describe('searchPlayers', () => {
 		expect((await searchPlayers('bea', { api: kit })).ok).toBe(true);
 	});
 
-	it('reports a signed-out search as a plain failure', async () => {
+	it('reports a signed-out search (401) on its own', async () => {
 		const api = createApi({ baseUrl: BASE });
 		expect(await searchPlayers('bea', { api })).toEqual({
 			ok: false,
-			kind: 'other',
+			kind: 'signed-out',
 			retryAfter: null
 		});
 	});
@@ -178,5 +178,14 @@ describe('helpers', () => {
 		expect(waitText(59)).toBe('in a minute');
 		expect(waitText(300)).toBe('in 5 minutes');
 		expect(waitText(7200)).toBe('in 2 hours');
+	});
+
+	it('treats only code-shaped text as a code', () => {
+		for (const text of ['P-7K3M-QX9H', 'p 7k3m qx9h', '7K3M', 'P-7K', 'P-JH', codeOf('bea')]) {
+			expect(looksLikeCode(text), text).toBe(true);
+		}
+		for (const text of ['P Smith', 'P-J Harvey', 'Jo3', 'Bea', 'Kit Ashdown', 'P-7K3M-QX9H-A']) {
+			expect(looksLikeCode(text), text).toBe(false);
+		}
 	});
 });

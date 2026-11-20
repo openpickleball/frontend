@@ -476,10 +476,17 @@ describe('RecordForm player search', () => {
 		await screen.getByLabelText('Your partner: name or OPEN code').fill('ore');
 		await screen.getByRole('option', { name: /Oren Quill/ }).click();
 
+		// Focus moves to the new chip, and a screen reader hears who was added.
+		await expect.element(screen.getByRole('button', { name: 'Remove Oren Quill' })).toHaveFocus();
+		await expect.element(screen.getByTestId('chip-name')).toHaveTextContent('Oren Quill');
 		await expect
-			.element(screen.getByRole('button', { name: `Remove ${code('oren')}` }))
-			.toBeVisible();
-		await expect.element(screen.getByText('Oren Quill')).toBeVisible();
+			.poll(() =>
+				screen
+					.getByTestId('search-status')
+					.elements()
+					.map((e) => e.textContent?.trim())
+			)
+			.toContain('Added Oren Quill.');
 
 		await addPlayer(screen, 'First opponent: name or OPEN code', code('kit'));
 		await addPlayer(screen, 'Second opponent: name or OPEN code', code('bea'));
@@ -488,6 +495,33 @@ describe('RecordForm player search', () => {
 		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 		await vi.waitFor(() => expect(submit).toHaveBeenCalled());
 		expect(submit.mock.calls[0][0].teamA).toEqual([tamsin, code('oren')]);
+	});
+});
+
+describe('RecordForm player search by keyboard', () => {
+	it('types a name, arrows to a player, picks with Enter and tabs on', async () => {
+		const search = vi.fn().mockResolvedValue({
+			ok: true,
+			items: [
+				{ code: code('kit'), name: 'Kit Ashdown' },
+				{ code: code('oren'), name: 'Oren Quill' }
+			]
+		});
+		const screen = await render(RecordForm, {
+			own: tamsin,
+			onrecorded: vi.fn(),
+			submit: vi.fn(),
+			search
+		});
+		await screen.getByLabelText('Your partner: name or OPEN code').click();
+		await userEvent.keyboard('kit o');
+		await expect.element(screen.getByRole('option').first()).toBeVisible();
+		await userEvent.keyboard('{ArrowDown}{Enter}');
+
+		const remove = screen.getByRole('button', { name: 'Remove Oren Quill' });
+		await expect.element(remove).toHaveFocus();
+		await userEvent.keyboard('{Tab}');
+		await expect.element(screen.getByLabelText('First opponent: name or OPEN code')).toHaveFocus();
 	});
 });
 
