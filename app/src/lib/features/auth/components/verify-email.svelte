@@ -74,9 +74,9 @@
 		</CardContent>
 	{:else if phase === 'confirmed'}
 		<CardHeader>
-			<CardTitle level="h1" id="verify-title" bind:ref={heading} tabindex={-1} class="outline-none"
-				>Email verified</CardTitle
-			>
+			<CardTitle level="h1" id="verify-title" bind:ref={heading} tabindex={-1} class="outline-none">
+				Email verified
+			</CardTitle>
 			<CardDescription>Sign in to record your first match.</CardDescription>
 		</CardHeader>
 		<CardFooter>
@@ -84,9 +84,9 @@
 		</CardFooter>
 	{:else if phase === 'invalid'}
 		<CardHeader>
-			<CardTitle level="h1" id="verify-title" bind:ref={heading} tabindex={-1} class="outline-none"
-				>This link doesn't work anymore</CardTitle
-			>
+			<CardTitle level="h1" id="verify-title" bind:ref={heading} tabindex={-1} class="outline-none">
+				This link doesn't work anymore
+			</CardTitle>
 			<CardDescription>
 				It may have expired or been used already. Sign in, and if your email still needs verifying,
 				we'll send a new link.
@@ -97,9 +97,9 @@
 		</CardFooter>
 	{:else}
 		<CardHeader>
-			<CardTitle level="h1" id="verify-title" bind:ref={heading} tabindex={-1} class="outline-none"
-				>We couldn't verify your email</CardTitle
-			>
+			<CardTitle level="h1" id="verify-title" bind:ref={heading} tabindex={-1} class="outline-none">
+				We couldn't verify your email
+			</CardTitle>
 		</CardHeader>
 		<CardContent>
 			<Alert variant="destructive">

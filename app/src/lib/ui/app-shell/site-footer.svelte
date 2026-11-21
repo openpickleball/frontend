@@ -20,7 +20,8 @@
 			target="_blank"
 			rel="noopener"
 			class="text-muted underline underline-offset-2 hover:text-secondary"
-			>View the source code<span class="sr-only"> (opens in a new tab)</span></a
 		>
+			View the source code<span class="sr-only"> (opens in a new tab)</span>
+		</a>
 	</p>
 </footer>

@@ -102,9 +102,9 @@
 				{/if}
 				<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
 					Already have an account?
-					<Button variant="link" href={resolve(ROUTES.login)} class="min-h-10 px-0 text-sm"
-						>Sign in</Button
-					>
+					<Button variant="link" href={resolve(ROUTES.login)} class="min-h-10 px-0 text-sm">
+						Sign in
+					</Button>
 				</p>
 			</CardFooter>
 		</form>

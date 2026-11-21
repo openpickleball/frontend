@@ -178,8 +178,10 @@
 						name && 'text-sm text-muted',
 						error && 'text-danger'
 					]}
-					data-testid="chip">{code}</span
+					data-testid="chip"
 				>
+					{code}
+				</span>
 				{#if !locked}
 					<button
 						type="button"

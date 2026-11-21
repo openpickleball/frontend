@@ -129,8 +129,10 @@
 									onclick={() => {
 										retryingAwaiting = true;
 										void awaiting.load(you);
-									}}>Try again</Button
+									}}
 								>
+									Try again
+								</Button>
 							</AlertAction>
 						</Alert>
 					</div>
@@ -149,9 +151,9 @@
 						{#if moreNeeds > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-needs">
 								{moreNeeds === 1 ? '1 more match is' : `${moreNeeds} more matches are`} waiting for you.
-								<Button variant="link" size="inline" href={resolve(ROUTES.matches)}
-									>See all matches</Button
-								>.
+								<Button variant="link" size="inline" href={resolve(ROUTES.matches)}>
+									See all matches
+								</Button>.
 							</p>
 						{/if}
 					</section>

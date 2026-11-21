@@ -25,9 +25,9 @@
 			<CircleAlertIcon aria-hidden="true" />
 			<AlertTitle>We can't load your account.</AlertTitle>
 			<AlertDescription>Check your connection, then try again.</AlertDescription>
-			<AlertAction
-				><Button variant="outline" size="sm" onclick={retry}>Try again</Button></AlertAction
-			>
+			<AlertAction>
+				<Button variant="outline" size="sm" onclick={retry}>Try again</Button>
+			</AlertAction>
 		</Alert>
 	</div>
 {/snippet}

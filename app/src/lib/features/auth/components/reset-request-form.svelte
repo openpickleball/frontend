@@ -53,9 +53,9 @@
 {#if sentTo}
 	<Card aria-labelledby="reset-title">
 		<CardHeader>
-			<CardTitle level="h1" id="reset-title" bind:ref={heading} tabindex={-1} class="outline-none"
-				>Check your email</CardTitle
-			>
+			<CardTitle level="h1" id="reset-title" bind:ref={heading} tabindex={-1} class="outline-none">
+				Check your email
+			</CardTitle>
 			<!-- The same words whether or not an account uses this address. -->
 			<CardDescription>
 				If an account uses <strong class="font-semibold text-secondary">{sentTo}</strong>, we sent a
@@ -104,8 +104,10 @@
 				<Button
 					variant="link"
 					href={resolve(ROUTES.login)}
-					class="min-h-10 justify-self-start px-0 text-sm">Back to sign in</Button
+					class="min-h-10 justify-self-start px-0 text-sm"
 				>
+					Back to sign in
+				</Button>
 			</CardFooter>
 		</form>
 	</Card>

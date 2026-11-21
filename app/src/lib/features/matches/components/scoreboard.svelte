@@ -73,17 +73,19 @@
 						</div>
 					{/each}
 					{#if row.won}
-						<span class="mt-0.5 text-sm font-semibold text-secondary"
-							>{wonTag(match, row.side)}</span
-						>
+						<span class="mt-0.5 text-sm font-semibold text-secondary">
+							{wonTag(match, row.side)}
+						</span>
 					{/if}
 				</div>
 				{#each row.scores as score, index (index)}
 					<span
 						class="text-right text-2xl tabular-nums {score.won
 							? 'font-semibold text-secondary'
-							: 'text-muted'}">{score.points}</span
+							: 'text-muted'}"
 					>
+						{score.points}
+					</span>
 				{/each}
 			</div>
 		{/each}

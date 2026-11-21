@@ -150,8 +150,10 @@
 										variant="link"
 										size="inline"
 										href="#{target}"
-										onclick={(event) => focusField(event, target)}>{entry.message}</Button
+										onclick={(event) => focusField(event, target)}
 									>
+										{entry.message}
+									</Button>
 								{:else}
 									{entry.message}
 								{/if}
@@ -183,15 +185,16 @@
 									variant="link"
 									size="inline"
 									href={resolve('/matches/[code]', { code: form.failure.matchCode })}
-									>See the match</Button
 								>
+									See the match
+								</Button>
 							</p>
 							<p>You may still need to confirm it.</p>
 						{:else}
 							<p>
-								Look in <Button variant="link" size="inline" href={resolve(ROUTES.matches)}
-									>your matches</Button
-								> to find it. You may still need to confirm it.
+								Look in <Button variant="link" size="inline" href={resolve(ROUTES.matches)}>
+									your matches
+								</Button> to find it. You may still need to confirm it.
 							</p>
 						{/if}
 					{:else if form.failure.kind === 'forbidden'}
@@ -373,8 +376,10 @@
 								variant="ghost"
 								class="ml-auto min-h-11 px-3 text-sm font-normal text-muted hover:text-secondary"
 								aria-label="Remove game {index + 1}"
-								onclick={() => removeGame(index)}>Remove</Button
+								onclick={() => removeGame(index)}
 							>
+								Remove
+							</Button>
 						{/if}
 					</div>
 					{#if gameError}

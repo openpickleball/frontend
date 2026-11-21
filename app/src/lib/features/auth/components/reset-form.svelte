@@ -126,9 +126,9 @@
 		</form>
 	{:else if step === 'done'}
 		<CardHeader>
-			<CardTitle level="h1" id="newpw-title" bind:ref={heading} tabindex={-1} class="outline-none"
-				>Password changed</CardTitle
-			>
+			<CardTitle level="h1" id="newpw-title" bind:ref={heading} tabindex={-1} class="outline-none">
+				Password changed
+			</CardTitle>
 			<CardDescription>Sign in with your new password.</CardDescription>
 		</CardHeader>
 		<CardFooter>
@@ -136,9 +136,9 @@
 		</CardFooter>
 	{:else}
 		<CardHeader>
-			<CardTitle level="h1" id="newpw-title" bind:ref={heading} tabindex={-1} class="outline-none"
-				>This link doesn't work anymore</CardTitle
-			>
+			<CardTitle level="h1" id="newpw-title" bind:ref={heading} tabindex={-1} class="outline-none">
+				This link doesn't work anymore
+			</CardTitle>
 			<CardDescription>
 				It may have expired or been used already. You can ask for a new one.
 			</CardDescription>

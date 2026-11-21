@@ -56,8 +56,10 @@
 					disputing = true;
 					open = false;
 					onconfirm();
-				}}>Dispute score</AlertDialogAction
+				}}
 			>
+				Dispute score
+			</AlertDialogAction>
 		</AlertDialogFooter>
 	</AlertDialogContent>
 </AlertDialog>
