@@ -11,6 +11,7 @@
 	},
 	"scripts": {
 		"dev": "vite dev",
+		"dev:stack": "bash scripts/dev-stack.sh",
 		"build": "vite build",
 		"check:build": "node scripts/check-build.mjs",
 		"preview": "vite preview",

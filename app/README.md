@@ -46,6 +46,20 @@ With `all`, you can sign in as `player@example.com` (see `src/lib/mocks/fixtures
 
 `pnpm dev` forwards `/api` and `/_allauth` to the backend at `http://127.0.0.1:8000` (see `vite.config.ts`). The browser only ever talks to `localhost:5173`, so the session cookie and CSRF protection work without CORS settings.
 
+## Run the whole stack
+
+With the backend cloned next to this repo (or `BACKEND_DIR` set to its path), one command starts everything. From `app/`:
+
+```sh
+pnpm dev:stack
+```
+
+It starts Postgres and Valkey, runs the migrations, then runs the backend on port 8000, a Celery worker (it prints account emails) and the app on port 5173 with `PUBLIC_API_MOCK=off`. On the first run it creates the backend `.env` with `FRONTEND_URL=http://localhost:5173`. Add `--seed 20` to add 20 made-up players and verify their accounts (see [Verified accounts and logins](#verified-accounts-and-logins)). Each seed run adds a new set.
+
+Ctrl+C stops everything and keeps your local data. Ports 5432, 6379, 8000 and 5173 must be free. The script checks them first and names the container in the way.
+
+The sections below do the same steps by hand.
+
 ## Run the backend
 
 From a clone of the backend, next to this one (`../backend`). First copy the settings and point links in emails at the app:
