@@ -22,14 +22,14 @@
 <Card aria-labelledby="check-title">
 	<CardHeader>
 		<MailIcon aria-hidden="true" class="size-10 text-muted" />
-		<CardTitle level="h1" id="check-title" bind:ref={heading} tabindex={-1} class="outline-none"
-			>Check your email</CardTitle
-		>
+		<CardTitle level="h1" id="check-title" bind:ref={heading} tabindex={-1} class="outline-none">
+			Check your email
+		</CardTitle>
 		<CardDescription>
 			{#if session.email}
-				We sent a link to <strong class="font-semibold wrap-anywhere text-secondary"
-					>{session.email}</strong
-				>.
+				We sent a link to <strong class="font-semibold wrap-anywhere text-secondary">
+					{session.email}
+				</strong>.
 			{:else}
 				We sent a link to your email address.
 			{/if}
@@ -52,9 +52,9 @@
 		<Button variant="outline" href={resolve(ROUTES.login)} class="w-full">Go to sign in</Button>
 		<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
 			Wrong address?
-			<Button variant="link" class="min-h-10 px-0 text-sm" onclick={() => session.clearPending()}
-				>Start over</Button
-			>
+			<Button variant="link" class="min-h-10 px-0 text-sm" onclick={() => session.clearPending()}>
+				Start over
+			</Button>
 		</p>
 	</CardFooter>
 </Card>

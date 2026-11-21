@@ -72,8 +72,9 @@
 					<AlertTitle>Check your email</AlertTitle>
 					<AlertDescription>
 						{#if session.email}
-							We sent a link to <strong class="font-semibold wrap-anywhere">{session.email}</strong
-							>.
+							We sent a link to <strong class="font-semibold wrap-anywhere">
+								{session.email}
+							</strong>.
 						{:else}
 							We sent a link to your email address.
 						{/if}
@@ -112,8 +113,10 @@
 				<Button
 					variant="link"
 					href={resolve(ROUTES.passwordReset)}
-					class="min-h-10 justify-self-start px-0 text-sm">Forgot your password?</Button
+					class="min-h-10 justify-self-start px-0 text-sm"
 				>
+					Forgot your password?
+				</Button>
 			</div>
 		</CardContent>
 		<CardFooter>
@@ -133,9 +136,9 @@
 			{/if}
 			<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
 				New to OPEN?
-				<Button variant="link" href={resolve(ROUTES.signup)} class="min-h-10 px-0 text-sm"
-					>Create account</Button
-				>
+				<Button variant="link" href={resolve(ROUTES.signup)} class="min-h-10 px-0 text-sm">
+					Create account
+				</Button>
 			</p>
 		</CardFooter>
 	</form>

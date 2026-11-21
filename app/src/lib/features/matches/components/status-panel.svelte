@@ -140,8 +140,10 @@
 				variant="destructive"
 				onclick={() => busy === null && ondispute()}
 				aria-disabled={busy !== null}
-				aria-busy={busy === 'dispute'}>Dispute</Button
+				aria-busy={busy === 'dispute'}
 			>
+				Dispute
+			</Button>
 		</div>
 	{/if}
 </section>

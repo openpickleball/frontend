@@ -269,8 +269,9 @@
 		variant="link"
 		href={resolve(ROUTES.matches)}
 		class="mt-2 min-h-10 px-0 text-base font-normal text-muted"
-		><ArrowLeftIcon class="size-4" aria-hidden="true" />Matches</Button
 	>
+		<ArrowLeftIcon class="size-4" aria-hidden="true" />Matches
+	</Button>
 	{#if lookup === 'error' || retrying}
 		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-base text-muted">
 			<span role="status">Showing a saved copy.</span>
@@ -285,9 +286,9 @@
 		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match))}</p>
 		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
 			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
-			<span class="font-display text-base text-muted"
-				><span class="sr-only">Match code </span>{match.code}</span
-			>
+			<span class="font-display text-base text-muted">
+				<span class="sr-only">Match code </span>{match.code}
+			</span>
 			<Button variant="outline" size="sm" onclick={() => copyCode(match.code)}>
 				<CopyIcon aria-hidden="true" />
 				Copy code
@@ -346,8 +347,9 @@
 		<!-- Sign-in returns to this match. The code was checked above, so the path is safe. -->
 		<Button
 			href={`${resolve(ROUTES.login)}?next=${encodeURIComponent(resolve('/matches/[code]', { code }))}`}
-			>Sign in</Button
 		>
+			Sign in
+		</Button>
 	</section>
 {:else if code && lookup === 'error'}
 	<h1 class="page-title">Match</h1>
@@ -368,9 +370,9 @@
 					Something went wrong on our side. Wait a moment, then try again.
 				{/if}
 			</AlertDescription>
-			<AlertAction
-				><Button variant="outline" size="sm" onclick={load}>Try again</Button></AlertAction
-			>
+			<AlertAction>
+				<Button variant="outline" size="sm" onclick={load}>Try again</Button>
+			</AlertAction>
 		</Alert>
 	</div>
 {:else}

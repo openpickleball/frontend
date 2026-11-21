@@ -16,8 +16,9 @@
 </script>
 
 {#snippet retry()}
-	<AlertAction><Button variant="outline" size="sm" onclick={onretry}>Try again</Button></AlertAction
-	>
+	<AlertAction>
+		<Button variant="outline" size="sm" onclick={onretry}>Try again</Button>
+	</AlertAction>
 {/snippet}
 
 {#if kind === 'network'}
