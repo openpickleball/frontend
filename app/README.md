@@ -56,7 +56,7 @@ pnpm dev:stack
 
 It starts Postgres and Valkey, runs the migrations, then runs the backend on port 8000, a Celery worker (it prints account emails) and the app on port 5173 with `PUBLIC_API_MOCK=off`. On the first run it creates the backend `.env` with `FRONTEND_URL=http://localhost:5173`. Add `--seed 20` to add 20 made-up players and verify their accounts (see [Verified accounts and logins](#verified-accounts-and-logins)). Each seed run adds a new set.
 
-Ctrl+C stops everything and keeps your local data. Ports 5432, 6379, 8000 and 5173 must be free. The script checks them first and names the container in the way.
+Ctrl+C stops everything and keeps your local data. To stop it from another terminal, run `pnpm dev:stack --stop`. Postgres and Valkey stop too, unless they were already running before the stack started. Ports 5432, 6379, 8000 and 5173 must be free. The script checks them first and names the container in the way.
 
 The sections below do the same steps by hand.
 

@@ -4,7 +4,9 @@
 #   a Celery worker (prints account emails), and the app's dev server.
 #
 # Usage (from app/): pnpm dev:stack [--seed N]
+#                    pnpm dev:stack --stop
 #   --seed N   add N made-up players and mark example.* accounts verified.
+#   --stop     stop a stack started in another terminal, the same as Ctrl+C.
 #
 # BACKEND_DIR is a backend checkout. A relative path resolves from the
 # frontend repo root. The default is ../backend, next to this repo.
@@ -14,6 +16,7 @@
 set -euo pipefail
 
 seed=""
+stop=0
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 		--seed)
@@ -21,8 +24,12 @@ while [[ $# -gt 0 ]]; do
 			[[ "$seed" =~ ^[1-9][0-9]*$ ]] || { echo "--seed needs a positive number" >&2; exit 2; }
 			shift 2
 			;;
+		--stop)
+			stop=1
+			shift
+			;;
 		-h | --help)
-			sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+			sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
 			exit 0
 			;;
 		*)
@@ -31,6 +38,30 @@ while [[ $# -gt 0 ]]; do
 			;;
 	esac
 done
+
+# The running stack records its PID here, so --stop can find it.
+pid_file="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/openpb-dev-stack.pid"
+stack_pid() {
+	local pid
+	pid="$(cat "$pid_file" 2>/dev/null)" || return 1
+	[[ "$pid" =~ ^[0-9]+$ ]] && ps -p "$pid" -o args= 2>/dev/null | grep -q 'dev-stack\.sh' && echo "$pid"
+}
+
+if [[ $stop -eq 1 ]]; then
+	if ! pid="$(stack_pid)"; then
+		rm -f "$pid_file"
+		echo "No stack is running."
+		exit 0
+	fi
+	echo "Stopping the stack (PID $pid)"
+	kill -TERM "$pid"
+	for _ in $(seq 60); do
+		kill -0 "$pid" 2>/dev/null || { echo "Stopped."; exit 0; }
+		sleep 0.5
+	done
+	echo "The stack did not stop within 30 seconds. Press Ctrl+C in its terminal." >&2
+	exit 1
+fi
 
 app_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 repo_root="$(dirname "$app_dir")"
@@ -41,6 +72,9 @@ say() { printf '\033[1m[stack]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[stack]\033[0m %s\n' "$*" >&2; exit 1; }
 
 # Checks before anything starts.
+if pid="$(stack_pid)"; then
+	fail "A stack is already running (PID $pid). Stop it with: pnpm dev:stack --stop"
+fi
 [[ -f "$backend_dir/manage.py" ]] ||
 	fail "No backend at $backend_dir. Clone it next to this repo, or set BACKEND_DIR to its path."
 backend_dir="$(cd "$backend_dir" && pwd)"
@@ -89,9 +123,12 @@ cleanup() {
 		say "Stopping Postgres and Valkey (data is kept)"
 		compose stop db cache >/dev/null 2>&1 || true
 	fi
+	[[ "$(cat "$pid_file" 2>/dev/null)" == "$$" ]] && rm -f "$pid_file"
+	say "Stopped"
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
+echo "$$" >"$pid_file"
 
 say "Installing backend dependencies"
 (cd "$backend_dir" && uv sync --quiet)
