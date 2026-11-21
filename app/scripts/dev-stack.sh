@@ -77,7 +77,9 @@ if pid="$(stack_pid)"; then
 fi
 [[ -f "$backend_dir/manage.py" ]] ||
 	fail "No backend at $backend_dir. Clone it next to this repo, or set BACKEND_DIR to its path."
-backend_dir="$(cd "$backend_dir" && pwd)"
+# Resolve symlinks, so Compose names the project after the real checkout,
+# the same as running docker compose there.
+backend_dir="$(cd "$backend_dir" && pwd -P)"
 for tool in uv docker pnpm; do
 	command -v "$tool" >/dev/null || fail "$tool is not installed. See app/README.md, Prerequisites."
 done
