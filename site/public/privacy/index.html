@@ -152,10 +152,10 @@
 
         <h3>Location search at signup</h3>
         <p>
-          When you type your location at signup, your browser sends what you type to Photon, as you type, even if you don't
-          pick a place. Photon is a public place search service built on OpenStreetMap and run by komoot. It suggests places
-          to pick from. Like any web server, it may also receive your IP address and browser details. Photon is not run for
-          OPEN, and
+          When you type your location at signup, the app sends what you type to Photon, as you type, even if you don't pick
+          a place. OPEN never receives what you type. Photon is a public place search service built on OpenStreetMap and run
+          by komoot. It suggests places to pick from. Like any web server, it may also receive your IP address and browser
+          or device details. Photon is not run for OPEN, and
           <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener">komoot's privacy policy<span class="sr-only"> (opens in a new tab)</span></a>
           covers it. We store only the city and region you pick.
         </p>
@@ -173,7 +173,7 @@
           <li>
             Your sign-in session, until you log out or it expires. It also holds the email address a login was started with,
             how and when you signed in, and, after signup, your signup details (birth month and year, gender division, name,
-            and city and region, if you added them) until your player profile is created.
+            and city and region, if you added them) until your player profile is created, you log out, or the session ends.
           </li>
           <li>When you joined, and when you last signed in.</li>
           <li>
@@ -210,8 +210,8 @@
             <strong>Your matches:</strong> you see all of yours. A match names every player in it by display name and OPEN
             Code. So a match you played also shows in your teammates' and opponents' match histories, on their own privacy
             settings, whatever your own setting is. Other signed-in players see your confirmed matches in your own match
-            history while your match history setting allows it. A verified organizer of the event a match was part of can
-            also see it. So can staff and moderators whose role needs it.
+            history while your match history setting allows it. A person who acts for the verified organizer of the event
+            can also see a match from that event when they confirm it. So can staff and moderators whose role needs it.
           </li>
           <li>
             <strong>City and region:</strong> whoever your privacy setting allows, either other signed-in players or only
@@ -224,6 +224,17 @@
           </li>
           <li><strong>Legal name:</strong> you, and staff.</li>
           <li><strong>Email address:</strong> you, and staff. Never other players.</li>
+          <li>
+            <strong>Whether you confirmed or disputed a match:</strong> other players never see your confirmation itself.
+            Players in the match see only whether someone on each team confirmed. You see your own latest answer.
+          </li>
+          <li><strong>Your privacy settings:</strong> you, and staff whose role needs them.</li>
+          <li><strong>When you joined and last signed in:</strong> staff whose role needs it.</li>
+          <li><strong>Your sign-in session:</strong> nobody, through the app.</li>
+          <li>
+            <strong>The audit record of changes:</strong> staff whose role needs it. You will get the records about you in the
+            copy of your data we send you.
+          </li>
           <li><strong>Organizer details:</strong> staff.</li>
           <li>
             <strong>Ratings:</strong> no OPEN rating is published yet. Once ratings are published, your display name and
@@ -309,15 +320,15 @@
           <li>
             Deleting an account won't remove everything, because other players' records and ratings depend on some of it.
             These stay: match results in the Ledger, OPEN's permanent record of matches; your player profile's OPEN Code; the
-            audit record of changes, which never holds your name, email address or age; if you verified an organizer as staff,
-            the record that you did; and your account itself, deactivated, with your email address and other identifying
-            details removed. These go: your email address, password hash, display name and legal name, birth
+            audit record of changes, which never holds your name, email address or age; and, if you verified an organizer as
+            staff, the record that you did. These go: your email address, password hash, display name and legal name, birth
             month and year, gender division, city and region, privacy settings, sign-in sessions, your organizer memberships
             and club roles, the name of an organizer that is you, and the admin history entries tied to your account. We are
             still deciding how deletion treats your confirmations and disputes, the link to matches you submitted, the events
-            of an organizer that is one person, whether the join and last sign-in dates on a kept account are reset, and what
-            your player profile's link to your account becomes. Until then they stay. We will update this policy before full
-            deletion is available.
+            of an organizer that is one person, whether the join and last sign-in dates on a kept account are reset, what
+            your player profile's link to your account becomes, and whether your account itself is kept as a deactivated row
+            with your identifying details removed, which happens when other records still point to it. Until then they stay.
+            We will update this policy before full deletion is available.
           </li>
           <li>
             We delete each account email from our outbox once it is sent, and never keep one more than three days. Resend's
