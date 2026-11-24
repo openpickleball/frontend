@@ -4,6 +4,7 @@
  * `MinimumLengthValidator` (8), which `config/settings.py` lists with no options.
  */
 import { describe, expect, it } from 'vitest';
+import type { z } from 'zod';
 import { buildCode } from './codes';
 import {
 	EMAIL_MAX_LENGTH,
@@ -16,6 +17,9 @@ import {
 	normalizeEmail,
 	passwordResetRequestSchema,
 	passwordResetSchema,
+	signupAccountSchema,
+	signupAgeSchema,
+	signupDetailsSchema,
 	signupSchema,
 	zodFieldErrors,
 	type MatchInput
@@ -243,12 +247,194 @@ describe('loginSchema', () => {
 	});
 });
 
+const CHOSEN = { city: 'Austin', region: 'Texas' };
+
+/** A made-up player's details, as the form holds them. */
+const detailsInput = {
+	birth_month: '6',
+	birth_year: '1990',
+	gender_division: 'mens',
+	first_name: 'Sam',
+	last_name: 'Rivera',
+	city: { text: '', chosen: null },
+	accepted_terms: true,
+	accepted_privacy: true
+};
+
+const messages = (result: { success: boolean; error?: z.ZodError }) =>
+	result.error ? zodFieldErrors(result.error) : {};
+
+describe('signupAccountSchema', () => {
+	const input = {
+		email: ' Sam@Example.org ',
+		password: 'longenough',
+		password_confirm: 'longenough'
+	};
+
+	it('gives the normalized email and the password only', () => {
+		expect(signupAccountSchema.parse(input)).toEqual({
+			email: 'sam@example.org',
+			password: 'longenough'
+		});
+	});
+
+	it('says when the passwords do not match, even when another field fails', () => {
+		const result = signupAccountSchema.safeParse({
+			...input,
+			email: 'nope',
+			password_confirm: 'x'
+		});
+		expect(messages(result)).toEqual({
+			email: ['Enter a valid email address.'],
+			password_confirm: ["The passwords don't match."]
+		});
+	});
+
+	it('treats a missing confirmation as a mismatch', () => {
+		const result = signupAccountSchema.safeParse({ ...input, password_confirm: undefined });
+		expect(messages(result)).toEqual({ password_confirm: ["The passwords don't match."] });
+	});
+});
+
+describe('signupAgeSchema', () => {
+	it('gives the month and year as numbers', () => {
+		expect(signupAgeSchema.parse({ birth_month: '6', birth_year: '1990' })).toEqual({
+			birth_month: 6,
+			birth_year: 1990
+		});
+	});
+
+	it('reports both fields at once, and never reads empty as zero', () => {
+		const result = signupAgeSchema.safeParse({ birth_month: '', birth_year: '' });
+		expect(messages(result)).toEqual({
+			birth_month: ['Enter your birth month.'],
+			birth_year: ['Enter your birth year.']
+		});
+	});
+});
+
+describe('signupDetailsSchema', () => {
+	const parse = (override: Record<string, unknown>) =>
+		signupDetailsSchema.safeParse({ ...detailsInput, ...override });
+
+	it('gives the parsed details, with no city when the field is empty', () => {
+		const result = signupDetailsSchema.safeParse(detailsInput);
+		expect(result.success && result.data).toStrictEqual({
+			birth_month: 6,
+			birth_year: 1990,
+			gender_division: 'mens',
+			first_name: 'Sam',
+			last_name: 'Rivera',
+			accepted_terms: true,
+			accepted_privacy: true
+		});
+	});
+
+	it('trims the names', () => {
+		const result = parse({ first_name: '  Sam ', last_name: ' Rivera  ' });
+		expect(result.success && [result.data.first_name, result.data.last_name]).toEqual([
+			'Sam',
+			'Rivera'
+		]);
+	});
+
+	it.each(['', '   ', undefined])('asks for the names when they are %j', (value) => {
+		const result = parse({ first_name: value, last_name: value });
+		expect(messages(result)).toEqual({
+			first_name: ['Enter your first name.'],
+			last_name: ['Enter your last name.']
+		});
+	});
+
+	it('counts code points: a first name of 61 is fine, 62 is not', () => {
+		expect(parse({ first_name: 'é'.repeat(61), last_name: 'R' }).success).toBe(true);
+		expect(messages(parse({ first_name: 'é'.repeat(62), last_name: 'R' }))).toEqual({
+			first_name: ['Your first name can be at most 61 characters.']
+		});
+	});
+
+	it('counts the first and last name together: 64 is fine, 65 is not', () => {
+		// 30 + a space + 33 is 64.
+		expect(parse({ first_name: 'é'.repeat(30), last_name: 'é'.repeat(33) }).success).toBe(true);
+		expect(messages(parse({ first_name: 'é'.repeat(30), last_name: 'é'.repeat(34) }))).toEqual({
+			last_name: ['Your first and last name together can be at most 63 characters.']
+		});
+	});
+
+	it('counts a decomposed letter as two code points', () => {
+		// "e" plus a combining accent is 2 code points, so 31 of them is 62 and 61 total is too long.
+		const decomposed = 'é';
+		expect(parse({ first_name: decomposed.repeat(31), last_name: 'R' }).success).toBe(false);
+		expect(parse({ first_name: decomposed.repeat(30), last_name: 'R' }).success).toBe(true);
+	});
+
+	it('reports only the first name message when the first name alone is too long', () => {
+		const result = parse({ first_name: 'é'.repeat(62), last_name: 'é'.repeat(40) });
+		expect(messages(result)).toEqual({
+			first_name: ['Your first name can be at most 61 characters.']
+		});
+	});
+
+	it('takes the chosen city and region', () => {
+		const result = parse({ city: { text: 'Aus', chosen: CHOSEN } });
+		expect(result.success && result.data).toMatchObject({ city: 'Austin', region: 'Texas' });
+	});
+
+	it('leaves the city out when the text is only spaces', () => {
+		const result = parse({ city: { text: '   ', chosen: null } });
+		expect(result.success && 'city' in result.data).toBe(false);
+		expect(result.success && 'region' in result.data).toBe(false);
+	});
+
+	it('leaves the city out when the field is missing', () => {
+		expect(parse({ city: undefined }).success).toBe(true);
+	});
+
+	it('asks to choose from the list when there is text but no choice', () => {
+		const result = parse({ city: { text: 'Aus', chosen: null } });
+		expect(messages(result)).toEqual({
+			city: ['Choose your city from the list, or clear the field.']
+		});
+	});
+
+	it.each([false, undefined])('asks for the Terms when it is %j', (value) => {
+		expect(messages(parse({ accepted_terms: value }))).toEqual({
+			accepted_terms: ['Accept the Terms of Service.']
+		});
+	});
+
+	it.each([false, undefined])('asks for the Privacy Policy when it is %j', (value) => {
+		expect(messages(parse({ accepted_privacy: value }))).toEqual({
+			accepted_privacy: ['Accept the Privacy Policy.']
+		});
+	});
+
+	it('reports every field at once', () => {
+		const result = signupDetailsSchema.safeParse({
+			birth_month: '',
+			birth_year: '',
+			gender_division: '',
+			first_name: '',
+			last_name: '',
+			city: { text: 'x', chosen: null }
+		});
+		expect(Object.keys(messages(result))).toEqual([
+			'birth_month',
+			'birth_year',
+			'gender_division',
+			'first_name',
+			'last_name',
+			'city',
+			'accepted_terms',
+			'accepted_privacy'
+		]);
+	});
+});
+
 describe('signupSchema and password rules', () => {
 	const email = 'sam@example.org';
 	const base = {
-		birth_month: '6',
-		birth_year: '1990',
-		gender_division: 'mens',
+		...detailsInput,
 		email,
 		password: 'longenough',
 		password_confirm: 'longenough'
@@ -267,16 +453,12 @@ describe('signupSchema and password rules', () => {
 
 	it('names the minimum in the message', () => {
 		const result = signupSchema.safeParse(withPassword('short'));
-		expect(!result.success && zodFieldErrors(result.error)).toEqual({
-			password: ['Use at least 8 characters.']
-		});
+		expect(messages(result)).toEqual({ password: ['Use at least 8 characters.'] });
 	});
 
 	it('keys email issues under email', () => {
 		const result = signupSchema.safeParse({ ...base, email: 'nope' });
-		expect(!result.success && zodFieldErrors(result.error)).toEqual({
-			email: ['Enter a valid email address.']
-		});
+		expect(messages(result)).toEqual({ email: ['Enter a valid email address.'] });
 	});
 
 	it('normalizes the email', () => {
@@ -289,30 +471,46 @@ describe('signupSchema and password rules', () => {
 		expect(result.success && result.data.password).toBe('  spaces  ');
 	});
 
-	it('gives the birth month and year as numbers, with the gender, and drops the confirmation', () => {
+	it('gives exactly the request body, with no city or region when none was chosen', () => {
 		const result = signupSchema.safeParse(base);
-		expect(result.success && result.data).toEqual({
-			birth_month: 6,
-			birth_year: 1990,
-			gender_division: 'mens',
+		expect(result.success && result.data).toStrictEqual({
 			email,
-			password: 'longenough'
+			password: 'longenough',
+			birth_year: 1990,
+			birth_month: 6,
+			gender_division: 'mens',
+			first_name: 'Sam',
+			last_name: 'Rivera',
+			accepted_terms: true,
+			accepted_privacy: true
+		});
+	});
+
+	it('adds the city and region when one was chosen', () => {
+		const result = signupSchema.safeParse({ ...base, city: { text: 'Aus', chosen: CHOSEN } });
+		expect(result.success && result.data).toStrictEqual({
+			email,
+			password: 'longenough',
+			birth_year: 1990,
+			birth_month: 6,
+			gender_division: 'mens',
+			first_name: 'Sam',
+			last_name: 'Rivera',
+			city: 'Austin',
+			region: 'Texas',
+			accepted_terms: true,
+			accepted_privacy: true
 		});
 	});
 
 	it('says when the passwords do not match, on the confirm field', () => {
 		const result = signupSchema.safeParse({ ...base, password_confirm: 'longenougH' });
-		expect(!result.success && zodFieldErrors(result.error)).toEqual({
-			password_confirm: ["The passwords don't match."]
-		});
+		expect(messages(result)).toEqual({ password_confirm: ["The passwords don't match."] });
 	});
 
 	it('requires the confirmation: leaving it out is a mismatch on the confirm field', () => {
 		const result = signupSchema.safeParse({ ...base, password_confirm: undefined });
-		expect(result.success).toBe(false);
-		expect(!result.success && zodFieldErrors(result.error).password_confirm).toEqual([
-			"The passwords don't match."
-		]);
+		expect(messages(result).password_confirm).toEqual(["The passwords don't match."]);
 	});
 
 	it('checks the confirmation alongside the other fields', () => {
@@ -321,17 +519,28 @@ describe('signupSchema and password rules', () => {
 			birth_month: '',
 			password_confirm: 'different'
 		});
-		expect(!result.success && zodFieldErrors(result.error)).toEqual({
+		expect(messages(result)).toEqual({
 			birth_month: ['Enter your birth month.'],
 			password_confirm: ["The passwords don't match."]
 		});
 	});
 
+	it('checks the names together alongside the other fields', () => {
+		const result = signupSchema.safeParse({
+			...base,
+			email: 'nope',
+			first_name: 'é'.repeat(30),
+			last_name: 'é'.repeat(34)
+		});
+		expect(messages(result)).toEqual({
+			email: ['Enter a valid email address.'],
+			last_name: ['Your first and last name together can be at most 63 characters.']
+		});
+	});
+
 	it.each(['', 'other', undefined])('asks for man or woman when the gender is %j', (gender) => {
 		const result = signupSchema.safeParse({ ...base, gender_division: gender });
-		expect(!result.success && zodFieldErrors(result.error)).toEqual({
-			gender_division: ['Choose man or woman.']
-		});
+		expect(messages(result)).toEqual({ gender_division: ['Choose man or woman.'] });
 	});
 
 	it('takes womens', () => {
@@ -344,17 +553,28 @@ describe('signupSchema and password rules', () => {
 			birth_month: '',
 			birth_year: '',
 			gender_division: '',
+			first_name: '',
+			last_name: '',
+			city: { text: 'x', chosen: null },
 			email: '',
 			password: '',
-			password_confirm: ''
+			password_confirm: 'z'
 		});
-		expect(!result.success && Object.keys(zodFieldErrors(result.error))).toEqual([
-			'birth_month',
-			'birth_year',
-			'gender_division',
-			'email',
-			'password'
-		]);
+		expect(Object.keys(messages(result)).sort()).toEqual(
+			[
+				'accepted_privacy',
+				'accepted_terms',
+				'birth_month',
+				'birth_year',
+				'city',
+				'email',
+				'first_name',
+				'gender_division',
+				'last_name',
+				'password',
+				'password_confirm'
+			].sort()
+		);
 	});
 });
 

@@ -155,7 +155,7 @@ A player can create an account against the real backend. Signup has been broken 
 - [x] Criterion 17 fixes
 - [x] Gender labels "Man" and "Woman", missing message "Choose man or woman." (criterion 9, revision 2)
 - [x] Dependencies merged, schemas and types regenerated
-- [ ] Domain schemas
+- [x] Domain schemas
 - [ ] Services and Photon search
 - [ ] Mock handlers
 - [ ] Two screens, age lock, names, location, checkboxes
