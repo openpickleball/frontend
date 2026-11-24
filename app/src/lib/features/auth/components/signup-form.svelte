@@ -12,25 +12,75 @@
 		CardHeader,
 		CardTitle
 	} from '#lib/ui/card/index.js';
+	import {
+		FieldDescription,
+		FieldError,
+		FieldLegend,
+		FieldSet,
+		fieldA11y
+	} from '#lib/ui/field/index.js';
 	import { NEW_TAB, PRIVACY_URL, TERMS_URL } from '#lib/ui/legal.js';
+	import { RadioGroup, RadioGroupItem } from '#lib/ui/radio-group/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { session } from '../session.svelte.js';
 	import { signup } from '../services.js';
 	import CheckEmail from './check-email.svelte';
+	import SelectField from './select-field.svelte';
 	import TextField from './text-field.svelte';
 
 	/** Called if the backend signs the player in straight away. Normally they check their email. */
 	let { onsuccess }: { onsuccess: () => void } = $props();
 
+	const MONTHS = [
+		'January',
+		'February',
+		'March',
+		'April',
+		'May',
+		'June',
+		'July',
+		'August',
+		'September',
+		'October',
+		'November',
+		'December'
+	].map((label, index) => ({ value: String(index + 1), label }));
+
+	/** In page order, which is the order focus looks for the first error. */
+	const FIELDS = [
+		'birth_month',
+		'birth_year',
+		'gender_division',
+		'email',
+		'password',
+		'password_confirm'
+	];
+
+	let birthMonth = $state('');
+	let birthYear = $state('');
+	let genderDivision = $state('');
 	let email = $state('');
 	let password = $state('');
-	const form = createAuthForm('signup', ['email', 'password']);
+	let passwordConfirm = $state('');
+	const form = createAuthForm('signup', FIELDS);
+
+	const gender = $derived(
+		fieldA11y({ id: 'signup-gender_division', error: form.errors.gender_division })
+	);
 
 	function submit(event: SubmitEvent) {
 		return form.submit(event, {
-			parse: () => signupSchema.safeParse({ email, password }),
+			parse: () =>
+				signupSchema.safeParse({
+					birth_month: birthMonth,
+					birth_year: birthYear,
+					gender_division: genderDivision,
+					email,
+					password,
+					password_confirm: passwordConfirm
+				}),
 			run: async (data) => {
 				// A new address and one that already has an account get the same answer, so the
 				// screen never says which it was.
@@ -38,7 +88,8 @@
 				if (state.status === 'signed_in') onsuccess();
 			},
 			onError: (error, fields) => {
-				if (!isThrottled(error) && (fields.email || fields.password)) {
+				// A refused sign-up has no field: its fixed message goes in the form alert.
+				if (!isThrottled(error) && FIELDS.some((name) => fields[name])) {
 					form.showFields(fields);
 				} else {
 					form.problem = { title: error.message };
@@ -67,6 +118,51 @@
 		</CardHeader>
 		<form method="post" onsubmit={submit} novalidate class="grid gap-8">
 			<CardContent>
+				<FieldSet aria-describedby="signup-birth-hint">
+					<FieldLegend variant="label">Birth month and year</FieldLegend>
+					<FieldDescription id="signup-birth-hint">
+						We only ask for the month and year.
+					</FieldDescription>
+					<div class="grid grid-cols-2 items-start gap-4">
+						<SelectField
+							id="signup-birth_month"
+							name="birth_month"
+							label="Month"
+							placeholder="Month"
+							options={MONTHS}
+							autocomplete="bday-month"
+							bind:value={birthMonth}
+							error={form.errors.birth_month}
+						/>
+						<TextField
+							id="signup-birth_year"
+							name="birth_year"
+							label="Year"
+							inputmode="numeric"
+							autocomplete="bday-year"
+							maxlength={4}
+							bind:value={birthYear}
+							error={form.errors.birth_year}
+						/>
+					</div>
+				</FieldSet>
+				<FieldSet>
+					<FieldLegend id="signup-gender_division-legend" variant="label">Gender</FieldLegend>
+					<RadioGroup
+						name="gender_division"
+						orientation="horizontal"
+						aria-labelledby="signup-gender_division-legend"
+						aria-required="true"
+						{...gender.attrs}
+						bind:value={genderDivision}
+					>
+						<RadioGroupItem id="signup-gender_division" value="mens">Men</RadioGroupItem>
+						<RadioGroupItem id="signup-gender_division-womens" value="womens">Women</RadioGroupItem>
+					</RadioGroup>
+					{#if form.errors.gender_division}
+						<FieldError id={gender.errorId}>{form.errors.gender_division}</FieldError>
+					{/if}
+				</FieldSet>
 				<TextField
 					id="signup-email"
 					name="email"
@@ -87,6 +183,16 @@
 					hint="At least {PASSWORD_MIN_LENGTH} characters. Avoid one you use somewhere else."
 					bind:value={password}
 					error={form.errors.password}
+				/>
+				<TextField
+					id="signup-password_confirm"
+					name="password_confirm"
+					label="Confirm password"
+					type="password"
+					reveal
+					autocomplete="new-password"
+					bind:value={passwordConfirm}
+					error={form.errors.password_confirm}
 				/>
 			</CardContent>
 			<CardFooter>

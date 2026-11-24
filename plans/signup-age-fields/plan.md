@@ -35,6 +35,8 @@ A player can create an account against the real backend. Signup has been broken 
   - A gender `FieldSet` (legend "Gender") after the birth fieldset with the radio group (`Men` value `mens`, `Women` value `womens`), id prefix `signup-gender_division`, and its error wired like the other fields.
   - `createAuthForm('signup', ['birth_month', 'birth_year', 'gender_division', 'email', 'password', 'password_confirm'])`. `password_confirm` is checked in `signupSchema` with a refine whose issue path is `password_confirm`, and is stripped from the data sent. `onError` shows fields when any of these has a message, else the form problem (unchanged logic, extended field list), so `signup_refused` lands in the alert.
   - The month field needs label, error and description wiring like `TextField` (`fieldA11y`). If a small `SelectField` component next to `text-field.svelte` is the least code, add it there.
+  - As built: `select-field.svelte` next to `text-field.svelte`. The native-select CLI also bumped `@lucide/svelte` in `package.json` and the lockfile; that was reverted, since the installed version already has the chevron icon. Its unused `OptGroup` part was dropped, and its arbitrary `bg-[Canvas]` option classes removed (the browser draws the open list). `TextField`'s Show button now names its own field (`Show confirm password`), so the two buttons on signup have different names; the reset form's reads "Show new password".
+  - The gender radios: the first item has the id `signup-gender_division` so focus can land there, the second `signup-gender_division-womens`. The radio group carries `aria-invalid` and `aria-describedby` for the error.
 - `app/src/lib/features/auth/components/signup-form.svelte.test.ts`: update `fill` to set month and year; new tests below.
 - `app/src/lib/mocks/handlers/allauth.ts` and, if needed, `app/src/lib/mocks/store.ts`: the signup handler requires `birth_year` and `birth_month` (allauth field errors with `param`, backend messages "Enter your birth year." / "Enter your birth month." / "Enter a whole number." / "Enter a month from 1 to 12." / "Enter a birth year of 1900 or later."), checks them before the email, and answers under 13 (end-of-month rule, like backend `apps/players/age.py`) with a 400 `{status: 400, errors: [{code: 'signup_refused', message: "We can't create an account with these details."}]}` and no `param`. The age is not stored in the mock store. Mock tests (`integration.test.ts` or the handler's tests) cover both. As built: the handler also requires `gender_division` with the backend's messages ("Choose a gender division.", "Choose one of the listed options."), since backend#215 shipped them, and keeps the backend's session flag (`signupRefused` in the store, a flag only) so a later sign-up in the same session is refused too.
 - `app/e2e/auth.spec.ts`: every signup flow fills month and year. One new flow: an under-13 year shows the refusal alert and no "Check your email".
@@ -81,7 +83,7 @@ A player can create an account against the real backend. Signup has been broken 
 - [x] Domain schemas
 - [x] Service
 - [x] Mock handler
-- [ ] Form (month, year, gender)
+- [x] Form (month, year, gender)
 - [ ] e2e
 - [ ] Gate and live drive
 

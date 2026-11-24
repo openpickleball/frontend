@@ -28,9 +28,32 @@ afterEach(() => {
 	session.reset();
 });
 
-async function fill(screen: Awaited<ReturnType<typeof render>>, email: string, password: string) {
+type Details = { month: string; year: string; gender: 'Men' | 'Women' | null; confirm: string };
+
+/** Fill the form as a made-up adult would. `details` overrides the birth date, gender or confirmation. */
+async function fill(
+	screen: Awaited<ReturnType<typeof render>>,
+	email: string,
+	password: string,
+	details: Partial<Details> = {}
+) {
+	const { month, year, gender, confirm }: Details = {
+		month: '6',
+		year: '1990',
+		gender: 'Men',
+		confirm: password,
+		...details
+	};
+	await screen.getByLabelText('Month').selectOptions(month);
+	await screen.getByLabelText('Year').fill(year);
+	if (gender) await screen.getByRole('radio', { name: gender }).click();
 	await screen.getByLabelText('Email').fill(email);
 	await screen.getByLabelText('Password', { exact: true }).fill(password);
+	await screen.getByLabelText('Confirm password').fill(confirm);
+}
+
+async function submitForm(screen: Awaited<ReturnType<typeof render>>) {
+	await screen.getByRole('button', { name: 'Create account' }).click();
 }
 
 describe('SignupForm', () => {
@@ -100,6 +123,9 @@ describe('SignupForm', () => {
 		await expect.element(screen.getByText('tamsin.vale@example.com')).toBeVisible();
 		await expect.poll(() => document.title).toBe('Check your email · OPEN Pickleball');
 		expect(mockedSignup).toHaveBeenCalledWith({
+			birth_month: 6,
+			birth_year: 1990,
+			gender_division: 'mens',
 			email: 'tamsin.vale@example.com',
 			password: 'a-long-enough-pass'
 		});
@@ -182,5 +208,180 @@ describe('SignupForm', () => {
 		await expect
 			.element(screen.getByText('Too many attempts. Wait a moment and try again.'))
 			.toBeVisible();
+	});
+
+	it('asks for the birth month and year, then the gender, above the email', async () => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		// The controls a player reaches, in page order (not the radio group's hidden form input).
+		const ids = [...document.querySelectorAll('form select, form input, form [role=radio]')]
+			.map((element) => element.id)
+			.filter(Boolean);
+		expect(ids).toEqual([
+			'signup-birth_month',
+			'signup-birth_year',
+			'signup-gender_division',
+			'signup-gender_division-womens',
+			'signup-email',
+			'signup-password',
+			'signup-password_confirm'
+		]);
+		await expect
+			.element(screen.getByRole('group', { name: 'Birth month and year' }))
+			.toHaveAccessibleDescription('We only ask for the month and year.');
+		await expect.element(screen.getByRole('radiogroup', { name: 'Gender' })).toBeVisible();
+	});
+
+	it('offers the twelve months by name, with numbers as values', async () => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		const month = screen.getByLabelText('Month');
+		await expect.element(month).toHaveAttribute('autocomplete', 'bday-month');
+		const options = [...(month.element() as HTMLSelectElement).options];
+		expect(options.map((option) => option.value)).toEqual([
+			'',
+			...Array.from({ length: 12 }, (_, i) => String(i + 1))
+		]);
+		expect(options[6]?.textContent?.trim()).toBe('June');
+		const year = screen.getByLabelText('Year');
+		await expect.element(year).toHaveAttribute('inputmode', 'numeric');
+		await expect.element(year).toHaveAttribute('autocomplete', 'bday-year');
+		await expect.element(year).toHaveAttribute('maxlength', '4');
+	});
+
+	it('asks for the month and year when they are empty, and moves focus to the month', async () => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass', { month: '', year: '' });
+		await submitForm(screen);
+
+		await expect.element(screen.getByText('Enter your birth month.')).toBeVisible();
+		await expect.element(screen.getByText('Enter your birth year.')).toBeVisible();
+		const month = screen.getByLabelText('Month');
+		await expect.element(month).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(month).toHaveAttribute('aria-describedby', 'signup-birth_month-error');
+		await expect.element(screen.getByLabelText('Year')).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(month).toHaveFocus();
+		expect(mockedSignup).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		['abcd', 'Enter your birth year.'],
+		['1899', 'Enter a birth year of 1900 or later.'],
+		[String(new Date().getFullYear() + 1), 'Enter a birth year that has passed.']
+	])('refuses the year %j on the year field', async (year, message) => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass', { year });
+		await submitForm(screen);
+
+		await expect.element(screen.getByText(message)).toBeVisible();
+		const field = screen.getByLabelText('Year');
+		await expect.element(field).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(field).toHaveFocus();
+		expect(mockedSignup).not.toHaveBeenCalled();
+	});
+
+	it('sends a recent birth year: the backend decides the minimum age', async () => {
+		mockedSignup.mockResolvedValue({ status: 'pending_verification' });
+		const year = new Date().getFullYear() - 5;
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass', {
+			month: '1',
+			year: String(year),
+			gender: 'Women'
+		});
+		await submitForm(screen);
+
+		await expect.poll(() => mockedSignup.mock.calls.length).toBe(1);
+		expect(mockedSignup.mock.calls[0]?.[0]).toMatchObject({
+			birth_month: 1,
+			birth_year: year,
+			gender_division: 'womens'
+		});
+	});
+
+	it('never names an age limit', async () => {
+		await render(SignupForm, { onsuccess: vi.fn() });
+		expect(document.body.textContent).not.toContain('13');
+	});
+
+	it('puts the backend birth year message on the year field', async () => {
+		mockedSignup.mockRejectedValue(
+			appError({ fields: { birth_year: ['Enter a birth year of 1900 or later.'] } })
+		);
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass');
+		await submitForm(screen);
+
+		await expect.element(screen.getByText('Enter a birth year of 1900 or later.')).toBeVisible();
+		const year = screen.getByLabelText('Year');
+		await expect.element(year).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(year).toHaveFocus();
+		// The message is on the field, not in the form alert.
+		expect(document.querySelector('[data-slot="alert"]')).toBeNull();
+	});
+
+	it('shows the refusal as the form alert, and nothing more', async () => {
+		const message = "We can't create an account with these details.";
+		mockedSignup.mockRejectedValue(appError({ code: 'signup_refused', message, fields: {} }));
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass');
+		await submitForm(screen);
+
+		const alert = screen.getByRole('alert');
+		await expect.element(alert).toHaveTextContent(message);
+		expect(alert.element().textContent?.trim()).toBe(message);
+		expect(document.querySelectorAll('[aria-invalid="true"]')).toHaveLength(0);
+		await expect
+			.element(screen.getByRole('heading', { level: 1, name: 'Check your email' }))
+			.not.toBeInTheDocument();
+	});
+
+	it('asks for men or women when neither is chosen', async () => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass', { gender: null });
+		await submitForm(screen);
+
+		await expect.element(screen.getByText('Choose men or women.')).toBeVisible();
+		const group = screen.getByRole('radiogroup', { name: 'Gender' });
+		await expect.element(group).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(group).toHaveAccessibleDescription('Choose men or women.');
+		await expect.element(screen.getByRole('radio', { name: 'Men' })).toHaveFocus();
+		expect(mockedSignup).not.toHaveBeenCalled();
+	});
+
+	it('puts the backend gender message on the gender field', async () => {
+		mockedSignup.mockRejectedValue(
+			appError({ fields: { gender_division: ['Choose one of the listed options.'] } })
+		);
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass');
+		await submitForm(screen);
+
+		await expect
+			.element(screen.getByRole('radiogroup', { name: 'Gender' }))
+			.toHaveAccessibleDescription('Choose one of the listed options.');
+	});
+
+	it('says when the passwords do not match, and sends nothing', async () => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass', {
+			confirm: 'a-long-enough-pas'
+		});
+		await submitForm(screen);
+
+		await expect.element(screen.getByText("The passwords don't match.")).toBeVisible();
+		const confirm = screen.getByLabelText('Confirm password');
+		await expect.element(confirm).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(confirm).toHaveFocus();
+		expect(mockedSignup).not.toHaveBeenCalled();
+	});
+
+	it('gives the confirm field its own Show button', async () => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		const confirm = screen.getByLabelText('Confirm password');
+		await expect.element(confirm).toHaveAttribute('type', 'password');
+		await screen.getByRole('button', { name: 'Show confirm password' }).click();
+		await expect.element(confirm).toHaveAttribute('type', 'text');
+		await expect
+			.element(screen.getByLabelText('Password', { exact: true }))
+			.toHaveAttribute('type', 'password');
 	});
 });
