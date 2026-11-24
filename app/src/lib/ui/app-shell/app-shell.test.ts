@@ -145,6 +145,42 @@ describe('AppShell', () => {
 		}
 	});
 
+	it('links the Terms and Privacy pages on openpb.org from every footer, in a new tab', () => {
+		for (const body of [
+			shell('/'),
+			render(AppShell, { props: { pathname: '/account/login', children, bare: true } }).body
+		]) {
+			const footer = body.match(/<footer[\s\S]*?<\/footer>/)![0];
+			const links = [...footer.matchAll(/<a\s([^>]*)>([\s\S]*?)<\/a>/g)];
+			for (const [name, href] of [
+				['Terms', 'https://openpb.org/terms/'],
+				['Privacy', 'https://openpb.org/privacy/']
+			]) {
+				const link = links.find(([, , text]) => text.trim().startsWith(name));
+				expect(link, name).toBeDefined();
+				const [, attrs, text] = link!;
+				expect(attrs).toContain(`href="${href}"`);
+				expect(attrs).toContain('target="_blank"');
+				expect(attrs).toContain('rel="noopener"');
+				expect(text).toContain('(opens in a new tab)');
+			}
+		}
+	});
+
+	it('keeps a space before "(opens in a new tab)" in the Terms and Privacy link names', () => {
+		for (const body of [
+			shell('/'),
+			render(AppShell, { props: { pathname: '/account/login', children, bare: true } }).body
+		]) {
+			const footer = body.match(/<footer[\s\S]*?<\/footer>/)![0];
+			for (const name of ['Terms', 'Privacy']) {
+				expect(footer).toMatch(
+					new RegExp(`>\\s*${name}<span class="sr-only"> \\(opens in a new tab\\)</span>`)
+				);
+			}
+		}
+	});
+
 	it('has a theme toggle in the top bar and in the side nav', () => {
 		const body = shell('/');
 		expect(body.match(/aria-label="Switch to (ivory|black) theme"/g)).toHaveLength(2);

@@ -48,6 +48,43 @@ describe('SignupForm', () => {
 		expect(mockedSignup).not.toHaveBeenCalled();
 	});
 
+	it('says under the button that creating an account agrees to the Terms and Privacy', async () => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		const line = screen.getByText(/^By creating an account you agree to/);
+		await expect.element(line).toBeVisible();
+		// The links add "(opens in a new tab)" for screen readers only, so leave it out here.
+		const seen = line.element().textContent!.replaceAll(' (opens in a new tab)', '');
+		expect(seen.replace(/\s+/g, ' ').trim()).toBe(
+			'By creating an account you agree to the Terms of Service and Privacy Policy.'
+		);
+
+		const button = screen.getByRole('button', { name: 'Create account' }).element();
+		// Directly under the button: no other element sits between them.
+		expect(button.nextElementSibling).toBe(line.element());
+	});
+
+	it('opens the Terms of Service and Privacy Policy on openpb.org in a new tab', async () => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		for (const [name, href] of [
+			['Terms of Service (opens in a new tab)', 'https://openpb.org/terms/'],
+			['Privacy Policy (opens in a new tab)', 'https://openpb.org/privacy/']
+		]) {
+			const link = screen.getByRole('link', { name, exact: true });
+			await expect.element(link).toHaveAttribute('href', href);
+			await expect.element(link).toHaveAttribute('target', '_blank');
+			await expect.element(link).toHaveAttribute('rel', 'noopener');
+		}
+	});
+
+	it('leaves the Terms line off the check your email view', async () => {
+		session.apply({ status: 'pending_verification' }, 'tamsin.vale@example.com');
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await expect
+			.element(screen.getByRole('heading', { level: 1, name: 'Check your email' }))
+			.toBeVisible();
+		await expect.element(screen.getByRole('link', { name: /Terms/ })).not.toBeInTheDocument();
+	});
+
 	it('shows check your email after a sign-up, with the address', async () => {
 		mockedSignup.mockImplementation(async ({ email }) => {
 			session.apply({ status: 'pending_verification' }, email);
