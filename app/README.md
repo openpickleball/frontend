@@ -32,21 +32,21 @@ The app is at http://localhost:5173. With no `.env`, it talks to the backend (se
 
 Settings go in `app/.env`, which git ignores. There is one:
 
-| Value                     | What it does                                                                              |
-| ------------------------- | ----------------------------------------------------------------------------------------- |
-| `PUBLIC_API_MOCK=off`     | The default. Every request goes to the real backend.                                      |
-| `PUBLIC_API_MOCK=missing` | Only the endpoints the backend does not have yet are answered by mocks. The rest is live. |
-| `PUBLIC_API_MOCK=all`     | The whole API is mocked in the browser, with made-up players. No backend needed.          |
-
-The City field at signup asks Photon (`photon.komoot.io`) for suggestions from the browser. In `off` it calls the real Photon, so it needs a network connection. In `missing` and `all` a mock answers with made-up places.
+| Value                     | What it does                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| `PUBLIC_API_MOCK=off`     | The default. Every API request goes to the real backend.                            |
+| `PUBLIC_API_MOCK=missing` | Only the endpoints the backend does not have yet, and City suggestions, are mocked. |
+| `PUBLIC_API_MOCK=all`     | The whole API is mocked in the browser, with made-up players. No backend needed.    |
 
 Anything else counts as `off`. The value is fixed when the dev server starts, so restart `pnpm dev` after you change it. In `missing` and `all`, ratings on the profile page are labeled as samples. They are made up, and no OPEN rating is live.
+
+The City field at signup asks Photon (`photon.komoot.io`) for suggestions from the browser. In `off` it calls the real Photon, so it needs a network connection. In `missing` and `all` a mock answers with made-up places.
 
 With `all`, you can sign in as `player@example.com` (see `src/lib/mocks/fixtures.ts` for the password and the other made-up players).
 
 ### The `/api` proxy
 
-`pnpm dev` forwards `/api` and `/_allauth` to the backend at `http://127.0.0.1:8000` (see `vite.config.ts`). The browser only ever talks to `localhost:5173`, so the session cookie and CSRF protection work without CORS settings.
+`pnpm dev` forwards `/api` and `/_allauth` to the backend at `http://127.0.0.1:8000` (see `vite.config.ts`). The browser only ever talks to the backend through `localhost:5173`, so the session cookie and CSRF protection work without CORS settings.
 
 ## Run the whole stack
 
