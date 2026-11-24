@@ -902,6 +902,26 @@ describe('player profile endpoints', () => {
 		expect(mockStore.state.signupRefused).toBe(true);
 	});
 
+	// Django's full_clean runs the age rule even when a field failed, and create_my_player
+	// checks the age refusal before it reports field errors.
+	it.each([
+		['a blank display name', { display_name: '   ' }],
+		['a made-up gender division', { gender_division: 'other' }],
+		['a legal name that is too long', { legal_name: 'Q'.repeat(201) }]
+	])('refuses a child with %s by age alone, for the rest of the session', async (_, extra) => {
+		const api = await freshAccount();
+		const child = await api.open.POST('/api/v1/me/player', {
+			body: { ...adult, ...extra, birth_year: new Date().getFullYear() - 5 }
+		});
+		expect(child.response.status).toBe(422);
+		expect(child.error?.errors).toEqual(AGE_REFUSAL);
+		expect(mockStore.state.signupRefused).toBe(true);
+
+		const again = await api.open.POST('/api/v1/me/player', { body: adult });
+		expect(again.error?.errors).toEqual(AGE_REFUSAL);
+		expect(mockStore.playerOfAccount(FRESH)).toBeUndefined();
+	});
+
 	it('refuses a second player for the account (409)', async () => {
 		const api = await signedIn();
 		const second = await api.open.POST('/api/v1/me/player', { body: adult });
