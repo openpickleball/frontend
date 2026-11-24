@@ -702,6 +702,66 @@
 					"401": { "$ref": "#/components/responses/Authentication" }
 				}
 			}
+		},
+		"/_allauth/{client}/v1/auth/signup/age-check": {
+			"post": {
+				"tags": ["Authentication: Account"],
+				"summary": "Check the signup age",
+				"description": "Checks only a birth year and month, with the signup age screen's rules,\nbefore the app asks for any other personal detail (a name or a location).\nIt reads no email address.\n\n13 or older gets a success answer and the session keeps nothing: the\nsignup request still sends and checks the age itself. Under 13 gets the\nsame fixed refusal as signup (`signup_refused`), and the session is\nflagged, so this check and every later signup in it get that refusal,\nwhatever age they send. A missing or malformed value gets a field error.\n\nThe check counts against signup's rate limit.\n",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"birth_year": { "type": "integer", "minimum": 1900 },
+									"birth_month": { "type": "integer", "minimum": 1, "maximum": 12 }
+								},
+								"required": ["birth_year", "birth_month"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": { "$ref": "#/components/responses/StatusOK" },
+					"400": {
+						"description": "A missing or malformed value (a field error), or the fixed refusal for an age under 13 or a flagged session.",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorResponse" },
+								"examples": {
+									"signup_refused": {
+										"value": {
+											"status": 400,
+											"errors": [
+												{
+													"message": "We can't create an account with these details.",
+													"code": "signup_refused"
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden, when signup is closed.",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/ForbiddenResponse" } }
+						}
+					},
+					"409": {
+						"description": "Conflict, when the session is signed in.",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/ConflictResponse" } }
+						}
+					},
+					"429": { "$ref": "#/components/responses/TooManyRequests" }
+				},
+				"parameters": [{ "$ref": "#/components/parameters/Client" }]
+			}
 		}
 	},
 	"components": {
@@ -1698,8 +1758,28 @@
 			"PasskeySignup": { "allOf": [{ "$ref": "#/components/schemas/BaseSignup" }] },
 			"BaseSignup": {
 				"type": "object",
-				"properties": { "email": { "$ref": "#/components/schemas/Email" } },
-				"required": ["email"]
+				"properties": {
+					"email": { "$ref": "#/components/schemas/Email" },
+					"birth_year": { "type": "integer" },
+					"birth_month": { "type": "integer" },
+					"gender_division": { "type": "string", "enum": ["mens", "womens"] },
+					"first_name": { "type": "string" },
+					"last_name": { "type": "string" },
+					"city": { "type": "string", "maxLength": 100 },
+					"region": { "type": "string", "maxLength": 100 },
+					"accepted_terms": { "type": "boolean" },
+					"accepted_privacy": { "type": "boolean" }
+				},
+				"required": [
+					"email",
+					"birth_year",
+					"birth_month",
+					"gender_division",
+					"first_name",
+					"last_name",
+					"accepted_terms",
+					"accepted_privacy"
+				]
 			},
 			"Signup": {
 				"allOf": [

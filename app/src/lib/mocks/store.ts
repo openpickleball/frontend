@@ -8,7 +8,9 @@
  * - `apps/matches/api.py`, `services.py` and `workflow.py` for matches,
  * - `apps/players/api.py` for the match list and its privacy rules,
  * - django-allauth headless with this backend's settings (email and password,
- *   mandatory verification by link) for accounts.
+ *   mandatory verification by link) for accounts. Sign-up also takes the birth month and
+ *   year, the gender division, the names, an optional city and region, and the agreements.
+ *   The store keeps none of those, only the refusal flag (`signupRefused`).
  *
  * State is plain data (no Maps, no classes), so `snapshot` and `restore` can keep it in
  * `sessionStorage` across a page reload in the browser.
@@ -91,6 +93,8 @@ export type MockState = {
 	session: { email: string; at: number } | null;
 	/** A sign-up or login waiting on email verification, in this browser session. */
 	pendingEmail: string | null;
+	/** The backend's session flag after an under-13 sign-up: later sign-ups are refused too. */
+	signupRefused?: boolean;
 	tokens: MockToken[];
 	outbox: MockMail[];
 	csrfToken: string;

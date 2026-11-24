@@ -48,7 +48,7 @@
 			<InputGroupAddon>
 				<InputGroupButton aria-controls={id} onclick={() => (shown = !shown)}>
 					{shown ? 'Hide' : 'Show'}
-					<span class="sr-only">password</span>
+					<span class="sr-only">{label.toLowerCase()}</span>
 				</InputGroupButton>
 			</InputGroupAddon>
 		</InputGroup>

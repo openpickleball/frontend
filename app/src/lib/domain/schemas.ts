@@ -163,7 +163,226 @@ export const newPasswordSchema = z
 /** The password for logging in: only that something was typed. */
 export const loginPasswordSchema = z.string('Enter your password.').min(1, 'Enter your password.');
 
-export const signupSchema = z.object({ email: emailSchema, password: newPasswordSchema });
+/** The earliest birth year the backend takes. `apps/players/age.py`. */
+export const BIRTH_YEAR_MIN = 1900;
+
+/** The form's text, stripped, or `''` when the field was left out. */
+const fieldText = z
+	.string()
+	.optional()
+	.transform((text) => (text ?? '').trim());
+
+/**
+ * A birth month from the form's select: `'1'` to `'12'`, given as a number. The messages
+ * match the backend's. Only the month and year are asked for (ADR 0017).
+ */
+export const birthMonthSchema = fieldText.transform((text, ctx) => {
+	if (!text) {
+		ctx.addIssue({ code: 'custom', message: 'Enter your birth month.' });
+		return z.NEVER;
+	}
+	const month = /^\d+$/.test(text) ? Number(text) : NaN;
+	if (!(month >= 1 && month <= 12)) {
+		ctx.addIssue({ code: 'custom', message: 'Enter a month from 1 to 12.' });
+		return z.NEVER;
+	}
+	return month;
+});
+
+/**
+ * A birth year typed as text, given as a number: a whole number from 1900 to this year.
+ * There is no minimum age here. The backend decides who can sign up.
+ */
+export const birthYearSchema = fieldText.transform((text, ctx) => {
+	if (!/^\d+$/.test(text)) {
+		ctx.addIssue({ code: 'custom', message: 'Enter your birth year.' });
+		return z.NEVER;
+	}
+	const year = Number(text);
+	if (year < BIRTH_YEAR_MIN) {
+		ctx.addIssue({ code: 'custom', message: `Enter a birth year of ${BIRTH_YEAR_MIN} or later.` });
+		return z.NEVER;
+	}
+	if (year > new Date().getFullYear()) {
+		ctx.addIssue({ code: 'custom', message: 'Enter a birth year that has passed.' });
+		return z.NEVER;
+	}
+	return year;
+});
+
+/** The division a player signs up for: the backend's `gender_division`. */
+export const genderDivisionSchema = z.enum(['mens', 'womens'], 'Choose man or woman.');
+
+/**
+ * The longest first name the backend takes, and the longest `${first} ${last}`, counted in
+ * code points. Backend `apps/accounts/forms.py`. The pair limit of 64 includes the space, so
+ * the message says 63.
+ */
+export const SIGNUP_FIRST_NAME_MAX_LENGTH = 61;
+export const SIGNUP_NAME_MAX_LENGTH = 64;
+
+/** Length in code points, as the backend counts it (not UTF-16 units). */
+function codePoints(text: string): number {
+	return [...text].length;
+}
+
+/** The first name, stripped. Empty or too long is an issue. */
+const firstNameSchema = z
+	.string('Enter your first name.')
+	.transform((text) => text.trim())
+	.superRefine((text, ctx) => {
+		if (!text) {
+			ctx.addIssue({ code: 'custom', message: 'Enter your first name.' });
+		} else if (codePoints(text) > SIGNUP_FIRST_NAME_MAX_LENGTH) {
+			ctx.addIssue({
+				code: 'custom',
+				message: `Your first name can be at most ${SIGNUP_FIRST_NAME_MAX_LENGTH} characters.`
+			});
+		}
+	});
+
+/** The last name, stripped. The pair's length is checked on the whole form. */
+const lastNameSchema = z
+	.string('Enter your last name.')
+	.transform((text) => text.trim())
+	.refine((text) => text !== '', 'Enter your last name.');
+
+type NameFields = { first_name?: unknown; last_name?: unknown };
+
+/** Do the two names fit together? Only checked when both are strings. */
+const namesFit = (value: NameFields): boolean =>
+	typeof value.first_name !== 'string' ||
+	typeof value.last_name !== 'string' ||
+	codePoints(`${value.first_name.trim()} ${value.last_name.trim()}`) <= SIGNUP_NAME_MAX_LENGTH;
+
+/**
+ * Check the two names together, as the backend does: only when both are given and the first
+ * name alone is fine. Runs even when another field fails, so every message shows at once.
+ */
+const namesTogether = {
+	message: `Your first and last name together can be at most ${SIGNUP_NAME_MAX_LENGTH - 1} characters.`,
+	path: ['last_name'],
+	when: ({ value }: { value: unknown }) => {
+		const { first_name, last_name } = (value ?? {}) as NameFields;
+		if (typeof first_name !== 'string' || typeof last_name !== 'string') return false;
+		const first = first_name.trim();
+		return (
+			first !== '' && last_name.trim() !== '' && codePoints(first) <= SIGNUP_FIRST_NAME_MAX_LENGTH
+		);
+	}
+};
+
+/** What the form holds for the optional city: the typed text and the suggestion picked, if any. */
+export type CityInput = { text: string; chosen: { city: string; region: string } | null };
+
+/**
+ * The optional city. A picked suggestion gives `city` and `region`. Empty text gives neither.
+ * Text without a picked suggestion is an issue: only a place from the list is sent.
+ */
+const citySchema = z
+	.object({
+		text: z.string().optional(),
+		chosen: z.object({ city: z.string(), region: z.string() }).nullable().optional()
+	})
+	.optional()
+	.transform((input, ctx): { city?: string; region?: string } => {
+		if (input?.chosen) {
+			const { city, region } = input.chosen;
+			return region === '' ? { city } : { city, region };
+		}
+		if (!(input?.text ?? '').trim()) return {};
+		ctx.addIssue({
+			code: 'custom',
+			message: 'Choose your city from the list, or clear the field.'
+		});
+		return z.NEVER;
+	});
+
+/** An agreement: only `true` accepts. */
+const agreement = (message: string) =>
+	z
+		.boolean(message)
+		.refine((value) => value === true, message)
+		.transform((): true => true);
+
+const accountShape = {
+	email: emailSchema,
+	password: newPasswordSchema,
+	password_confirm: z.string("The passwords don't match.")
+};
+
+const detailsShape = {
+	birth_month: birthMonthSchema,
+	birth_year: birthYearSchema,
+	gender_division: genderDivisionSchema,
+	first_name: firstNameSchema,
+	last_name: lastNameSchema,
+	city: citySchema,
+	accepted_terms: agreement('Accept the Terms of Service.'),
+	accepted_privacy: agreement('Accept the Privacy Policy.')
+};
+
+const passwordsMatch = {
+	message: "The passwords don't match.",
+	path: ['password_confirm'],
+	// Also check it when another field is wrong, so every message shows at once.
+	when: ({ value }: { value: unknown }) => {
+		const { password, password_confirm } = (value ?? {}) as Record<string, unknown>;
+		return typeof password === 'string' && typeof password_confirm === 'string';
+	}
+};
+
+/** Step 1 of sign-up: the account. `password_confirm` is a typo guard and is not in the output. */
+export const signupAccountSchema = z
+	.object(accountShape)
+	.refine((input) => input.password_confirm === input.password, passwordsMatch)
+	.transform(({ email, password }) => ({ email, password }));
+
+/** The age screen: birth month and year as numbers. The backend decides who can sign up. */
+export const signupAgeSchema = z.object({
+	birth_month: birthMonthSchema,
+	birth_year: birthYearSchema
+});
+
+type DetailsParsed = {
+	birth_month: number;
+	birth_year: number;
+	gender_division: 'mens' | 'womens';
+	first_name: string;
+	last_name: string;
+	city: { city?: string; region?: string };
+	accepted_terms: true;
+	accepted_privacy: true;
+};
+
+/** Puts `city` and `region` at the top level, and leaves the keys out when there is none. */
+function flattenCity(input: DetailsParsed) {
+	// Named keys only, so anything else on the input (such as a password confirmation) is left out.
+	return {
+		birth_year: input.birth_year,
+		birth_month: input.birth_month,
+		gender_division: input.gender_division,
+		first_name: input.first_name,
+		last_name: input.last_name,
+		...input.city,
+		accepted_terms: input.accepted_terms,
+		accepted_privacy: input.accepted_privacy
+	};
+}
+
+/** The details screen: age, gender, names, optional city and the two agreements. */
+export const signupDetailsSchema = z
+	.object(detailsShape)
+	.refine(namesFit, namesTogether)
+	.transform(flattenCity);
+
+/** The whole sign-up, for the final send. The output is exactly the request body. */
+export const signupSchema = z
+	.object({ ...accountShape, ...detailsShape })
+	.refine((input) => input.password_confirm === input.password, passwordsMatch)
+	.refine(namesFit, namesTogether)
+	.transform((input) => ({ email: input.email, password: input.password, ...flattenCity(input) }));
+
 export const loginSchema = z.object({ email: canonicalEmailSchema, password: loginPasswordSchema });
 export const passwordResetRequestSchema = z.object({ email: canonicalEmailSchema });
 export const passwordResetSchema = z.object({
@@ -172,6 +391,9 @@ export const passwordResetSchema = z.object({
 });
 
 export type SignupInput = z.input<typeof signupSchema>;
+export type SignupAccountInput = z.input<typeof signupAccountSchema>;
+export type SignupDetailsInput = z.input<typeof signupDetailsSchema>;
+export type SignupAgeInput = z.input<typeof signupAgeSchema>;
 export type LoginInput = z.input<typeof loginSchema>;
 export type PasswordResetRequestInput = z.input<typeof passwordResetRequestSchema>;
 export type PasswordResetInput = z.input<typeof passwordResetSchema>;

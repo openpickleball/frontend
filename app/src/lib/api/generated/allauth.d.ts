@@ -1237,6 +1237,85 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/_allauth/{client}/v1/auth/signup/age-check': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Check the signup age
+		 * @description Checks only a birth year and month, with the signup age screen's rules,
+		 *     before the app asks for any other personal detail (a name or a location).
+		 *     It reads no email address.
+		 *
+		 *     13 or older gets a success answer and the session keeps nothing: the
+		 *     signup request still sends and checks the age itself. Under 13 gets the
+		 *     same fixed refusal as signup (`signup_refused`), and the session is
+		 *     flagged, so this check and every later signup in it get that refusal,
+		 *     whatever age they send. A missing or malformed value gets a field error.
+		 *
+		 *     The check counts against signup's rate limit.
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody: {
+				content: {
+					'application/json': {
+						birth_year: number;
+						birth_month: number;
+					};
+				};
+			};
+			responses: {
+				200: components['responses']['StatusOK'];
+				/** @description A missing or malformed value (a field error), or the fixed refusal for an age under 13 or a flagged session. */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ErrorResponse'];
+					};
+				};
+				/** @description Forbidden, when signup is closed. */
+				403: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ForbiddenResponse'];
+					};
+				};
+				/** @description Conflict, when the session is signed in. */
+				409: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ConflictResponse'];
+					};
+				};
+				429: components['responses']['TooManyRequests'];
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1528,6 +1607,16 @@ export interface components {
 		PasskeySignup: components['schemas']['BaseSignup'];
 		BaseSignup: {
 			email: components['schemas']['Email'];
+			birth_year: number;
+			birth_month: number;
+			/** @enum {string} */
+			gender_division: 'mens' | 'womens';
+			first_name: string;
+			last_name: string;
+			city?: string;
+			region?: string;
+			accepted_terms: boolean;
+			accepted_privacy: boolean;
 		};
 		Signup: components['schemas']['BaseSignup'] & {
 			password: components['schemas']['Password'];
