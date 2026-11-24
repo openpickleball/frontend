@@ -140,7 +140,6 @@
 							label="Year"
 							inputmode="numeric"
 							autocomplete="bday-year"
-							maxlength={4}
 							bind:value={birthYear}
 							error={form.errors.birth_year}
 						/>
