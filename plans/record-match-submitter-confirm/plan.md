@@ -1,6 +1,6 @@
 # Plan: Stop confirming a match again right after recording it (issue #208)
 
-**Status:** active
+**Status:** done
 
 Risk tier: Medium. It changes existing behavior of the record-match flow (one request fewer, the failure toast gone) and the shared `AppError` type, across about ten files. Confirmed by the user.
 
