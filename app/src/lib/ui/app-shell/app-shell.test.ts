@@ -167,6 +167,19 @@ describe('AppShell', () => {
 		}
 	});
 
+	it('keeps a space before "(opens in a new tab)" in the Terms and Privacy link names', () => {
+		const footer = shell('/').match(/<footer[\s\S]*?<\/footer>/)![0];
+		const names = [...footer.matchAll(/<a\s[^>]*>([\s\S]*?)<\/a>/g)].map(([, inner]) =>
+			inner
+				.replace(/<[^>]*>/g, '')
+				.replaceAll('&#32;', ' ')
+				.replace(/\s+/g, ' ')
+				.trim()
+		);
+		expect(names).toContain('Terms (opens in a new tab)');
+		expect(names).toContain('Privacy (opens in a new tab)');
+	});
+
 	it('has a theme toggle in the top bar and in the side nav', () => {
 		const body = shell('/');
 		expect(body.match(/aria-label="Switch to (ivory|black) theme"/g)).toHaveLength(2);
