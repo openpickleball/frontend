@@ -13,7 +13,7 @@ Scope:
 - **Auth, end to end:** sign up (email and password, then birth month and year, which the backend checks before anything else, then gender, first and last name, an optional city, and agreement to the Terms of Service and Privacy Policy), the "check your email" page, verify email from the link, log in and out, and password reset. Built on allauth headless with the `browser` client, same origin through the Vite dev proxy.
 - **Record a match:** singles or doubles, teams entered as OPEN codes, 1 to 5 games, client-side score rules that mirror the backend, then `POST /matches/`.
 - **My matches:** a paged list from `GET /players/{code}/matches`, match detail built from list data, and confirm or dispute.
-- **Profile and ratings against mocks:** the backend now has `me/player` (backend#124), but the app does not call it yet: it adopts it in frontend#35 and frontend#205. Ratings (backend#53) don't exist yet. We build the screens against MSW handlers that only run in mock mode. With the real backend they show "Coming soon".
+- **Profile and ratings against mocks:** the backend now has `me/player` (backend#124). The app reads and changes it with the generated types (frontend#207), and frontend#205 creates the player after signup. Ratings (backend#53) don't exist yet. We build the screens against MSW handlers that only run in mock mode. With the real backend they show "Coming soon".
 - **Installable PWA:** a manifest, a service worker that caches the app shell, and the site's design tokens and theme toggle. The offline match queue was proposed as the last v1 item (Q1), and is deferred to frontend#33.
 
 ### Decisions at a glance
@@ -43,7 +43,7 @@ Scope:
 | Session restore and route guard | **Build now** | `GET auth/session` | A 401 with `flows` is a state, not an error (for example, "verify your email") |
 | App shell, nav, theme toggle, tokens, fonts | **Build now** | — | Port `site/src/input.css` `@theme`, the `light:` variant and the head script |
 | Record a match | **Build now** | `POST /matches/` | 422 field errors go to their form fields. A 409 `duplicate_match` links to the earlier match |
-| Confirm my own submission | **Build now** | `POST /matches/{code}/confirm` | A self-submission is created `pending` and needs a confirmation from each team, the submitter's included (ADR 0015). See Q4 |
+| Confirm my own submission | **Build now** | `POST /matches/{code}/confirm` | A self-submission is created `pending` and needs a confirmation from each team (ADR 0015). Since backend #197 the submission counts as the submitter's team confirmation, so the app's extra confirm is a no-op (removed in frontend#208). See Q4 |
 | My matches (paged) | **Build now** | `GET /players/{code}/matches` | "Load more" with `limit`/`offset`. Needs my own code, see Q3 |
 | Match detail | **Build now** | from list data | Cached by code from the list and from mutation responses. A cold deep link scans my list (up to 100) and otherwise shows "not found" |
 | Confirm / dispute | **Build now** | `/confirm`, `/dispute` | Dispute asks first in an alert dialog. Repeats do nothing on the backend, so the buttons show on every pending match |
@@ -155,9 +155,9 @@ type AppError = {
 - `src/lib/mocks/handlers/` has one file per area. `fixtures/` holds made-up players (Faker-free hand-written names such as "Robin Vale", with valid-format codes) and matches in every status.
 - Mode `PUBLIC_API_MOCK`, read in `hooks.client.ts`:
   - `off` (default): no MSW.
-  - `missing`: MSW serves only the endpoints the backend lacks (`me/player`, `players/{code}`, `players/{code}/ratings`) and passes everything else to the real backend.
+  - `missing`: MSW serves only the endpoints the backend lacks (today `players/{code}/ratings`, plus the place search) and passes everything else to the real backend.
   - `all`: no backend needed, for demos, mockup screenshots and e2e.
-- The handlers for missing endpoints follow the shapes in #124 and #53 as hand-written provisional types in `api/provisional.ts`. We delete that file when the backend ships the real endpoints and the snapshot is regenerated.
+- The handlers for missing endpoints use hand-written provisional types in `api/provisional.ts`. Since frontend#207 it holds only the ratings types (#53). We delete it when the ratings endpoint ships and the snapshot is regenerated.
 - Vitest uses `msw/node` with the same handlers. A page can't run two service workers at the same scope, so mock modes don't register the app's service worker.
 - **Alternative:** a feature-flagged in-app adapter for each port. That means more code paths in production, and it can't exercise the real fetch, CSRF and error pipeline.
 
@@ -240,7 +240,7 @@ The starter files (`+page.svelte`, `layout.css`, `app.html`, `adapter-auto`) are
 
 - **F1** Offline match queue: filed as frontend#33 (Q1 = defer).
 - **F2** Revisit SSR (adapter-node) for public profile and leaderboard pages once #124 and #53 ship and a host is chosen.
-- **F3** Swap the mocks for real endpoints when #124 and #53 land: regenerate the schema, delete `provisional.ts`.
+- **F3** Swap the mocks for real endpoints when #124 and #53 land: regenerate the schema, delete `provisional.ts`. Done for #124 in frontend#207. Ratings (#53) remain, in frontend#35.
 - **F4** Keep `tailwindcss` in step across `app/` and `site/` in Dependabot (one group across directories, or a CI check that the versions match).
 - **F5** Update frontend#22's "Done when": replace the staging criterion with local dev until hosting is in scope.
 

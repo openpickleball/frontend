@@ -1,6 +1,6 @@
 # Plan: Use the generated types for the player profile endpoints (issue #207)
 
-**Status:** active
+**Status:** done
 
 Risk tier: High. It switches `features/players` from hand-written to generated API types, reshapes the mock player model and the `missing` mock mode, and touches more than a few files across `api/`, `features/players` and `mocks/`. Confirmed by the user.
 
