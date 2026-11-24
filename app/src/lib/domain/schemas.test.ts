@@ -307,6 +307,14 @@ describe('signupSchema and password rules', () => {
 		});
 	});
 
+	it('requires the confirmation: leaving it out is a mismatch on the confirm field', () => {
+		const result = signupSchema.safeParse({ ...base, password_confirm: undefined });
+		expect(result.success).toBe(false);
+		expect(!result.success && zodFieldErrors(result.error).password_confirm).toEqual([
+			"The passwords don't match."
+		]);
+	});
+
 	it('checks the confirmation alongside the other fields', () => {
 		const result = signupSchema.safeParse({
 			...base,
