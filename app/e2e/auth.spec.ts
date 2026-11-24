@@ -80,9 +80,19 @@ test('an under-13 birth year gets the refusal, not check your email', async ({ p
 	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
 	expect(await mail(page)).toEqual([]);
 
-	// The session keeps refusing, as the backend does, even with an adult year.
+	// The session keeps refusing, as the backend does, even with an adult year. The alert from
+	// the first answer reads the same, so wait for the second answer before checking it.
 	await page.getByLabel('Year').fill('1990');
-	await page.getByRole('button', { name: 'Create account' }).click();
+	const [second] = await Promise.all([
+		page.waitForResponse(
+			(response) =>
+				response.url().endsWith('/_allauth/browser/v1/auth/signup') &&
+				response.request().method() === 'POST'
+		),
+		page.getByRole('button', { name: 'Create account' }).click()
+	]);
+	expect(second.status()).toBe(400);
+	expect(await second.json()).toMatchObject({ errors: [{ code: 'signup_refused' }] });
 	await expect(page.locator('[data-slot="alert"]')).toHaveText(message);
 	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
 });
