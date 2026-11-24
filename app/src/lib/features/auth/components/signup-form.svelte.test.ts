@@ -390,4 +390,13 @@ describe('SignupForm', () => {
 			.element(screen.getByRole('radiogroup', { name: 'Gender' }))
 			.toHaveAttribute('aria-required', 'true');
 	});
+	it.each([' 1990', '01990'])('reads a pasted year %j as 1990', async (year) => {
+		mockedSignup.mockResolvedValue({ status: 'pending_verification' });
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass', { year });
+		await submitForm(screen);
+
+		await expect.poll(() => mockedSignup.mock.calls.length).toBe(1);
+		expect(mockedSignup.mock.calls[0]?.[0]).toMatchObject({ birth_year: 1990 });
+	});
 });
