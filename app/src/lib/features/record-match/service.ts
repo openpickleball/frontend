@@ -1,12 +1,9 @@
 /**
- * Recording a match: create it, then confirm the score for the submitter's own team.
- *
- * The backend makes a self-submitted match pending with no confirmation, so after the
- * 201 this calls `POST matches/{code}/confirm` (Decision Q4). If that second call fails
- * the match still exists: the result says so instead of throwing, and the caller sends
- * the player to the match page anyway.
+ * Recording a match: one `POST matches/`. The backend records the submitter's team
+ * confirmation with the match (backend#197), so the match comes back pending on the other
+ * team only.
  */
-import { AppError, api, toAppError, unwrap, type ApiOption } from '#lib/api/index.js';
+import { AppError, api, unwrap, type ApiOption } from '#lib/api/index.js';
 import {
 	groupIssues,
 	parseMatchCode,
@@ -20,12 +17,10 @@ import {
 
 export type SubmitResult = {
 	/**
-	 * The match as the API last returned it: after the confirmation when that worked,
-	 * otherwise as it was created. T8 can put this in its match cache under `match.code`.
+	 * The match as the create call returned it, with the submitter's team confirmed. A match
+	 * cache can keep it under `match.code`.
 	 */
 	match: Match;
-	/** Set when the match was created but confirming the player's team failed. */
-	confirmError: AppError | null;
 };
 
 export type SubmitOptions = ApiOption;
@@ -41,7 +36,7 @@ function localError(
 }
 
 /**
- * Create the match, then confirm it for `myCode`'s team.
+ * Create the match. The backend records `myCode`'s team confirmation with it.
  *
  * Throws an `AppError`: `validation` (with `fields`) for a 422 or a draft that breaks a score
  * rule, `duplicate` for a 409 (see `duplicateMatchCode`), `network` when offline, and
@@ -87,30 +82,24 @@ export async function submitMatch(
 			}
 		})
 	);
-	const createdMatch = toMatch(created);
-
-	try {
-		const confirmed = await unwrap(
-			client.open.POST('/api/v1/matches/{code}/confirm', {
-				params: { path: { code: createdMatch.code } }
-			})
-		);
-		return { match: toMatch(confirmed), confirmError: null };
-	} catch (cause) {
-		return { match: createdMatch, confirmError: toAppError(cause) };
-	}
+	return { match: toMatch(created) };
 }
 
 /**
- * The earlier match a 409 `duplicate_match` points at. The backend puts its OPEN code in the
- * message ("This match was already submitted as M-...") when the submitter may know it, and
- * names no code otherwise. Null when the error is not a duplicate or names no match.
+ * The earlier match a 409 `duplicate_match` points at. When the submitter may know it, the
+ * backend names it in the error item's `existing_code` (`error.existingCode`) and in the message
+ * ("This match was already submitted as M-..."). It names no code otherwise. Null when the error
+ * is not a duplicate or names no valid code.
  *
- * This reads the code out of the message text. Replace it with a structured `existing_code` field
- * once openpickleball/backend#199 ships.
+ * Reads `existingCode` first. A backend older than openpickleball/backend#199 sends only the
+ * message, so the code is read from the message text when `existingCode` is unset or not valid.
  */
 export function duplicateMatchCode(error: AppError): MatchCode | null {
 	if (error.kind !== 'duplicate' || error.code !== 'duplicate_match') return null;
+	if (error.existingCode) {
+		const structured = parseMatchCode(error.existingCode);
+		if (structured.ok) return structured.value;
+	}
 	const found = /\bM(?:-?[0-9A-Z]{4}){3}\b/i.exec(error.message);
 	if (!found) return null;
 	const parsed = parseMatchCode(found[0]);

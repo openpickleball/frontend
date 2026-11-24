@@ -33,7 +33,7 @@ const matchCode = (() => {
 
 /** A saved match for the stand-in service to answer with. Only its code matters to the form. */
 const saved = { code: matchCode } as unknown as Match;
-const recordedResult: SubmitResult = { match: saved, confirmError: null };
+const recordedResult: SubmitResult = { match: saved };
 
 // Tests that render without a stand-in store use the real one, so start each from a clean tab.
 beforeEach(() => sessionStorage.clear());

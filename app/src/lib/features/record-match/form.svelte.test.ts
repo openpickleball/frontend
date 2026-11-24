@@ -66,7 +66,7 @@ describe('RecordForm server errors', () => {
 	it('returns the result when the match was recorded', async () => {
 		const form = filled();
 		const match = { code: parseMatchCode('M-9QF6-RD2K-X3BP') } as unknown as Match;
-		const result = await form.send(async () => ({ match, confirmError: null }));
+		const result = await form.send(async () => ({ match }));
 		expect(result?.match).toBe(match);
 	});
 });

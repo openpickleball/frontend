@@ -9,15 +9,12 @@
  *   offline and duplicate notices itself. It never queues a match (Decision Q1). It keeps what the
  *   player entered in `sessionStorage` (per own code) until the match is recorded, so a reload or a
  *   stray tap does not lose it. See `draft.ts`.
- * - `submitMatch(draft, myCode)`: create the match, then confirm it for the player's team (Q4).
- *   Resolves to `{ match, confirmError }`. `match` is the domain `Match` as the API last returned
- *   it, ready to put in a match cache. `confirmError` is set when the match exists but the
- *   confirmation failed. Rejects with an `AppError` for anything else.
- * - `recordedToast(result)`: the toast to show after saving, with the confirm-failure wording.
+ * - `submitMatch(draft, myCode)`: create the match. The backend records the submitter's team
+ *   confirmation with it (Q4). Resolves to `{ match }`, the domain `Match` as the create call
+ *   returned it, ready to put in a match cache. Rejects with an `AppError`.
  * - `duplicateMatchCode(error)`: the earlier match a 409 points at, if the backend named it.
  */
 export { default as RecordMatchForm } from './components/record-form.svelte';
 export { submitMatch, duplicateMatchCode } from './service.js';
 export type { SubmitResult, SubmitOptions } from './service.js';
-export { recordedToast } from './recorded-toast.js';
 export { RecordForm } from './form.svelte.js';
