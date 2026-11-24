@@ -455,22 +455,25 @@ export function createMockStore() {
 		/**
 		 * `create_my_player` after the body passed the schema, from the body only (the store
 		 * holds no sign-up details): 409 for a second player, the session's age refusal, the
-		 * missing details, then the model's checks. An under-13 or future age refuses the
-		 * session, as sign-up does.
+		 * missing details, then the age, then the model's other checks. An under-13 or future
+		 * age refuses the session, as sign-up does, whatever else is wrong with the body.
 		 */
 		createMyPlayer(email: string, body: PlayerCreateIn): CreatePlayerResult {
 			if (playerOfAccount(email)) return { ok: false, kind: 'conflict' };
 			if (state.signupRefused) return { ok: false, kind: 'validation', issues: [AGE_REFUSAL] };
 			const missing = missingIssues(body);
 			if (missing.length > 0) return { ok: false, kind: 'validation', issues: missing };
-			const { issues, clean } = profileIssues(body as ProfileValues);
-			if (issues.length > 0) return { ok: false, kind: 'validation', issues };
 			const year = body.birth_year as number;
 			const month = body.birth_month as number;
-			if (isFutureMonth(year, month) || !isOldEnough(year, month)) {
+			// Django's full_clean runs the age rule even when a field fails, and the view checks
+			// the age refusal before it reports field errors. A month out of range has no age.
+			const datable = month >= 1 && month <= 12;
+			if (datable && (isFutureMonth(year, month) || !isOldEnough(year, month))) {
 				state.signupRefused = true;
 				return { ok: false, kind: 'validation', issues: [AGE_REFUSAL] };
 			}
+			const { issues, clean } = profileIssues(body as ProfileValues);
+			if (issues.length > 0) return { ok: false, kind: 'validation', issues };
 			const player: MockPlayer = {
 				code: buildCode('player', counterCode(nextCounter(), 7, 'NEW')),
 				displayName: clean.display_name as string,
