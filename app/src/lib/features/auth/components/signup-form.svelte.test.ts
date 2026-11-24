@@ -59,8 +59,8 @@ describe('SignupForm', () => {
 		);
 
 		const button = screen.getByRole('button', { name: 'Create account' }).element();
-		const position = button.compareDocumentPosition(line.element());
-		expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		// Directly under the button: nothing, not even the form alert, sits between them.
+		expect(button.nextElementSibling).toBe(line.element());
 	});
 
 	it('opens the Terms of Service and Privacy Policy on openpb.org in a new tab', async () => {
