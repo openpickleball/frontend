@@ -224,7 +224,7 @@ export const signupSchema = z
 		gender_division: genderDivisionSchema,
 		email: emailSchema,
 		password: newPasswordSchema,
-		password_confirm: z.string().optional()
+		password_confirm: z.string("The passwords don't match.")
 	})
 	.refine((input) => input.password_confirm === input.password, {
 		message: "The passwords don't match.",
