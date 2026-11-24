@@ -18,6 +18,11 @@ openpb.org has a Terms of Service page and a Privacy Policy page, each with a ve
 - One policy covers openpb.org today and OPEN player accounts, with a plain note at the top of each page that player accounts are not open yet (project owner, 2026-11-23). It includes the Photon location search at signup (backend#221 decision) as the issue asks.
 - The Privacy Policy follows `backend/docs/privacy/personal-data-inventory.md` at backend commit f6d4aa5. Where the inventory leaves a decision to a later issue (account deletion #116, data export #39, partner sharing #32), the policy says what happens today and that the policy will change before that does.
 - The pages have the theme toggle at the top right, as on `/` (project owner, 2026-11-23). The toggle script moves out of `index.html` into `public/assets/js/theme-toggle.js`, so the three pages share one copy. Each page keeps the head script that applies a stored choice before first paint. The shared script also re-reads the stored choice on `pageshow` when a page comes back from the back-forward cache, because the choice may have changed on another page (review finding, 2026-11-23).
+- Names follow backend#221's decision (project owner, 2026-11-23): signup asks first and last name, stores "First Last" as the legal name and uses it as the starting display name, which the player can change later.
+- Account deletion is not built (#116), and an Account with a Player cannot be deleted today. Both pages say to email us and we deactivate the account. The policy lists what stays once deletion ships, and says it will change before full deletion is available.
+- The policy also covers organizer data (an organizer's name, organizer and club roles, events, verification, a partner app's owner account), since the inventory lists it.
+- Photon is presented apart from the companies that handle data for OPEN: komoot runs it as a public service under its own privacy policy.
+- The Terms and the Privacy Policy cover openpb.org and the OPEN app (it will be at app.openpb.org). Sections about accounts start with a line saying they apply once player accounts open.
 - No motion. The pages use no `.reveal` or scroll animation, so reduced motion has nothing to turn off.
 
 ## Acceptance criteria
