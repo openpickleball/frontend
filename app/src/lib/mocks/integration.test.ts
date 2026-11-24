@@ -1021,6 +1021,26 @@ describe('player profile endpoints', () => {
 		expect(await unwrap(api.open.GET('/api/v1/me/player'))).toEqual(before);
 	});
 
+	// JSON.parse makes each of these an own key, including __proto__.
+	it.each(['toString', 'constructor', 'hasOwnProperty', '__proto__'])(
+		'refuses the unknown key %s on PATCH (422 extra_forbidden)',
+		async (key) => {
+			const api = await signedIn();
+			const before = await unwrap(api.open.GET('/api/v1/me/player'));
+			const response = await fetch(`${BASE}/api/v1/me/player`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRFToken': mockStore.state.csrfToken
+				},
+				body: `{"${key}": 1}`
+			});
+			expect(response.status).toBe(422);
+			expect(fields(await response.json())).toEqual([[`body.${key}`, 'extra_forbidden']]);
+			expect(await unwrap(api.open.GET('/api/v1/me/player'))).toEqual(before);
+		}
+	);
+
 	it('is a 404 to change an account with no player', async () => {
 		const api = await freshAccount();
 		const result = await api.open.PATCH('/api/v1/me/player', { body: { city: 'Elmhurst' } });
