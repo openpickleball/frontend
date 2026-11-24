@@ -568,6 +568,23 @@ describe('SignupForm, Create account', () => {
 		expect(mockedSignup).not.toHaveBeenCalled();
 	});
 
+	it('keeps the first and last name together to 63 characters, on the last name', async () => {
+		const message = 'Your first and last name together can be at most 63 characters.';
+		const screen = await open();
+		// 30 + a space + 35 is 66 characters, over the 64 the backend allows.
+		await ready(screen, { first: 'a'.repeat(30), last: 'b'.repeat(35) });
+		await create(screen);
+
+		const last = screen.getByLabelText('Last name');
+		await expect.element(last).toHaveAccessibleDescription(message);
+		await expect.element(last).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(last).toHaveFocus();
+		await expect
+			.element(screen.getByLabelText('First name'))
+			.not.toHaveAttribute('aria-invalid', 'true');
+		expect(mockedSignup).not.toHaveBeenCalled();
+	});
+
 	it.each([
 		['Terms of Service', 'Accept the Terms of Service.', { terms: false }],
 		['Privacy Policy', 'Accept the Privacy Policy.', { privacy: false }]
@@ -700,6 +717,19 @@ describe('SignupForm, Create account', () => {
 		await expect
 			.element(screen.getByRole('radiogroup', { name: 'Gender' }))
 			.toHaveAccessibleDescription('Choose one of the listed options.');
+	});
+
+	it('puts the backend last name message on the last name field', async () => {
+		mockedSignup.mockRejectedValue(appError({ fields: { last_name: ['Enter text.'] } }));
+		const screen = await open();
+		await ready(screen);
+		await create(screen);
+
+		await expect.element(heading(screen, 'About you')).toBeVisible();
+		const last = screen.getByLabelText('Last name');
+		await expect.element(last).toHaveAccessibleDescription('Enter text.');
+		await expect.element(last).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(last).toHaveFocus();
 	});
 
 	it('puts a backend region message on the City field', async () => {
