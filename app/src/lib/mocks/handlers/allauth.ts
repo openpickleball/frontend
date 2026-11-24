@@ -56,7 +56,10 @@ const NOT_TEXT = 'Enter text.';
 const CONTROL_CHARACTER = 'Remove control or invalid characters.';
 const PLACE_MAX_LENGTH = 100;
 
-/** Python's `str.strip()`: whitespace, including the separators `\s` leaves out. */
+/**
+ * Python's `str.strip()`: whitespace, including the separators `\s` leaves out. (JS `trim` would
+ * also strip U+FEFF, which Python does not, so a regex is used instead.)
+ */
 const strip = (value: string): string =>
 	// eslint-disable-next-line no-control-regex -- Python's strip() also removes these separators
 	value.replace(/^[\s\x1c-\x1f\x85]+|[\s\x1c-\x1f\x85]+$/g, '');
@@ -67,8 +70,15 @@ const codePoints = (value: string): number => [...value].length;
 // eslint-disable-next-line no-control-regex -- the backend refuses exactly these characters
 const hasControlCharacter = (value: string): boolean => /[\u0000-\u001f\u007f-\u009f]/.test(value);
 
-/** No visible character: empty, or only spaces and format characters such as a zero-width space. */
-const isBlank = (value: string): boolean => /^[\p{Z}\p{Cf}\s]*$/u.test(value);
+/** Characters that render blank although they are letters or symbols. */
+const FILLERS = new Set(['ᅟ', 'ᅠ', 'ㅤ', 'ﾠ', '⠀', '\u{1d159}']);
+
+/**
+ * The backend's `has_visible_character`: a letter, number, punctuation mark or symbol, or an
+ * unassigned character, other than a filler.
+ */
+const hasVisibleCharacter = (value: string): boolean =>
+	[...value].some((char) => /[\p{L}\p{N}\p{P}\p{S}\p{Cn}]/u.test(char) && !FILLERS.has(char));
 
 /** A required name: stripped, then required, control characters, and its own length. */
 function nameCheck(
@@ -83,11 +93,12 @@ function nameCheck(
 		return { issue: { code: 'invalid', message: NOT_TEXT, param }, value: '' };
 	}
 	const stripped = strip(value);
-	if (isBlank(stripped)) {
-		return { issue: { code: 'required', message: requiredMessage, param }, value: '' };
-	}
+	// The control-character check comes first, as in the backend.
 	if (hasControlCharacter(stripped)) {
 		return { issue: { code: 'invalid', message: CONTROL_CHARACTER, param }, value: stripped };
+	}
+	if (!hasVisibleCharacter(stripped)) {
+		return { issue: { code: 'required', message: requiredMessage, param }, value: '' };
 	}
 	return { issue: null, value: stripped };
 }
@@ -223,8 +234,8 @@ const text = (value: unknown): string | undefined =>
  * allauth headless at `/_allauth/browser/v1`, with this backend's settings: email and
  * password. Sign-up also takes the birth month and year, the gender division, the names,
  * an optional city and region, and the two agreements. The age check takes the birth month
- * and year. Only the refusal flag is kept from any of them. Verification is mandatory verification by link (not by code), no login on verification or
- * on password reset. Because verification is by link, `resend` is always a 409, as in
+ * and year. Only the refusal flag is kept from any of them. Verification is mandatory and by
+ * link (not by code), with no login on verification or on password reset. Because verification is by link, `resend` is always a 409, as in
  * allauth's `ResendEmailVerificationCodeView`.
  */
 export function createAllauthHandlers(store: MockStore) {
