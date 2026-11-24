@@ -7,7 +7,7 @@ import {
 	UNVERIFIED_EMAIL,
 	VERIFIED_EMAIL
 } from '../src/lib/mocks/fixtures';
-import { signIn, signOut, submitSignIn } from './helpers';
+import { fillSignup, signIn, signOut, submitSignIn } from './helpers';
 
 // Runs against PUBLIC_API_MOCK=all (see playwright.config.ts). Every test gets a new browser
 // context, so the mock backend starts from its seed data each time.
@@ -37,8 +37,7 @@ test('sign up, verify the email from the link, sign in, then sign out', async ({
 	const password = 'a-long-enough-pass';
 
 	await page.goto('/account/signup');
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Password', { exact: true }).fill(password);
+	await fillSignup(page, email, password);
 	await page.getByRole('button', { name: 'Create account' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
 	await expect(page.getByText(email)).toBeVisible();
@@ -64,17 +63,33 @@ test('sign up, verify the email from the link, sign in, then sign out', async ({
 
 test('signing up with an address that has an account looks the same', async ({ page }) => {
 	await page.goto('/account/signup');
-	await page.getByLabel('Email').fill(VERIFIED_EMAIL);
-	await page.getByLabel('Password', { exact: true }).fill('a-long-enough-pass');
+	await fillSignup(page, VERIFIED_EMAIL, 'a-long-enough-pass');
 	await page.getByRole('button', { name: 'Create account' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
 	await expect(page.getByText(VERIFIED_EMAIL)).toBeVisible();
 });
 
+test('an under-13 birth year gets the refusal, not check your email', async ({ page }) => {
+	const message = "We can't create an account with these details.";
+	await page.goto('/account/signup');
+	await fillSignup(page, 'young.player@example.com', 'a-long-enough-pass', {
+		birthYear: String(new Date().getFullYear() - 5)
+	});
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page.locator('[data-slot="alert"]')).toHaveText(message);
+	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
+	expect(await mail(page)).toEqual([]);
+
+	// The session keeps refusing, as the backend does, even with an adult year.
+	await page.getByLabel('Year').fill('1990');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page.locator('[data-slot="alert"]')).toHaveText(message);
+	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
+});
+
 test('sign in stays usable while a sign-up is waiting for its link', async ({ page }) => {
 	await page.goto('/account/signup');
-	await page.getByLabel('Email').fill('waiting.player@example.com');
-	await page.getByLabel('Password', { exact: true }).fill('a-long-enough-pass');
+	await fillSignup(page, 'waiting.player@example.com', 'a-long-enough-pass');
 	await page.getByRole('button', { name: 'Create account' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
 
@@ -295,8 +310,7 @@ for (const scheme of ['dark', 'light'] as const) {
 
 		// Sign up with a weak password, then check your email.
 		await page.goto('/account/signup');
-		await page.getByLabel('Email').fill('new.player@example.com');
-		await page.getByLabel('Password', { exact: true }).fill('password');
+		await fillSignup(page, 'new.player@example.com', 'password');
 		await page.getByRole('button', { name: 'Create account' }).click();
 		await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute(
 			'aria-invalid',
@@ -304,6 +318,7 @@ for (const scheme of ['dark', 'light'] as const) {
 		);
 		await expectNoViolations(page);
 		await page.getByLabel('Password', { exact: true }).fill('a-long-enough-pass');
+		await page.getByLabel('Confirm password').fill('a-long-enough-pass');
 		await page.getByRole('button', { name: 'Create account' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
 		await expectNoViolations(page);

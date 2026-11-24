@@ -84,7 +84,7 @@ A player can create an account against the real backend. Signup has been broken 
 - [x] Service
 - [x] Mock handler
 - [x] Form (month, year, gender)
-- [ ] e2e
+- [x] e2e
 - [ ] Gate and live drive
 
 ## Decisions

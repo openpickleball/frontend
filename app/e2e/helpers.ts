@@ -7,6 +7,24 @@ export async function submitSignIn(page: Page, email: string, password: string) 
 	await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 }
 
+/**
+ * Fill in the sign-up form, which must already be open, as a made-up player born in June 1990
+ * would. `birthYear` overrides the year. Does not submit.
+ */
+export async function fillSignup(
+	page: Page,
+	email: string,
+	password: string,
+	{ birthYear = '1990' }: { birthYear?: string } = {}
+) {
+	await page.getByLabel('Month').selectOption('6');
+	await page.getByLabel('Year').fill(birthYear);
+	await page.getByRole('radio', { name: 'Women' }).click();
+	await page.getByLabel('Email').fill(email);
+	await page.getByLabel('Password', { exact: true }).fill(password);
+	await page.getByLabel('Confirm password').fill(password);
+}
+
 /** Open the sign-in page and sign in. Resolves once the player has landed on home. */
 export async function signIn(page: Page, email: string, password: string) {
 	await page.goto('/account/login');
