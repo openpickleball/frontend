@@ -152,7 +152,7 @@
 						name="gender_division"
 						orientation="horizontal"
 						aria-labelledby="signup-gender_division-legend"
-						aria-required="true"
+						required
 						{...gender.attrs}
 						bind:value={genderDivision}
 					>
