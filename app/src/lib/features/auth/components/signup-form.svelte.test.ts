@@ -59,7 +59,7 @@ describe('SignupForm', () => {
 		);
 
 		const button = screen.getByRole('button', { name: 'Create account' }).element();
-		// Directly under the button: nothing, not even the form alert, sits between them.
+		// Directly under the button: no other element sits between them.
 		expect(button.nextElementSibling).toBe(line.element());
 	});
 
