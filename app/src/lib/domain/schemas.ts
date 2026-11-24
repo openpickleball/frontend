@@ -353,8 +353,18 @@ type DetailsParsed = {
 };
 
 /** Puts `city` and `region` at the top level, and leaves the keys out when there is none. */
-function flattenCity({ city, ...rest }: DetailsParsed) {
-	return { ...rest, ...city };
+function flattenCity(input: DetailsParsed) {
+	// Named keys only, so anything else on the input (such as a password confirmation) is left out.
+	return {
+		birth_year: input.birth_year,
+		birth_month: input.birth_month,
+		gender_division: input.gender_division,
+		first_name: input.first_name,
+		last_name: input.last_name,
+		...input.city,
+		accepted_terms: input.accepted_terms,
+		accepted_privacy: input.accepted_privacy
+	};
 }
 
 /** The details screen: age, gender, names, optional city and the two agreements. */
@@ -368,11 +378,7 @@ export const signupSchema = z
 	.object({ ...accountShape, ...detailsShape })
 	.refine((input) => input.password_confirm === input.password, passwordsMatch)
 	.refine(namesFit, namesTogether)
-	.transform(({ email, password, password_confirm, ...details }) => {
-		// The confirmation is a typo guard only, and is never sent.
-		void password_confirm;
-		return { email, password, ...flattenCity(details) };
-	});
+	.transform((input) => ({ email: input.email, password: input.password, ...flattenCity(input) }));
 
 export const loginSchema = z.object({ email: canonicalEmailSchema, password: loginPasswordSchema });
 export const passwordResetRequestSchema = z.object({ email: canonicalEmailSchema });

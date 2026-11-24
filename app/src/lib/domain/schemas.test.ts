@@ -368,6 +368,26 @@ describe('signupDetailsSchema', () => {
 		expect(parse({ first_name: decomposed.repeat(30), last_name: 'R' }).success).toBe(true);
 	});
 
+	it('counts an astral letter as one code point, not two UTF-16 units', () => {
+		const astral = '\u{1D400}';
+		expect(parse({ first_name: astral.repeat(61), last_name: 'R' }).success).toBe(true);
+		expect(messages(parse({ first_name: astral.repeat(62), last_name: 'R' }))).toEqual({
+			first_name: ['Your first name can be at most 61 characters.']
+		});
+	});
+
+	it('counts astral letters in the full name by code points: 64 is fine, 65 is not', () => {
+		const astral = '\u{1D400}';
+		expect(parse({ first_name: astral.repeat(30), last_name: astral.repeat(33) }).success).toBe(
+			true
+		);
+		expect(
+			messages(parse({ first_name: astral.repeat(30), last_name: astral.repeat(34) }))
+		).toEqual({
+			last_name: ['Your first and last name together can be at most 63 characters.']
+		});
+	});
+
 	it('reports only the first name message when the first name alone is too long', () => {
 		const result = parse({ first_name: 'é'.repeat(62), last_name: 'é'.repeat(40) });
 		expect(messages(result)).toEqual({
@@ -394,6 +414,13 @@ describe('signupDetailsSchema', () => {
 		const result = parse({ city: { text: 'Aus', chosen: null } });
 		expect(messages(result)).toEqual({
 			city: ['Choose your city from the list, or clear the field.']
+		});
+	});
+
+	it('refuses the string "true" for an agreement', () => {
+		expect(messages(parse({ accepted_terms: 'true', accepted_privacy: 'true' }))).toEqual({
+			accepted_terms: ['Accept the Terms of Service.'],
+			accepted_privacy: ['Accept the Privacy Policy.']
 		});
 	});
 
@@ -473,6 +500,23 @@ describe('signupSchema and password rules', () => {
 
 	it('gives exactly the request body, with no city or region when none was chosen', () => {
 		const result = signupSchema.safeParse(base);
+		expect(result.success && result.data).toStrictEqual({
+			email,
+			password: 'longenough',
+			birth_year: 1990,
+			birth_month: 6,
+			gender_division: 'mens',
+			first_name: 'Sam',
+			last_name: 'Rivera',
+			accepted_terms: true,
+			accepted_privacy: true
+		});
+	});
+
+	it('has no city or region keys when the city key is omitted entirely', () => {
+		const withoutCity: Record<string, unknown> = { ...base };
+		delete withoutCity.city;
+		const result = signupSchema.safeParse(withoutCity);
 		expect(result.success && result.data).toStrictEqual({
 			email,
 			password: 'longenough',
