@@ -168,7 +168,7 @@ As built (PWA rule, e2e): `route()` already ignores other origins, so the Photon
 ## Decisions
 
 - Gender ships in this PR, after backend#215 (project owner, 2026-11-23: "Backend first, one PR"). Required, with two choices, because it decides the men's, women's and mixed doubles formats and is needed for stats. The form says "Gender" with "Men" and "Women", the plain words players use, and sends the backend's `gender_division` values.
-- Signup asks only for email, password, birth month and year, and gender (project owner, 2026-11-23). Names and city belong on the profile screen (backend#124). No day of birth and no phone number (ADR 0009).
+- (Superseded by revision 2.) Signup asks only for email, password, birth month and year, and gender (project owner, 2026-11-23). Names and city belong on the profile screen (backend#124). No day of birth and no phone number (ADR 0009).
 - Confirm password is a client check only, a typo guard, not a security check. The backend's own `password2` signup field is not turned on, so no backend change is needed for it. Email verification already exists and stays as it is.
 - Month is a select of month names, so nobody has to know that June is 6. Year is a numeric text field, not a 100-item select.
 - Revision 2 (project owner, 2026-11-23): two screens, email and password first, then everything else, all sent in one request. Gender labels are "Man" and "Woman" (singular). Signup also asks for first name, last name and a location with suggestions, and agreement checkboxes. This replaces the earlier decision to leave names and city to the profile screen.

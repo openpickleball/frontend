@@ -399,6 +399,9 @@ for (const scheme of ['dark', 'light'] as const) {
 		await page.getByLabel('Password', { exact: true }).fill('a-long-enough-pass');
 		await page.getByLabel('Confirm password').fill('a-long-enough-pass');
 		await page.getByRole('button', { name: 'Continue' }).click();
+		// Back on screen 2, with the details kept from before.
+		await expect(page.getByRole('heading', { level: 1, name: 'About you' })).toBeVisible();
+		await expect(page.getByLabel('First name')).not.toHaveValue('');
 		await page.getByRole('button', { name: 'Create account' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
 		await expectNoViolations(page);
