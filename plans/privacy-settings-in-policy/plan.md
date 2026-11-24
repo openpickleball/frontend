@@ -1,6 +1,6 @@
 # Plan: Name every privacy setting in the Privacy Policy (issue #199)
 
-**Status:** active
+**Status:** done
 
 Risk tier: Medium. One static page and no code, but the page makes promises to players, it changes text that is already live, and merging deploys it to openpb.org.
 
@@ -40,7 +40,7 @@ No doc changes are expected: `site/AGENTS.md` already says the policy follows th
 1. Write the proof script in the scratch directory (see Proof). Run it against the unchanged page and keep the red output.
 2. Edit `site/public/privacy/index.html`:
    - "What OPEN records": `<li>Your privacy settings.</li>` becomes an item that names the five settings: one each for match history, stats, rating history, home club, and city and region.
-   - "Your choices", first item: the settings choose who sees your own match history and your city and region, and there are settings for stats, rating history and home club too. Keep the existing defaults sentence ("signed-in players", or "only you" for players aged 13 to 17).
+   - "Your choices", first item: the settings choose who sees your own match history and your city and region, and there are settings for stats, rating history and home club too, with the same choices and starting points (all five default to signed-in players, and to only you for players aged 13 to 17). Keep the existing defaults sentence ("signed-in players", or "only you" for players aged 13 to 17).
    - "Your choices", second item: "They don't hide you in other players' match histories." becomes "Your privacy settings don't hide you in other players' match histories." The rest of the item stays.
    - A new item right after the second item: the owner's sentence from Decisions, verbatim.
    - Version line: "Version 2 · Effective November 24, 2026".
