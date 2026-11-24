@@ -17,6 +17,7 @@ import {
 	allauthParams,
 	api as appApi,
 	toAppError,
+	type AllauthComponents,
 	type ApiOption,
 	type AppError
 } from '#lib/api/index.js';
@@ -96,14 +97,14 @@ export function resetBootstrap(): void {
 export type Credentials = { email: string; password: string };
 
 /**
- * What sign-up sends: the credentials, the birth month and year (no day, ADR 0017) and the
- * division. The backend checks the age.
+ * What sign-up sends, taken from the generated allauth schema: the credentials, the birth month
+ * and year (no day, ADR 0017), the division, the names, an optional city and region, and the two
+ * agreements. The backend checks all of it.
  */
-export type SignupDetails = Credentials & {
-	birth_year: number;
-	birth_month: number;
-	gender_division: 'mens' | 'womens';
-};
+export type SignupDetails = AllauthComponents['schemas']['Signup'];
+
+/** What the age check sends: only the birth year and month. */
+export type SignupAge = { birth_year: number; birth_month: number };
 
 /** If the backend says we are already signed in (409), take its word for it. */
 async function alreadySignedIn(result: Settled, options: ApiOption): Promise<SessionState> {
@@ -139,20 +140,39 @@ export async function login(
  * backend refuses is an `AppError` with code `signup_refused` and no field.
  */
 export async function signup(
-	{ email, password, birth_year, birth_month, gender_division }: SignupDetails,
+	details: SignupDetails,
 	{ api = appApi }: ApiOption = {}
 ): Promise<SessionState> {
 	const result = await settle(
 		api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
 			params: allauthParams,
-			body: { email, password, birth_year, birth_month, gender_division }
+			body: details
 		})
 	);
 	const state =
 		result.response.status === 409 ? await alreadySignedIn(result, { api }) : stateOf(result);
 	if (state.status === 'signed_out') fail(result);
-	session.apply(state, email);
+	session.apply(state, details.email);
 	return state;
+}
+
+/**
+ * Check the birth month and year before asking for anything else. Resolves when the backend
+ * accepts them. An age it refuses is an `AppError` with code `signup_refused` and no field,
+ * and the backend then refuses every later sign-up in this session the same way. A missing
+ * or malformed value carries `fields`. It never changes the session store.
+ */
+export async function checkSignupAge(
+	{ birth_year, birth_month }: SignupAge,
+	{ api = appApi }: ApiOption = {}
+): Promise<void> {
+	const result = await settle(
+		api.allauth.POST('/_allauth/{client}/v1/auth/signup/age-check', {
+			params: allauthParams,
+			body: { birth_year, birth_month }
+		})
+	);
+	if (result.response.status !== 200) fail(result);
 }
 
 const signOutListeners = new Set<(email: string | null) => void>();

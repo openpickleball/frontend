@@ -35,8 +35,16 @@ function browser() {
 
 type Api = ReturnType<typeof browser>['api'];
 
-/** A made-up adult's birth month and year, and a division, for sign-up bodies. */
-const BORN = { birth_year: 1990, birth_month: 6, gender_division: 'mens' } as const;
+/** A made-up adult's sign-up details, without the email and password. */
+const BORN = {
+	birth_year: 1990,
+	birth_month: 6,
+	gender_division: 'mens',
+	first_name: 'Sam',
+	last_name: 'Rivera',
+	accepted_terms: true,
+	accepted_privacy: true
+} as const;
 
 async function login(api: Api, email = VERIFIED_EMAIL, password = MOCK_PASSWORD) {
 	return api.allauth.POST('/_allauth/{client}/v1/auth/login', {
