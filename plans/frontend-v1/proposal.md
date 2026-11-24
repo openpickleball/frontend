@@ -43,7 +43,7 @@ Scope:
 | Session restore and route guard | **Build now** | `GET auth/session` | A 401 with `flows` is a state, not an error (for example, "verify your email") |
 | App shell, nav, theme toggle, tokens, fonts | **Build now** | — | Port `site/src/input.css` `@theme`, the `light:` variant and the head script |
 | Record a match | **Build now** | `POST /matches/` | 422 field errors go to their form fields. A 409 `duplicate_match` links to the earlier match |
-| Confirm my own submission | **Build now** | `POST /matches/{code}/confirm` | A self-submission is created `pending` and needs a confirmation from each team (ADR 0015). Since backend #197 the submission counts as the submitter's team confirmation, so the app's extra confirm is a no-op (to be removed in frontend#208). See Q4 |
+| Confirm my own submission | **Build now** | `POST /matches/{code}/confirm` | A self-submission is created `pending` and needs a confirmation from each team (ADR 0015). Since backend#197 the submission counts as the submitter's team confirmation, so the app's extra confirm is a no-op (to be removed in frontend#208). See Q4 |
 | My matches (paged) | **Build now** | `GET /players/{code}/matches` | "Load more" with `limit`/`offset`. Needs my own code, see Q3 |
 | Match detail | **Build now** | from list data | Cached by code from the list and from mutation responses. A cold deep link scans my list (up to 100) and otherwise shows "not found" |
 | Confirm / dispute | **Build now** | `/confirm`, `/dispute` | Dispute asks first in an alert dialog. Repeats do nothing on the backend, so the buttons show on every pending match |
