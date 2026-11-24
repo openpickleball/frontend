@@ -42,6 +42,7 @@ openpb.org has a Terms of Service page and a Privacy Policy page, each with a ve
 - `site/src/input.css`: a `legal` utility that styles headings, paragraphs, lists and links inside the policy body, so the long text needs no class on every element.
 - `site/public/index.html`: two links in the footer bottom bar, and the toggle script replaced by a `<script src>` for the shared file.
 - `site/public/assets/js/theme-toggle.js` (new): the toggle script from `index.html`, plus a `pageshow` handler for pages restored from the back-forward cache.
+- `AGENTS.md`: the `site/` row names the two new pages.
 - `site/AGENTS.md`: describe the two pages, and that the Privacy Policy must change when the backend inventory changes what it says.
 - `plans/legal-pages/plan.md`: this plan.
 
