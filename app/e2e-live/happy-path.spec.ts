@@ -13,7 +13,7 @@ const MATCH_URL = /\/matches\/(M-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4})$/;
 const email = process.env.LIVE_EMAIL;
 const password = process.env.LIVE_PASSWORD;
 const opponent = process.env.LIVE_OPPONENT_CODE;
-// Only needed when the account has no player yet, or the backend is older than backend#124.
+// Only needed with a backend older than backend#124.
 const ownCode = process.env.LIVE_OWN_CODE;
 
 // The list reporter does not print a skip reason, so say it on the console too.
