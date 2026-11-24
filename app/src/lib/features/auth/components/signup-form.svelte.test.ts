@@ -293,10 +293,11 @@ describe('SignupForm, screen 2 layout', () => {
 		const screen = await open();
 		await account(screen);
 		for (const [name, href] of [
-			['Terms of Service', 'https://www.openpb.org/terms/'],
-			['Privacy Policy', 'https://www.openpb.org/privacy/']
+			['Terms of Service', 'https://openpb.org/terms/'],
+			['Privacy Policy', 'https://openpb.org/privacy/']
 		]) {
-			const link = screen.getByRole('link', { name: `${name} (opens in a new tab)` });
+			// The same addresses and new-tab text as the site footer (`#lib/ui/legal`).
+			const link = screen.getByRole('link', { name: `${name} (opens in a new tab)`, exact: true });
 			await expect.element(link).toHaveAttribute('href', href);
 			await expect.element(link).toHaveAttribute('target', '_blank');
 			await expect.element(link).toHaveAttribute('rel', 'noopener');

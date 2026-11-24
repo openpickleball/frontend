@@ -31,6 +31,7 @@
 		FieldSet,
 		fieldA11y
 	} from '#lib/ui/field/index.js';
+	import { NEW_TAB, PRIVACY_URL, TERMS_URL } from '#lib/ui/legal.js';
 	import { RadioGroup, RadioGroupItem } from '#lib/ui/radio-group/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import type { FormProblem } from '../form.svelte.js';
@@ -84,8 +85,8 @@
 	].map((label, index) => ({ value: String(index + 1), label }));
 
 	const AGREEMENTS = [
-		{ name: 'accepted_terms', page: 'Terms of Service', href: 'https://www.openpb.org/terms/' },
-		{ name: 'accepted_privacy', page: 'Privacy Policy', href: 'https://www.openpb.org/privacy/' }
+		{ name: 'accepted_terms', page: 'Terms of Service', href: TERMS_URL },
+		{ name: 'accepted_privacy', page: 'Privacy Policy', href: PRIVACY_URL }
 	] as const;
 
 	/** Enter in the year runs the age check, as the age Continue does, until it passes. */
@@ -236,7 +237,7 @@
 								rel="noopener"
 								class="underline underline-offset-4 hover:text-muted"
 							>
-								{agreement.page}<span class="sr-only">&nbsp;(opens in a new tab)</span>
+								{agreement.page}<span class="sr-only">{NEW_TAB}</span>
 							</a>
 							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						</span>
