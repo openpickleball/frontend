@@ -819,7 +819,7 @@ describe('player profile endpoints', () => {
 	it('creates the player from the body, with empty optional text as ""', async () => {
 		const api = await freshAccount();
 		const made = await api.open.POST('/api/v1/me/player', {
-			body: { ...adult, city: ' Elmhurst ' }
+			body: { ...adult, city: ' Vexmoor ' }
 		});
 		expect(made.response.status).toBe(201);
 		expect(made.data).toMatchObject({
@@ -828,7 +828,7 @@ describe('player profile endpoints', () => {
 			birth_year: 1990,
 			birth_month: 6,
 			gender_division: 'womens',
-			city: 'Elmhurst',
+			city: 'Vexmoor',
 			region: '',
 			privacy: {
 				city_region_visibility: 'signed_in',
@@ -1043,7 +1043,7 @@ describe('player profile endpoints', () => {
 
 	it('is a 404 to change an account with no player', async () => {
 		const api = await freshAccount();
-		const result = await api.open.PATCH('/api/v1/me/player', { body: { city: 'Elmhurst' } });
+		const result = await api.open.PATCH('/api/v1/me/player', { body: { city: 'Vexmoor' } });
 		expect(result.response.status).toBe(404);
 	});
 

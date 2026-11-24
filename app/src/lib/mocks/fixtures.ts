@@ -99,36 +99,36 @@ function player(
 	};
 }
 
-// Made-up places: not real towns.
+// Invented place names, made up for the mocks.
 export const PLAYERS: readonly FixturePlayer[] = [
 	player('tamsin', '4RWN8TQ', 'Tamsin Vale', {
 		born: [1988, 4],
 		division: 'womens',
-		place: ['Millbrook', 'Lakeshire']
+		place: ['Zorvale', 'Quenmarch']
 	}),
 	player('oren', '9HJD3XK', 'Oren Quill', {
 		born: [1979, 11],
 		division: 'mens',
-		place: ['Millbrook', 'Lakeshire']
+		place: ['Zorvale', 'Quenmarch']
 	}),
 	player('bea', 'M2CF7YP', 'Bea Marlowe', { born: [1995, 2], division: 'womens', legalName: '' }),
 	player('kit', 'T6BZ0NQ', 'Kit Ashdown', {
 		born: [2001, 7],
 		division: 'mens',
-		place: ['Harborview', 'Coastmere']
+		place: ['Plinthaven', 'Ostrevain']
 	}),
 	player('rosa', '5XEGK8M', 'Rosa Fenwick', { born: [1964, 9], division: 'womens' }),
 	player('idris', 'A7VH2DS', 'Idris Coldwell', {
 		born: [1990, 1],
 		division: 'mens',
-		place: ['Harborview', 'Coastmere']
+		place: ['Plinthaven', 'Ostrevain']
 	}),
 	// Keeps the match history to themselves: other players get a 404 for it.
 	player(
 		'nell',
 		'G3QY6JZ',
 		'Nell Brightwater',
-		{ born: [1983, 5], division: 'womens', place: ['Fernhollow', ''] },
+		{ born: [1983, 5], division: 'womens', place: ['Brindlequay', ''] },
 		{ ...signedIn, match_history_visibility: 'private' }
 	),
 	// The one private player: an inactive account, so everyone else sees "Private player".

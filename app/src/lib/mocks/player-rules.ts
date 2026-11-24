@@ -18,8 +18,8 @@ export const NOT_TEXT = 'Enter text.';
 export const CONTROL_CHARACTER = 'Remove control or invalid characters.';
 
 /**
- * Python's `str.strip()`: whitespace, including the separators `\s` leaves out. (JS `trim` would
- * also strip U+FEFF, which Python does not, so a regex is used instead.)
+ * Close to Python's `str.strip()`: JS whitespace (`\s`), plus the separators U+001C to U+001F and
+ * U+0085 that Python strips and `\s` leaves out. Unlike Python, `\s` also strips U+FEFF.
  */
 export const strip = (value: string): string =>
 	// eslint-disable-next-line no-control-regex -- Python's strip() also removes these separators
