@@ -15,21 +15,22 @@ The profile's "Name and privacy" section has five switches (`app/src/lib/feature
 ## Decisions
 
 - Project owner, 2026-11-24: fix the gap in one PR that closes #199. The PR body says the owner sign-off and the legal review before launch are still open tasks for a person.
-- What each setting does today, from the backend at origin/main 8e6874f: only `match_history_visibility` and `city_region_visibility` are read when another player views a profile (`apps/players/api.py`). Stats, rating history and home club are stored but nothing shows them to other players yet. Home club is planned (#157), and no OPEN rating is published. The policy says so, and says the settings will apply once those are shown.
+- What each setting does today, from the backend at origin/main 8e6874f: only `match_history_visibility` and `city_region_visibility` are read when another player views a profile (`apps/players/api.py`). For stats, rating history and home club, their settings are stored, but OPEN keeps no stats, rating history or home club data. Home club is planned (#157), and no OPEN rating is published.
+- Project owner, 2026-11-24, wording: "Your choices" says, verbatim, "OPEN doesn't keep stats, a rating history or a home club for you yet. Those three settings are saved, but they don't change anything today. Anyone who can see your match history can work out your wins and losses from it." This replaces an earlier draft that said OPEN doesn't show those three to other players yet and that the settings will apply once it does, which implied OPEN holds that data. The "What OPEN records" item names the five settings without saying who can see the data. The item goes after "They don't hide you in other players' match histories", so that item's "They" still follows the first item about the settings.
 - The policy's own "Changes to this policy" section promises a new version number and date for each change. So the page moves to "Version 2 · Effective November 24, 2026". If the PR merges later, the reviewer updates the date. No email is owed: player accounts are not open yet.
 - Not changed: the who-can-see list. Stats, rating history and home club are not stored as separate data items today, so there is nothing to add there.
 
 ## Acceptance criteria
 
 1. `site/public/privacy/index.html` names all five privacy settings, using the app's labels in lower case: match history, stats, rating history, home club, and city and region. They appear in "What OPEN records" and in "Your choices".
-2. "Your choices" says that OPEN doesn't show other players your stats, rating history or home club yet, and that the settings apply once it does.
+2. "Your choices" says, in the owner's words, that OPEN doesn't keep stats, a rating history or a home club for you yet, that those three settings are saved but change nothing today, and that anyone who can see your match history can work out your wins and losses from it.
 3. The page shows "Version 2 · Effective November 24, 2026".
 4. Nothing else on the page changes meaning. No em dashes, no emojis, no "user", no named competing rating system, and no claim that an OPEN rating is live.
 5. `pnpm build` in `site/` passes, and the page reads clearly in the black and ivory themes and with reduced motion.
 
 ## Files that change
 
-- `site/public/privacy/index.html`: the "What OPEN records" item about privacy settings, the first item of "Your choices" plus one new item after it, and the version line.
+- `site/public/privacy/index.html`: the "What OPEN records" item about privacy settings, the first item of "Your choices" plus one new item after the "They don't hide you" item, and the version line.
 - `plans/privacy-settings-in-policy/plan.md`: this plan.
 
 No doc changes are expected: `site/AGENTS.md` already says the policy follows the inventory.
@@ -38,17 +39,17 @@ No doc changes are expected: `site/AGENTS.md` already says the policy follows th
 
 1. Write the proof script in the scratch directory (see Proof). Run it against the unchanged page and keep the red output.
 2. Edit `site/public/privacy/index.html`:
-   - "What OPEN records": `<li>Your privacy settings.</li>` becomes an item that names who can see your match history, stats, rating history, home club, and city and region.
-   - "Your choices", first item: the settings choose who sees all five, not only two. Keep the existing defaults sentence ("signed-in players", or "only you" for players aged 13 to 17).
-   - A new item right after it: OPEN doesn't show other players your stats, rating history or home club yet. Your settings will apply once it does.
+   - "What OPEN records": `<li>Your privacy settings.</li>` becomes an item that names the five settings: one each for match history, stats, rating history, home club, and city and region.
+   - "Your choices", first item: the settings choose who sees your own match history and your city and region, and there are settings for stats, rating history and home club too. Keep the existing defaults sentence ("signed-in players", or "only you" for players aged 13 to 17).
+   - A new item right after the "They don't hide you in other players' match histories" item: the owner's sentence from Decisions, verbatim.
    - Version line: "Version 2 · Effective November 24, 2026".
 3. Run the proof script (green), `pnpm build` in `site/`, and the live drive.
 4. Commit the page change with a body that explains why.
 
 ## Risks
 
-- A promise that isn't true. Each new sentence traces to `PRIVACY_ROWS`, the backend's `PlayerPrivacy` model and `apps/players/api.py`, or the inventory. "Not shown yet" must stay true: if #157 or ratings ship first, this text is out of date.
-- The 13 to 17 default. The policy already says the settings start at "only you" for players aged 13 to 17. That sentence now covers five settings. The inventory row for `PlayerPrivacy` and its 13 to 17 note (#114) back it. The verifier checks this against the backend.
+- A promise that isn't true. Each new sentence traces to `PRIVACY_ROWS`, the backend's `PlayerPrivacy` model and `apps/players/api.py`, or the inventory. "Doesn't keep ... yet" must stay true: if #157 or ratings ship first, this text is out of date.
+- The 13 to 17 default. The policy already says the settings start at "only you" for players aged 13 to 17. That sentence now covers five settings. The backend's `apps/players/services.py` lines 92 to 94 back it: `create_player` sets all five to PRIVATE for a minor. The verifier checks this against the backend.
 - Version drift. The Terms don't cite the policy's version, so nothing else needs bumping. The verifier confirms with a grep.
 
 ## Proof
