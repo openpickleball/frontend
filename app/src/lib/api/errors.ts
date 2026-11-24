@@ -31,6 +31,8 @@ export type AppErrorFields = {
 	fields: Record<string, string[]>;
 	/** Set on an allauth 401: the flows still pending, such as `verify_email`. */
 	flows?: AllauthFlow[];
+	/** Set on a Ninja 409 `duplicate_match` that names the earlier match: its OPEN code. */
+	existingCode?: string;
 	/** What the call threw when there was no response, kept for logging. Never shown. */
 	cause?: unknown;
 };
@@ -46,6 +48,7 @@ export class AppError extends Error implements AppErrorFields {
 	code: string;
 	fields: Record<string, string[]>;
 	declare flows?: AllauthFlow[];
+	declare existingCode?: string;
 
 	constructor(fields: AppErrorFields) {
 		super(fields.message, fields.cause === undefined ? undefined : { cause: fields.cause });
@@ -55,6 +58,7 @@ export class AppError extends Error implements AppErrorFields {
 		this.code = fields.code;
 		this.fields = fields.fields;
 		if (fields.flows) this.flows = fields.flows;
+		if (fields.existingCode) this.existingCode = fields.existingCode;
 	}
 }
 
@@ -177,20 +181,29 @@ function kindForStatus(status: number, body: unknown, code: string): AppErrorKin
 	}
 }
 
-/** Ninja: `{code, message, errors: [{field, code, message}]}`. */
+/** Ninja: `{code, message, errors: [{field, code, message, existing_code?}]}`. */
 function fromNinja(status: number, body: Json): AppError {
 	const code = str(body.code) ?? 'error';
 	const kind = kindForStatus(status, body, code);
 	const fields: Record<string, string[]> = {};
+	let existingCode: string | undefined;
 	const items = Array.isArray(body.errors) ? body.errors : [];
 	for (const item of items) {
 		if (!isObject(item)) continue;
 		const field = str(item.field);
 		const message = str(item.message);
 		if (field && message) addField(fields, stripBody(field), message);
+		existingCode ??= str(item.existing_code);
 	}
 	const message = messageFor(kind, code, fields, str(body.message));
-	return new AppError({ kind, status, code, message, fields });
+	return new AppError({
+		kind,
+		status,
+		code,
+		message,
+		fields,
+		...(existingCode ? { existingCode } : {})
+	});
 }
 
 function codeForStatus(status: number): string {
