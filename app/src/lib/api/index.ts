@@ -20,9 +20,9 @@ export const api = createApi();
 export type ApiOption = { api?: Api };
 
 /**
- * The open client typed by the hand-written `provisional.ts` paths, for endpoints the backend
- * does not have yet. Same client, same CSRF and error handling, only the types differ. This is the
- * one place that cast lives. The cast compiles against any shape, so delete this export with
- * `provisional.ts` (see the README) rather than leave it behind.
+ * The open client typed by the hand-written `provisional.ts` paths, for the one endpoint the
+ * backend does not have yet: ratings (frontend#35). Same client, same CSRF and error handling,
+ * only the types differ. This is the one place that cast lives. The cast compiles against any
+ * shape, so delete this export with `provisional.ts` (see the README) rather than leave it behind.
  */
 export const provisionalApi = api.open as unknown as Client<ProvisionalPaths>;

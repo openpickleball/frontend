@@ -1,22 +1,30 @@
 import { normalizeCode } from '../../domain/codes';
 import type { components } from '../../api/generated/open';
 import { csrfValid, openHttp as http, readJson } from '../http';
+import { createSchemaIssues, updateSchemaIssues } from '../player-rules';
 import {
 	cannotSubmit,
 	csrfFailed,
 	duplicateMatch,
+	ninjaError,
 	notFound,
 	stateConflict,
 	unauthorized,
 	validationError
 } from '../responses';
 import type { MockStore } from '../store';
+
+type PlayerCreateIn = components['schemas']['PlayerCreateIn'];
+type PlayerUpdateIn = components['schemas']['PlayerUpdateIn'];
 import { matchCreateIssues, pageQuery } from '../validation';
 
 /**
  * The OPEN API. Every operation uses `account_auth`: no session is a 401 (before
  * anything else), then an unsafe method needs a valid CSRF token (403), as in
- * `config/auth.py`.
+ * `config/auth.py`. The body schema comes next (422), then the view.
+ *
+ * `GET /api/v1/players/{code}` would also match `/api/v1/players/search`, so `createHandlers`
+ * puts the search handlers first.
  */
 export function createOpenHandlers(store: MockStore) {
 	function guard(request: Request, cookies: Record<string, string | undefined>): Response | string {
@@ -116,6 +124,55 @@ export function createOpenHandlers(store: MockStore) {
 				items: result.items.map((match) => store.matchOut(match, email)),
 				count: result.count
 			});
+		}),
+
+		http.get('/api/v1/me/player', ({ request, cookies, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const player = store.playerOfAccount(email);
+			if (!player) return response.untyped(notFound());
+			return response(200).json(store.myPlayerOut(player));
+		}),
+
+		http.post('/api/v1/me/player', async ({ request, cookies, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const body = await readJson(request);
+			const shape = createSchemaIssues(body);
+			if (shape.length > 0) return response.untyped(validationError(shape));
+			const result = store.createMyPlayer(email, body as PlayerCreateIn);
+			if (!result.ok) {
+				return response.untyped(
+					result.kind === 'conflict'
+						? ninjaError(409, 'conflict', 'This account already has a player.')
+						: validationError(result.issues)
+				);
+			}
+			return response(201).json(store.myPlayerOut(result.player));
+		}),
+
+		http.patch('/api/v1/me/player', async ({ request, cookies, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const body = await readJson(request);
+			const shape = updateSchemaIssues(body);
+			if (shape.length > 0) return response.untyped(validationError(shape));
+			const player = store.playerOfAccount(email);
+			if (!player) return response.untyped(notFound());
+			const issues = store.updateMyPlayer(player, body as PlayerUpdateIn);
+			if (issues.length > 0) return response.untyped(validationError(issues));
+			return response(200).json(store.myPlayerOut(player));
+		}),
+
+		// A hidden (inactive) player gets the same 404 as an unknown or malformed code.
+		http.get('/api/v1/players/{code}', ({ request, cookies, params, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const code = normalizeCode(params.code, 'player');
+			if (!code.ok) return response.untyped(notFound());
+			const profile = store.publicProfile(code.value, email);
+			if (!profile) return response.untyped(notFound());
+			return response(200).json(profile);
 		})
 	];
 }

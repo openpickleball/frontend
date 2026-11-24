@@ -138,7 +138,7 @@ The command prints no real data. Do not put real player names, emails or matches
 
 ### Your own OPEN code
 
-The backend does not show a player their own code yet (backend [#124](https://github.com/openpickleball/backend/issues/124)). Until it does, the app asks for your code once, the first time you record a match or open your matches, and keeps it on that device. Use the code the snippet above printed on the same line as your login. For a player you created some other way, print it with:
+The app reads your code from `GET /api/v1/me/player` (backend [#124](https://github.com/openpickleball/backend/issues/124)). The app asks for your code only when the backend is older than #124, or when your account has no player yet. It asks the first time a screen needs it, and keeps the code in that browser until you sign out. With an older backend, use the code the snippet above printed on the same line as your login. An account with no player has no code of its own yet, so don't enter one: sign in with a seeded player instead. Creating the player after signup is frontend#205. For a player you created some other way, print it with:
 
 ```sh
 uv run python manage.py shell -c "
@@ -178,11 +178,11 @@ LIVE_OPPONENT_CODE=P-CCCC-DDDD \
 pnpm e2e:live
 ```
 
-| Value                | What it is                                                                       |
-| -------------------- | -------------------------------------------------------------------------------- |
-| `LIVE_EMAIL`         | The email of a verified, seeded player.                                          |
-| `LIVE_PASSWORD`      | That player's password.                                                          |
-| `LIVE_OWN_CODE`      | That player's own OPEN code. The app asks for it once, until backend #124 ships. |
-| `LIVE_OPPONENT_CODE` | The OPEN code of a second seeded player.                                         |
+| Value                | What it is                                                               |
+| -------------------- | ------------------------------------------------------------------------ |
+| `LIVE_EMAIL`         | The email of a verified, seeded player.                                  |
+| `LIVE_PASSWORD`      | That player's password.                                                  |
+| `LIVE_OWN_CODE`      | That player's own OPEN code. Needed only with a backend older than #124. |
+| `LIVE_OPPONENT_CODE` | The OPEN code of a second seeded player.                                 |
 
 The test skips, and says why, when the backend does not answer or `LIVE_EMAIL`, `LIVE_PASSWORD` or `LIVE_OPPONENT_CODE` is missing. It skips before `pnpm dev` starts when a value is missing. Each run adds one pending match to your local database. The scores come from the time of day and differ on every run, because the backend refuses a match that repeats one from the same day. It is not part of `pnpm e2e` or `pnpm test`.

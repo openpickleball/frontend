@@ -33,13 +33,13 @@
  *   `sample={false}` shows "Ratings aren't live yet".
  *
  * - `ProfileSettings` is the "Name and privacy" and "Your data" sections. It reads
- *   `GET me/player` and saves with `PATCH me/player` (backend#124, provisional). Until the backend
- *   has them, it says the player can't change these in the app yet. The backend checks every
+ *   `GET me/player` and saves with `PATCH me/player` (backend#124). Against a backend without
+ *   them, it says the player can't change these in the app yet. The backend checks every
  *   change and decides who may make it. Saving a name updates `myCode.displayName`. "Your data"
  *   says how to ask for a copy, until a data export endpoint exists (backend#39).
  *
- * When backend#124 and backend#53 ship, `api/provisional.ts` goes (frontend#35): switch
- * `services.ts` to the generated types. Nothing else here changes.
+ * `services.ts` calls `me/player` with the generated types. Only `fetchRatings` reads
+ * `provisionalApi`, until ratings ship (backend#53, frontend#35).
  */
 export { myCode } from './my-code.svelte.js';
 export { setAccountEmailSource } from './account.js';

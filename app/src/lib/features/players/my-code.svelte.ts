@@ -34,8 +34,8 @@ export type SaveResult = { ok: true; code: PlayerCode } | { ok: false; error: Sa
  * `load()` asks `GET me/player` first. If the backend has no such endpoint (404 or 405), or the
  * account has no player yet, it reads the code the player typed in earlier, kept in
  * localStorage under a key for their account email. If there is none, `status` becomes
- * `needs-entry`. Once `me/player` ships, an account that has a player always gets its code from
- * the server. An account with no player yet (a 404) is still prompted.
+ * `needs-entry`. An account that has a player always gets its code from the server. An account
+ * with no player yet (a 404), or an older backend without `me/player`, is still prompted.
  *
  * It is a singleton, so call `reset()` on sign-in and sign-out: it must never hold the previous
  * account's code.

@@ -13,7 +13,7 @@ const MATCH_URL = /\/matches\/(M-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4})$/;
 const email = process.env.LIVE_EMAIL;
 const password = process.env.LIVE_PASSWORD;
 const opponent = process.env.LIVE_OPPONENT_CODE;
-// Only needed until the backend shows a player their own code (backend#124).
+// Only needed with a backend older than backend#124.
 const ownCode = process.env.LIVE_OWN_CODE;
 
 // The list reporter does not print a skip reason, so say it on the console too.
@@ -43,7 +43,7 @@ test('signs in, records a singles match and sees it in the list', async ({ page 
 	await signIn(page, email!, password!);
 	await page.goto('/record');
 
-	// Until backend#124, the app asks for the player's own code once.
+	// An account with no player yet, or an older backend, is asked for its own code once.
 	const chip = page.getByTestId('chip');
 	const prompt = page.getByRole('heading', { name: 'Enter your OPEN code' });
 	await expect(chip.or(prompt)).toBeVisible();

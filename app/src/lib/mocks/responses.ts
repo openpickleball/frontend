@@ -40,11 +40,14 @@ export const cannotSubmit = () =>
 export const stateConflict = () =>
 	ninjaError(409, 'conflict', 'This match cannot make this change in its current status.');
 
-/** `DuplicateMatchError`: names the earlier match, which the submitter played in. */
+/**
+ * `DuplicateMatchError`: names the earlier match, which the submitter played in, in the message
+ * and as the item's `existing_code`.
+ */
 export function duplicateMatch(existingCode: string): Response {
 	const message = `This match was already submitted as ${existingCode}.`;
 	return ninjaError(409, 'duplicate_match', message, [
-		{ field: 'match', code: 'duplicate_match', message }
+		{ field: 'match', code: 'duplicate_match', message, existing_code: existingCode }
 	]);
 }
 

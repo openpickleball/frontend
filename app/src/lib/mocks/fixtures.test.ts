@@ -123,3 +123,24 @@ describe('fixtures', () => {
 		for (const rating of Object.values(RATINGS)) expect(rating?.demonstration).toBe(true);
 	});
 });
+
+describe('the mock store snapshot', () => {
+	it('restores its own snapshot', () => {
+		const store = createMockStore();
+		expect(store.restore(store.snapshot())).toBe(true);
+	});
+
+	it('drops a snapshot whose players have the old shape (home club, no city)', () => {
+		const store = createMockStore();
+		const old = JSON.parse(store.snapshot()) as { players: Record<string, unknown>[] };
+		old.players = old.players.map(({ code, displayName, accountEmail, privacy }) => ({
+			code,
+			displayName,
+			accountEmail,
+			homeClub: null,
+			privacy
+		}));
+		expect(store.restore(JSON.stringify(old))).toBe(false);
+		expect(store.state.players[0]).toHaveProperty('city');
+	});
+});

@@ -1,3 +1,4 @@
+import type { OpenComponents } from '#lib/api/index.js';
 import type { PlayerCode } from '#lib/domain/index.js';
 
 /** The signed-in account's own player, from `GET me/player` (backend#124). */
@@ -17,10 +18,13 @@ export type Rating = {
 	updatedAt: string;
 };
 
-/** Who may see a profile detail: other signed-in players, or only the player. */
-export type Visibility = 'signed_in' | 'private';
+/** Who may see a profile detail: other signed-in players, or only the player. The backend's `Visibility`. */
+export type Visibility = OpenComponents['schemas']['Visibility'];
 
-/** The profile details that have a privacy setting. The display name has none. */
+/**
+ * The profile details that have a privacy setting. The display name has none. `home_club` stays
+ * while `PrivacyOut` still has `home_club_visibility`.
+ */
 export type PrivacyKey = 'match_history' | 'stats' | 'rating_history' | 'home_club' | 'city_region';
 
 export type Privacy = Record<PrivacyKey, Visibility>;

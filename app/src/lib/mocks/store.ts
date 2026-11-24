@@ -10,20 +10,16 @@
  * - django-allauth headless with this backend's settings (email and password,
  *   mandatory verification by link) for accounts. Sign-up also takes the birth month and
  *   year, the gender division, the names, an optional city and region, and the agreements.
- *   The store keeps none of those, only the refusal flag (`signupRefused`).
+ *   The store keeps none of those, only the refusal flag (`signupRefused`), which
+ *   `POST me/player` sets too.
+ * - `apps/players/api.py` and `schemas.py` for `me/player` and the public profile. The
+ *   create reads only its body: the store holds no sign-up details.
  *
  * State is plain data (no Maps, no classes), so `snapshot` and `restore` can keep it in
  * `sessionStorage` across a page reload in the browser.
  */
 import type { components } from '../api/generated/open';
-import type {
-	MyPlayerCreateIn,
-	MyPlayerOut,
-	MyPlayerUpdateIn,
-	PlayerProfileOut,
-	PlayerRatingsOut,
-	PrivacySettings
-} from '../api/provisional';
+import type { PlayerRatingsOut } from '../api/provisional';
 import { ALPHABET, buildCode, normalizeCode, parsePlayerCode } from '../domain/codes';
 import { canonicalEmailSchema, emailError, normalizeEmail } from '../domain/schemas';
 import { validateMatch, type Issue } from '../domain/scores';
@@ -38,10 +34,25 @@ import {
 	VERIFIED_EMAIL,
 	type PlayerKey
 } from './fixtures';
+import {
+	AGE_REFUSAL,
+	isFutureMonth,
+	isMinor,
+	isOldEnough,
+	missingIssues,
+	privacyNullIssues,
+	profileIssues,
+	type PlayerCreateIn,
+	type PlayerUpdateIn,
+	type ProfileValues
+} from './player-rules';
 
 type Schemas = components['schemas'];
 type MatchOut = Schemas['MatchOut'];
 type MatchCreateIn = Schemas['MatchCreateIn'];
+type MyPlayerOut = Schemas['MyPlayerOut'];
+type PlayerProfileOut = Schemas['PlayerProfileOut'];
+type PrivacyOut = Schemas['PrivacyOut'];
 
 export type MockAccount = { email: string; password: string; verified: boolean; active: boolean };
 
@@ -49,8 +60,14 @@ export type MockPlayer = {
 	code: string;
 	displayName: string;
 	accountEmail: string | null;
-	homeClub: string | null;
-	privacy: PrivacySettings;
+	/** Empty optional text is `""`, as the backend stores it. */
+	legalName: string;
+	birthYear: number;
+	birthMonth: number;
+	genderDivision: string;
+	city: string;
+	region: string;
+	privacy: PrivacyOut;
 };
 
 export type MockDecision = { player: string; decision: 'confirm' | 'dispute' };
@@ -114,7 +131,13 @@ const COMMON_PASSWORDS = new Set([
 	'letmein123'
 ]);
 
-export type FieldIssue = { field: string; code: string; message: string };
+export type FieldIssue = {
+	field: string;
+	code: string;
+	message: string;
+	/** Only on a duplicate match item: the earlier match's code. */
+	existing_code?: string;
+};
 
 export type PasswordError = { code: string; message: string };
 
@@ -161,7 +184,12 @@ function seed(): MockState {
 			code: p.code,
 			displayName: p.displayName,
 			accountEmail: p.accountEmail,
-			homeClub: p.homeClub,
+			legalName: p.legalName,
+			birthYear: p.birthYear,
+			birthMonth: p.birthMonth,
+			genderDivision: p.genderDivision,
+			city: p.city,
+			region: p.region,
 			privacy: { ...p.privacy }
 		})),
 		matches: MATCHES.map((m, index) => ({
@@ -216,6 +244,41 @@ export type ListResult =
 	{ ok: true; items: MockMatch[]; count: number } | { ok: false; kind: 'not_found' };
 
 export type LoginResult = 'ok' | 'mismatch' | 'unverified';
+
+export type CreatePlayerResult =
+	| { ok: true; player: MockPlayer }
+	| { ok: false; kind: 'conflict' }
+	| { ok: false; kind: 'validation'; issues: FieldIssue[] };
+
+/** `create_player`: every setting signed_in for an adult, private for a player aged 13 to 17. */
+function startingPrivacy(visibility: PrivacyOut['stats_visibility']): PrivacyOut {
+	return {
+		city_region_visibility: visibility,
+		match_history_visibility: visibility,
+		rating_history_visibility: visibility,
+		stats_visibility: visibility,
+		home_club_visibility: visibility
+	};
+}
+
+/** A saved player in this version's shape. */
+function isMockPlayer(value: unknown): boolean {
+	if (typeof value !== 'object' || value === null) return false;
+	const player = value as Record<string, unknown>;
+	return (
+		typeof player.code === 'string' &&
+		typeof player.displayName === 'string' &&
+		typeof player.legalName === 'string' &&
+		typeof player.birthYear === 'number' &&
+		typeof player.birthMonth === 'number' &&
+		typeof player.genderDivision === 'string' &&
+		typeof player.city === 'string' &&
+		typeof player.region === 'string' &&
+		typeof player.privacy === 'object' &&
+		player.privacy !== null &&
+		!('homeClub' in player)
+	);
+}
 
 export type MockStore = ReturnType<typeof createMockStore>;
 
@@ -275,6 +338,9 @@ export function createMockStore() {
 				const fresh = seed();
 				if (!lists.every(Array.isArray) || typeof parsed.csrfToken !== 'string') return false;
 				if (typeof parsed.ratings !== 'object' || parsed.ratings === null) return false;
+				// Players saved before the profile fields (a home club, no city) would show
+				// undefined on the profile page: drop the snapshot.
+				if (!parsed.players.every(isMockPlayer)) return false;
 				// A snapshot from older fixtures would show stale data: drop it.
 				if (parsed.matches.length < fresh.matches.length) return false;
 				state = parsed;
@@ -382,62 +448,97 @@ export function createMockStore() {
 			return true;
 		},
 
-		// Players (provisional endpoints, backend#124 and #53)
+		// Players: `me/player` and the public profile (backend#124)
 
 		myPlayerOut(player: MockPlayer): MyPlayerOut {
 			return {
 				code: player.code,
 				display_name: player.displayName,
-				home_club: player.homeClub,
+				legal_name: player.legalName,
+				birth_year: player.birthYear,
+				birth_month: player.birthMonth,
+				gender_division: player.genderDivision,
+				city: player.city,
+				region: player.region,
 				privacy: { ...player.privacy }
 			};
 		},
 
-		createMyPlayer(email: string, input: MyPlayerCreateIn): MockPlayer {
-			// A stand-in account (`missing` mode) has no row yet. An empty password never matches a login.
-			if (!accountByEmail(email)) {
-				state.accounts.push({ email, password: '', verified: true, active: true });
+		/**
+		 * `create_my_player` after the body passed the schema, from the body only (the store
+		 * holds no sign-up details): 409 for a second player, the session's age refusal, the
+		 * missing details, then the age, then the model's other checks. An under-13 or future
+		 * age refuses the session, as sign-up does, whatever else is wrong with the body.
+		 */
+		createMyPlayer(email: string, body: PlayerCreateIn): CreatePlayerResult {
+			if (playerOfAccount(email)) return { ok: false, kind: 'conflict' };
+			if (state.signupRefused) return { ok: false, kind: 'validation', issues: [AGE_REFUSAL] };
+			const missing = missingIssues(body);
+			if (missing.length > 0) return { ok: false, kind: 'validation', issues: missing };
+			const year = body.birth_year as number;
+			const month = body.birth_month as number;
+			// Django's full_clean runs the age rule even when a field fails, and the view checks
+			// the age refusal before it reports field errors. A month out of range has no age.
+			const datable = month >= 1 && month <= 12;
+			if (datable && (isFutureMonth(year, month) || !isOldEnough(year, month))) {
+				state.signupRefused = true;
+				return { ok: false, kind: 'validation', issues: [AGE_REFUSAL] };
 			}
+			const { issues, clean } = profileIssues(body as ProfileValues);
+			if (issues.length > 0) return { ok: false, kind: 'validation', issues };
 			const player: MockPlayer = {
 				code: buildCode('player', counterCode(nextCounter(), 7, 'NEW')),
-				displayName: input.display_name.trim(),
+				displayName: clean.display_name as string,
 				accountEmail: email,
-				homeClub: input.home_club?.trim() || null,
-				privacy: {
-					city_region_visibility: 'signed_in',
-					match_history_visibility: 'signed_in',
-					rating_history_visibility: 'signed_in',
-					stats_visibility: 'signed_in',
-					home_club_visibility: 'signed_in'
-				}
+				legalName: clean.legal_name ?? '',
+				birthYear: year,
+				birthMonth: month,
+				genderDivision: clean.gender_division as string,
+				city: clean.city ?? '',
+				region: clean.region ?? '',
+				privacy: startingPrivacy(isMinor(year, month) ? 'private' : 'signed_in')
 			};
 			state.players.push(player);
-			return player;
-		},
-
-		updateMyPlayer(player: MockPlayer, input: MyPlayerUpdateIn): void {
-			if (input.display_name !== undefined) player.displayName = input.display_name.trim();
-			if (input.home_club !== undefined) player.homeClub = input.home_club?.trim() || null;
-			if (input.privacy) Object.assign(player.privacy, input.privacy);
+			return { ok: true, player };
 		},
 
 		/**
-		 * A player's public profile, or undefined when it is hidden (inactive account).
-		 * Like `PlayerPrivacy.visible_to`, the home club goes to the owner, or to an active
-		 * signed-in viewer when the setting is `signed_in`. Signed-out callers never get it.
+		 * `update_my_player` after the body passed the schema: only the fields sent change, and
+		 * a refused profile or privacy change changes nothing. Returns the model's issues.
 		 */
-		publicProfile(code: string, viewerEmail: string | null): PlayerProfileOut | undefined {
+		updateMyPlayer(player: MockPlayer, body: PlayerUpdateIn): FieldIssue[] {
+			const { privacy, ...profile } = body;
+			const { issues, clean } = profileIssues(profile);
+			if (issues.length > 0) return issues;
+			const privacyIssues = privacyNullIssues(privacy);
+			if (privacyIssues.length > 0) return privacyIssues;
+			if (clean.display_name != null) player.displayName = clean.display_name;
+			if (clean.legal_name != null) player.legalName = clean.legal_name;
+			if (clean.city != null) player.city = clean.city;
+			if (clean.region != null) player.region = clean.region;
+			if (privacy) Object.assign(player.privacy, privacy);
+			return [];
+		},
+
+		/**
+		 * `get_player`: a player as the signed-in viewer sees them, or undefined when hidden
+		 * (inactive account). Like `PlayerPrivacy.visible_to`, the city and region go to the
+		 * owner, or to another active viewer when the setting is `signed_in`. Empty ones are
+		 * null, so the answer never tells hidden from empty.
+		 */
+		publicProfile(code: string, viewerEmail: string): PlayerProfileOut | undefined {
 			const player = playerByCode(code);
 			if (!player || !this.isListed(player)) return undefined;
-			const viewer = viewerEmail ? accountByEmail(viewerEmail) : undefined;
-			const showClub =
+			const viewer = accountByEmail(viewerEmail);
+			const shown =
 				viewer?.active === true &&
 				(viewer.email === player.accountEmail ||
-					player.privacy.home_club_visibility === 'signed_in');
+					player.privacy.city_region_visibility === 'signed_in');
 			return {
 				code: player.code,
 				display_name: player.displayName,
-				home_club: showClub ? player.homeClub : null
+				city: shown ? player.city || null : null,
+				region: shown ? player.region || null : null
 			};
 		},
 
@@ -511,7 +612,8 @@ export function createMockStore() {
 		/**
 		 * `create_match` after the request body has passed schema validation. Follows
 		 * `apps/matches/api.py`: the submitter must play in it (403), every code must belong to
-		 * a player (422), the score rules (422), then the duplicate check (409).
+		 * a player (422), the score rules (422), then the duplicate check (409). The new match
+		 * stays pending with the submitter's confirmation, so it waits on the other team.
 		 */
 		submitMatch(email: string, body: MatchCreateIn): SubmitResult {
 			const own = playerOfAccount(email);
@@ -582,7 +684,8 @@ export function createMockStore() {
 				submittedBy: email,
 				seq: Math.max(0, ...state.matches.map((m) => m.seq)) + 1,
 				createdAt: new Date().toISOString(),
-				decisions: []
+				// The submission is the submitter's own confirmation (backend #197).
+				decisions: [{ player: own.code, decision: 'confirm' }]
 			};
 			state.matches.push(match);
 			return { ok: true, match };
