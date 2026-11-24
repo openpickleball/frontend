@@ -384,4 +384,10 @@ describe('SignupForm', () => {
 			.element(screen.getByLabelText('Password', { exact: true }))
 			.toHaveAttribute('type', 'password');
 	});
+	it('marks the gender group as required', async () => {
+		const screen = await render(SignupForm, { onsuccess: vi.fn() });
+		await expect
+			.element(screen.getByRole('radiogroup', { name: 'Gender' }))
+			.toHaveAttribute('aria-required', 'true');
+	});
 });
