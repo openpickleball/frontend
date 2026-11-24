@@ -116,7 +116,9 @@
 			if (BIRTH_FIELDS.some((name) => fields[name])) {
 				form.showFields(fields);
 			} else {
-				// A refusal has no field: its fixed message goes in the form alert.
+				// The client checks passed, so an older field message no longer holds. A refusal has
+				// no field: its fixed message goes in the form alert.
+				form.showFields({});
 				form.problem = { title: error.message };
 			}
 		} finally {
