@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy · OPEN Pickleball</title>
+    <meta name="description" content="What OPEN collects, who can see it, and how long it is kept." />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f7f3e8" media="(prefers-color-scheme: light)" />
+    <link rel="canonical" href="https://openpb.org/privacy/" />
+
+    <link rel="icon" href="/assets/img/favicon-48.png" sizes="48x48" type="image/png" />
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png" />
+
+    <link rel="preload" href="/assets/fonts/krona-one-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/assets/fonts/instrument-sans-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      // Apply a stored theme choice before first paint. Without one, the system setting decides.
+      (function () {
+        try {
+          var theme = localStorage.getItem("theme");
+          if (theme !== "light" && theme !== "dark") return;
+          document.documentElement.dataset.theme = theme;
+          document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
+            meta.content = theme === "light" ? "#f7f3e8" : "#000000";
+          });
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/assets/css/main.css" />
+  </head>
+  <body class="bg-primary font-body text-secondary antialiased">
+    <a
+      href="#main"
+      class="fixed top-3 left-4 z-30 -translate-y-20 bg-secondary px-4 py-2.5 text-primary focus:translate-y-0"
+      >Skip to content</a
+    >
+
+    <header class="border-b border-line">
+      <div class="wrap flex h-16 items-center justify-between gap-6">
+        <a href="/" class="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current">
+          <span class="mark size-6.5" aria-hidden="true"></span>
+          <span class="-mr-[0.1em] font-display text-lg leading-none tracking-widest">OPEN</span>
+          <span class="sr-only">home page</span>
+        </a>
+        <button
+          id="theme-toggle"
+          type="button"
+          aria-label="Switch to light theme"
+          class="-mr-2 grid size-9 place-items-center rounded-full text-muted transition-colors hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+        >
+          <!-- Sun, shown in the black theme. -->
+          <svg class="size-4.5 light:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.25" />
+            <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+          </svg>
+          <!-- Moon, shown in the ivory theme. -->
+          <svg class="hidden size-4.5 light:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1" class="wrap pt-16 pb-24 outline-none">
+      <h1 class="max-w-[20ch] text-[clamp(30px,3.6vw,48px)] leading-none font-medium tracking-tight text-balance">Privacy Policy</h1>
+      <p class="mt-4 text-sm tracking-wide text-faint">Version 1 · Effective November 23, 2026</p>
+
+      <div role="note" class="mt-8 max-w-2xl rounded-lg border border-line bg-surface p-5 leading-relaxed text-muted">
+        <p>
+          <strong class="font-semibold text-secondary">Player accounts are not open yet.</strong> Today, only the part about
+          this website applies. The parts about accounts say what will happen once accounts open.
+        </p>
+      </div>
+
+      <div class="legal">
+        <h2>The short version</h2>
+        <ul>
+          <li>OPEN is free. There are no ads, and we never sell your data.</li>
+          <li>OPEN adds no tracking or analytics of its own.</li>
+          <li>We collect only what we need to record your matches and run OPEN.</li>
+          <li>You can ask for a copy of your data at any time.</li>
+        </ul>
+
+        <h2>Who we are</h2>
+        <p>
+          OPEN (Open Pickleball Evaluation Network) is a volunteer project. Its interim steward runs it until the governing
+          board is seated. In this policy, "OPEN", "we" and "us" mean the project.
+        </p>
+        <p>
+          This policy covers this website, openpb.org, and the OPEN app, which will be at app.openpb.org. Questions about your
+          privacy go to <a href="mailto:info@openpb.org">info@openpb.org</a>.
+        </p>
+
+        <h2>This website, openpb.org</h2>
+        <p>This part applies today.</p>
+        <ul>
+          <li>
+            <strong>Hosting.</strong> GitHub Pages hosts openpb.org. When you visit, GitHub receives your IP address and
+            details about your browser, as any web server does, and keeps them in its server logs.
+            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub's privacy statement<span class="sr-only"> (opens in a new tab)</span></a>
+            covers that.
+          </li>
+          <li><strong>Fonts.</strong> The fonts come from openpb.org itself, so no font service learns about your visit.</li>
+          <li>
+            <strong>Theme.</strong> If you pick the black or the ivory theme, your browser saves that choice in
+            its local storage. It stays on your device. It is never sent to us.
+          </li>
+          <li><strong>Cookies and analytics.</strong> OPEN sets no cookies on this website and adds no analytics of its own.</li>
+          <li>
+            <strong>The "Get involved" form.</strong> The home page loads a script from Tally, the service that runs our
+            "Get involved" form. The script loads on every visit to the home page, so Tally receives your IP address and
+            browser details even if you never open the form. What you enter in the form goes to Tally and to us. We use it
+            only to reply to you and to send you the OPEN updates you asked for.
+            <a href="https://tally.so/help/privacy-policy" target="_blank" rel="noopener">Tally's privacy policy<span class="sr-only"> (opens in a new tab)</span></a>
+            covers how Tally handles it. To be taken off our list, email
+            <a href="mailto:info@openpb.org">info@openpb.org</a>.
+          </li>
+        </ul>
+
+        <h2>Player accounts</h2>
+        <p>This applies once player accounts open.</p>
+
+        <h3>What you give us</h3>
+        <ul>
+          <li>
+            <strong>Email address</strong>, to sign in and to get account email, such as the message that confirms your
+            address.
+          </li>
+          <li><strong>Password.</strong> We store only a salted hash of it, never the password itself.</li>
+          <li>
+            <strong>Birth month and year</strong>, never the day. We use them for age groups, age divisions and the rule
+            that players must be 13 or older.
+          </li>
+          <li>
+            <strong>Gender division</strong>: men's or women's. It decides which doubles rating formats you can play in:
+            men's or women's doubles, and mixed doubles.
+          </li>
+          <li>
+            <strong>Your name.</strong> Signup asks for your first and last name. We store them together as your legal name.
+            Your starting display name is your first and last name if you are 18 or older, or your first name and last
+            initial if you are 13 to 17. Other signed-in players see your display name, so it shows your name, or part of it,
+            until you change it. You can change your display name later. We use your legal name only for identity checks and
+            to verify organizers.
+          </li>
+          <li>
+            <strong>City and region</strong>, if you add them. They help players tell apart people with the same name, and
+            find players near them.
+          </li>
+        </ul>
+
+        <h3>Location search at signup</h3>
+        <p>
+          When you type your location at signup, the app sends what you type to Photon, as you type, even if you don't pick
+          a place. OPEN never receives what you type. Photon is a public place search service built on OpenStreetMap and run
+          by komoot. It suggests places to pick from. Like any web server, it may also receive your IP address and browser
+          or device details. Photon is not run for OPEN, and
+          <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener">komoot's privacy policy<span class="sr-only"> (opens in a new tab)</span></a>
+          covers it. We store only the city and region you pick.
+        </p>
+
+        <h3>What OPEN records</h3>
+        <ul>
+          <li>Your OPEN Code, a public ID for you inside OPEN. A code is never given to anyone else.</li>
+          <li>
+            Your matches: who played and on which team, the scores, the date and time, the place, the event or club, any event
+            or bracket labels, and who submitted the match. For the place, OPEN asks for a name, such as a court or a park,
+            not an address.
+          </li>
+          <li>Whether you confirmed or disputed a match, and when.</li>
+          <li>Your privacy settings.</li>
+          <li>
+            Your sign-in session, until you log out or it expires. It also holds the email address a login was started with,
+            how and when you signed in, and, after signup, your signup details (birth month and year, gender division, name,
+            and city and region, if you added them) until your player profile is created, you log out, or the session ends.
+          </li>
+          <li>When you joined, and when you last signed in.</li>
+          <li>
+            A record of changes, such as who confirmed, voided or corrected a match. These records never hold your name, email
+            address, age or other details that identify you. One exception: the admin history that staff see records an
+            account by its email address.
+          </li>
+          <li>
+            To stop abuse, sign-in and signup limits keep your IP address in short-term memory, only for as long as the limit
+            lasts.
+          </li>
+        </ul>
+
+        <h3>If you run events or act for a club</h3>
+        <ul>
+          <li>An organizer's name. It may be a person's name.</li>
+          <li>Which accounts act for an organizer or a club, and in which role, such as admin or match manager.</li>
+          <li>The events an organizer ran, and when.</li>
+          <li>Whether an organizer is verified, when, and which staff account verified it.</li>
+          <li>For a partner app, the account that registered it.</li>
+        </ul>
+
+        <h2>Who can see what</h2>
+        <p>
+          This applies once player accounts open. Profiles are only for signed-in players. Visitors who are not signed in can't
+          see them. "Staff" below means OPEN volunteers, including moderators, whose role needs the information.
+        </p>
+        <ul>
+          <li>
+            <strong>Display name and OPEN Code:</strong> every signed-in player, including in player search. While an account
+            is inactive, its matches show "Private player" instead, and player search leaves it out.
+          </li>
+          <li>
+            <strong>Your matches:</strong> you see all of yours. A match names every player in it by display name and OPEN
+            Code. So a match you played also shows in your teammates' and opponents' match histories, on their own privacy
+            settings, whatever your own setting is. Other signed-in players see your confirmed matches in your own match
+            history while your match history setting allows it. A person who acts for the verified organizer of the event
+            can also see a match from that event when they confirm it. So can staff and moderators whose role needs it.
+          </li>
+          <li>
+            <strong>City and region:</strong> whoever your privacy setting allows, either other signed-in players or only
+            you.
+          </li>
+          <li><strong>Birth month and year:</strong> you, and staff. Other players see only an age group.</li>
+          <li>
+            <strong>Gender division:</strong> not shown to other players on your profile. You see it in your own profile. But
+            a rating in men's or women's doubles shows which division you play in.
+          </li>
+          <li><strong>Legal name:</strong> you, and staff.</li>
+          <li><strong>Email address:</strong> you, and staff. Never other players.</li>
+          <li><strong>Your password:</strong> nobody. We store only a hash that can't be turned back into it.</li>
+          <li>
+            <strong>Whether you confirmed or disputed a match:</strong> players in the match see whether someone on each team
+            confirmed it, and whether it is disputed. In singles, or when your partner hasn't confirmed, this can show what
+            you did. You see your own latest answer. Other players see neither. Staff whose role needs it can see your
+            answer.
+          </li>
+          <li><strong>Your privacy settings:</strong> you, and staff whose role needs them.</li>
+          <li><strong>When you joined and last signed in:</strong> staff whose role needs it.</li>
+          <li><strong>Your sign-in session:</strong> nobody, through the app.</li>
+          <li>
+            <strong>The audit record of changes:</strong> staff whose role needs it. You will get the records about you in the
+            copy of your data we send you.
+          </li>
+          <li><strong>Organizer details:</strong> staff.</li>
+          <li>
+            <strong>Ratings:</strong> no OPEN rating is published yet. Once ratings are published, your display name and
+            current ratings will be visible to every signed-in player, and you won't be able to hide them.
+          </li>
+        </ul>
+
+        <h2>Partner apps</h2>
+        <p>
+          This applies once player accounts open. Approved partner apps, such as club or tournament software, may send in
+          match results for a club that has allowed them to. We don't share player data with partners today. We will update
+          this policy before we do. We will never share the identity or rating of a player aged 13 to 17 with a partner.
+        </p>
+
+        <h2>Services we use</h2>
+        <p>These companies handle data for us, only to run OPEN:</p>
+        <ul>
+          <li>
+            <strong>GitHub</strong> hosts this website.
+            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">Privacy statement<span class="sr-only"> (GitHub, opens in a new tab)</span></a>
+          </li>
+          <li>
+            <strong>Tally</strong> runs the "Get involved" form.
+            <a href="https://tally.so/help/privacy-policy" target="_blank" rel="noopener">Privacy policy<span class="sr-only"> (Tally, opens in a new tab)</span></a>
+          </li>
+          <li>
+            <strong>DigitalOcean</strong> will run the servers and the database behind player accounts.
+            <a href="https://www.digitalocean.com/legal/privacy-policy" target="_blank" rel="noopener">Privacy policy<span class="sr-only"> (DigitalOcean, opens in a new tab)</span></a>
+          </li>
+          <li>
+            <strong>Resend</strong> will send account email. It keeps a copy of each message for up to 30 days. We keep its
+            open and click tracking turned off.
+            <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Privacy policy<span class="sr-only"> (Resend, opens in a new tab)</span></a>
+          </li>
+        </ul>
+        <p>These companies may handle your data in the United States, or in other countries where they run their services.</p>
+        <p>
+          Photon, the place search at signup, is not on this list. It is a public service that komoot runs under its own
+          privacy policy, not a company that handles data for us. See "Location search at signup" above.
+        </p>
+
+        <h2>Ages</h2>
+        <p>This applies once player accounts open.</p>
+        <ul>
+          <li>You must be 13 or older to have an account.</li>
+          <li>
+            Signup asks for your email address and password first, then your birth month and year. OPEN checks your age
+            before you can type your name or location. If you are under 13, no account is made. We keep a note that
+            signup was refused, on our servers, with that sign-in session. The note is only a flag, never your age or any
+            other signup details. It stays if you log out, and lasts until the session ends.
+          </li>
+          <li>
+            Sometimes the app asks for your birth month and year again after signup, for example if you confirmed your email
+            on another device. If the answer then is under 13, we create no player profile, and keep the same note. Your
+            account, with its email address and password hash, already exists at that point. It has no player profile, so
+            we delete that account if you ask, or when we learn of it.
+          </li>
+          <li>
+            For players aged 13 to 17, the privacy settings start at "only you", and the player can widen them later. Their data
+            is never shared with partners until they turn 18.
+          </li>
+        </ul>
+
+        <h2>What we never ask for</h2>
+        <ul>
+          <li>Payment details. OPEN never charges anyone.</li>
+          <li>Your street address, postcode or exact location.</li>
+          <li>Your full birth date.</li>
+          <li>Your phone number.</li>
+          <li>Your gender identity. We only ask which division you play in.</li>
+        </ul>
+
+        <h2>How long we keep it</h2>
+        <p>This applies once player accounts open.</p>
+        <ul>
+          <li>We keep your account details while your account exists. We don't delete accounts for being inactive.</li>
+          <li>
+            Deleting an account is not built yet. Today, an account with a player profile can't be deleted at all. Until
+            deletion is built, email <a href="mailto:info@openpb.org">info@openpb.org</a> and we will deactivate your account.
+            A deactivated account keeps all its details until full deletion is available. While it is deactivated, other
+            players see "Private player" in its matches, and player search leaves it out.
+          </li>
+          <li>
+            Deleting an account won't remove everything, because other players' records and ratings depend on some of it. These
+            stay: match results in the Ledger, OPEN's permanent record of matches; your player profile's OPEN Code; the audit
+            record of changes, which never holds your name, email address or age; if you verified an organizer as staff, the
+            record that you did; and, if you have submitted a match or made a change that OPEN records, such as disputing a match
+            or changing a setting, your account itself, deactivated, with your identifying details removed. These go: your email
+            address, password hash, display name and legal name, birth month and year, gender division, city and region, privacy
+            settings, sign-in sessions, your organizer memberships and club roles, the name of an organizer that is you, and the
+            admin history entries tied to your account. We are still deciding how deletion treats your confirmations and disputes,
+            the link to matches you submitted, the events of an organizer that is one person, whether the join and last sign-in
+            dates on a kept account are reset, what your player profile's link to your account becomes, and whether an account
+            that never did any of that is deleted outright. Until then they stay. We will update this policy before full deletion
+            is available.
+          </li>
+          <li>
+            We delete each account email from our outbox once it is sent, and never keep one more than three days. Resend's
+            copy ages out within 30 days. Deleting an account can't remove that copy sooner.
+          </li>
+        </ul>
+
+        <h2>Getting a copy of your data</h2>
+        <p>
+          This applies once player accounts open. You can always have a copy of your data. A button to download it is not
+          built yet. Until it is, email <a href="mailto:info@openpb.org">info@openpb.org</a> and we will help.
+        </p>
+
+        <h2>Keeping your data safe</h2>
+        <ul>
+          <li>openpb.org uses HTTPS, and so will the OPEN app.</li>
+          <li>Passwords are stored only as salted hashes.</li>
+          <li>
+            The links we email you to confirm your address or reset your password are signed, so we keep no separate list of
+            them. The email itself waits in our outbox until it is sent, three days at most, and Resend keeps a copy for
+            up to 30 days.
+          </li>
+        </ul>
+        <p>
+          No system is perfectly secure. If you find a security problem, please tell us at
+          <a href="mailto:info@openpb.org">info@openpb.org</a>.
+        </p>
+
+        <h2>Your choices</h2>
+        <p>This applies once player accounts open.</p>
+        <ul>
+          <li>
+            Your privacy settings choose who sees your city and region and your own match history: other signed-in players,
+            or only you. They start at "signed-in players", or at "only you" for players aged 13 to 17.
+          </li>
+          <li>
+            They don't hide you in other players' match histories. A match you played names you there, on their settings.
+          </li>
+          <li>Change your details in your profile.</li>
+          <li>Ask us anything about your data at <a href="mailto:info@openpb.org">info@openpb.org</a>.</li>
+        </ul>
+
+        <h2>Changes to this policy</h2>
+        <p>
+          When we change this policy, we post the new version here with a new version number and date. If you have an account,
+          we will email you before a change that matters to you takes effect.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          Email <a href="mailto:info@openpb.org">info@openpb.org</a>. See also our <a href="/terms/">Terms of Service</a>.
+        </p>
+      </div>
+    </main>
+
+    <footer class="text-sm tracking-wide text-muted">
+      <div class="wrap pb-7">
+        <div class="flex flex-wrap gap-x-5 gap-y-1.5 border-t border-line pt-5 text-sm text-faint">
+          <span>© 2026 OPEN contributors</span>
+          <a class="hover:text-secondary" href="/">Home</a>
+          <a class="hover:text-secondary" href="https://github.com/openpickleball/frontend" target="_blank" rel="noopener">Site source (AGPL-3.0)<span class="sr-only"> (opens in a new tab)</span></a>
+          <a class="hover:text-secondary" href="https://github.com/openpickleball/.github/blob/main/LICENSING.md" target="_blank" rel="noopener">Licensing and trademark<span class="sr-only"> (opens in a new tab)</span></a>
+          <a class="hover:text-secondary" href="https://opencollective.com/open-pickleball" target="_blank" rel="noopener">See every dollar in and out<span class="sr-only"> (opens in a new tab)</span></a>
+          <a class="hover:text-secondary" href="/terms/">Terms</a>
+          <a class="hover:text-secondary" href="/privacy/" aria-current="page">Privacy</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/assets/js/theme-toggle.js"></script>
+  </body>
+</html>
