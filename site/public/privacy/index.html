@@ -124,7 +124,10 @@
 
         <h3>What you give us</h3>
         <ul>
-          <li><strong>Email address</strong>, to sign in and to get account email, such as the message that confirms your address.</li>
+          <li>
+            <strong>Email address</strong>, to sign in and to get account email, such as the message that confirms your
+            address.
+          </li>
           <li><strong>Password.</strong> We store only a salted hash of it, never the password itself.</li>
           <li>
             <strong>Birth month and year</strong>, never the day. We use them for age groups, age divisions and the rule
@@ -166,7 +169,12 @@
           </li>
           <li>Whether you confirmed or disputed a match, and when.</li>
           <li>Your privacy settings.</li>
-          <li>Your sign-in session, until you log out or it expires. Also when you joined and when you last signed in.</li>
+          <li>
+            Your sign-in session, until you log out or it expires. It also holds the email address a login was started with,
+            how and when you signed in, and, after signup, your birth month and year and gender division until your player
+            profile is created.
+          </li>
+          <li>When you joined, and when you last signed in.</li>
           <li>
             A record of changes, such as who confirmed, voided or corrected a match. These records never hold your name, email
             address, age or other details that identify you. One exception: the admin history that staff see records an
@@ -204,7 +212,10 @@
             history while your match history setting allows it. A verified organizer of the event a match was part of can
             also see it. So can staff and moderators whose role needs it.
           </li>
-          <li><strong>City and region:</strong> whoever your privacy setting allows, either other signed-in players or only you.</li>
+          <li>
+            <strong>City and region:</strong> whoever your privacy setting allows, either other signed-in players or only
+            you.
+          </li>
           <li><strong>Birth month and year:</strong> you, and staff. Other players see only an age group.</li>
           <li>
             <strong>Gender division:</strong> not shown on your profile. But a rating in men's or women's doubles shows which
@@ -258,15 +269,15 @@
         <ul>
           <li>You must be 13 or older to have an account.</li>
           <li>
-            Signup asks for your birth month and year first. If you are under 13, no account is made, and we keep no age or
-            gender details. We keep only a note in your browser's session that signup was refused. The note stays if you log
-            out, and lasts until that session ends.
+            Signup asks for your birth month and year first. If you are under 13, no account is made. We keep a note that
+            signup was refused, on our servers, with that sign-in session. The note is only a flag, never your age or gender
+            division. It stays if you log out, and lasts until the session ends.
           </li>
           <li>
             Sometimes the app asks for your birth month and year again after signup, for example if you confirmed your email
             on another device. If the answer then is under 13, we create no player profile, and keep the same note. Your
-            account, with its email address and password hash, already exists at that point. We will deactivate it if you
-            ask, and we may deactivate it ourselves.
+            account, with its email address and password hash, already exists at that point. It has no player profile, so
+            we delete that account if you ask, or when we learn of it.
           </li>
           <li>
             For players aged 13 to 17, the privacy settings start at "only you", and the player can widen them later. Their data
@@ -288,16 +299,18 @@
         <ul>
           <li>We keep your account details while your account exists. We don't delete accounts for being inactive.</li>
           <li>
-            Deleting an account is not built yet. Until it is, email <a href="mailto:info@openpb.org">info@openpb.org</a> and
-            we will deactivate your account. While it is deactivated, other players see "Private player" in its matches, and
-            player search leaves it out. We will update this policy before full deletion is available.
+            Deleting an account is not built yet. Today, an account with a player profile can't be deleted at all. Until
+            deletion is built, email <a href="mailto:info@openpb.org">info@openpb.org</a> and we will deactivate your account.
+            A deactivated account keeps all its details until full deletion is available. While it is deactivated, other
+            players see "Private player" in its matches, and player search leaves it out.
           </li>
           <li>
-            Some things stay even after an account is deleted, because other players' records and ratings depend on them.
-            Match results stay in the Ledger, OPEN's permanent record of matches. So do the confirmations and disputes on
-            them, which are never changed or deleted. Your player profile keeps its OPEN Code. The record of changes is kept
-            indefinitely. If your account has acted, for example by submitting a match, it stays as a deactivated account
-            with its identifying details cleared.
+            Deleting an account won't remove everything, because other players' records and ratings depend on some of it.
+            Match results stay in the Ledger, OPEN's permanent record of matches, and your player profile keeps its OPEN
+            Code. Confirmations and disputes stay in the Ledger with their match. The record of changes is kept indefinitely.
+            Organizer memberships, organizer verification and the events an organizer ran stay too, for now. We are still
+            deciding exactly how deletion treats them, and which account details have to stay. We will update this policy
+            before full deletion is available.
           </li>
           <li>
             We delete each account email from our outbox once it is sent, and never keep one more than three days. Resend's
@@ -307,8 +320,8 @@
 
         <h2>Getting a copy of your data</h2>
         <p>
-          This applies once player accounts open. You can always have a copy of your data. A button to download it is not built yet. Until it is, email
-          <a href="mailto:info@openpb.org">info@openpb.org</a> and we will help.
+          This applies once player accounts open. You can always have a copy of your data. A button to download it is not
+          built yet. Until it is, email <a href="mailto:info@openpb.org">info@openpb.org</a> and we will help.
         </p>
 
         <h2>Keeping your data safe</h2>
@@ -316,8 +329,8 @@
           <li>openpb.org uses HTTPS, and so will the OPEN app.</li>
           <li>Passwords are stored only as salted hashes.</li>
           <li>
-            The links and codes we email you to confirm your address or reset your password are signed, so we keep no separate
-            list of them. The email itself waits in our outbox until it is sent, three days at most, and Resend keeps a copy for
+            The links we email you to confirm your address or reset your password are signed, so we keep no separate list of
+            them. The email itself waits in our outbox until it is sent, three days at most, and Resend keeps a copy for
             up to 30 days.
           </li>
         </ul>
