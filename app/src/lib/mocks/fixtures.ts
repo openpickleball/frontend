@@ -12,7 +12,10 @@
  *   other side of a match and confirm it.
  */
 import { ALPHABET, buildCode } from '../domain/codes';
-import type { PlayerRatingsOut, PrivacySettings } from '../api/provisional';
+import type { components } from '../api/generated/open';
+import type { PlayerRatingsOut } from '../api/provisional';
+
+type PrivacyOut = components['schemas']['PrivacyOut'];
 
 /**
  * MOCK ONLY. Not a real password: it exists so the mock login has something to check.
@@ -46,11 +49,17 @@ export type FixturePlayer = {
 	code: string;
 	displayName: string;
 	accountEmail: string | null;
-	homeClub: string | null;
-	privacy: PrivacySettings;
+	/** Empty when the player gave none, as the backend stores it. */
+	legalName: string;
+	birthYear: number;
+	birthMonth: number;
+	genderDivision: 'mens' | 'womens';
+	city: string;
+	region: string;
+	privacy: PrivacyOut;
 };
 
-const signedIn: PrivacySettings = {
+const signedIn: PrivacyOut = {
 	city_region_visibility: 'signed_in',
 	match_history_visibility: 'signed_in',
 	rating_history_visibility: 'signed_in',
@@ -58,37 +67,72 @@ const signedIn: PrivacySettings = {
 	home_club_visibility: 'signed_in'
 };
 
+type Profile = {
+	born: readonly [year: number, month: number];
+	division: 'mens' | 'womens';
+	/** City and region, or empty. */
+	place?: readonly [city: string, region: string];
+	/** The legal name, when it differs from the display name. Empty when left out. */
+	legalName?: string;
+};
+
 function player(
 	key: PlayerKey,
 	random: string,
 	displayName: string,
-	homeClub: string | null,
-	privacy: PrivacySettings = signedIn
+	profile: Profile,
+	privacy: PrivacyOut = signedIn
 ): FixturePlayer {
+	const [city, region] = profile.place ?? ['', ''];
 	return {
 		key,
 		code: buildCode('player', random),
 		displayName,
 		accountEmail: key === 'tamsin' ? VERIFIED_EMAIL : `${key}@example.com`,
-		homeClub,
+		legalName: profile.legalName ?? displayName,
+		birthYear: profile.born[0],
+		birthMonth: profile.born[1],
+		genderDivision: profile.division,
+		city,
+		region,
 		privacy
 	};
 }
 
+// Made-up places: not real towns.
 export const PLAYERS: readonly FixturePlayer[] = [
-	player('tamsin', '4RWN8TQ', 'Tamsin Vale', 'Riverside Pickleball Club'),
-	player('oren', '9HJD3XK', 'Oren Quill', 'Riverside Pickleball Club'),
-	player('bea', 'M2CF7YP', 'Bea Marlowe', null),
-	player('kit', 'T6BZ0NQ', 'Kit Ashdown', 'Harbor Courts'),
-	player('rosa', '5XEGK8M', 'Rosa Fenwick', null),
-	player('idris', 'A7VH2DS', 'Idris Coldwell', 'Harbor Courts'),
-	// Keeps the match history to themselves: other players get a 404 for it.
-	player('nell', 'G3QY6JZ', 'Nell Brightwater', null, {
-		...signedIn,
-		match_history_visibility: 'private'
+	player('tamsin', '4RWN8TQ', 'Tamsin Vale', {
+		born: [1988, 4],
+		division: 'womens',
+		place: ['Millbrook', 'Lakeshire']
 	}),
+	player('oren', '9HJD3XK', 'Oren Quill', {
+		born: [1979, 11],
+		division: 'mens',
+		place: ['Millbrook', 'Lakeshire']
+	}),
+	player('bea', 'M2CF7YP', 'Bea Marlowe', { born: [1995, 2], division: 'womens', legalName: '' }),
+	player('kit', 'T6BZ0NQ', 'Kit Ashdown', {
+		born: [2001, 7],
+		division: 'mens',
+		place: ['Harborview', 'Coastmere']
+	}),
+	player('rosa', '5XEGK8M', 'Rosa Fenwick', { born: [1964, 9], division: 'womens' }),
+	player('idris', 'A7VH2DS', 'Idris Coldwell', {
+		born: [1990, 1],
+		division: 'mens',
+		place: ['Harborview', 'Coastmere']
+	}),
+	// Keeps the match history to themselves: other players get a 404 for it.
+	player(
+		'nell',
+		'G3QY6JZ',
+		'Nell Brightwater',
+		{ born: [1983, 5], division: 'womens', place: ['Fernhollow', ''] },
+		{ ...signedIn, match_history_visibility: 'private' }
+	),
 	// The one private player: an inactive account, so everyone else sees "Private player".
-	player('saul', 'W8KN4FT', 'Saul Pemberly', null)
+	player('saul', 'W8KN4FT', 'Saul Pemberly', { born: [1972, 12], division: 'mens' })
 ];
 
 export const ACCOUNTS: readonly FixtureAccount[] = [

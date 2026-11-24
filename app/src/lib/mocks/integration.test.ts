@@ -725,91 +725,320 @@ describe('accounts', () => {
 	});
 });
 
-describe('provisional endpoints', () => {
-	it('creates, reads and edits the own player; one per account', async () => {
-		const { api } = browser();
-		await api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
-			params: allauthParams,
-			body: { ...BORN, email: 'fresh@example.com', password: 'a-fine-password-9' }
-		});
-		const key = mockStore.state.outbox.findLast((m) => m.kind === 'verify_email')?.key as string;
-		await api.allauth.POST('/_allauth/{client}/v1/auth/email/verify', {
-			params: allauthParams,
-			body: { key }
-		});
-		await login(api, 'fresh@example.com', 'a-fine-password-9');
+describe('player profile endpoints', () => {
+	const tamsinFixture = PLAYERS.find((p) => p.key === 'tamsin') as (typeof PLAYERS)[number];
+	const FRESH = 'fresh@example.com';
+	const adult = {
+		display_name: 'Fern Mock',
+		birth_year: 1990,
+		birth_month: 6,
+		gender_division: 'womens'
+	};
+	const AGE_REFUSAL = [
+		{
+			field: 'body.birth_month',
+			code: 'invalid',
+			message: "This birth year and month can't be used."
+		}
+	];
 
-		const own = await fetchJson(api, 'GET', '/api/v1/me/player');
-		expect(own.status).toBe(404);
-		const made = await fetchJson(api, 'POST', '/api/v1/me/player', { display_name: 'Fern Mock' });
-		expect(made.status).toBe(201);
-		expect(made.body.display_name).toBe('Fern Mock');
-		expect(made.body.code).toMatch(/^P-/);
-		expect(
-			(await fetchJson(api, 'POST', '/api/v1/me/player', { display_name: 'Again' })).status
-		).toBe(409);
-		const patched = await fetchJson(api, 'PATCH', '/api/v1/me/player', {
-			privacy: { match_history_visibility: 'private' }
+	/** A signed-in, verified account with no player yet. */
+	async function freshAccount() {
+		mockStore.state.accounts.push({
+			email: FRESH,
+			password: MOCK_PASSWORD,
+			verified: true,
+			active: true
 		});
-		expect(patched.body.privacy?.match_history_visibility).toBe('private');
-		expect((await fetchJson(api, 'POST', '/api/v1/me/player', {})).status).toBe(422);
+		const { api } = browser();
+		await api.initCsrf();
+		expect((await login(api, FRESH)).response.status).toBe(200);
+		return api;
+	}
+
+	async function signedIn(email = VERIFIED_EMAIL) {
+		const { api } = browser();
+		await api.initCsrf();
+		expect((await login(api, email)).response.status).toBe(200);
+		return api;
+	}
+
+	const fields = (error: unknown) =>
+		(error as { errors: { field: string; code: string }[] }).errors.map((e) => [e.field, e.code]);
+
+	it('answers 401 without a session on all four, before anything else', async () => {
+		const { api } = browser();
+		const results = await Promise.all([
+			api.open.GET('/api/v1/me/player'),
+			api.open.POST('/api/v1/me/player', { body: { made_up: 1 } as never }),
+			api.open.PATCH('/api/v1/me/player', { body: { made_up: 1 } as never }),
+			api.open.GET('/api/v1/players/{code}', { params: { path: { code: tamsin } } })
+		]);
+		for (const result of results) {
+			expect(result.response.status).toBe(401);
+			expect(result.error).toMatchObject({ code: 'unauthorized' });
+		}
 	});
 
-	it('shows the home club only to the owner or a signed-in viewer allowed by the setting', async () => {
-		const profile = async () =>
-			(await (await fetch(`${BASE}/api/v1/players/${tamsin}`)).json()) as {
-				home_club: string | null;
-			};
-		// Signed out: never.
-		expect((await profile()).home_club).toBeNull();
-
-		// Another signed-in player: yes while the setting is signed_in.
-		const { api } = browser();
-		await login(api, 'oren@example.com');
-		expect((await profile()).home_club).toBe('Riverside Pickleball Club');
-
-		// The owner hides it: others lose it, the owner keeps it.
-		const player = mockStore.playerByCode(tamsin);
-		if (player) player.privacy.home_club_visibility = 'private';
-		expect((await profile()).home_club).toBeNull();
-		mockStore.logout();
-		const owner = browser();
-		await login(owner.api);
-		expect((await profile()).home_club).toBe('Riverside Pickleball Club');
+	it('needs a CSRF token to create or change the player (403)', async () => {
+		await signedIn();
+		for (const method of ['POST', 'PATCH']) {
+			const response = await fetch(`${BASE}/api/v1/me/player`, {
+				method,
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({})
+			});
+			expect(response.status, method).toBe(403);
+		}
 	});
 
-	it('serves public profiles and ratings, and a 404 for hidden or unknown players', async () => {
-		const { api } = browser();
-		const profile = await fetch(`${BASE}/api/v1/players/${tamsin}`);
-		expect(profile.status).toBe(200);
+	it('reads the own player with every MyPlayerOut field and no home club', async () => {
+		const api = await signedIn();
+		const own = await unwrap(api.open.GET('/api/v1/me/player'));
+		expect(own).toEqual({
+			code: tamsin,
+			display_name: tamsinFixture.displayName,
+			legal_name: tamsinFixture.legalName,
+			birth_year: tamsinFixture.birthYear,
+			birth_month: tamsinFixture.birthMonth,
+			gender_division: tamsinFixture.genderDivision,
+			city: tamsinFixture.city,
+			region: tamsinFixture.region,
+			privacy: tamsinFixture.privacy
+		});
+		expect(own).not.toHaveProperty('home_club');
+	});
+
+	it('is a 404 for an account with no player', async () => {
+		const api = await freshAccount();
+		const own = await api.open.GET('/api/v1/me/player');
+		expect(own.response.status).toBe(404);
+		expect(own.error).toEqual({ code: 'not_found', message: 'Not found.', errors: [] });
+	});
+
+	it('creates the player from the body, with empty optional text as ""', async () => {
+		const api = await freshAccount();
+		const made = await api.open.POST('/api/v1/me/player', {
+			body: { ...adult, city: ' Elmhurst ' }
+		});
+		expect(made.response.status).toBe(201);
+		expect(made.data).toMatchObject({
+			display_name: 'Fern Mock',
+			legal_name: '',
+			birth_year: 1990,
+			birth_month: 6,
+			gender_division: 'womens',
+			city: 'Elmhurst',
+			region: '',
+			privacy: {
+				city_region_visibility: 'signed_in',
+				match_history_visibility: 'signed_in',
+				rating_history_visibility: 'signed_in',
+				stats_visibility: 'signed_in',
+				home_club_visibility: 'signed_in'
+			}
+		});
+		expect(made.data?.code).toMatch(/^P-/);
+		expect(await unwrap(api.open.GET('/api/v1/me/player'))).toEqual(made.data);
+	});
+
+	it.each(['display_name', 'birth_year', 'birth_month', 'gender_division'] as const)(
+		'needs %s to create the player (422)',
+		async (name) => {
+			const api = await freshAccount();
+			const body: Record<string, unknown> = { ...adult };
+			delete body[name];
+			const result = await api.open.POST('/api/v1/me/player', { body });
+			expect(result.response.status).toBe(422);
+			expect(fields(result.error)).toEqual([[`body.${name}`, 'missing']]);
+			expect(mockStore.playerOfAccount(FRESH)).toBeUndefined();
+		}
+	);
+
+	it('refuses an unknown key and a made-up gender division (422)', async () => {
+		const api = await freshAccount();
+		const unknown = await api.open.POST('/api/v1/me/player', {
+			body: { ...adult, account: 1 } as never
+		});
+		expect(unknown.response.status).toBe(422);
+		expect(fields(unknown.error)).toEqual([['body.account', 'extra_forbidden']]);
+
+		const division = await api.open.POST('/api/v1/me/player', {
+			body: { ...adult, gender_division: 'made-up' }
+		});
+		expect(division.response.status).toBe(422);
+		expect(division.error?.errors).toEqual([
+			{
+				field: 'body.gender_division',
+				code: 'invalid_choice',
+				message: 'Choose one of the listed options.'
+			}
+		]);
+		expect(mockStore.playerOfAccount(FRESH)).toBeUndefined();
+	});
+
+	it('refuses an under-13 age with the fixed 422, and keeps refusing in the session', async () => {
+		const api = await freshAccount();
+		const child = await api.open.POST('/api/v1/me/player', {
+			body: { ...adult, birth_year: new Date().getFullYear() - 5 }
+		});
+		expect(child.response.status).toBe(422);
+		expect(child.error?.errors).toEqual(AGE_REFUSAL);
+		expect(mockStore.state.signupRefused).toBe(true);
+
+		const again = await api.open.POST('/api/v1/me/player', { body: adult });
+		expect(again.response.status).toBe(422);
+		expect(again.error?.errors).toEqual(AGE_REFUSAL);
+		expect(mockStore.playerOfAccount(FRESH)).toBeUndefined();
+	});
+
+	it('refuses a birth month in the future the same way', async () => {
+		const api = await freshAccount();
+		const future = await api.open.POST('/api/v1/me/player', {
+			body: { ...adult, birth_year: new Date().getFullYear() + 1 }
+		});
+		expect(future.response.status).toBe(422);
+		expect(future.error?.errors).toEqual(AGE_REFUSAL);
+		expect(mockStore.state.signupRefused).toBe(true);
+	});
+
+	it('refuses a second player for the account (409)', async () => {
+		const api = await signedIn();
+		const second = await api.open.POST('/api/v1/me/player', { body: adult });
+		expect(second.response.status).toBe(409);
+		expect(second.error).toEqual({
+			code: 'conflict',
+			message: 'This account already has a player.',
+			errors: []
+		});
+	});
+
+	it('changes only the fields sent', async () => {
+		const api = await signedIn();
+		const before = await unwrap(api.open.GET('/api/v1/me/player'));
+		const patched = await unwrap(
+			api.open.PATCH('/api/v1/me/player', {
+				body: { display_name: '  Tam V. ', privacy: { stats_visibility: 'private' } }
+			})
+		);
+		expect(patched).toEqual({
+			...before,
+			display_name: 'Tam V.',
+			privacy: { ...before.privacy, stats_visibility: 'private' }
+		});
+	});
+
+	it('clears the city, region and legal name with null', async () => {
+		const api = await signedIn();
+		const patched = await unwrap(
+			api.open.PATCH('/api/v1/me/player', {
+				body: { city: null, region: null, legal_name: null }
+			})
+		);
+		expect(patched).toMatchObject({ city: '', region: '', legal_name: '' });
+	});
+
+	it.each([
+		[{ birth_year: 1990 }, [['body.birth_year', 'set_once']]],
+		[{ birth_month: 6 }, [['body.birth_month', 'set_once']]],
+		[{ gender_division: null }, [['body.gender_division', 'set_once']]],
+		[{ made_up: 'x' }, [['body.made_up', 'extra_forbidden']]],
+		[{ privacy: { made_up: 'private' } }, [['body.privacy.made_up', 'extra_forbidden']]],
+		[
+			{ display_name: null },
+			[
+				['body.display_name', 'null'],
+				['body.display_name', 'invalid']
+			]
+		],
+		[
+			{ display_name: '   ' },
+			[
+				['body.display_name', 'blank'],
+				['body.display_name', 'invalid']
+			]
+		],
+		[
+			{ display_name: 'Fine Name', privacy: { stats_visibility: 'everyone' } },
+			[['body.privacy.stats_visibility', 'enum']]
+		]
+	])('refuses %j with a 422 that changes nothing', async (body, expected) => {
+		const api = await signedIn();
+		const before = await unwrap(api.open.GET('/api/v1/me/player'));
+		const result = await api.open.PATCH('/api/v1/me/player', { body: body as never });
+		expect(result.response.status).toBe(422);
+		expect(result.error?.code).toBe('validation_error');
+		expect(fields(result.error)).toEqual(expected);
+		expect(await unwrap(api.open.GET('/api/v1/me/player'))).toEqual(before);
+	});
+
+	it('is a 404 to change an account with no player', async () => {
+		const api = await freshAccount();
+		const result = await api.open.PATCH('/api/v1/me/player', { body: { city: 'Elmhurst' } });
+		expect(result.response.status).toBe(404);
+	});
+
+	describe('a public profile', () => {
+		const profile = (api: Api, path = tamsin) =>
+			api.open.GET('/api/v1/players/{code}', { params: { path: { code: path } } });
+
+		it('shows the code, name, city and region to another signed-in player', async () => {
+			const api = await signedIn('oren@example.com');
+			expect((await profile(api)).data).toEqual({
+				code: tamsin,
+				display_name: tamsinFixture.displayName,
+				city: tamsinFixture.city,
+				region: tamsinFixture.region
+			});
+		});
+
+		it('hides the city and region when the setting is private, but not from the owner', async () => {
+			const player = mockStore.playerByCode(tamsin);
+			if (player) player.privacy.city_region_visibility = 'private';
+			const other = await signedIn('oren@example.com');
+			expect((await profile(other)).data).toMatchObject({ city: null, region: null });
+			mockStore.logout();
+			const owner = await signedIn();
+			expect((await profile(owner)).data).toMatchObject({
+				city: tamsinFixture.city,
+				region: tamsinFixture.region
+			});
+		});
+
+		it('gives null for an empty city or region', async () => {
+			const player = mockStore.playerByCode(tamsin);
+			if (player) Object.assign(player, { city: '', region: '' });
+			const api = await signedIn('oren@example.com');
+			expect((await profile(api)).data).toMatchObject({ city: null, region: null });
+		});
+
+		it('is a 404 for an inactive account, an unknown code and a malformed one', async () => {
+			const api = await signedIn('oren@example.com');
+			for (const path of [code('saul'), 'P-AAAA-AAAA', 'not-a-code']) {
+				const result = await profile(api, path);
+				expect(result.response.status, path).toBe(404);
+				expect(result.error).toEqual({ code: 'not_found', message: 'Not found.', errors: [] });
+			}
+		});
+
+		it('leaves player search to its own handler', async () => {
+			const api = await signedIn('oren@example.com');
+			const found = await api.open.GET('/api/v1/players/search', {
+				params: { query: { q: 'Tamsin' } }
+			});
+			expect(found.response.status).toBe(200);
+		});
+	});
+});
+
+describe('ratings (provisional)', () => {
+	it('serves sample ratings, and a 404 for hidden or unknown players', async () => {
 		const ratings = await fetch(`${BASE}/api/v1/players/${tamsin}/ratings`);
 		expect(await ratings.json()).toMatchObject({
 			demonstration: true,
 			ratings: { doubles: { rating: 3.42, reliability: 0.65, provisional: true } }
 		});
-		expect((await fetch(`${BASE}/api/v1/players/${code('saul')}`)).status).toBe(404);
+		expect((await fetch(`${BASE}/api/v1/players/${code('saul')}/ratings`)).status).toBe(404);
 		expect((await fetch(`${BASE}/api/v1/players/P-AAAA-AAAA/ratings`)).status).toBe(404);
-		void api;
 	});
 });
-
-/** A raw call with the CSRF header, for the provisional endpoints (no generated client types). */
-async function fetchJson(
-	_api: Api,
-	method: string,
-	path: string,
-	body?: unknown
-): Promise<{ status: number; body: PlayerBody }> {
-	const response = await fetch(`${BASE}${path}`, {
-		method,
-		headers: { 'Content-Type': 'application/json', 'X-CSRFToken': mockStore.state.csrfToken },
-		body: body === undefined ? undefined : JSON.stringify(body)
-	});
-	return { status: response.status, body: await response.json() };
-}
-
-type PlayerBody = {
-	code?: string;
-	display_name?: string;
-	privacy?: { match_history_visibility?: string };
-};

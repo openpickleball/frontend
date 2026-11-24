@@ -96,3 +96,5 @@ Measured on the default branch: no planned test asserts that two inputs behave a
 - **Risk tier High (user, 2026-11-24).**
 - **The mock `POST me/player` uses the body path only.** The mock store keeps no signup details today, and holding them belongs with frontend#205, which wires signup to `POST me/player`.
 - **`me/player` services take `ApiOption`.** The README asks it of every service that calls `api`, and the `provisionalApi` exception ends here for these calls.
+- **Search handlers come before the OPEN handlers (implementation, 2026-11-24).** `GET /api/v1/players/{code}` moved into `handlers/open.ts` would also match `/api/v1/players/search`, so `createHandlers` now lists `createSearchHandlers` first. An integration test checks that search still answers.
+- **Player body rules live in `mocks/player-rules.ts` (implementation, 2026-11-24).** The text, visible-character and age helpers that sign-up used moved there from `handlers/allauth.ts`, so sign-up and `me/player` share one copy. `STANDALONE_EMAIL` is gone: only ratings stayed provisional, and they need no account.

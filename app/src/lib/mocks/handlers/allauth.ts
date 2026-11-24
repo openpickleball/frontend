@@ -16,6 +16,15 @@ import {
 	userOut,
 	type AllauthIssue
 } from '../responses';
+import {
+	CONTROL_CHARACTER,
+	NOT_TEXT,
+	codePoints,
+	hasControlCharacter,
+	hasVisibleCharacter,
+	isOldEnough,
+	strip
+} from '../player-rules';
 import { passwordErrors, type MockStore } from '../store';
 
 const MISMATCH: AllauthIssue = {
@@ -52,33 +61,7 @@ function wholeNumber(value: unknown): number | 'invalid' | null {
 	return 'invalid';
 }
 
-const NOT_TEXT = 'Enter text.';
-const CONTROL_CHARACTER = 'Remove control or invalid characters.';
 const PLACE_MAX_LENGTH = 100;
-
-/**
- * Python's `str.strip()`: whitespace, including the separators `\s` leaves out. (JS `trim` would
- * also strip U+FEFF, which Python does not, so a regex is used instead.)
- */
-const strip = (value: string): string =>
-	// eslint-disable-next-line no-control-regex -- Python's strip() also removes these separators
-	value.replace(/^[\s\x1c-\x1f\x85]+|[\s\x1c-\x1f\x85]+$/g, '');
-
-/** Lengths are Python code points, so count the same way. */
-const codePoints = (value: string): number => [...value].length;
-
-// eslint-disable-next-line no-control-regex -- the backend refuses exactly these characters
-const hasControlCharacter = (value: string): boolean => /[\u0000-\u001f\u007f-\u009f]/.test(value);
-
-/** Characters that render blank although they are letters or symbols. */
-const FILLERS = new Set(['ᅟ', 'ᅠ', 'ㅤ', 'ﾠ', '⠀', '\u{1d159}']);
-
-/**
- * The backend's `has_visible_character`: a letter, number, punctuation mark or symbol, or an
- * unassigned character, other than a filler.
- */
-const hasVisibleCharacter = (value: string): boolean =>
-	[...value].some((char) => /[\p{L}\p{N}\p{P}\p{S}\p{Cn}]/u.test(char) && !FILLERS.has(char));
 
 /** A required name: stripped, then required, control characters, and its own length. */
 function nameCheck(
@@ -212,19 +195,6 @@ function signupAgeIssues(body: Record<string, unknown>): AllauthIssue[] {
 		});
 	}
 	return issues;
-}
-
-/**
- * At least 13, as backend `apps/players/age.py` counts it: born on the last day of the birth
- * month, on today's date at UTC-12 (the earliest date on Earth).
- */
-function isOldEnough(year: number, month: number, now = new Date()): boolean {
-	const today = new Date(now.getTime() - 12 * 60 * 60 * 1000);
-	const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-	const [todayMonth, todayDay] = [today.getUTCMonth() + 1, today.getUTCDate()];
-	let age = today.getUTCFullYear() - year;
-	if (todayMonth < month || (todayMonth === month && todayDay < lastDay)) age -= 1;
-	return age >= 13;
 }
 
 const text = (value: unknown): string | undefined =>
