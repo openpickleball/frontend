@@ -467,8 +467,90 @@ describe('accounts', () => {
 		expect(result.errors).toEqual([
 			{ code: 'required', message: 'Enter your birth year.', param: 'birth_year' },
 			{ code: 'required', message: 'Enter your birth month.', param: 'birth_month' },
-			{ code: 'required', message: 'Choose a gender division.', param: 'gender_division' }
+			{ code: 'required', message: 'Choose a gender division.', param: 'gender_division' },
+			{ code: 'required', message: 'Enter your first name.', param: 'first_name' },
+			{ code: 'required', message: 'Enter your last name.', param: 'last_name' },
+			{ code: 'required', message: 'Accept the Terms of Service.', param: 'accepted_terms' },
+			{ code: 'required', message: 'Accept the Privacy Policy.', param: 'accepted_privacy' }
 		]);
+	});
+
+	const CONTROL = 'Remove control or invalid characters.';
+	const NAME_TOGETHER = 'Your first and last name together can be at most 63 characters.';
+	it.each([
+		[{ first_name: undefined }, 'first_name', 'required', 'Enter your first name.'],
+		[{ last_name: '' }, 'last_name', 'required', 'Enter your last name.'],
+		[{ first_name: '   ' }, 'first_name', 'required', 'Enter your first name.'],
+		[{ last_name: '​' }, 'last_name', 'required', 'Enter your last name.'],
+		[{ first_name: 42 }, 'first_name', 'invalid', 'Enter text.'],
+		[{ last_name: null }, 'last_name', 'required', 'Enter your last name.'],
+		[{ first_name: 'Sa\u0007m' }, 'first_name', 'invalid', CONTROL],
+		[{ last_name: 'Riv\u0085era' }, 'last_name', 'invalid', CONTROL],
+		[
+			{ first_name: 'a'.repeat(62) },
+			'first_name',
+			'max_length',
+			'Your first name can be at most 61 characters.'
+		],
+		[{ first_name: 'a'.repeat(61), last_name: 'bbb' }, 'last_name', 'max_length', NAME_TOGETHER],
+		[{ first_name: 'a', last_name: 'b'.repeat(64) }, 'last_name', 'max_length', NAME_TOGETHER],
+		[{ city: 7 }, 'city', 'invalid', 'Enter text.'],
+		[{ region: false }, 'region', 'invalid', 'Enter text.'],
+		[{ city: 'c'.repeat(101) }, 'city', 'max_length', 'Enter at most 100 characters.'],
+		[{ region: 'r'.repeat(101) }, 'region', 'max_length', 'Enter at most 100 characters.'],
+		[{ accepted_terms: false }, 'accepted_terms', 'required', 'Accept the Terms of Service.'],
+		[{ accepted_terms: 'true' }, 'accepted_terms', 'required', 'Accept the Terms of Service.'],
+		[{ accepted_privacy: false }, 'accepted_privacy', 'required', 'Accept the Privacy Policy.'],
+		[{ accepted_privacy: 'true' }, 'accepted_privacy', 'required', 'Accept the Privacy Policy.']
+	])('refuses %j on its field', async (override, param, code, message) => {
+		const { api } = browser();
+		const result = await signupRaw(api, { ...valid, ...override });
+		expect(result.status).toBe(400);
+		expect(result.errors).toEqual([{ code, message, param }]);
+	});
+
+	it.each([
+		['61 and 1 characters (62 together)', 'a'.repeat(61), 'b'],
+		['1 and 62 characters (63 together)', 'a', 'b'.repeat(62)],
+		['padded names are stripped first', `  ${'a'.repeat(61)}  `, ' b ']
+	])('accepts names at the limit: %s', async (_name, first_name, last_name) => {
+		const { api } = browser();
+		const result = await signupRaw(api, { ...valid, first_name, last_name });
+		expect(result.status).toBe(401);
+	});
+
+	it('counts code points, not UTF-16 units, in a name', async () => {
+		const ball = String.fromCodePoint(0x1f3d3);
+		const { api } = browser();
+		const ok = await signupRaw(api, { ...valid, first_name: ball.repeat(61), last_name: 'b' });
+		expect(ok.status).toBe(401);
+		const { api: other } = browser();
+		const tooLong = await signupRaw(other, { ...valid, first_name: ball.repeat(62) });
+		expect(tooLong.errors?.map((e) => e.param)).toEqual(['first_name']);
+	});
+
+	it('accepts a body with a city and region, and a body with neither, and keeps neither', async () => {
+		const { api } = browser();
+		const withPlace = await signupRaw(api, { ...valid, city: 'Riverbend', region: 'Ohio' });
+		expect(withPlace.status).toBe(401);
+		expect(JSON.stringify(mockStore.state)).not.toContain('Riverbend');
+		const { api: other } = browser();
+		const without = await signupRaw(other, { ...valid, email: 'other.player@example.com' });
+		expect(without.status).toBe(401);
+	});
+
+	it('reports the age group together, before the refusal and the email', async () => {
+		const { api } = browser();
+		const result = await signupRaw(api, {
+			...valid,
+			email: 'bad',
+			birth_year: new Date().getFullYear() - 5,
+			first_name: '',
+			accepted_privacy: false
+		});
+		expect(result.errors?.map((e) => e.param)).toEqual(['first_name', 'accepted_privacy']);
+		// No refusal was set, so a good body still goes through.
+		expect((await signupRaw(api, valid)).status).toBe(401);
 	});
 
 	it.each([

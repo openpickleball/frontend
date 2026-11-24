@@ -157,7 +157,7 @@ A player can create an account against the real backend. Signup has been broken 
 - [x] Dependencies merged, schemas and types regenerated
 - [x] Domain schemas
 - [x] Services and Photon search
-- [ ] Mock handlers
+- [x] Mock handlers
 - [ ] Two screens, age lock, names, location, checkboxes
 - [ ] PWA rule, e2e, docs
 - [ ] Gate and live drive

@@ -1,4 +1,8 @@
-import { canonicalEmailSchema } from '../../domain/schemas';
+import {
+	SIGNUP_FIRST_NAME_MAX_LENGTH,
+	SIGNUP_NAME_MAX_LENGTH,
+	canonicalEmailSchema
+} from '../../domain/schemas';
 import { allauthHttp as http, csrfValid, readJson, readObject } from '../http';
 import {
 	allauthCsrfFailed,
@@ -48,11 +52,89 @@ function wholeNumber(value: unknown): number | 'invalid' | null {
 	return 'invalid';
 }
 
-/**
- * The backend's `SignupAgeForm`: birth year, birth month and gender division, with its
- * messages, in its field order. The value is never echoed back.
- */
-function signupAgeIssues(body: Record<string, unknown>): AllauthIssue[] {
+const NOT_TEXT = 'Enter text.';
+const CONTROL_CHARACTER = 'Remove control or invalid characters.';
+const PLACE_MAX_LENGTH = 100;
+
+/** Python's `str.strip()`: whitespace, including the separators `\s` leaves out. */
+const strip = (value: string): string =>
+	// eslint-disable-next-line no-control-regex -- Python's strip() also removes these separators
+	value.replace(/^[\s\x1c-\x1f\x85]+|[\s\x1c-\x1f\x85]+$/g, '');
+
+/** Lengths are Python code points, so count the same way. */
+const codePoints = (value: string): number => [...value].length;
+
+// eslint-disable-next-line no-control-regex -- the backend refuses exactly these characters
+const hasControlCharacter = (value: string): boolean => /[\u0000-\u001f\u007f-\u009f]/.test(value);
+
+/** No visible character: empty, or only spaces and format characters such as a zero-width space. */
+const isBlank = (value: string): boolean => /^[\p{Z}\p{Cf}\s]*$/u.test(value);
+
+/** A required name: stripped, then required, control characters, and its own length. */
+function nameCheck(
+	value: unknown,
+	param: 'first_name' | 'last_name',
+	requiredMessage: string
+): { issue: AllauthIssue | null; value: string } {
+	if (value === undefined || value === null) {
+		return { issue: { code: 'required', message: requiredMessage, param }, value: '' };
+	}
+	if (typeof value !== 'string') {
+		return { issue: { code: 'invalid', message: NOT_TEXT, param }, value: '' };
+	}
+	const stripped = strip(value);
+	if (isBlank(stripped)) {
+		return { issue: { code: 'required', message: requiredMessage, param }, value: '' };
+	}
+	if (hasControlCharacter(stripped)) {
+		return { issue: { code: 'invalid', message: CONTROL_CHARACTER, param }, value: stripped };
+	}
+	return { issue: null, value: stripped };
+}
+
+/** Optional place text: stripped, no control characters, at most 100 characters. */
+function placeIssue(value: unknown, param: 'city' | 'region'): AllauthIssue | null {
+	if (value === undefined || value === null) return null;
+	if (typeof value !== 'string') return { code: 'invalid', message: NOT_TEXT, param };
+	const stripped = strip(value);
+	if (hasControlCharacter(stripped)) return { code: 'invalid', message: CONTROL_CHARACTER, param };
+	if (codePoints(stripped) > PLACE_MAX_LENGTH) {
+		return { code: 'max_length', message: `Enter at most ${PLACE_MAX_LENGTH} characters.`, param };
+	}
+	return null;
+}
+
+/** The names, with the first-name limit and then the limit on the two together. */
+function nameIssues(body: Record<string, unknown>): AllauthIssue[] {
+	const issues: AllauthIssue[] = [];
+	const first = nameCheck(body.first_name, 'first_name', 'Enter your first name.');
+	const last = nameCheck(body.last_name, 'last_name', 'Enter your last name.');
+	const firstTooLong = !first.issue && codePoints(first.value) > SIGNUP_FIRST_NAME_MAX_LENGTH;
+	if (first.issue) issues.push(first.issue);
+	else if (firstTooLong) {
+		issues.push({
+			code: 'max_length',
+			message: `Your first name can be at most ${SIGNUP_FIRST_NAME_MAX_LENGTH} characters.`,
+			param: 'first_name'
+		});
+	}
+	if (last.issue) issues.push(last.issue);
+	else if (
+		!first.issue &&
+		!firstTooLong &&
+		codePoints(`${first.value} ${last.value}`) > SIGNUP_NAME_MAX_LENGTH
+	) {
+		issues.push({
+			code: 'max_length',
+			message: `Your first and last name together can be at most ${SIGNUP_NAME_MAX_LENGTH - 1} characters.`,
+			param: 'last_name'
+		});
+	}
+	return issues;
+}
+
+/** The birth year and month checks, with the backend's messages, in its field order. */
+function birthIssues(body: Record<string, unknown>): AllauthIssue[] {
 	const issues: AllauthIssue[] = [];
 	const year = wholeNumber(body.birth_year);
 	if (year === null) {
@@ -76,6 +158,16 @@ function signupAgeIssues(body: Record<string, unknown>): AllauthIssue[] {
 	} else if (month > 12) {
 		issues.push({ code: 'max_value', message: MONTH_RANGE, param: 'birth_month' });
 	}
+	return issues;
+}
+
+/**
+ * The backend's `SignupAgeForm` fields, with its messages, in its field order: birth year and
+ * month, gender division, names, optional city and region, then the two agreements. The
+ * values are never echoed back.
+ */
+function signupAgeIssues(body: Record<string, unknown>): AllauthIssue[] {
+	const issues = birthIssues(body);
 	const division = body.gender_division;
 	if (division === undefined || division === null || division === '') {
 		issues.push({
@@ -88,6 +180,24 @@ function signupAgeIssues(body: Record<string, unknown>): AllauthIssue[] {
 			code: 'invalid_choice',
 			message: 'Choose one of the listed options.',
 			param: 'gender_division'
+		});
+	}
+	issues.push(...nameIssues(body));
+	for (const issue of [placeIssue(body.city, 'city'), placeIssue(body.region, 'region')]) {
+		if (issue) issues.push(issue);
+	}
+	if (body.accepted_terms !== true) {
+		issues.push({
+			code: 'required',
+			message: 'Accept the Terms of Service.',
+			param: 'accepted_terms'
+		});
+	}
+	if (body.accepted_privacy !== true) {
+		issues.push({
+			code: 'required',
+			message: 'Accept the Privacy Policy.',
+			param: 'accepted_privacy'
 		});
 	}
 	return issues;
@@ -111,7 +221,9 @@ const text = (value: unknown): string | undefined =>
 
 /**
  * allauth headless at `/_allauth/browser/v1`, with this backend's settings: email and
- * password, mandatory verification by link (not by code), no login on verification or
+ * password. Sign-up also takes the birth month and year, the gender division, the names,
+ * an optional city and region, and the two agreements. The age check takes the birth month
+ * and year. Only the refusal flag is kept from any of them. Verification is mandatory verification by link (not by code), no login on verification or
  * on password reset. Because verification is by link, `resend` is always a 409, as in
  * allauth's `ResendEmailVerificationCodeView`.
  */
@@ -168,6 +280,26 @@ export function createAllauthHandlers(store: MockStore) {
 				authenticated(store, account?.email ?? email, store.state.session?.at ?? 0)
 			);
 		}),
+
+		http.post(
+			'/_allauth/{client}/v1/auth/signup/age-check',
+			async ({ request, cookies, response }) => {
+				if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
+				if (store.currentAccount()) return response.untyped(allauthStatus(store, 409));
+				if (store.state.signupRefused) {
+					return response.untyped(allauthErrors(store, [SIGNUP_REFUSED]));
+				}
+				// Only the birth year and month are read. Nothing is stored but the refusal flag.
+				const body = readObject(await readJson(request));
+				const issues = birthIssues(body);
+				if (issues.length > 0) return response.untyped(allauthErrors(store, issues));
+				if (!isOldEnough(Number(body.birth_year), Number(body.birth_month))) {
+					store.state.signupRefused = true;
+					return response.untyped(allauthErrors(store, [SIGNUP_REFUSED]));
+				}
+				return response.untyped(allauthStatus(store, 200));
+			}
+		),
 
 		http.post('/_allauth/{client}/v1/auth/signup', async ({ request, cookies, response }) => {
 			if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
