@@ -1,5 +1,7 @@
 # Plan: Ask for birth month and year, gender, and a confirmed password at signup (issue #197)
 
+> Revised 2026-11-23 (revision 2, project owner): signup becomes two screens and also asks for first and last name, a location with suggestions, and agreement checkboxes. Criteria 1 and 9 are replaced and 11 to 18 added below. Sections marked "Revision 2" supersede the original text where they differ.
+
 **Status:** active
 
 Risk tier: High. Forced: the change touches authentication (the signup request and its error handling). It also changes an API contract and stateful form behavior.
@@ -12,7 +14,7 @@ A player can create an account against the real backend. Signup has been broken 
 
 ## Acceptance criteria
 
-1. The signup form asks for birth month and birth year, above the email field (ADR 0017: "on the first screen, before the email address").
+1. (Revision 2) Signup has two screens on `/account/signup`. Screen 1: Email, Password, Confirm password, and a Continue button. Screen 2, in this order: birth month and year, then gender, first name, last name, location, the agreement checkboxes, and Create account, plus a Back button that returns to screen 1 with its values kept. Continue checks screen 1's fields on the client and sends nothing.
 2. The signup request body carries `birth_year` and `birth_month` as integers and `gender_division`, next to `email` and `password`.
 3. Before sending, the client checks the month (one of 1 to 12) and the year (a whole number, 1900 or later, not after the current year). A missing or invalid value shows a message on that field, focus moves to the first field in error (in page order: month, year, gender, email, password), and nothing is sent.
 4. The client never checks the minimum age and no copy names it. The backend decides.
@@ -20,8 +22,17 @@ A player can create an account against the real backend. Signup has been broken 
 6. The under-13 answer (400, code `signup_refused`, no `param`, message "We can't create an account with these details.") shows that message as the form-level alert and nothing more.
 7. The allauth schema snapshot (`app/src/lib/api/schema/allauth.json`) and generated types match the running backend, and the typed call compiles with the new fields.
 8. The MSW signup handler requires both fields with the backend's messages, and refuses an under-13 age with the same `signup_refused` answer. Mock mode e2e signup flows fill the new fields.
-9. The form asks for gender as a required choice of "Men" or "Women" (a radio group, `#lib/ui/radio-group`), sent as `gender_division` `mens` or `womens`. Nothing chosen shows "Choose men or women." on the field, and nothing is sent. The backend's `gender_division` field error shows on the field. This criterion depends on backend#215 shipping; the request shape follows that PR's schema.
+9. (Revision 2: the labels are "Man" and "Woman", and the missing message is "Choose man or woman."; the rest stands.) The form asks for gender as a required choice of "Men" or "Women" (a radio group, `#lib/ui/radio-group`), sent as `gender_division` `mens` or `womens`. Nothing chosen shows "Choose men or women." on the field, and nothing is sent. The backend's `gender_division` field error shows on the field. This criterion depends on backend#215 shipping; the request shape follows that PR's schema.
 10. A "Confirm password" field follows Password. The client checks that the two match before sending ("The passwords don't match." on the confirm field) and sends only `password`. It has its own Show button, like Password. The email verification step (Check your email, then the emailed link) is unchanged.
+
+11. (Revision 2) On screen 2, everything below the birth fields (gender, names, location, agreements, Create account) is disabled until the age passes the backend's age check (backend#223). The check runs when the player presses a "Continue" button under the birth fields, after both pass the client checks of criterion 3. A button, not a blur, so it is explicit and works the same by keyboard. A pass enables the rest and locks the birth fields (with a "Change" link that re-locks the rest and asks again). A `signup_refused` answer shows the fixed message as the form alert and keeps the rest disabled. The client still never compares the age with a limit.
+12. (Revision 2) First name and Last name: required text fields, `autocomplete="given-name"` and `"family-name"`, trimmed, at most the backend's length, with "Enter your first name." / "Enter your last name." when empty. Sent with the names backend#221 defines.
+13. (Revision 2) Location: a combobox (`#lib/ui/combobox`) labelled "City". From 2 characters typed, and at most one request per 300 ms of typing, the app asks Photon (`https://photon.komoot.io/api/?q=<text>&limit=5&layer=city&lang=en`) and lists "City, Region, Country" suggestions. Choosing one sets city and region; typing alone never does. Required: nothing chosen shows "Choose your city from the list." The app never sends Photon anything before the age check passes, and never sends coordinates, a street or a postcode to the backend: only city and region, under backend#221's names.
+14. (Revision 2) Agreement checkboxes, one per agreement backend#222 requires (for example "I agree to the Terms of Service" and "I have read the Privacy Policy"), each linking to its page on openpb.org (frontend#201) in a new tab. Unchecked shows a message on that box and nothing is sent. Sent under backend#222's names.
+15. (Revision 2) Create account sends one signup request with every field. A server field error on email, password or confirm moves the player back to screen 1 with the message on its field and focus on it. Server errors on screen 2 fields show on their fields there. `signup_refused` shows in the alert on screen 2.
+16. (Revision 2) Photon failures (network error, non-200, malformed JSON) show "We couldn't load suggestions. Try again." under the field and never block the rest of the form's errors. Photon is called only from the browser, not cached by the service worker (`src/pwa/` rules), and in `PUBLIC_API_MOCK` modes an MSW handler answers with made-up places.
+17. (Revision 2) Fixes from the first review round: the "end of the birth month" mock test uses a fixed clock and covers the boundary (last day of the month at UTC-12, the day before, February of a leap year); the year field has no `maxlength`, so a pasted " 1990" still parses; `password_confirm` is required in `signupSchema`; the e2e same-session refusal waits for the second signup response before asserting.
+18. (Revision 2) Copy and docs that describe signup as email and password only, or the age screen as out of scope, are updated (`plans/frontend-v1/proposal.md` "Out of v1", the mock store header).
 
 ## Files that change
 
@@ -87,9 +98,76 @@ A player can create an account against the real backend. Signup has been broken 
 - [x] e2e
 - [x] Gate and live drive
 
+## Revision 2: files, order and risks
+
+### Depends on (step 0)
+
+- backend#221 (first name, last name, city, region at signup), backend#222 (agreement acceptance at signup), backend#223 (age check endpoint), frontend#201 (agreement pages on openpb.org). Run the backend from `main` with all three merged, then `pnpm api:pull:allauth`, `pnpm api:pull` and `pnpm api:gen`. Field and endpoint names come from those PRs' schemas; replace the example names here with them in the same commit.
+
+### Files
+
+- `app/src/lib/api/schema/*.json`, `app/src/lib/api/generated/*.d.ts`: regenerated, never hand-edited.
+- `app/src/lib/domain/schemas.ts`: split `signupSchema` into `signupAccountSchema` (email, password, password_confirm, required) and `signupDetailsSchema` (birth fields, gender, names, location, agreements), plus `signupAgeSchema` (birth fields only). `signupSchema` stays as their merge for the final send. Location input is `{ city, region }` from a chosen suggestion, else a field error.
+- `app/src/lib/features/auth/services.ts`: `checkSignupAge({ birth_year, birth_month })` calling backend#223 through the typed client, and `signup()` sending every field. `SignupDetails.gender_division` typed from the generated schema, not by hand.
+- `app/src/lib/features/places/` (new feature): `photon.ts` with `searchPlaces(text, signal)` returning `{ city, region, country, label }[]` (fetch with `AbortController`, drops results without a city, de-duplicates labels) and its tests with a stubbed `fetch`. No other code calls Photon.
+- `app/src/lib/features/auth/components/signup-form.svelte`: becomes the two-screen container with `step` state (`'account' | 'details'`), keeping all values in one form state. Screen parts may move to `signup-account-step.svelte` and `signup-details-step.svelte` if that keeps each file small. Focus moves to the screen's heading or first field on each step change.
+- `app/src/lib/features/auth/components/location-field.svelte`: the combobox, debounce, abort of stale requests, error message and a11y wiring (`fieldA11y`).
+- Checkboxes: add shadcn-svelte `checkbox` with the CLI and restyle to our tokens (reuse order), or a native `<input type="checkbox">` if that is less code; say which in the PR.
+- `app/src/lib/mocks/handlers/allauth.ts` (signup takes and checks the new fields with the backend's messages), a new handler for backend#223 that shares `isOldEnough` and sets `signupRefused`, and a Photon handler with made-up places (`app/src/lib/mocks/handlers/photon.ts`).
+- `app/src/pwa/` routing rules: Photon's origin is never cached (test in the existing routing rule tests).
+- `app/src/lib/mocks/integration.test.ts`: the fixed-clock age tests (criterion 17).
+- `app/e2e/helpers.ts` `fillSignup`, `app/e2e/auth.spec.ts`: two screens; new flows for the locked details until the age check passes, the refusal at the age check, a server email error sending the player back to screen 1, and a location chosen from mocked suggestions.
+- `plans/frontend-v1/proposal.md`, `app/src/lib/mocks/store.ts` header: criterion 18.
+
+### Order
+
+0. Wait for the dependencies above.
+1. Criterion 17 fixes first (they apply to the code as it is): each a frozen red test, then the fix.
+2. Regenerate the schemas and types.
+3. Domain schemas, TDD.
+4. Services and `features/places/photon.ts`, TDD.
+5. Mock handlers, TDD.
+6. Components: two screens, age lock, names, location field, checkboxes, TDD.
+7. PWA rule, e2e, docs.
+8. Full gate, then the live drive.
+
+### Risks
+
+- The age lock is a convenience, not protection: the signup request is still checked by the backend. Do not treat the lock as the age rule (AGENTS.md hard rule 6).
+- Photon receives what a player types. Never call it before the age check passes, never send it anything else (no email, no names), and never log the query.
+- Stale Photon answers arriving out of order: abort the previous request and ignore any answer that is not for the current text.
+- A Back from screen 2 must not clear screen 2 values, and a server error on screen 1 must not clear screen 2.
+- A changed birth field after a pass must relock the rest; otherwise an unchecked age is sent (still refused by the backend, but the lock would lie).
+- Photon's public instance has a fair-use limit; debounce and the 2-character minimum keep requests low. Hosting our own is out of scope.
+
+### Proof (revision 2)
+
+- Criterion 1: component tests for screen 1 checks (nothing sent), Continue to screen 2, Back keeping values.
+- Criterion 11: component tests with a mocked `checkSignupAge`: rest disabled before, enabled after a pass, still disabled after `signup_refused` with the alert, relocked after Change. An e2e flow in mock mode.
+- Criteria 12 to 14: schema and component tests for each message; services test body has every field.
+- Criterion 13 and 16: `photon.test.ts` (query string, parsing, abort, failure), a component test that types and chooses a suggestion, a test that no Photon request goes out before the age passes, and the PWA rule test.
+- Criterion 15: component test with a server `email` field error returns to screen 1 with focus on Email.
+- Criterion 17: the frozen tests named there.
+- Live drive against the real backend: happy path to "Check your email" with a location chosen from real Photon results; under-13 at the age check (rest stays locked, then an adult year in the same session is still refused); an empty required field on each screen; Photon blocked in DevTools (request blocking) shows the suggestion error. a11y check of both screens, the combobox and the checkboxes. Delete created accounts after.
+
+### Steps (revision 2)
+
+- [ ] Criterion 17 fixes
+- [ ] Dependencies merged, schemas and types regenerated
+- [ ] Domain schemas
+- [ ] Services and Photon search
+- [ ] Mock handlers
+- [ ] Two screens, age lock, names, location, checkboxes
+- [ ] PWA rule, e2e, docs
+- [ ] Gate and live drive
+
 ## Decisions
 
 - Gender ships in this PR, after backend#215 (project owner, 2026-11-23: "Backend first, one PR"). Required, with two choices, because it decides the men's, women's and mixed doubles formats and is needed for stats. The form says "Gender" with "Men" and "Women", the plain words players use, and sends the backend's `gender_division` values.
 - Signup asks only for email, password, birth month and year, and gender (project owner, 2026-11-23). Names and city belong on the profile screen (backend#124). No day of birth and no phone number (ADR 0009).
 - Confirm password is a client check only, a typo guard, not a security check. The backend's own `password2` signup field is not turned on, so no backend change is needed for it. Email verification already exists and stays as it is.
 - Month is a select of month names, so nobody has to know that June is 6. Year is a numeric text field, not a 100-item select.
+- Revision 2 (project owner, 2026-11-23): two screens, email and password first, then everything else, all sent in one request. Gender labels are "Man" and "Woman" (singular). Signup also asks for first name, last name and a location with suggestions, and agreement checkboxes. This replaces the earlier decision to leave names and city to the profile screen.
+- Names, location and agreement acceptance wait for backend issues first (backend#221, backend#222), as gender did. The agreement pages are written by a person and published first (frontend#201); no checkbox links to a page that does not exist.
+- Location suggestions come from Photon (OpenStreetMap), called from the browser: open source, no API key, no cost. Only city and region are kept (ADR 0009). backend#221 records Photon in the personal data inventory.
+- Age order (project owner, 2026-11-23): ADR 0009 and 0017 ask for the age first. The owner chose email and password first, with the age at the top of screen 2 and everything after it locked until the backend's age check (backend#223) passes, so a child never types a name or a location.
