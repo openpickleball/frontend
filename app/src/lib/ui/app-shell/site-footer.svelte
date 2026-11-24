@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { PRIVACY_URL, TERMS_URL } from '#lib/ui/legal.js';
+
 	/** Where the app's source code lives. AGPL-3.0-or-later asks a hosted version to link to it. */
 	const SOURCE_URL = 'https://github.com/openpickleball/frontend';
 
@@ -24,4 +26,24 @@
 			View the source code<span class="sr-only"> (opens in a new tab)</span>
 		</a>
 	</p>
+	<!-- eslint-disable svelte/no-navigation-without-resolve -- off-site openpb.org pages, resolve() is for app routes -->
+	<p class="mt-2 flex flex-wrap gap-x-4 text-sm">
+		<a
+			href={TERMS_URL}
+			target="_blank"
+			rel="noopener"
+			class="text-muted underline underline-offset-2 hover:text-secondary"
+		>
+			Terms<span class="sr-only"> (opens in a new tab)</span>
+		</a>
+		<a
+			href={PRIVACY_URL}
+			target="_blank"
+			rel="noopener"
+			class="text-muted underline underline-offset-2 hover:text-secondary"
+		>
+			Privacy<span class="sr-only"> (opens in a new tab)</span>
+		</a>
+	</p>
+	<!-- eslint-enable svelte/no-navigation-without-resolve -->
 </footer>
