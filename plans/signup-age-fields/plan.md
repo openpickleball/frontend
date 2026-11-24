@@ -102,11 +102,11 @@ A player can create an account against the real backend. Signup has been broken 
 
 ### Depends on (step 0)
 
-- backend#221 (first name, last name, city, region at signup), backend#222 (agreement acceptance at signup), backend#223 (age check endpoint), frontend#201 (agreement pages on openpb.org). Run the backend from `main` with all three merged, then `pnpm api:pull:allauth`, `pnpm api:pull` and `pnpm api:gen`. Merged as backend PRs #233 (#221), #240 (#222), #226 (#223) and #234 (refusal flag gaps). The field and endpoint names in this plan are the merged ones.
+- backend#221 (first name, last name, city, region at signup), backend#222 (agreement acceptance at signup), backend#223 (age check endpoint), frontend#201 (agreement pages on openpb.org). Run the backend from `main` with all three merged, then `pnpm api:pull:allauth` and `pnpm api:gen`. Merged as backend PRs #233 (#221), #240 (#222), #226 (#223) and #234 (refusal flag gaps). The field and endpoint names in this plan are the merged ones.
 
 ### Files
 
-- `app/src/lib/api/schema/*.json`, `app/src/lib/api/generated/*.d.ts`: regenerated, never hand-edited.
+- `app/src/lib/api/schema/allauth.json`, `app/src/lib/api/generated/allauth.d.ts`: regenerated, never hand-edited. Only the allauth schema is pulled here. `open.json` and `open.d.ts` stay as on `main`: pulling them waits for frontend#35, which also retires `provisional.ts` (`app/src/lib/api/README.md`). As built: an earlier commit pulled `open.json` too, and it was reverted to the merge base (project owner, review).
 - `app/src/lib/domain/schemas.ts`: split `signupSchema` into `signupAccountSchema` (email, password, password_confirm, required) and `signupDetailsSchema` (birth fields, gender, names, location, agreements), plus `signupAgeSchema` (birth fields only). `signupSchema` stays as their merge for the final send. Location input is `{ city, region }` from a chosen suggestion, nothing when the field is empty, else a field error.
 - `app/src/lib/features/auth/services.ts`: `checkSignupAge({ birth_year, birth_month })` calling `POST /_allauth/browser/v1/auth/signup/age-check` through the typed client, and `signup()` sending every field. `SignupDetails.gender_division` typed from the generated schema, not by hand.
 - `app/src/lib/features/places/` (new feature): `photon.ts` with `searchPlaces(text, signal)` returning `{ city, region, country, label }[]` (fetch with `AbortController`, drops results without a city, de-duplicates labels) and its tests with a stubbed `fetch`. No other code calls Photon.

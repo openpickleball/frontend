@@ -69,9 +69,8 @@ export interface paths {
 		put?: never;
 		/**
 		 * Create Match
-		 * @description Submit a match you played in. It counts as your team's confirmation.
+		 * @description Submit a match you played in. It stays pending until both teams confirm.
 		 *
-		 *     The match stays pending until a player on the other team confirms it.
 		 *     Players are given by OPEN Code. A missing game target means 11, a
 		 *     missing scoring type means side-out, and a missing best-of is inferred
 		 *     from the games.
@@ -167,8 +166,8 @@ export interface paths {
 		 *
 		 *     A match is listed while it is pending, you played in it, and nobody on
 		 *     your team has confirmed it yet. Once you or a teammate confirms it,
-		 *     your team is done and it leaves the list. A match you submitted is not
-		 *     listed, since submitting confirms it for your team.
+		 *     your team is done and it leaves the list. A match you submitted is
+		 *     listed too, since submitting is not confirming.
 		 */
 		get: operations['list_matches_awaiting_confirmation'];
 		put?: never;
@@ -177,55 +176,6 @@ export interface paths {
 		options?: never;
 		head?: never;
 		patch?: never;
-		trace?: never;
-	};
-	'/api/v1/me/player': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		/**
-		 * Get My Player
-		 * @description The signed-in Account's own Player, with every profile field and
-		 *     privacy setting. 404 when the Account has no Player.
-		 */
-		get: operations['get_my_player'];
-		put?: never;
-		/**
-		 * Create My Player
-		 * @description Create the signed-in Account's Player.
-		 *
-		 *     The Account's own email address must be verified (403 otherwise), and
-		 *     an Account has one Player (409 for a second). Every value comes from
-		 *     the details held at signup in this session (ADR 0017, ADR 0019, ADR
-		 *     0022), the held name as the legal name and, for an adult, the display
-		 *     name (a player aged 13 to 17 starts with "First L."); the body is used
-		 *     only when the session holds none, and its display name, birth year and
-		 *     month, and gender division are then required. The held details are
-		 *     removed once the Player exists (on a 409 too), so a create refused for
-		 *     any other reason can be retried. A player under 13, or a birth year
-		 *     and month in the future, is refused with a fixed 422, and the refusal
-		 *     holds for the session, as at signup: every later create in it gets the
-		 *     same 422, and so does a signup after logout (ADR 0017).
-		 */
-		post: operations['create_my_player'];
-		delete?: never;
-		options?: never;
-		head?: never;
-		/**
-		 * Update My Player
-		 * @description Change the signed-in Account's own profile fields and privacy settings.
-		 *
-		 *     Only the fields sent change. The birth year and month and the gender
-		 *     division are set once, when the Player is created: sending any of
-		 *     them gets a 422, whatever the value (ADR 0023). Both kinds of change
-		 *     apply together or not at all: a 422 on either changes nothing. Each kind
-		 *     that changes records one Audit Event (profile changes by field name
-		 *     only). 404 when the Account has no Player.
-		 */
-		patch: operations['update_my_player'];
 		trace?: never;
 	};
 	'/api/v1/players/search': {
@@ -244,30 +194,6 @@ export interface paths {
 		 *     day; past that the answer is 429 with a Retry-After header.
 		 */
 		get: operations['search_players'];
-		put?: never;
-		post?: never;
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
-	'/api/v1/players/{code}': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		/**
-		 * Get Player
-		 * @description A player's OPEN Code and display name, and their city and region
-		 *     when the player's privacy settings let the viewer see them.
-		 *
-		 *     A player whose Account is inactive gets the same 404 as an unknown or
-		 *     malformed code.
-		 */
-		get: operations['get_player'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -333,15 +259,10 @@ export interface components {
 		/**
 		 * FieldError
 		 * @description One invalid input: where it is, what kind of error, and a message.
-		 *
-		 *     `existing_code` is the earlier match's OPEN code. Only a duplicate match
-		 *     item has it, and only when the submitter may know that match.
 		 */
 		FieldError: {
 			/** Code */
 			code: string;
-			/** Existing Code */
-			existing_code?: string | null;
 			/** Field */
 			field: string;
 			/** Message */
@@ -431,8 +352,7 @@ export interface components {
 		 *
 		 *     The values are the two base values of ``open_engine.RatingFormat``. The
 		 *     engine's doubles categories (mixed, men's, women's) are not stored here:
-		 *     the engine adapter (``apps.ratings.engine_adapter``) derives them from
-		 *     the players.
+		 *     #44 derives them from the players.
 		 * @enum {string}
 		 */
 		MatchFormat: 'singles' | 'doubles';
@@ -500,33 +420,6 @@ export interface components {
 		 * @enum {string}
 		 */
 		MyDecision: 'confirm' | 'dispute' | 'none';
-		/**
-		 * MyPlayerOut
-		 * @description The signed-in Account's own Player, with every profile field.
-		 *
-		 *     Returned only to that Account. Empty optional text fields are ``""``.
-		 *     ``gender_division`` is ``""`` only for a Player stored before it was
-		 *     required (issue #215).
-		 */
-		MyPlayerOut: {
-			/** Birth Month */
-			birth_month: number;
-			/** Birth Year */
-			birth_year: number;
-			/** City */
-			city: string;
-			/** Code */
-			code: string;
-			/** Display Name */
-			display_name: string;
-			/** Gender Division */
-			gender_division: string;
-			/** Legal Name */
-			legal_name: string;
-			privacy: components['schemas']['PrivacyOut'];
-			/** Region */
-			region: string;
-		};
 		/** PagedMatchOut */
 		PagedMatchOut: {
 			/** Count */
@@ -543,58 +436,6 @@ export interface components {
 			code: string | null;
 			/** Display Name */
 			display_name: string;
-		};
-		/**
-		 * PlayerCreateIn
-		 * @description A new Player for the signed-in Account.
-		 *
-		 *     ``birth_year`` and ``birth_month`` take JSON integers only: a boolean,
-		 *     a numeric string, or a float is refused, as ``Player.clean_fields``
-		 *     refuses them.
-		 *
-		 *     The body is read only when the session holds no details from signup
-		 *     (ADR 0017, ADR 0019, ADR 0022): ``display_name``, ``birth_year``,
-		 *     ``birth_month``, and ``gender_division`` are then required. Held
-		 *     details are used instead of every field here: the held name ("First
-		 *     Last") becomes the legal name and, for an adult, the display name (a
-		 *     player aged 13 to 17 starts with "First L."), with the held city and
-		 *     region. ``gender_division`` is ``mens`` or ``womens``.
-		 *     Optional text fields left out or null are empty. Unknown keys are
-		 *     refused.
-		 */
-		PlayerCreateIn: {
-			/** Birth Month */
-			birth_month?: number | null;
-			/** Birth Year */
-			birth_year?: number | null;
-			/** City */
-			city?: string | null;
-			/** Display Name */
-			display_name?: string | null;
-			/** Gender Division */
-			gender_division?: string | null;
-			/** Legal Name */
-			legal_name?: string | null;
-			/** Region */
-			region?: string | null;
-		};
-		/**
-		 * PlayerProfileOut
-		 * @description A player as another signed-in Account sees them.
-		 *
-		 *     ``city`` and ``region`` are null when the player's
-		 *     ``city_region_visibility`` hides them from the viewer, and when they
-		 *     are empty, so the answer never tells the two apart.
-		 */
-		PlayerProfileOut: {
-			/** City */
-			city: string | null;
-			/** Code */
-			code: string;
-			/** Display Name */
-			display_name: string;
-			/** Region */
-			region: string | null;
 		};
 		/**
 		 * PlayerSearchOut
@@ -629,49 +470,6 @@ export interface components {
 			code: string;
 			/** Display Name */
 			display_name: string;
-		};
-		/**
-		 * PlayerUpdateIn
-		 * @description Changes to the signed-in Account's own Player.
-		 *
-		 *     Only the fields sent change. Null clears an optional text field
-		 *     (``legal_name``, ``city``, ``region``); the display name cannot be
-		 *     cleared. The birth year and month and the gender division are set
-		 *     once, when the Player is created, and cannot be sent here (ADR 0023).
-		 *     ``privacy`` changes the settings it names. Unknown keys are refused.
-		 */
-		PlayerUpdateIn: {
-			/** City */
-			city?: string | null;
-			/** Display Name */
-			display_name?: string | null;
-			/** Legal Name */
-			legal_name?: string | null;
-			privacy?: components['schemas']['PrivacyIn'] | null;
-			/** Region */
-			region?: string | null;
-		};
-		/**
-		 * PrivacyIn
-		 * @description Privacy settings to change. Only the settings sent change.
-		 */
-		PrivacyIn: {
-			city_region_visibility?: components['schemas']['Visibility'] | null;
-			home_club_visibility?: components['schemas']['Visibility'] | null;
-			match_history_visibility?: components['schemas']['Visibility'] | null;
-			rating_history_visibility?: components['schemas']['Visibility'] | null;
-			stats_visibility?: components['schemas']['Visibility'] | null;
-		};
-		/**
-		 * PrivacyOut
-		 * @description Who may see each of the player's other profile details.
-		 */
-		PrivacyOut: {
-			city_region_visibility: components['schemas']['Visibility'];
-			home_club_visibility: components['schemas']['Visibility'];
-			match_history_visibility: components['schemas']['Visibility'];
-			rating_history_visibility: components['schemas']['Visibility'];
-			stats_visibility: components['schemas']['Visibility'];
 		};
 		/** ReadyChecks */
 		ReadyChecks: {
@@ -717,12 +515,6 @@ export interface components {
 			/** B */
 			b: boolean;
 		};
-		/**
-		 * Visibility
-		 * @description Who may see a profile detail. ``PRIVATE`` is the most restrictive.
-		 * @enum {string}
-		 */
-		Visibility: 'signed_in' | 'private';
 	};
 	responses: never;
 	parameters: never;
@@ -1097,155 +889,6 @@ export interface operations {
 			};
 		};
 	};
-	get_my_player: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description OK */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['MyPlayerOut'];
-				};
-			};
-			/** @description The request is not authenticated. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-			/** @description Not Found */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-		};
-	};
-	create_my_player: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		requestBody: {
-			content: {
-				'application/json': components['schemas']['PlayerCreateIn'];
-			};
-		};
-		responses: {
-			/** @description Created */
-			201: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['MyPlayerOut'];
-				};
-			};
-			/** @description The request is not authenticated. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-			/** @description Forbidden */
-			403: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-			/** @description Conflict */
-			409: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-			/** @description The request is not valid. */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-		};
-	};
-	update_my_player: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		requestBody: {
-			content: {
-				'application/json': components['schemas']['PlayerUpdateIn'];
-			};
-		};
-		responses: {
-			/** @description OK */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['MyPlayerOut'];
-				};
-			};
-			/** @description The request is not authenticated. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-			/** @description Not Found */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-			/** @description The request is not valid. */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-		};
-	};
 	search_players: {
 		parameters: {
 			query: {
@@ -1288,56 +931,6 @@ export interface operations {
 			};
 			/** @description Too Many Requests */
 			429: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-		};
-	};
-	get_player: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path: {
-				/** @description An OPEN Code for a player. Any case, with or without hyphens and the prefix. */
-				code: string;
-			};
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description OK */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['PlayerProfileOut'];
-				};
-			};
-			/** @description The request is not authenticated. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-			/** @description Not Found */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['ErrorResponse'];
-				};
-			};
-			/** @description The request is not valid. */
-			422: {
 				headers: {
 					[name: string]: unknown;
 				};
