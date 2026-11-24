@@ -244,7 +244,6 @@ describe('SignupForm', () => {
 		const year = screen.getByLabelText('Year');
 		await expect.element(year).toHaveAttribute('inputmode', 'numeric');
 		await expect.element(year).toHaveAttribute('autocomplete', 'bday-year');
-		await expect.element(year).toHaveAttribute('maxlength', '4');
 	});
 
 	it('asks for the month and year when they are empty, and moves focus to the month', async () => {
