@@ -7,7 +7,15 @@ import {
 	UNVERIFIED_EMAIL,
 	VERIFIED_EMAIL
 } from '../src/lib/mocks/fixtures';
-import { fillSignup, signIn, signOut, submitSignIn } from './helpers';
+import {
+	fillSignup,
+	fillSignupAccount,
+	fillSignupDetails,
+	signIn,
+	signOut,
+	submitAgeCheck,
+	submitSignIn
+} from './helpers';
 
 // Runs against PUBLIC_API_MOCK=all (see playwright.config.ts). Every test gets a new browser
 // context, so the mock backend starts from its seed data each time.
@@ -69,15 +77,32 @@ test('signing up with an address that has an account looks the same', async ({ p
 	await expect(page.getByText(VERIFIED_EMAIL)).toBeVisible();
 });
 
-test('an under-13 birth year gets the refusal, not check your email', async ({ page }) => {
+test('the details stay locked until the age check passes', async ({ page }) => {
+	await page.goto('/account/signup');
+	await fillSignupAccount(page, 'locked.player@example.com', 'a-long-enough-pass');
+	const locked = [
+		page.getByRole('radio', { name: 'Woman' }),
+		page.getByLabel('First name'),
+		page.getByRole('combobox', { name: 'City (optional)' }),
+		page.getByLabel(/I agree to the Terms of Service/),
+		page.getByRole('button', { name: 'Create account' })
+	];
+	for (const control of locked) await expect(control).toBeDisabled();
+
+	await submitAgeCheck(page);
+	await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
+	for (const control of locked) await expect(control).toBeEnabled();
+});
+
+test('an under-13 birth year gets the refusal at the age check', async ({ page }) => {
 	const message = "We can't create an account with these details.";
 	await page.goto('/account/signup');
-	await fillSignup(page, 'young.player@example.com', 'a-long-enough-pass', {
-		birthYear: String(new Date().getFullYear() - 5)
-	});
-	await page.getByRole('button', { name: 'Create account' }).click();
+	await fillSignupAccount(page, 'young.player@example.com', 'a-long-enough-pass');
+	await submitAgeCheck(page, String(new Date().getFullYear() - 5));
 	await expect(page.locator('[data-slot="alert"]')).toHaveText(message);
-	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
+	await expect(page.getByLabel('First name')).toBeDisabled();
+	await expect(page.getByRole('button', { name: 'Create account' })).toBeDisabled();
 	expect(await mail(page)).toEqual([]);
 
 	// The session keeps refusing, as the backend does, even with an adult year. The alert from
@@ -86,15 +111,52 @@ test('an under-13 birth year gets the refusal, not check your email', async ({ p
 	const [second] = await Promise.all([
 		page.waitForResponse(
 			(response) =>
-				response.url().endsWith('/_allauth/browser/v1/auth/signup') &&
+				response.url().endsWith('/_allauth/browser/v1/auth/signup/age-check') &&
 				response.request().method() === 'POST'
 		),
-		page.getByRole('button', { name: 'Create account' }).click()
+		page.getByRole('button', { name: 'Continue' }).click()
 	]);
 	expect(second.status()).toBe(400);
 	expect(await second.json()).toMatchObject({ errors: [{ code: 'signup_refused' }] });
 	await expect(page.locator('[data-slot="alert"]')).toHaveText(message);
+	await expect(page.getByLabel('First name')).toBeDisabled();
 	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
+});
+
+test('a server error on the account fields goes back to screen 1', async ({ page }) => {
+	// The client accepts this password. The backend refuses it as too common. (The client and the
+	// mocks share one email check, so a server-only email error cannot be reached.)
+	await page.goto('/account/signup');
+	await fillSignup(page, 'new.player@example.com', 'password');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Create account' })).toBeVisible();
+	await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute(
+		'aria-invalid',
+		'true'
+	);
+	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
+});
+
+test('a city chosen from the suggestions signs up', async ({ page }) => {
+	const email = 'city.player@example.com';
+	await page.goto('/account/signup');
+	await fillSignup(page, email, 'a-long-enough-pass', {
+		city: 'Maple',
+		cityOption: 'Maple Hollow, Ontario, Canada'
+	});
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
+	await expect(page.getByText(email)).toBeVisible();
+});
+
+test('signing up with City left empty works', async ({ page }) => {
+	const email = 'nocity.player@example.com';
+	await page.goto('/account/signup');
+	await fillSignup(page, email, 'a-long-enough-pass');
+	await expect(page.getByRole('combobox', { name: 'City (optional)' })).toHaveValue('');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
+	await expect(page.getByText(email)).toBeVisible();
 });
 
 test('sign in stays usable while a sign-up is waiting for its link', async ({ page }) => {
@@ -320,7 +382,14 @@ for (const scheme of ['dark', 'light'] as const) {
 
 		// Sign up with a weak password, then check your email.
 		await page.goto('/account/signup');
-		await fillSignup(page, 'new.player@example.com', 'password');
+		await expectNoViolations(page);
+		await fillSignupAccount(page, 'new.player@example.com', 'password');
+		// Screen 2 after the age check. Not before: axe reads the radios and Create account as low
+		// contrast while the fieldset locks them (WCAG exempts inactive controls, axe does not see it).
+		await submitAgeCheck(page);
+		await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
+		await expectNoViolations(page);
+		await fillSignupDetails(page);
 		await page.getByRole('button', { name: 'Create account' }).click();
 		await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute(
 			'aria-invalid',
@@ -329,6 +398,7 @@ for (const scheme of ['dark', 'light'] as const) {
 		await expectNoViolations(page);
 		await page.getByLabel('Password', { exact: true }).fill('a-long-enough-pass');
 		await page.getByLabel('Confirm password').fill('a-long-enough-pass');
+		await page.getByRole('button', { name: 'Continue' }).click();
 		await page.getByRole('button', { name: 'Create account' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
 		await expectNoViolations(page);

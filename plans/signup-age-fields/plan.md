@@ -160,8 +160,10 @@ A player can create an account against the real backend. Signup has been broken 
 - [x] Services and Photon search
 - [x] Mock handlers
 - [x] Two screens, age lock, names, location, checkboxes
-- [ ] PWA rule, e2e, docs
+- [x] PWA rule, e2e, docs
 - [ ] Gate and live drive
+
+As built (PWA rule, e2e): `route()` already ignores other origins, so the Photon rule is a guard test only. The e2e helper `fillSignup` goes through both screens and the age check. A server-only email error cannot be reached in mock mode (the client and the mocks share one email check), so the "back to screen 1" flow uses a password the backend refuses. The a11y run skips the locked screen 2, because axe reads the locked radios and Create account as low contrast.
 
 ## Decisions
 

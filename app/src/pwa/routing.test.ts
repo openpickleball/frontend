@@ -47,6 +47,13 @@ describe('route', () => {
 		expect(decide('/_app/immutable/app.js', { origin: 'https://cdn.example' })).toBe('ignore');
 		expect(decide('/unknown.png')).toBe('ignore');
 	});
+
+	it('never caches the city search, which is another origin', () => {
+		// The literal Photon address with a query, as a request from the app would send it.
+		const search = 'https://photon.komoot.io/api/?q=Riverbend&limit=15';
+		expect(decide(search, { mode: 'cors' })).toBe('ignore');
+		expect(decide(search, { mode: 'navigate' })).toBe('ignore');
+	});
 });
 
 describe('staleCaches', () => {
