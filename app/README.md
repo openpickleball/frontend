@@ -138,7 +138,7 @@ The command prints no real data. Do not put real player names, emails or matches
 
 ### Your own OPEN code
 
-The app reads your code from `GET /api/v1/me/player` (backend [#124](https://github.com/openpickleball/backend/issues/124)). Only a backend older than #124 makes the app ask for your code. It then asks once, the first time a screen needs it, and keeps the code on that device. Use the code the snippet above printed on the same line as your login. An account with no player has no code to enter, and cannot record matches until it has a player (frontend#205). For a player you created some other way, print it with:
+The app reads your code from `GET /api/v1/me/player` (backend [#124](https://github.com/openpickleball/backend/issues/124)). The app asks for your code only when the backend is older than #124, or when your account has no player yet. It asks once, the first time a screen needs it, and keeps the code on that device. With an older backend, use the code the snippet above printed on the same line as your login. An account with no player has no code of its own yet, and cannot record matches until it has a player (frontend#205). For a player you created some other way, print it with:
 
 ```sh
 uv run python manage.py shell -c "
