@@ -42,6 +42,7 @@ Checked and unchanged: `app/AGENTS.md`, because it does not describe the footer'
 - [x] 4a. Red (found while doing step 4): the step 2 footer links drop the space before "(opens in a new tab)". A footer test that their names keep it. Commit it alone.
 - [x] 4b. Green: add `NEW_TAB` to `legal.ts` and render it as `{NEW_TAB}`, replacing the footer's literal space and the signup form's `&#32;`. Commit.
 - [x] 4c. After code review: tighten the step 3 order check to `nextElementSibling`, because the document-order check still passed with the line further down. Shown to fail by moving the line below "Already have an account?" (not committed), then committed.
+- [x] 4d. After CodeQL alert #13 (incomplete multi-character sanitization): rewrite the frozen step 4a test to match the server-rendered footer markup directly, with no regex tag stripping, for both the tab bar and the bare footer. The assertion is unchanged. Shown to fail against the step 2 footer (commit `88d02e7`) in a scratch worktree, then committed.
 - [x] 5. Full gate in `app/`: `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test`, `pnpm build`.
 - [x] 6. Live drive with `pnpm dev`: the footer on `/` and on `/account/signup`, the signup line, in both themes, at 390px and at 1280px. Check that the links open openpb.org in a new tab, have the right accessible names, and that the line wraps cleanly on a phone.
 
@@ -56,6 +57,18 @@ Checked and unchanged: `app/AGENTS.md`, because it does not describe the footer'
 - Criteria 2, 3, 4 (signup): `signup-form.svelte.test.ts`.
 - Criterion 5: the gate output.
 - Live drive: screenshots of the footer and the signup line in both themes at 390px and 1280px, link targets and names from the accessibility tree.
+- Step 4d, the rewritten space test still catches the defect. In a scratch worktree at `88d02e7`, with only the rewritten `app-shell.test.ts` copied in, `pnpm exec vitest run --project node src/lib/ui/app-shell/app-shell.test.ts` in `app/` gave:
+
+  ```
+  FAIL  |node| src/lib/ui/app-shell/app-shell.test.ts > AppShell > keeps a space before "(opens in a new tab)" in the Terms and Privacy link names
+  AssertionError: expected '<footer class="mx-auto w-full max-w-[…' to match />\s*Terms<span class="sr-only"> …/span>
+  - Expected:
+  />\s*Terms<span class="sr-only"> \(opens in a new tab\)<\/span>/
+  + Received:
+  "…>Terms<span class=\"sr-only\">(opens in a new tab)</span></a> …>Privacy<span class=\"sr-only\">(opens in a new tab)</span></a></p></footer>"
+  Test Files  1 failed (1)
+  Tests  1 failed | 16 passed (17)
+  ```
 
 ## Decisions
 
@@ -64,3 +77,4 @@ Checked and unchanged: `app/AGENTS.md`, because it does not describe the footer'
 - The links point at `https://openpb.org/...`, the canonical address of each page.
 - The links open in a new tab, as other links that leave the app do, so a player on the signup form keeps what they typed.
 - The new links render their new-tab text as `{NEW_TAB}`, not as a literal leading space, which Svelte strips in both client and server output (found in step 4). The existing source code link has the same missing space. It stays unchanged here (criterion 4); fixing it is a separate change.
+- The frozen space test from step 4a was rewritten with the owner's approval (2026-11-23), because CodeQL flagged its regex tag stripping as incomplete sanitization. It now matches the footer markup directly. The assertion is unchanged: the link text is the name, then the sr-only span whose text starts with a single space.

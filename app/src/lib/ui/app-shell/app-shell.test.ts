@@ -168,16 +168,17 @@ describe('AppShell', () => {
 	});
 
 	it('keeps a space before "(opens in a new tab)" in the Terms and Privacy link names', () => {
-		const footer = shell('/').match(/<footer[\s\S]*?<\/footer>/)![0];
-		const names = [...footer.matchAll(/<a\s[^>]*>([\s\S]*?)<\/a>/g)].map(([, inner]) =>
-			inner
-				.replace(/<[^>]*>/g, '')
-				.replaceAll('&#32;', ' ')
-				.replace(/\s+/g, ' ')
-				.trim()
-		);
-		expect(names).toContain('Terms (opens in a new tab)');
-		expect(names).toContain('Privacy (opens in a new tab)');
+		for (const body of [
+			shell('/'),
+			render(AppShell, { props: { pathname: '/account/login', children, bare: true } }).body
+		]) {
+			const footer = body.match(/<footer[\s\S]*?<\/footer>/)![0];
+			for (const name of ['Terms', 'Privacy']) {
+				expect(footer).toMatch(
+					new RegExp(`>\\s*${name}<span class="sr-only"> \\(opens in a new tab\\)</span>`)
+				);
+			}
+		}
 	});
 
 	it('has a theme toggle in the top bar and in the side nav', () => {
