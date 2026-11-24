@@ -116,6 +116,47 @@ describe('toAppError: ninja errors', () => {
 		});
 	});
 
+	it('keeps the earlier match code from the 409 item as existingCode', () => {
+		const error = toAppError(
+			{
+				code: 'duplicate_match',
+				message: 'This match was already recorded as M-ABCD-EFGH-JKMN.',
+				errors: [
+					{ field: 'match', code: 'other', message: 'Something else.' },
+					{
+						field: 'match',
+						code: 'duplicate_match',
+						message: 'This match was already recorded as M-ABCD-EFGH-JKMN.',
+						existing_code: 'M-ABCD-EFGH-JKMN'
+					}
+				]
+			},
+			res(409)
+		);
+		expect(error.existingCode).toBe('M-ABCD-EFGH-JKMN');
+	});
+
+	it('leaves existingCode unset when no item has one', () => {
+		const error = toAppError(
+			{
+				code: 'duplicate_match',
+				message: 'This match was already recorded.',
+				errors: [
+					{
+						field: 'match',
+						code: 'duplicate_match',
+						message: 'Already recorded.',
+						existing_code: ''
+					},
+					{ field: 'match', code: 'duplicate_match', message: 'Again.', existing_code: null }
+				]
+			},
+			res(409)
+		);
+		expect(error.existingCode).toBeUndefined();
+		expect('existingCode' in error).toBe(false);
+	});
+
 	it('maps a repeated external id to duplicate', () => {
 		const error = toAppError(
 			{
@@ -219,6 +260,17 @@ describe('toAppError: allauth errors', () => {
 	it('maps an allauth 409 to conflict', () => {
 		const error = toAppError({ status: 409 }, res(409));
 		expect(error).toMatchObject({ kind: 'conflict', status: 409 });
+	});
+
+	it('never sets existingCode for an allauth error', () => {
+		const error = toAppError(
+			{
+				status: 409,
+				errors: [{ code: 'duplicate', message: 'Taken.', existing_code: 'M-ABCD-EFGH-JKMN' }]
+			},
+			res(409)
+		);
+		expect(error.existingCode).toBeUndefined();
 	});
 
 	it('maps an allauth {status: 429} to the throttled kind', () => {

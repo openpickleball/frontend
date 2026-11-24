@@ -2,23 +2,14 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import {
-		RecordMatchForm,
-		recordedToast,
-		type SubmitResult
-	} from '#lib/features/record-match/index.js';
+	import { RecordMatchForm, type SubmitResult } from '#lib/features/record-match/index.js';
 	import { rememberMatch } from '#lib/features/matches/index.js';
 	import { OwnCodeGate, myCode } from '#lib/features/players/index.js';
 
 	async function recorded(result: SubmitResult) {
-		const message = recordedToast(result);
-		toast(message.title, {
-			description: message.description,
-			// The match exists. Only the player's own confirmation is missing, so give it time to be read.
-			duration: message.duration
-		});
-		// Hand the match to its page so it opens from the cache. It is shown as the API last returned
-		// it, so a failed confirm leaves the team unconfirmed and Confirm still shows.
+		toast('Match recorded');
+		// Hand the match to its page so it opens from the cache. The backend recorded the player's
+		// team confirmation with the match, so it waits on the other team only.
 		rememberMatch(result.match);
 		await goto(resolve('/matches/[code]', { code: result.match.code }));
 	}

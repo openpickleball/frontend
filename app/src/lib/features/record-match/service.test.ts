@@ -1,6 +1,13 @@
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AppError, allauthParams, createApi, isAppError, type Api } from '#lib/api/index.js';
+import {
+	AppError,
+	type AppErrorFields,
+	allauthParams,
+	createApi,
+	isAppError,
+	type Api
+} from '#lib/api/index.js';
 import { buildCode, parsePlayerCode, type MatchInput, type PlayerCode } from '#lib/domain/index.js';
 import { MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
@@ -67,27 +74,36 @@ async function failure(promise: Promise<unknown>): Promise<AppError> {
 }
 
 describe('submitMatch', () => {
-	it('creates the match, then confirms it for the submitter team', async () => {
-		const { match, confirmError } = await submitMatch(singles, tamsin, { api });
-		expect(confirmError).toBeNull();
+	it('creates the match with the submitter team confirmed', async () => {
+		const { match } = await submitMatch(singles, tamsin, { api });
 		expect(match.code).toMatch(/^M-/);
 		expect(match.format).toBe('singles');
 		expect(match.playedOn).toBe('2026-11-16');
 		expect(match.games).toEqual([{ number: 1, teamA: 11, teamB: 6 }]);
 		// One confirmation, from the submitter's team, so the match waits on the other team only.
 		expect(match.status).toBe('pending');
+		expect(match.viewerSide).toBe('a');
+		expect(match.confirmedBySide).toEqual({ a: true, b: false });
 		const mine = match.teamA.players.find((p) => p.code === tamsin);
 		expect(mine?.displayName).toBe('Tamsin Vale');
 	});
 
+	it('sends only the create request', async () => {
+		const sent: string[] = [];
+		server.events.on('request:start', ({ request }) => {
+			const path = new URL(request.url).pathname;
+			if (path.startsWith('/api/v1/matches')) sent.push(`${request.method} ${path}`);
+		});
+		const result = await submitMatch(singles, tamsin, { api });
+		expect(sent).toEqual(['POST /api/v1/matches/']);
+		expect(Object.keys(result)).toEqual(['match']);
+	});
+
 	it('works when the submitter is on team B', async () => {
 		const input: MatchInput = { ...singles, teamA: [codeOf('kit')], teamB: [tamsin] };
-		const { match, confirmError } = await submitMatch(
-			{ ...input, games: [{ teamA: 6, teamB: 11 }] },
-			tamsin,
-			{ api }
-		);
-		expect(confirmError).toBeNull();
+		const { match } = await submitMatch({ ...input, games: [{ teamA: 6, teamB: 11 }] }, tamsin, {
+			api
+		});
 		expect(match.teamB.players[0].code).toBe(tamsin);
 	});
 
@@ -207,26 +223,40 @@ describe('submitMatch', () => {
 		expect(error.kind).toBe('network');
 		expect(error.status).toBeNull();
 	});
+});
 
-	it('keeps the created match when confirming fails', async () => {
-		server.use(
-			http.post('*/api/v1/matches/:code/confirm', () =>
-				HttpResponse.json(
-					{ code: 'server_error', message: 'Something broke.', errors: [] },
-					{ status: 500 }
-				)
-			)
-		);
-		const { match, confirmError } = await submitMatch(singles, tamsin, { api });
-		expect(match.code).toMatch(/^M-/);
-		expect(match.status).toBe('pending');
-		expect(confirmError?.kind).toBe('server');
+describe('duplicateMatchCode', () => {
+	const inMessage = buildCode('match', 'ABCDEFGHJKM');
+	const structured = buildCode('match', 'WXYZ2345678');
+	const duplicate: AppErrorFields = {
+		kind: 'duplicate',
+		status: 409,
+		code: 'duplicate_match',
+		message: `This match was already submitted as ${inMessage}.`,
+		fields: {}
+	};
+
+	it('prefers existingCode over the code in the message', () => {
+		const error = new AppError({ ...duplicate, existingCode: structured });
+		expect(duplicateMatchCode(error)).toBe(structured);
 	});
 
-	it('keeps the created match when the network drops during the confirmation', async () => {
-		server.use(http.post('*/api/v1/matches/:code/confirm', () => HttpResponse.error()));
-		const { match, confirmError } = await submitMatch(singles, tamsin, { api });
-		expect(match.code).toMatch(/^M-/);
-		expect(confirmError?.kind).toBe('network');
+	it('reads the code from the message when existingCode is unset', () => {
+		expect(duplicateMatchCode(new AppError(duplicate))).toBe(inMessage);
+	});
+
+	it('falls back to the message when existingCode is not a valid code', () => {
+		const error = new AppError({ ...duplicate, existingCode: 'not a code' });
+		expect(duplicateMatchCode(error)).toBe(inMessage);
+	});
+
+	it('ignores existingCode on an error that is not a duplicate', () => {
+		const error = new AppError({
+			...duplicate,
+			kind: 'conflict',
+			code: 'conflict',
+			existingCode: structured
+		});
+		expect(duplicateMatchCode(error)).toBeNull();
 	});
 });

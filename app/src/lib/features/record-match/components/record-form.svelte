@@ -34,7 +34,10 @@
 	}: {
 		/** The signed-in player's own OPEN code. */
 		own: PlayerCode;
-		/** Called once the match is saved. `result.confirmError` is set if the confirmation failed. */
+		/**
+		 * Called once the match is saved. The backend records the submitter's team confirmation with
+		 * the match, so `result.match` waits on the other team only.
+		 */
 		onrecorded: (result: SubmitResult) => void;
 		/**
 		 * Lets the player replace the OPEN code saved on this device. The page supplies it, because
