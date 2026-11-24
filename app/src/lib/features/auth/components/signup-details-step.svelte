@@ -88,6 +88,13 @@
 		{ name: 'accepted_privacy', page: 'Privacy Policy', href: 'https://www.openpb.org/privacy/' }
 	] as const;
 
+	/** Enter in the year runs the age check, as the age Continue does, until it passes. */
+	function checkOnEnter(event: KeyboardEvent) {
+		if (event.key !== 'Enter' || event.isComposing || agePassed) return;
+		event.preventDefault();
+		oncheckage();
+	}
+
 	const gender = $derived(
 		fieldA11y({ id: 'signup-gender_division', error: errors.gender_division })
 	);
@@ -108,7 +115,8 @@
 </CardHeader>
 <form method="post" onsubmit={oncreate} novalidate class="grid gap-8">
 	<CardContent>
-		<FieldSet aria-describedby="signup-birth-hint" disabled={agePassed}>
+		<!-- Locked while the check runs too, so the age checked is the age shown. -->
+		<FieldSet aria-describedby="signup-birth-hint" disabled={agePassed || ageBusy}>
 			<FieldLegend variant="label">Birth month and year</FieldLegend>
 			<FieldDescription id="signup-birth-hint">
 				We only ask for the month and year.
@@ -132,12 +140,13 @@
 					autocomplete="bday-year"
 					bind:value={values.birth_year}
 					error={errors.birth_year}
+					onkeydown={checkOnEnter}
 				/>
 			</div>
 		</FieldSet>
 		<div>
 			{#if agePassed}
-				<Button variant="link" onclick={onchangeage}>Change</Button>
+				<Button variant="link" onclick={onchangeage} disabled={busy}>Change</Button>
 			{:else}
 				<Button
 					variant="outline"
@@ -151,6 +160,13 @@
 				</Button>
 			{/if}
 		</div>
+		<!-- An age check problem shows by its button, not under the locked Create account. -->
+		{#if problem && !agePassed}
+			<Alert variant="destructive">
+				<CircleAlertIcon aria-hidden="true" />
+				<AlertTitle>{problem.title}</AlertTitle>
+			</Alert>
+		{/if}
 	</CardContent>
 	<!-- A native fieldset disables every control in it until the age check passes. A convenience
 	     only: the backend checks the age again on sign-up. -->
@@ -236,7 +252,7 @@
 				{busy ? 'Creating account…' : 'Create account'}
 			</Button>
 			<!-- Below the button, so an error doesn't push the form down and move the button. -->
-			{#if problem}
+			{#if problem && agePassed}
 				<Alert variant="destructive">
 					<CircleAlertIcon aria-hidden="true" />
 					<AlertTitle>{problem.title}</AlertTitle>

@@ -101,7 +101,13 @@
 		try {
 			await checkSignupAge(parsed.data);
 			form.showFields({});
-			agePassed = true;
+			// Only the values that were checked unlock the rest.
+			const now = signupAgeSchema.safeParse(values);
+			agePassed =
+				now.success &&
+				now.data.birth_month === parsed.data.birth_month &&
+				now.data.birth_year === parsed.data.birth_year;
+			if (!agePassed) return;
 			await tick();
 			document.getElementById('signup-gender_division')?.focus();
 		} catch (cause) {

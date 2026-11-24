@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import type { CityInput } from '#lib/domain/index.js';
 	import { PlaceSearch } from '#lib/features/places/index.js';
 	import * as Combobox from '#lib/ui/combobox/index.js';
@@ -37,6 +37,15 @@
 	const showList = $derived(wanted && !locked && places.items.length > 0);
 	/** Why there are no suggestions, when the search failed. A field error takes its place. */
 	const note = $derived(error ? '' : places.message);
+
+	// Relocked (the age is being changed): drop any search still waiting and close the list.
+	$effect(() => {
+		if (!locked) return;
+		untrack(() => {
+			places.clear();
+			wanted = false;
+		});
+	});
 
 	function set(next: CityInput) {
 		value = next;

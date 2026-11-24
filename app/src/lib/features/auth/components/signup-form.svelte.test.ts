@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { PlaceSearch, type Place } from '#lib/features/places/index.js';
@@ -435,6 +436,28 @@ describe('SignupForm, age lock', () => {
 			.element(screen.getByRole('alert'))
 			.toHaveTextContent('Too many attempts. Wait a moment and try again.');
 		await expect.element(screen.getByRole('button', { name: 'Create account' })).toBeDisabled();
+	});
+
+	it('runs the age check on Enter in the year', async () => {
+		const screen = await open();
+		await account(screen);
+		await screen.getByLabelText('Month').selectOptions('6');
+		await screen.getByLabelText('Year').fill('1990');
+		await userEvent.keyboard('{Enter}');
+
+		await expect.element(screen.getByRole('button', { name: 'Change' })).toBeVisible();
+		expect(mockedCheckAge).toHaveBeenCalledWith({ birth_month: 6, birth_year: 1990 });
+		expect(mockedSignup).not.toHaveBeenCalled();
+	});
+
+	it('keeps Change off while Create account waits', async () => {
+		mockedSignup.mockReturnValue(new Promise(() => {}));
+		const screen = await open();
+		await ready(screen);
+		await create(screen);
+
+		await expect.element(screen.getByRole('button', { name: 'Creating account…' })).toBeVisible();
+		await expect.element(screen.getByRole('button', { name: 'Change' })).toBeDisabled();
 	});
 
 	it('relocks the rest on Change, and checks again', async () => {
