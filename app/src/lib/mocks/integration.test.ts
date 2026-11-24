@@ -35,6 +35,9 @@ function browser() {
 
 type Api = ReturnType<typeof browser>['api'];
 
+/** A made-up adult's birth month and year, and a division, for sign-up bodies. */
+const BORN = { birth_year: 1990, birth_month: 6, gender_division: 'mens' } as const;
+
 async function login(api: Api, email = VERIFIED_EMAIL, password = MOCK_PASSWORD) {
 	return api.allauth.POST('/_allauth/{client}/v1/auth/login', {
 		params: allauthParams,
@@ -404,7 +407,7 @@ describe('accounts', () => {
 		const email = 'new.player@example.com';
 		const signup = await api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
 			params: allauthParams,
-			body: { email, password: 'a-fine-password-9' }
+			body: { ...BORN, email, password: 'a-fine-password-9' }
 		});
 		expect(signup.response.status).toBe(401);
 		expect(await login(api, email, 'a-fine-password-9').then((r) => r.response.status)).toBe(401);
@@ -427,7 +430,7 @@ describe('accounts', () => {
 		const { api } = browser();
 		const result = await api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
 			params: allauthParams,
-			body: { email: 'not-an-email', password: '123' }
+			body: { ...BORN, email: 'not-an-email', password: '123' }
 		});
 		expect(result.response.status).toBe(400);
 		const params = (result.error as { errors: { param: string; code: string }[] }).errors;
@@ -504,7 +507,7 @@ describe('provisional endpoints', () => {
 		const { api } = browser();
 		await api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
 			params: allauthParams,
-			body: { email: 'fresh@example.com', password: 'a-fine-password-9' }
+			body: { ...BORN, email: 'fresh@example.com', password: 'a-fine-password-9' }
 		});
 		const key = mockStore.state.outbox.findLast((m) => m.kind === 'verify_email')?.key as string;
 		await api.allauth.POST('/_allauth/{client}/v1/auth/email/verify', {

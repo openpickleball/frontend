@@ -77,9 +77,9 @@ A player can create an account against the real backend. Signup has been broken 
 
 ## Steps
 
-- [ ] Schema snapshot and types
+- [x] Schema snapshot and types
 - [x] Domain schemas
-- [ ] Service
+- [x] Service
 - [ ] Mock handler
 - [ ] Form (month, year, gender)
 - [ ] e2e

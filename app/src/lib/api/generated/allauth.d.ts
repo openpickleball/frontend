@@ -1528,6 +1528,10 @@ export interface components {
 		PasskeySignup: components['schemas']['BaseSignup'];
 		BaseSignup: {
 			email: components['schemas']['Email'];
+			birth_year: number;
+			birth_month: number;
+			/** @enum {string} */
+			gender_division: 'mens' | 'womens';
 		};
 		Signup: components['schemas']['BaseSignup'] & {
 			password: components['schemas']['Password'];

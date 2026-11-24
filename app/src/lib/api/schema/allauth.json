@@ -1698,8 +1698,13 @@
 			"PasskeySignup": { "allOf": [{ "$ref": "#/components/schemas/BaseSignup" }] },
 			"BaseSignup": {
 				"type": "object",
-				"properties": { "email": { "$ref": "#/components/schemas/Email" } },
-				"required": ["email"]
+				"properties": {
+					"email": { "$ref": "#/components/schemas/Email" },
+					"birth_year": { "type": "integer" },
+					"birth_month": { "type": "integer" },
+					"gender_division": { "type": "string", "enum": ["mens", "womens"] }
+				},
+				"required": ["email", "birth_year", "birth_month", "gender_division"]
 			},
 			"Signup": {
 				"allOf": [

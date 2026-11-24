@@ -49,6 +49,9 @@ beforeEach(() => {
 	session.reset();
 });
 
+/** A made-up adult's sign-up details, as the form parses them. */
+const BORN = { birth_year: 1990, birth_month: 6, gender_division: 'mens' } as const;
+
 /** The error a promise rejects with. */
 async function failure(promise: Promise<unknown>): Promise<AppError> {
 	try {
@@ -102,7 +105,10 @@ describe('bootstrap', () => {
 	});
 
 	it('reads a pending verification from the 401 flows, not as an error', async () => {
-		await signup({ email: 'new.player@example.com', password: 'a-long-enough-pass' }, { api });
+		await signup(
+			{ ...BORN, email: 'new.player@example.com', password: 'a-long-enough-pass' },
+			{ api }
+		);
 		session.reset();
 		resetBootstrap();
 		await bootstrap({ api });
@@ -193,9 +199,39 @@ describe('login', () => {
 });
 
 describe('signup', () => {
+	it('sends the birth month and year as numbers and the gender, next to the email and password', async () => {
+		let body: unknown;
+		server.use(
+			http.post(`${AUTH}/signup`, async ({ request }) => {
+				body = await request.json();
+				return HttpResponse.json(
+					{ status: 401, data: { flows: [{ id: 'verify_email', is_pending: true }] }, meta: {} },
+					{ status: 401 }
+				);
+			})
+		);
+		await signup(
+			{
+				birth_year: 1990,
+				birth_month: 6,
+				gender_division: 'womens',
+				email: 'new.player@example.com',
+				password: 'a-long-enough-pass'
+			},
+			{ api }
+		);
+		expect(body).toEqual({
+			email: 'new.player@example.com',
+			password: 'a-long-enough-pass',
+			birth_year: 1990,
+			birth_month: 6,
+			gender_division: 'womens'
+		});
+	});
+
 	it('answers a new address with pending verification and mails a link', async () => {
 		const state = await signup(
-			{ email: 'new.player@example.com', password: 'a-long-enough-pass' },
+			{ ...BORN, email: 'new.player@example.com', password: 'a-long-enough-pass' },
 			{ api }
 		);
 		expect(state).toEqual({ status: 'pending_verification' });
@@ -205,13 +241,13 @@ describe('signup', () => {
 
 	it('answers an address that already has an account exactly the same way', async () => {
 		const fresh = await signup(
-			{ email: 'new.player@example.com', password: 'a-long-enough-pass' },
+			{ ...BORN, email: 'new.player@example.com', password: 'a-long-enough-pass' },
 			{ api }
 		);
 		const freshSession = { status: session.status };
 		session.reset();
 		const existing = await signup(
-			{ email: VERIFIED_EMAIL, password: 'a-long-enough-pass' },
+			{ ...BORN, email: VERIFIED_EMAIL, password: 'a-long-enough-pass' },
 			{ api }
 		);
 		expect(existing).toEqual(fresh);
@@ -221,7 +257,7 @@ describe('signup', () => {
 
 	it('maps a weak password onto its field', async () => {
 		const error = await failure(
-			signup({ email: 'new.player@example.com', password: 'password' }, { api })
+			signup({ ...BORN, email: 'new.player@example.com', password: 'password' }, { api })
 		);
 		expect(error.kind).toBe('validation');
 		expect(error.fields.password?.length).toBeGreaterThan(0);
@@ -238,7 +274,10 @@ describe('verifyEmail', () => {
 	});
 
 	it('works with the key from a sign-up email, then the player can sign in', async () => {
-		await signup({ email: 'new.player@example.com', password: 'a-long-enough-pass' }, { api });
+		await signup(
+			{ ...BORN, email: 'new.player@example.com', password: 'a-long-enough-pass' },
+			{ api }
+		);
 		const key = lastMail()?.key as string;
 		await verifyEmail(key, { api });
 		// The pending state is cleared once the address is confirmed.

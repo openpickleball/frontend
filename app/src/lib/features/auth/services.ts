@@ -95,6 +95,16 @@ export function resetBootstrap(): void {
 
 export type Credentials = { email: string; password: string };
 
+/**
+ * What sign-up sends: the credentials, the birth month and year (no day, ADR 0017) and the
+ * division. The backend checks the age.
+ */
+export type SignupDetails = Credentials & {
+	birth_year: number;
+	birth_month: number;
+	gender_division: 'mens' | 'womens';
+};
+
 /** If the backend says we are already signed in (409), take its word for it. */
 async function alreadySignedIn(result: Settled, options: ApiOption): Promise<SessionState> {
 	if (result.response.status !== 409) fail(result);
@@ -125,16 +135,17 @@ export async function login(
 
 /**
  * Create an account. Resolves to `pending_verification`: the backend answers the same
- * for a new address and for one that already has an account, and so do we.
+ * for a new address and for one that already has an account, and so do we. An age the
+ * backend refuses is an `AppError` with code `signup_refused` and no field.
  */
 export async function signup(
-	{ email, password }: Credentials,
+	{ email, password, birth_year, birth_month, gender_division }: SignupDetails,
 	{ api = appApi }: ApiOption = {}
 ): Promise<SessionState> {
 	const result = await settle(
 		api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
 			params: allauthParams,
-			body: { email, password }
+			body: { email, password, birth_year, birth_month, gender_division }
 		})
 	);
 	const state =
