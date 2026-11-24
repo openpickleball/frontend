@@ -130,7 +130,13 @@ const COMMON_PASSWORDS = new Set([
 	'letmein123'
 ]);
 
-export type FieldIssue = { field: string; code: string; message: string };
+export type FieldIssue = {
+	field: string;
+	code: string;
+	message: string;
+	/** Only on a duplicate match item: the earlier match's code. */
+	existing_code?: string;
+};
 
 export type PasswordError = { code: string; message: string };
 
@@ -597,7 +603,8 @@ export function createMockStore() {
 		/**
 		 * `create_match` after the request body has passed schema validation. Follows
 		 * `apps/matches/api.py`: the submitter must play in it (403), every code must belong to
-		 * a player (422), the score rules (422), then the duplicate check (409).
+		 * a player (422), the score rules (422), then the duplicate check (409). The new match
+		 * stays pending with the submitter's confirmation, so it waits on the other team.
 		 */
 		submitMatch(email: string, body: MatchCreateIn): SubmitResult {
 			const own = playerOfAccount(email);
@@ -668,7 +675,8 @@ export function createMockStore() {
 				submittedBy: email,
 				seq: Math.max(0, ...state.matches.map((m) => m.seq)) + 1,
 				createdAt: new Date().toISOString(),
-				decisions: []
+				// The submission is the submitter's own confirmation (backend #197).
+				decisions: [{ player: own.code, decision: 'confirm' }]
 			};
 			state.matches.push(match);
 			return { ok: true, match };

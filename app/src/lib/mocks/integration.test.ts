@@ -1042,3 +1042,49 @@ describe('ratings (provisional)', () => {
 		expect((await fetch(`${BASE}/api/v1/players/P-AAAA-AAAA/ratings`)).status).toBe(404);
 	});
 });
+
+describe('a submission counts as the submitter confirming (backend #197)', () => {
+	const awaiting = async (api: Api) =>
+		(await unwrap(api.open.GET('/api/v1/me/matches/awaiting-confirmation'))).items.map(
+			(m) => m.code
+		);
+
+	it("leaves the match off the submitter's awaiting list and on the opponent's", async () => {
+		const mine = browser();
+		await login(mine.api);
+		const created = await unwrap(mine.api.open.POST('/api/v1/matches/', { body: newMatch }));
+		expect(created).toMatchObject({
+			status: 'pending',
+			my_decision: 'confirm',
+			confirmed_by_team: { a: true, b: false }
+		});
+		expect(await awaiting(mine.api)).not.toContain(created.code);
+
+		mockStore.logout();
+		const theirs = browser();
+		await login(theirs.api, 'kit@example.com');
+		expect(await awaiting(theirs.api)).toContain(created.code);
+		const confirmed = await unwrap(
+			theirs.api.open.POST('/api/v1/matches/{code}/confirm', {
+				params: { path: { code: created.code } }
+			})
+		);
+		expect(confirmed.status).toBe('confirmed');
+	});
+
+	it('names the earlier match in the 409 item as existing_code', async () => {
+		const { api } = browser();
+		await login(api);
+		const first = await unwrap(api.open.POST('/api/v1/matches/', { body: newMatch }));
+		const again = await api.open.POST('/api/v1/matches/', { body: newMatch });
+		expect(again.response.status).toBe(409);
+		expect(again.error?.errors).toEqual([
+			{
+				field: 'match',
+				code: 'duplicate_match',
+				message: `This match was already submitted as ${first.code}.`,
+				existing_code: first.code
+			}
+		]);
+	});
+});
