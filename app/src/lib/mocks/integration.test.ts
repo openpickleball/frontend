@@ -437,6 +437,101 @@ describe('accounts', () => {
 		expect(params.map((e) => e.param)).toEqual(['email', 'password', 'password']);
 	});
 
+	/** A sign-up POST with a raw body, so the tests can send what the typed client won't. */
+	async function signupRaw(api: Api, body: Record<string, unknown>) {
+		const result = await api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
+			params: allauthParams,
+			body: body as never
+		});
+		return {
+			status: result.response.status,
+			errors: (result.error as { errors?: { param?: string; code: string; message: string }[] })
+				?.errors
+		};
+	}
+
+	const valid = { ...BORN, email: 'new.player@example.com', password: 'a-fine-password-9' };
+
+	it('asks for the birth year and month and the division, before the email', async () => {
+		const { api } = browser();
+		const result = await signupRaw(api, { email: 'not-an-email', password: '123' });
+		expect(result.status).toBe(400);
+		expect(result.errors).toEqual([
+			{ code: 'required', message: 'Enter your birth year.', param: 'birth_year' },
+			{ code: 'required', message: 'Enter your birth month.', param: 'birth_month' },
+			{ code: 'required', message: 'Choose a gender division.', param: 'gender_division' }
+		]);
+	});
+
+	it.each([
+		[{ birth_year: 'abc' }, 'birth_year', 'invalid', 'Enter a whole number.'],
+		[{ birth_year: 1990.5 }, 'birth_year', 'invalid', 'Enter a whole number.'],
+		[{ birth_year: 1899 }, 'birth_year', 'min_value', 'Enter a birth year of 1900 or later.'],
+		[{ birth_month: 'June' }, 'birth_month', 'invalid', 'Enter a whole number.'],
+		[{ birth_month: 0 }, 'birth_month', 'min_value', 'Enter a month from 1 to 12.'],
+		[{ birth_month: 13 }, 'birth_month', 'max_value', 'Enter a month from 1 to 12.'],
+		[
+			{ gender_division: 'mixed' },
+			'gender_division',
+			'invalid_choice',
+			'Choose one of the listed options.'
+		]
+	])('refuses %j on its field', async (override, param, code, message) => {
+		const { api } = browser();
+		const result = await signupRaw(api, { ...valid, ...override });
+		expect(result.status).toBe(400);
+		expect(result.errors).toEqual([{ code, message, param }]);
+	});
+
+	it('takes the year and month as numeric strings, as the backend form does', async () => {
+		const { api } = browser();
+		const result = await signupRaw(api, { ...valid, birth_year: '1990', birth_month: '6' });
+		expect(result.status).toBe(401);
+	});
+
+	it('refuses an age under 13 with one fixed answer and no field, and sends no mail', async () => {
+		const { api } = browser();
+		const result = await signupRaw(api, { ...valid, birth_year: new Date().getFullYear() - 5 });
+		expect(result.status).toBe(400);
+		expect(result.errors).toEqual([
+			{ code: 'signup_refused', message: "We can't create an account with these details." }
+		]);
+		expect(mockStore.state.outbox).toEqual([]);
+		expect(mockStore.accountByEmail(valid.email)).toBeUndefined();
+	});
+
+	it('counts a birth month as ended: 13 only once the month of the 13th birthday is over', async () => {
+		const { api } = browser();
+		const now = new Date();
+		// Born this month 13 years ago: the month has not ended, so still 12.
+		const result = await signupRaw(api, {
+			...valid,
+			birth_year: now.getUTCFullYear() - 13,
+			birth_month: now.getUTCMonth() + 1
+		});
+		expect(result.errors?.[0]?.code).toBe('signup_refused');
+	});
+
+	it('keeps refusing in the same session after an under-13 answer, whatever is sent', async () => {
+		const { api } = browser();
+		await signupRaw(api, { ...valid, birth_year: new Date().getFullYear() - 5 });
+		const again = await signupRaw(api, valid);
+		expect(again.status).toBe(400);
+		expect(again.errors).toEqual([
+			{ code: 'signup_refused', message: "We can't create an account with these details." }
+		]);
+	});
+
+	it('signs up a player who is 13 or older', async () => {
+		const { api } = browser();
+		const result = await signupRaw(api, {
+			...valid,
+			birth_year: new Date().getUTCFullYear() - 14,
+			birth_month: 12
+		});
+		expect(result.status).toBe(401);
+	});
+
 	it('rejects an unknown verification key and lets a seeded one through', async () => {
 		const { api } = browser();
 		const bad = await api.allauth.POST('/_allauth/{client}/v1/auth/email/verify', {

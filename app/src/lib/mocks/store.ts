@@ -91,6 +91,8 @@ export type MockState = {
 	session: { email: string; at: number } | null;
 	/** A sign-up or login waiting on email verification, in this browser session. */
 	pendingEmail: string | null;
+	/** The backend's session flag after an under-13 sign-up: later sign-ups are refused too. */
+	signupRefused?: boolean;
 	tokens: MockToken[];
 	outbox: MockMail[];
 	csrfToken: string;

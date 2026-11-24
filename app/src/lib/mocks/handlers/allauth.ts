@@ -32,6 +32,80 @@ const INVALID_RESET_KEY: AllauthIssue = {
 	param: 'key'
 };
 
+const SIGNUP_REFUSED: AllauthIssue = {
+	code: 'signup_refused',
+	message: "We can't create an account with these details."
+};
+
+const WHOLE_NUMBER = 'Enter a whole number.';
+const MONTH_RANGE = 'Enter a month from 1 to 12.';
+
+/** Django's `IntegerField`: an int, or a string of one. `null` when it was left out. */
+function wholeNumber(value: unknown): number | 'invalid' | null {
+	if (value === undefined || value === null || value === '') return null;
+	if (typeof value === 'number') return Number.isInteger(value) ? value : 'invalid';
+	if (typeof value === 'string' && /^\s*[-+]?\d+\s*$/.test(value)) return Number(value);
+	return 'invalid';
+}
+
+/**
+ * The backend's `SignupAgeForm`: birth year, birth month and gender division, with its
+ * messages, in its field order. The value is never echoed back.
+ */
+function signupAgeIssues(body: Record<string, unknown>): AllauthIssue[] {
+	const issues: AllauthIssue[] = [];
+	const year = wholeNumber(body.birth_year);
+	if (year === null) {
+		issues.push({ code: 'required', message: 'Enter your birth year.', param: 'birth_year' });
+	} else if (year === 'invalid') {
+		issues.push({ code: 'invalid', message: WHOLE_NUMBER, param: 'birth_year' });
+	} else if (year < 1900) {
+		issues.push({
+			code: 'min_value',
+			message: 'Enter a birth year of 1900 or later.',
+			param: 'birth_year'
+		});
+	}
+	const month = wholeNumber(body.birth_month);
+	if (month === null) {
+		issues.push({ code: 'required', message: 'Enter your birth month.', param: 'birth_month' });
+	} else if (month === 'invalid') {
+		issues.push({ code: 'invalid', message: WHOLE_NUMBER, param: 'birth_month' });
+	} else if (month < 1) {
+		issues.push({ code: 'min_value', message: MONTH_RANGE, param: 'birth_month' });
+	} else if (month > 12) {
+		issues.push({ code: 'max_value', message: MONTH_RANGE, param: 'birth_month' });
+	}
+	const division = body.gender_division;
+	if (division === undefined || division === null || division === '') {
+		issues.push({
+			code: 'required',
+			message: 'Choose a gender division.',
+			param: 'gender_division'
+		});
+	} else if (division !== 'mens' && division !== 'womens') {
+		issues.push({
+			code: 'invalid_choice',
+			message: 'Choose one of the listed options.',
+			param: 'gender_division'
+		});
+	}
+	return issues;
+}
+
+/**
+ * At least 13, as backend `apps/players/age.py` counts it: born on the last day of the birth
+ * month, on today's date at UTC-12 (the earliest date on Earth).
+ */
+function isOldEnough(year: number, month: number, now = new Date()): boolean {
+	const today = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+	const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+	const [todayMonth, todayDay] = [today.getUTCMonth() + 1, today.getUTCDate()];
+	let age = today.getUTCFullYear() - year;
+	if (todayMonth < month || (todayMonth === month && todayDay < lastDay)) age -= 1;
+	return age >= 13;
+}
+
 const text = (value: unknown): string | undefined =>
 	typeof value === 'string' && value !== '' ? value : undefined;
 
@@ -98,7 +172,18 @@ export function createAllauthHandlers(store: MockStore) {
 		http.post('/_allauth/{client}/v1/auth/signup', async ({ request, cookies, response }) => {
 			if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
 			if (store.currentAccount()) return response.untyped(allauthStatus(store, 409));
+			// The backend's age screen comes first. Once it refuses, every later sign-up in this
+			// session gets the same answer, whatever is sent. Only that flag is kept, never the age.
+			if (store.state.signupRefused) {
+				return response.untyped(allauthErrors(store, [SIGNUP_REFUSED]));
+			}
 			const body = readObject(await readJson(request));
+			const ageIssues = signupAgeIssues(body);
+			if (ageIssues.length > 0) return response.untyped(allauthErrors(store, ageIssues));
+			if (!isOldEnough(Number(body.birth_year), Number(body.birth_month))) {
+				store.state.signupRefused = true;
+				return response.untyped(allauthErrors(store, [SIGNUP_REFUSED]));
+			}
 			const email = text(body.email);
 			const password = text(body.password);
 			const issues: AllauthIssue[] = [];
