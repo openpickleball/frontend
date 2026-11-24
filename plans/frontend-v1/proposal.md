@@ -10,7 +10,7 @@ Inputs: `plan.md`, `research/backend-api.md`, `research/design.md`, `research/ap
 
 Scope:
 
-- **Auth, end to end:** sign up, the "check your email" page, verify email from the link, log in and out, and password reset. Built on allauth headless with the `browser` client, same origin through the Vite dev proxy.
+- **Auth, end to end:** sign up (email and password, then birth month and year, which the backend checks before anything else, then gender, first and last name, an optional city, and agreement to the Terms of Service and Privacy Policy), the "check your email" page, verify email from the link, log in and out, and password reset. Built on allauth headless with the `browser` client, same origin through the Vite dev proxy.
 - **Record a match:** singles or doubles, teams entered as OPEN codes, 1 to 5 games, client-side score rules that mirror the backend, then `POST /matches/`.
 - **My matches:** a paged list from `GET /players/{code}/matches`, match detail built from list data, and confirm or dispute.
 - **Profile and ratings against mocks:** `me/player` (backend#124) and ratings (backend#53) don't exist yet. We build the screens against MSW handlers that only run in mock mode. With the real backend they show "Coming soon".
@@ -56,7 +56,7 @@ Scope:
 | "Waiting for me" inbox, already-confirmed state | **Blocked** | new issues B2, B3 | v1 sorts pending matches first |
 | Open a match by code with no list | **Blocked** | new issue B4 | Workaround above |
 | Edit or void a match | **Blocked, out of v1** | no API (service only) | |
-| Clubs, events, account deletion, age screen | **Out of v1** | #125, #116, #114 | |
+| Clubs, events, account deletion | **Out of v1** | #125, #116 | |
 
 **Ratings presentation.** The site never shows the 2.0–8.0 scale, and its rule is "only say what is true today." So ratings don't appear against the real backend. In mock mode they render with a "Sample data" badge. The UI matches #53's planned shape: per format, the rating, reliability, provisional status, last updated, and a demonstration flag.
 
