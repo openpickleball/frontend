@@ -150,14 +150,20 @@ export function createSchemaIssues(body: unknown): FieldIssue[] {
 	return issues;
 }
 
-/** `PlayerUpdateIn` (pydantic): set-once fields refused whatever the value, then the rest. */
+/**
+ * `PlayerUpdateIn` (pydantic): set-once fields refused whatever the value, then the rest. Keys
+ * are checked as own keys only, so a name on `Object.prototype` (`toString`, `__proto__`) is an
+ * unknown key like any other.
+ */
 export function updateSchemaIssues(body: unknown): FieldIssue[] {
 	if (!isObject(body)) return [notObject('body')];
 	const issues: FieldIssue[] = [];
 	for (const [key, message] of Object.entries(SET_ONCE)) {
-		if (key in body) issues.push(issue(`body.${key}`, 'set_once', message));
+		if (Object.hasOwn(body, key)) issues.push(issue(`body.${key}`, 'set_once', message));
 	}
-	const rest = Object.fromEntries(Object.entries(body).filter(([key]) => !(key in SET_ONCE)));
+	const rest = Object.fromEntries(
+		Object.entries(body).filter(([key]) => !Object.hasOwn(SET_ONCE, key))
+	);
 	issues.push(...typeIssues(rest));
 	const privacy = body.privacy;
 	if (privacy !== undefined && privacy !== null) {
@@ -214,7 +220,7 @@ export function profileIssues(values: ProfileValues): {
 	const issues: FieldIssue[] = [];
 	const clean: ProfileValues = { ...values };
 	for (const name of Object.keys(TEXT_LIMITS) as TextField[]) {
-		if (!(name in values)) continue;
+		if (!Object.hasOwn(values, name)) continue;
 		const value = values[name];
 		const field = `body.${name}`;
 		if (value === null || value === undefined) {
@@ -248,7 +254,7 @@ export function profileIssues(values: ProfileValues): {
 			issues.push(issue(field, 'invalid', REQUIRED_TO_CREATE.display_name));
 		}
 	}
-	if ('gender_division' in values) {
+	if (Object.hasOwn(values, 'gender_division')) {
 		const division = values.gender_division;
 		if (division === '' || division === null || division === undefined) {
 			issues.push(issue('body.gender_division', 'blank', REQUIRED_TO_CREATE.gender_division));
