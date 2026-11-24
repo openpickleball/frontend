@@ -8,6 +8,8 @@ import { buildCode } from './codes';
 import {
 	EMAIL_MAX_LENGTH,
 	PASSWORD_MIN_LENGTH,
+	birthMonthSchema,
+	birthYearSchema,
 	emailSchema,
 	loginSchema,
 	matchInputSchema,
@@ -243,35 +245,172 @@ describe('loginSchema', () => {
 
 describe('signupSchema and password rules', () => {
 	const email = 'sam@example.org';
+	const base = {
+		birth_month: '6',
+		birth_year: '1990',
+		gender_division: 'mens',
+		email,
+		password: 'longenough',
+		password_confirm: 'longenough'
+	};
+	const withPassword = (password: string) => ({
+		...base,
+		password,
+		password_confirm: password
+	});
 
 	it('uses the backend minimum of 8 characters', () => {
 		expect(PASSWORD_MIN_LENGTH).toBe(8);
-		expect(signupSchema.safeParse({ email, password: 'a'.repeat(7) }).success).toBe(false);
-		expect(signupSchema.safeParse({ email, password: 'a'.repeat(8) }).success).toBe(true);
+		expect(signupSchema.safeParse(withPassword('a'.repeat(7))).success).toBe(false);
+		expect(signupSchema.safeParse(withPassword('a'.repeat(8))).success).toBe(true);
 	});
 
 	it('names the minimum in the message', () => {
-		const result = signupSchema.safeParse({ email, password: 'short' });
+		const result = signupSchema.safeParse(withPassword('short'));
 		expect(!result.success && zodFieldErrors(result.error)).toEqual({
 			password: ['Use at least 8 characters.']
 		});
 	});
 
 	it('keys email issues under email', () => {
-		const result = signupSchema.safeParse({ email: 'nope', password: 'longenough' });
+		const result = signupSchema.safeParse({ ...base, email: 'nope' });
 		expect(!result.success && zodFieldErrors(result.error)).toEqual({
 			email: ['Enter a valid email address.']
 		});
 	});
 
 	it('normalizes the email', () => {
-		const result = signupSchema.safeParse({ email: ' Sam@Example.org ', password: 'longenough' });
+		const result = signupSchema.safeParse({ ...base, email: ' Sam@Example.org ' });
 		expect(result.success && result.data.email).toBe('sam@example.org');
 	});
 
 	it('does not trim the password', () => {
-		const result = signupSchema.safeParse({ email, password: '  spaces  ' });
+		const result = signupSchema.safeParse(withPassword('  spaces  '));
 		expect(result.success && result.data.password).toBe('  spaces  ');
+	});
+
+	it('gives the birth month and year as numbers, with the gender, and drops the confirmation', () => {
+		const result = signupSchema.safeParse(base);
+		expect(result.success && result.data).toEqual({
+			birth_month: 6,
+			birth_year: 1990,
+			gender_division: 'mens',
+			email,
+			password: 'longenough'
+		});
+	});
+
+	it('says when the passwords do not match, on the confirm field', () => {
+		const result = signupSchema.safeParse({ ...base, password_confirm: 'longenougH' });
+		expect(!result.success && zodFieldErrors(result.error)).toEqual({
+			password_confirm: ["The passwords don't match."]
+		});
+	});
+
+	it('checks the confirmation alongside the other fields', () => {
+		const result = signupSchema.safeParse({
+			...base,
+			birth_month: '',
+			password_confirm: 'different'
+		});
+		expect(!result.success && zodFieldErrors(result.error)).toEqual({
+			birth_month: ['Enter your birth month.'],
+			password_confirm: ["The passwords don't match."]
+		});
+	});
+
+	it.each(['', 'other', undefined])('asks for men or women when the gender is %j', (gender) => {
+		const result = signupSchema.safeParse({ ...base, gender_division: gender });
+		expect(!result.success && zodFieldErrors(result.error)).toEqual({
+			gender_division: ['Choose men or women.']
+		});
+	});
+
+	it('takes womens', () => {
+		const result = signupSchema.safeParse({ ...base, gender_division: 'womens' });
+		expect(result.success && result.data.gender_division).toBe('womens');
+	});
+
+	it('checks every field in one pass', () => {
+		const result = signupSchema.safeParse({
+			birth_month: '',
+			birth_year: '',
+			gender_division: '',
+			email: '',
+			password: '',
+			password_confirm: ''
+		});
+		expect(!result.success && Object.keys(zodFieldErrors(result.error))).toEqual([
+			'birth_month',
+			'birth_year',
+			'gender_division',
+			'email',
+			'password'
+		]);
+	});
+});
+
+describe('birthMonthSchema', () => {
+	it.each([
+		['1', 1],
+		['12', 12],
+		[' 6 ', 6]
+	])('takes %j as %d', (input, month) => {
+		expect(birthMonthSchema.parse(input)).toBe(month);
+	});
+
+	it.each(['', '   ', undefined])('asks for the month when it is %j', (input) => {
+		const result = birthMonthSchema.safeParse(input);
+		expect(!result.success && result.error.issues.map((issue) => issue.message)).toEqual([
+			'Enter your birth month.'
+		]);
+	});
+
+	it.each(['0', '13', '1.5', 'June', '-1'])('refuses %j', (input) => {
+		const result = birthMonthSchema.safeParse(input);
+		expect(!result.success && result.error.issues.map((issue) => issue.message)).toEqual([
+			'Enter a month from 1 to 12.'
+		]);
+	});
+});
+
+describe('birthYearSchema', () => {
+	const thisYear = new Date().getFullYear();
+
+	it.each([
+		['1990', 1990],
+		['1900', 1900],
+		[` ${thisYear} `, thisYear]
+	])('takes %j as %d', (input, year) => {
+		expect(birthYearSchema.parse(input)).toBe(year);
+	});
+
+	it.each(['', '  ', 'abcd', '19x0', '1990.5', undefined])(
+		'asks for the year when it is %j',
+		(input) => {
+			const result = birthYearSchema.safeParse(input);
+			expect(!result.success && result.error.issues.map((issue) => issue.message)).toEqual([
+				'Enter your birth year.'
+			]);
+		}
+	);
+
+	it('refuses a year before 1900', () => {
+		const result = birthYearSchema.safeParse('1899');
+		expect(!result.success && result.error.issues.map((issue) => issue.message)).toEqual([
+			'Enter a birth year of 1900 or later.'
+		]);
+	});
+
+	it('refuses a year that has not come yet', () => {
+		const result = birthYearSchema.safeParse(String(thisYear + 1));
+		expect(!result.success && result.error.issues.map((issue) => issue.message)).toEqual([
+			'Enter a birth year that has passed.'
+		]);
+	});
+
+	it('takes a recent year: the backend decides the minimum age', () => {
+		expect(birthYearSchema.parse(String(thisYear - 5))).toBe(thisYear - 5);
 	});
 });
 

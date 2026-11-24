@@ -163,7 +163,85 @@ export const newPasswordSchema = z
 /** The password for logging in: only that something was typed. */
 export const loginPasswordSchema = z.string('Enter your password.').min(1, 'Enter your password.');
 
-export const signupSchema = z.object({ email: emailSchema, password: newPasswordSchema });
+/** The earliest birth year the backend takes. `apps/players/age.py`. */
+export const BIRTH_YEAR_MIN = 1900;
+
+/** The form's text, stripped, or `''` when the field was left out. */
+const fieldText = z
+	.string()
+	.optional()
+	.transform((text) => (text ?? '').trim());
+
+/**
+ * A birth month from the form's select: `'1'` to `'12'`, given as a number. The messages
+ * match the backend's. Only the month and year are asked for (ADR 0017).
+ */
+export const birthMonthSchema = fieldText.transform((text, ctx) => {
+	if (!text) {
+		ctx.addIssue({ code: 'custom', message: 'Enter your birth month.' });
+		return z.NEVER;
+	}
+	const month = /^\d+$/.test(text) ? Number(text) : NaN;
+	if (!(month >= 1 && month <= 12)) {
+		ctx.addIssue({ code: 'custom', message: 'Enter a month from 1 to 12.' });
+		return z.NEVER;
+	}
+	return month;
+});
+
+/**
+ * A birth year typed as text, given as a number: a whole number from 1900 to this year.
+ * There is no minimum age here. The backend decides who can sign up.
+ */
+export const birthYearSchema = fieldText.transform((text, ctx) => {
+	if (!/^\d+$/.test(text)) {
+		ctx.addIssue({ code: 'custom', message: 'Enter your birth year.' });
+		return z.NEVER;
+	}
+	const year = Number(text);
+	if (year < BIRTH_YEAR_MIN) {
+		ctx.addIssue({ code: 'custom', message: `Enter a birth year of ${BIRTH_YEAR_MIN} or later.` });
+		return z.NEVER;
+	}
+	if (year > new Date().getFullYear()) {
+		ctx.addIssue({ code: 'custom', message: 'Enter a birth year that has passed.' });
+		return z.NEVER;
+	}
+	return year;
+});
+
+/** The division a player signs up for: the backend's `gender_division`. */
+export const genderDivisionSchema = z.enum(['mens', 'womens'], 'Choose men or women.');
+
+/**
+ * Sign-up, in page order. `password_confirm` is a typo guard only: it must match `password`
+ * and is not sent.
+ */
+export const signupSchema = z
+	.object({
+		birth_month: birthMonthSchema,
+		birth_year: birthYearSchema,
+		gender_division: genderDivisionSchema,
+		email: emailSchema,
+		password: newPasswordSchema,
+		password_confirm: z.string().optional()
+	})
+	.refine((input) => input.password_confirm === input.password, {
+		message: "The passwords don't match.",
+		path: ['password_confirm'],
+		// Also check it when another field is wrong, so every message shows at once.
+		when: ({ value }) => {
+			const { password, password_confirm } = (value ?? {}) as Record<string, unknown>;
+			return typeof password === 'string' && typeof password_confirm === 'string';
+		}
+	})
+	.transform(({ birth_month, birth_year, gender_division, email, password }) => ({
+		birth_month,
+		birth_year,
+		gender_division,
+		email,
+		password
+	}));
 export const loginSchema = z.object({ email: canonicalEmailSchema, password: loginPasswordSchema });
 export const passwordResetRequestSchema = z.object({ email: canonicalEmailSchema });
 export const passwordResetSchema = z.object({
