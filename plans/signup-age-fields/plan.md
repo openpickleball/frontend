@@ -16,7 +16,7 @@ A player can create an account against the real backend. Signup has been broken 
 
 1. (Revision 2) Signup has two screens on `/account/signup`. Screen 1: Email, Password, Confirm password, and a Continue button. Screen 2, in this order: birth month and year, then gender, first name, last name, location, the agreement checkboxes, and Create account, plus a Back button that returns to screen 1 with its values kept. Continue checks screen 1's fields on the client and sends nothing.
 2. The signup request body carries `birth_year` and `birth_month` as integers and `gender_division`, next to `email` and `password`.
-3. Before sending, the client checks the month (one of 1 to 12) and the year (a whole number, 1900 or later, not after the current year). A missing or invalid value shows a message on that field, focus moves to the first field in error (in page order: month, year, gender, email, password), and nothing is sent.
+3. Before sending, the client checks the month (one of 1 to 12) and the year (a whole number, 1900 or later, not after the current year). A missing or invalid value shows a message on that field, focus moves to the first field in error (in page order: month, year, gender, email, password), and nothing is sent. (Superseded by revision 2: two screens, criteria 1 and 15.)
 4. The client never checks the minimum age and no copy names it. The backend decides.
 5. The backend's `birth_year` and `birth_month` field errors show on their fields, like the email and password errors do today.
 6. The under-13 answer (400, code `signup_refused`, no `param`, message "We can't create an account with these details.") shows that message as the form-level alert and nothing more.
@@ -39,7 +39,7 @@ A player can create an account against the real backend. Signup has been broken 
 - `app/src/lib/api/schema/allauth.json`, `app/src/lib/api/generated/allauth.d.ts`: regenerate with `pnpm api:pull:allauth` then `pnpm api:gen` (backend at 127.0.0.1:8000). The expected schema change is `BaseSignup` gaining `birth_year` and `birth_month` (integers, required) and `gender_division` from backend#215. Do not hand-edit.
 - `app/src/lib/domain/schemas.ts`: add `birthMonthSchema` and `birthYearSchema`, and add `birth_month` and `birth_year` to `signupSchema`. Inputs are strings from the form; output integers (use `z.coerce` or a string-to-int pipe so `SignupInput` stays the form's string shape and the parsed data is numbers). Messages, matching the backend's where they overlap: missing month "Enter your birth month.", missing or non-numeric year "Enter your birth year.", year before 1900 "Enter a birth year of 1900 or later.", year after the current year "Enter a birth year that has passed." Domain tests in `schemas.test.ts`.
 - `app/src/lib/features/auth/services.ts`: a `SignupDetails` type (`Credentials` plus `birth_year: number`, `birth_month: number`); `signup()` sends all four. `session.apply(state, email)` unchanged. Tests in `services.test.ts`.
-- `app/src/lib/features/auth/components/signup-form.svelte`: a `FieldSet` with `FieldLegend` "Birth month and year" and a description "We only ask for the month and year." above Email, holding:
+- `app/src/lib/features/auth/components/signup-form.svelte`: a `FieldSet` with `FieldLegend` "Birth month and year" and a description "We only ask for the month and year." above Email, holding: (Superseded by revision 2: two screens, criteria 1 and 15.)
   - Birth month: a native `<select>` (platform first, app/AGENTS.md "Reuse before you build") with a blank "Month" placeholder option and the twelve month names, values 1 to 12, `autocomplete="bday-month"`, id `signup-birth_month`, name `birth_month`. Add shadcn-svelte's `native-select` with the CLI (`pnpm dlx shadcn-svelte@latest add native-select`) and restyle it to our tokens to match `Input`, rather than hand-styling a select. If the CLI output conflicts with existing files, restore them and say so in the PR.
   - Birth year: `TextField` with `inputmode="numeric"`, `autocomplete="bday-year"`, no `maxlength` (criterion 17: it cut a pasted " 1990"), placeholder "YYYY" is not used (labels carry meaning), id `signup-birth_year`, name `birth_year`.
   - Month and year sit side by side in a two-column grid inside the fieldset, on every width (they are short).
@@ -75,7 +75,7 @@ A player can create an account against the real backend. Signup has been broken 
 
 ## Proof
 
-- Criterion 1: component test reads the form's field order (month and year before email) via DOM order.
+- Criterion 1: component test reads the form's field order (month and year before email) via DOM order. (Superseded by revision 2: two screens, criteria 1 and 15.)
 - Criterion 2: services test asserts the request body `{ email, password, birth_year: 1990, birth_month: 6 }` with numbers.
 - Criterion 3: component tests for empty month, empty year, a non-numeric year, 1899, and next year; each shows its message, marks `aria-invalid`, and `signup` is not called; focus lands on the month when both are empty. Schema tests cover the same values.
 - Criterion 4: component test submits a recent year (current year minus 5) with a mocked `signup` and asserts `signup` is called (no client refusal). A test asserts the rendered form text does not contain "13".

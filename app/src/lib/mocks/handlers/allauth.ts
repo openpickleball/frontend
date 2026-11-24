@@ -232,11 +232,11 @@ const text = (value: unknown): string | undefined =>
 
 /**
  * allauth headless at `/_allauth/browser/v1`, with this backend's settings: email and
- * password. Sign-up also takes the birth month and year, the gender division, the names,
- * an optional city and region, and the two agreements. The age check takes the birth month
- * and year. Only the refusal flag is kept from any of them. Verification is mandatory and by
- * link (not by code), with no login on verification or on password reset. Because verification is by link, `resend` is always a 409, as in
- * allauth's `ResendEmailVerificationCodeView`.
+ * password. Sign-up also takes the birth month and year, the gender division, the names, an
+ * optional city and region, and the two agreements. The age check takes the birth month and
+ * year. Only the refusal flag is kept from any of them. Verification is mandatory and by link
+ * (not by code), with no login on verification or on password reset. Because verification is
+ * by link, `resend` is always a 409, as in allauth's `ResendEmailVerificationCodeView`.
  */
 export function createAllauthHandlers(store: MockStore) {
 	return [

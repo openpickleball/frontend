@@ -645,10 +645,14 @@ describe('SignupForm, Create account', () => {
 	it('asks Photon nothing while locked', async () => {
 		const screen = await open();
 		await account(screen);
-		await expect.element(screen.getByRole('combobox', { name: 'City (optional)' })).toBeDisabled();
+		const city = screen.getByRole('combobox', { name: 'City (optional)' });
+		await expect.element(city).toBeDisabled();
+		// Even text set from outside does not start a search.
+		(city.element() as HTMLInputElement).value = 'Riverbend';
+		city.element().dispatchEvent(new Event('input', { bubbles: true }));
 		await age(screen);
 		await screen.getByRole('button', { name: 'Change' }).click();
-		await new Promise((resolve) => setTimeout(resolve, 50));
+		await new Promise((resolve) => setTimeout(resolve, 600));
 		expect(search).not.toHaveBeenCalled();
 	});
 

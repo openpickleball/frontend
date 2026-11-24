@@ -400,6 +400,20 @@ describe('signupDetailsSchema', () => {
 		expect(result.success && result.data).toMatchObject({ city: 'Austin', region: 'Texas' });
 	});
 
+	it('leaves the region out when the chosen place has none', () => {
+		const result = parse({ city: { text: 'Monaco', chosen: { city: 'Monaco', region: '' } } });
+		expect(result.success && result.data).toStrictEqual({
+			birth_month: 6,
+			birth_year: 1990,
+			gender_division: 'mens',
+			first_name: 'Sam',
+			last_name: 'Rivera',
+			city: 'Monaco',
+			accepted_terms: true,
+			accepted_privacy: true
+		});
+	});
+
 	it('leaves the city out when the text is only spaces', () => {
 		const result = parse({ city: { text: '   ', chosen: null } });
 		expect(result.success && 'city' in result.data).toBe(false);

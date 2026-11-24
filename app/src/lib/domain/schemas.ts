@@ -286,7 +286,10 @@ const citySchema = z
 	})
 	.optional()
 	.transform((input, ctx): { city?: string; region?: string } => {
-		if (input?.chosen) return { city: input.chosen.city, region: input.chosen.region };
+		if (input?.chosen) {
+			const { city, region } = input.chosen;
+			return region === '' ? { city } : { city, region };
+		}
 		if (!(input?.text ?? '').trim()) return {};
 		ctx.addIssue({
 			code: 'custom',
