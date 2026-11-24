@@ -31,7 +31,7 @@ backend#124 shipped `GET`, `POST` and `PATCH /api/v1/me/player` and `GET /api/v1
    - The mock's 409 `duplicate_match` item carries `existing_code` with the earlier match's code. The mock's submitter always played in the duplicate (same lineup), so the backend would always name it.
    - `MatchFormat` changed only its description, so nothing changes for it. The schema-drift test still passes.
    - The app's record-match flow is left as it is: its follow-up `POST matches/{code}/confirm` is now a no-op on the backend. A follow-up issue removes it (user decision, see Decisions).
-10. `api/README.md` and the comment at the top of `provisional.ts` say only ratings remain provisional (frontend#35). `app/README.md`'s `missing` row stays true.
+10. `api/README.md` and the comment at the top of `provisional.ts` say only ratings remain provisional (frontend#35). `app/README.md`'s `missing` row stays true. Docs and comments that said `me/player` does not exist yet, or that it is mocked in `missing` mode, say what is true now (added in review: `app/README.md` "Your own OPEN code" and `LIVE_OWN_CODE`, `plans/frontend-v1/proposal.md`, comments in `features/players` and `e2e-live/happy-path.spec.ts`).
 11. The full gate passes: `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test`, `pnpm build`, and `pnpm e2e`.
 
 ## Files that change
@@ -54,6 +54,7 @@ All paths under `app/`.
 - `src/lib/mocks/fixtures.ts`, `fixtures.test.ts`: player fixtures with the new fields, `PrivacyOut` from the generated schema.
 - `src/lib/mocks/integration.test.ts`: the `provisional endpoints` block becomes a `player profile endpoints` block against the typed client (`api.open`), plus the new cases below. Its `fetchJson` helper goes if nothing else uses it.
 - `src/lib/mocks/http.ts`: `provisionalHttp` stays for ratings.
+- Docs found stale in review: `app/README.md` (own code section, `LIVE_OWN_CODE`), `plans/frontend-v1/proposal.md`, and comments in `features/players/settings-store.svelte.ts`, `storage.ts`, `my-code.svelte.ts` and `e2e-live/happy-path.spec.ts`.
 - e2e: `e2e/profile.spec.ts` only if a shape it reads changed. The record-match e2e only if it asserted the submitted match on the home awaiting list.
 
 ## Order of work
