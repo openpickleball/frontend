@@ -38,6 +38,8 @@ Settings go in `app/.env`, which git ignores. There is one:
 | `PUBLIC_API_MOCK=missing` | Only the endpoints the backend does not have yet are answered by mocks. The rest is live. |
 | `PUBLIC_API_MOCK=all`     | The whole API is mocked in the browser, with made-up players. No backend needed.          |
 
+The City field at signup asks Photon (`photon.komoot.io`) for suggestions from the browser. In `off` it calls the real Photon, so it needs a network connection. In `missing` and `all` a mock answers with made-up places.
+
 Anything else counts as `off`. The value is fixed when the dev server starts, so restart `pnpm dev` after you change it. In `missing` and `all`, ratings on the profile page are labeled as samples. They are made up, and no OPEN rating is live.
 
 With `all`, you can sign in as `player@example.com` (see `src/lib/mocks/fixtures.ts` for the password and the other made-up players).
