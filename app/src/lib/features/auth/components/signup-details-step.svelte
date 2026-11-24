@@ -103,7 +103,8 @@
 <!-- Screen 2 of sign-up: the age first, then the rest, locked until the age check passes. -->
 <CardHeader>
 	<div>
-		<Button variant="link" onclick={onback}>
+		<!-- Off while an answer is pending, so it lands on the screen that asked. -->
+		<Button variant="link" onclick={onback} disabled={busy || ageBusy}>
 			<ChevronLeftIcon aria-hidden="true" />
 			Back
 		</Button>
