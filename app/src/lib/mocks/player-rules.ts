@@ -47,12 +47,23 @@ export const hasVisibleCharacter = (value: string): boolean =>
  * month, on today's date at UTC-12 (the earliest date on Earth).
  */
 export function isOldEnough(year: number, month: number, now = new Date()): boolean {
+	return ageOn(year, month, now) >= 13;
+}
+
+/** `is_minor`: 13 to 17, counted the same way as `isOldEnough`. */
+export function isMinor(year: number, month: number, now = new Date()): boolean {
+	const age = ageOn(year, month, now);
+	return age >= 13 && age < 18;
+}
+
+/** Whole years old, from the last day of the birth month, on today's date at UTC-12. */
+function ageOn(year: number, month: number, now: Date): number {
 	const today = new Date(now.getTime() - 12 * 60 * 60 * 1000);
 	const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
 	const [todayMonth, todayDay] = [today.getUTCMonth() + 1, today.getUTCDate()];
 	let age = today.getUTCFullYear() - year;
 	if (todayMonth < month || (todayMonth === month && todayDay < lastDay)) age -= 1;
-	return age >= 13;
+	return age;
 }
 
 /** `_birth_month_is_in_the_future`: after this month, on the server's date. */

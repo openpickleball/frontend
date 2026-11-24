@@ -37,6 +37,7 @@ import {
 import {
 	AGE_REFUSAL,
 	isFutureMonth,
+	isMinor,
 	isOldEnough,
 	missingIssues,
 	privacyNullIssues,
@@ -248,6 +249,17 @@ export type CreatePlayerResult =
 	| { ok: true; player: MockPlayer }
 	| { ok: false; kind: 'conflict' }
 	| { ok: false; kind: 'validation'; issues: FieldIssue[] };
+
+/** `create_player`: every setting signed_in for an adult, private for a player aged 13 to 17. */
+function startingPrivacy(visibility: PrivacyOut['stats_visibility']): PrivacyOut {
+	return {
+		city_region_visibility: visibility,
+		match_history_visibility: visibility,
+		rating_history_visibility: visibility,
+		stats_visibility: visibility,
+		home_club_visibility: visibility
+	};
+}
 
 /** A saved player in this version's shape. */
 function isMockPlayer(value: unknown): boolean {
@@ -484,13 +496,7 @@ export function createMockStore() {
 				genderDivision: clean.gender_division as string,
 				city: clean.city ?? '',
 				region: clean.region ?? '',
-				privacy: {
-					city_region_visibility: 'signed_in',
-					match_history_visibility: 'signed_in',
-					rating_history_visibility: 'signed_in',
-					stats_visibility: 'signed_in',
-					home_club_visibility: 'signed_in'
-				}
+				privacy: startingPrivacy(isMinor(year, month) ? 'private' : 'signed_in')
 			};
 			state.players.push(player);
 			return { ok: true, player };
