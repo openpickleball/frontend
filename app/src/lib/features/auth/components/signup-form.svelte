@@ -12,7 +12,7 @@
 		CardHeader,
 		CardTitle
 	} from '#lib/ui/card/index.js';
-	import { PRIVACY_URL, TERMS_URL } from '#lib/ui/legal.js';
+	import { NEW_TAB, PRIVACY_URL, TERMS_URL } from '#lib/ui/legal.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
@@ -95,7 +95,6 @@
 					{form.busy ? 'Creating account…' : 'Create account'}
 				</Button>
 				<!-- eslint-disable svelte/no-navigation-without-resolve -- off-site openpb.org pages, resolve() is for app routes -->
-				<!-- &#32; keeps the space before "(opens in a new tab)": Svelte drops whitespace at the start of an element. -->
 				<p class="text-sm text-muted">
 					By creating an account you agree to the
 					<a
@@ -104,7 +103,7 @@
 						rel="noopener"
 						class="text-muted underline underline-offset-2 hover:text-secondary"
 					>
-						Terms of Service<span class="sr-only">&#32;(opens in a new tab)</span>
+						Terms of Service<span class="sr-only">{NEW_TAB}</span>
 					</a>
 					and
 					<a
@@ -113,7 +112,7 @@
 						rel="noopener"
 						class="text-muted underline underline-offset-2 hover:text-secondary"
 					>
-						Privacy Policy<span class="sr-only">&#32;(opens in a new tab)</span>
+						Privacy Policy<span class="sr-only">{NEW_TAB}</span>
 					</a>.
 				</p>
 				<!-- eslint-enable svelte/no-navigation-without-resolve -->

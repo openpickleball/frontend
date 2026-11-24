@@ -25,7 +25,7 @@ The app links to the Terms of Service and the Privacy Policy on openpb.org from 
 
 ## Files that change
 
-- `app/src/lib/ui/legal.ts` (new): `TERMS_URL` and `PRIVACY_URL`, the two page addresses, in one place. It lives in `ui` because `ui` may import only `ui` (eslint boundaries), and `features` may import `ui`. The addresses match each page's `<link rel="canonical">` in `site/public/terms/` and `site/public/privacy/`.
+- `app/src/lib/ui/legal.ts` (new): `TERMS_URL` and `PRIVACY_URL`, the two page addresses, in one place. It lives in `ui` because `ui` may import only `ui` (eslint boundaries), and `features` may import `ui`. The addresses match each page's `<link rel="canonical">` in `site/public/terms/` and `site/public/privacy/`. It also holds `NEW_TAB`, the screen reader text " (opens in a new tab)", rendered as `{NEW_TAB}`: Svelte drops whitespace at the start of an element, so a literal `<span class="sr-only"> (opens...` reads "Terms(opens in a new tab)".
 - `app/src/lib/ui/app-shell/site-footer.svelte`: a second line in the footer, under the license line, with "Terms" and "Privacy". Same link style as the source code link (`text-muted underline underline-offset-2 hover:text-secondary`). Vertical gap `mt-2` (lines in a group). The row is `flex flex-wrap gap-x-4`. Use a `<p>`, not a `<nav>`, because `app-shell.test.ts` counts the page's navs and account pages must have none.
 - `app/src/lib/ui/app-shell/app-shell.test.ts`: extend the footer test.
 - `app/src/lib/features/auth/components/signup-form.svelte`: the line as a `<p class="text-sm text-muted">` right after the Create account `Button`, before the form alert and "Already have an account?". Inline links styled like the footer links. Import the URLs from `#lib/ui/legal.js`.
@@ -59,3 +59,4 @@ The app links to the Terms of Service and the Privacy Policy on openpb.org from 
 - The signup line ships now, although #197's plan adds agreement checkboxes later (project owner, 2026-11-23).
 - The links point at `https://openpb.org/...`, the canonical address of each page.
 - The links open in a new tab, as other links that leave the app do, so a player on the signup form keeps what they typed.
+- The new links render their new-tab text as `{NEW_TAB}`, not as a literal leading space, which Svelte strips in both client and server output (found in step 4). The existing source code link has the same missing space. It stays unchanged here (criterion 4); fixing it is a separate change.

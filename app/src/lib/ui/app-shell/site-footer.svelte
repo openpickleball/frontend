@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PRIVACY_URL, TERMS_URL } from '#lib/ui/legal.js';
+	import { NEW_TAB, PRIVACY_URL, TERMS_URL } from '#lib/ui/legal.js';
 
 	/** Where the app's source code lives. AGPL-3.0-or-later asks a hosted version to link to it. */
 	const SOURCE_URL = 'https://github.com/openpickleball/frontend';
@@ -34,7 +34,7 @@
 			rel="noopener"
 			class="text-muted underline underline-offset-2 hover:text-secondary"
 		>
-			Terms<span class="sr-only"> (opens in a new tab)</span>
+			Terms<span class="sr-only">{NEW_TAB}</span>
 		</a>
 		<a
 			href={PRIVACY_URL}
@@ -42,7 +42,7 @@
 			rel="noopener"
 			class="text-muted underline underline-offset-2 hover:text-secondary"
 		>
-			Privacy<span class="sr-only"> (opens in a new tab)</span>
+			Privacy<span class="sr-only">{NEW_TAB}</span>
 		</a>
 	</p>
 	<!-- eslint-enable svelte/no-navigation-without-resolve -->
