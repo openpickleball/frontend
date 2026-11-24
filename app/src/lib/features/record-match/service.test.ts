@@ -80,6 +80,17 @@ describe('submitMatch', () => {
 		expect(mine?.displayName).toBe('Tamsin Vale');
 	});
 
+	it('sends only the create request', async () => {
+		const sent: string[] = [];
+		server.events.on('request:start', ({ request }) => {
+			const path = new URL(request.url).pathname;
+			if (path.startsWith('/api/v1/matches')) sent.push(`${request.method} ${path}`);
+		});
+		const result = await submitMatch(singles, tamsin, { api });
+		expect(sent).toEqual(['POST /api/v1/matches/']);
+		expect(Object.keys(result)).toEqual(['match']);
+	});
+
 	it('works when the submitter is on team B', async () => {
 		const input: MatchInput = { ...singles, teamA: [codeOf('kit')], teamB: [tamsin] };
 		const { match, confirmError } = await submitMatch(
