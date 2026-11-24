@@ -25,16 +25,33 @@
       apply(next);
     }
   });
-  function apply(next) {
-    html.dataset.theme = next;
+  function paint(theme) {
+    html.dataset.theme = theme;
     document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
-      meta.content = next === "light" ? "#f7f3e8" : "#000000";
+      meta.content = theme === "light" ? "#f7f3e8" : "#000000";
     });
+    label();
+  }
+  function apply(next) {
+    paint(next);
     try {
       localStorage.setItem("theme", next);
     } catch (e) {}
-    label();
   }
   system.addEventListener("change", label);
+  // A page restored from the back-forward cache keeps the theme it had when the player left.
+  // The choice may have changed on another page since, so read it again.
+  window.addEventListener("pageshow", function (event) {
+    if (!event.persisted) return;
+    var stored = null;
+    try {
+      stored = localStorage.getItem("theme");
+    } catch (e) {}
+    if (stored === "light" || stored === "dark") {
+      paint(stored);
+    } else {
+      label();
+    }
+  });
   label();
 })();

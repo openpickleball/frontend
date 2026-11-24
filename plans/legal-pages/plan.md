@@ -17,7 +17,7 @@ openpb.org has a Terms of Service page and a Privacy Policy page, each with a ve
 - No governing law or venue clause until OPEN has a legal entity (project owner, 2026-11-23).
 - One policy covers openpb.org today and OPEN player accounts, with a plain note at the top of each page that player accounts are not open yet (project owner, 2026-11-23). It includes the Photon location search at signup (backend#221 decision) as the issue asks.
 - The Privacy Policy follows `backend/docs/privacy/personal-data-inventory.md` at backend commit f6d4aa5. Where the inventory leaves a decision to a later issue (account deletion #116, data export #39, partner sharing #32), the policy says what happens today and that the policy will change before that does.
-- The pages have the theme toggle at the top right, as on `/` (project owner, 2026-11-23). The toggle script moves out of `index.html` into `public/assets/js/theme-toggle.js`, unchanged, so the three pages share one copy. Each page keeps the head script that applies a stored choice before first paint.
+- The pages have the theme toggle at the top right, as on `/` (project owner, 2026-11-23). The toggle script moves out of `index.html` into `public/assets/js/theme-toggle.js`, so the three pages share one copy. Each page keeps the head script that applies a stored choice before first paint. The shared script also re-reads the stored choice on `pageshow` when a page comes back from the back-forward cache, because the choice may have changed on another page (review finding, 2026-11-23).
 - No motion. The pages use no `.reveal` or scroll animation, so reduced motion has nothing to turn off.
 
 ## Acceptance criteria
@@ -36,13 +36,13 @@ openpb.org has a Terms of Service page and a Privacy Policy page, each with a ve
 - `site/public/privacy/index.html` (new): Privacy Policy.
 - `site/src/input.css`: a `legal` utility that styles headings, paragraphs, lists and links inside the policy body, so the long text needs no class on every element.
 - `site/public/index.html`: two links in the footer bottom bar, and the toggle script replaced by a `<script src>` for the shared file.
-- `site/public/assets/js/theme-toggle.js` (new): the toggle script from `index.html`, unchanged.
+- `site/public/assets/js/theme-toggle.js` (new): the toggle script from `index.html`, plus a `pageshow` handler for pages restored from the back-forward cache.
 - `site/AGENTS.md`: describe the two pages, and that the Privacy Policy must change when the backend inventory changes what it says.
 - `plans/legal-pages/plan.md`: this plan.
 
 ## Order of work
 
-1. Move the toggle script into `public/assets/js/theme-toggle.js` and load it from `index.html`. Check the toggle on `/` still flips, saves, and updates its label.
+1. Move the toggle script into `public/assets/js/theme-toggle.js` and load it from `index.html`. Check the toggle on `/` still flips, saves, and updates its label, and that Back to a cached page shows the current choice.
 2. Add the `legal` utility to `src/input.css`.
 3. Write `privacy/index.html`: head copied from `404.html`'s pattern (charset, viewport, title, description, canonical, theme-color, icons, font preloads, theme script, stylesheet, no Tally script), a short header (logo linking home, and the theme toggle), the title, version and date, the accounts-not-open note, the body, and a footer bottom bar with the same links as `/` plus Terms and Privacy.
 4. Write `terms/index.html` the same way.
