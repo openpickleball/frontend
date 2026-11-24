@@ -74,7 +74,7 @@ Checked and unchanged: `app/AGENTS.md`, because it does not describe the footer'
 
 - The app footer gets both "Terms" and "Privacy", matching the site footer, so #199's footer task is done here too. #199 stays open for its other tasks (project owner, 2026-11-23).
 - The signup line ships now, although #197's plan adds agreement checkboxes later (project owner, 2026-11-23).
-- Superseded on signup by #197: the signup form shows the agreement checkboxes only, and this line and its tests are removed (project owner, 2026-11-24). The footer links stay.
+- Superseded on signup by #197: the signup form shows the agreement checkboxes only, and the signup line and its tests are removed (project owner, 2026-11-24). The footer links stay.
 - The links point at `https://openpb.org/...`, the canonical address of each page.
 - The links open in a new tab, as other links that leave the app do, so a player on the signup form keeps what they typed.
 - The new links render their new-tab text as `{NEW_TAB}`, not as a literal leading space, which Svelte strips in both client and server output (found in step 4). The existing source code link has the same missing space. It stays unchanged here (criterion 4); fixing it is a separate change.

@@ -175,5 +175,5 @@ As built (PWA rule, e2e): `route()` already ignores other origins, so the Photon
 - Names, location and agreement acceptance wait for backend issues first (backend#221, backend#222), as gender did. The agreement pages are written by a person and published first (frontend#201); no checkbox links to a page that does not exist.
 - Location suggestions come from Photon (OpenStreetMap), called from the browser: open source, no API key, no cost. Only city and region are kept (ADR 0009). backend#221 records Photon in the personal data inventory.
 - City is optional at signup (project owner, 2026-11-24, backend#221).
-- Signup shows the agreement checkboxes only; the notice line main added in #204 is dropped (project owner, 2026-11-24).
+- Signup shows the agreement checkboxes only; the notice line main added in #203 is dropped (project owner, 2026-11-24).
 - Age order (project owner, 2026-11-23): ADR 0009 and 0017 ask for the age first. The owner chose email and password first, with the age at the top of screen 2 and everything after it locked until the backend's age check (backend#223) passes, so a child never types a name or a location.
