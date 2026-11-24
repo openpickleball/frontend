@@ -113,6 +113,7 @@ A player can create an account against the real backend. Signup has been broken 
 - `app/src/lib/features/auth/components/signup-form.svelte`: becomes the two-screen container with `step` state (`'account' | 'details'`), keeping all values in one form state. Screen parts may move to `signup-account-step.svelte` and `signup-details-step.svelte` if that keeps each file small. Focus moves to the screen's heading or first field on each step change.
 - `app/src/lib/features/auth/components/location-field.svelte`: the combobox, debounce, abort of stale requests, error message and a11y wiring (`fieldA11y`).
 - Checkboxes: add shadcn-svelte `checkbox` with the CLI and restyle to our tokens (reuse order), or a native `<input type="checkbox">` if that is less code; say which in the PR.
+- As built (components): `signup-form.svelte` holds the state, the step and the age lock; `signup-account-step.svelte` and `signup-details-step.svelte` render the screens; `location-field.svelte` is the City combobox. Screen 1 is headed "Step 1 of 2" and "Create account", screen 2 "Step 2 of 2" and "About you", with a Back link above. The page title follows the heading. The agreement boxes are native checkboxes (less code than shadcn's), `accent-secondary`, in a 44px label row. Everything below the age sits in one native `<fieldset disabled>`. A server `birth_year` or `birth_month` error after Create account unlocks the birth fields (and relocks the rest) so the player can fix it. A `region` error shows on City when City has none. After a sign-up the form returns to screen 1, so "Start over" lands there. The form takes an optional `places` prop (a `PlaceSearch`) so tests can pass a stand-in search.
 - `app/src/lib/mocks/handlers/allauth.ts` (signup takes and checks the new fields with the backend's messages), a new handler for `POST /_allauth/browser/v1/auth/signup/age-check` that shares `isOldEnough` and sets `signupRefused`, and a Photon handler with made-up places (`app/src/lib/mocks/handlers/photon.ts`).
 - `app/src/pwa/` routing rules: Photon's origin is never cached (test in the existing routing rule tests).
 - `app/src/lib/mocks/integration.test.ts`: the fixed-clock age tests (criterion 17).
@@ -158,7 +159,7 @@ A player can create an account against the real backend. Signup has been broken 
 - [x] Domain schemas
 - [x] Services and Photon search
 - [x] Mock handlers
-- [ ] Two screens, age lock, names, location, checkboxes
+- [x] Two screens, age lock, names, location, checkboxes
 - [ ] PWA rule, e2e, docs
 - [ ] Gate and live drive
 
@@ -172,4 +173,5 @@ A player can create an account against the real backend. Signup has been broken 
 - Names, location and agreement acceptance wait for backend issues first (backend#221, backend#222), as gender did. The agreement pages are written by a person and published first (frontend#201); no checkbox links to a page that does not exist.
 - Location suggestions come from Photon (OpenStreetMap), called from the browser: open source, no API key, no cost. Only city and region are kept (ADR 0009). backend#221 records Photon in the personal data inventory.
 - City is optional at signup (project owner, 2026-11-24, backend#221).
+- Signup shows the agreement checkboxes only; the notice line main added in #204 is dropped (project owner, 2026-11-24).
 - Age order (project owner, 2026-11-23): ADR 0009 and 0017 ask for the age first. The owner chose email and password first, with the age at the top of screen 2 and everything after it locked until the backend's age check (backend#223) passes, so a child never types a name or a location.
