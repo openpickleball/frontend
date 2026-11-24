@@ -28,7 +28,7 @@ afterEach(() => {
 	session.reset();
 });
 
-type Details = { month: string; year: string; gender: 'Men' | 'Women' | null; confirm: string };
+type Details = { month: string; year: string; gender: 'Man' | 'Woman' | null; confirm: string };
 
 /** Fill the form as a made-up adult would. `details` overrides the birth date, gender or confirmation. */
 async function fill(
@@ -40,7 +40,7 @@ async function fill(
 	const { month, year, gender, confirm }: Details = {
 		month: '6',
 		year: '1990',
-		gender: 'Men',
+		gender: 'Man',
 		confirm: password,
 		...details
 	};
@@ -284,7 +284,7 @@ describe('SignupForm', () => {
 		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass', {
 			month: '1',
 			year: String(year),
-			gender: 'Women'
+			gender: 'Woman'
 		});
 		await submitForm(screen);
 
@@ -333,16 +333,16 @@ describe('SignupForm', () => {
 			.not.toBeInTheDocument();
 	});
 
-	it('asks for men or women when neither is chosen', async () => {
+	it('asks for man or woman when neither is chosen', async () => {
 		const screen = await render(SignupForm, { onsuccess: vi.fn() });
 		await fill(screen, 'tamsin.vale@example.com', 'a-long-enough-pass', { gender: null });
 		await submitForm(screen);
 
-		await expect.element(screen.getByText('Choose men or women.')).toBeVisible();
+		await expect.element(screen.getByText('Choose man or woman.')).toBeVisible();
 		const group = screen.getByRole('radiogroup', { name: 'Gender' });
 		await expect.element(group).toHaveAttribute('aria-invalid', 'true');
-		await expect.element(group).toHaveAccessibleDescription('Choose men or women.');
-		await expect.element(screen.getByRole('radio', { name: 'Men' })).toHaveFocus();
+		await expect.element(group).toHaveAccessibleDescription('Choose man or woman.');
+		await expect.element(screen.getByRole('radio', { name: 'Man' })).toHaveFocus();
 		expect(mockedSignup).not.toHaveBeenCalled();
 	});
 

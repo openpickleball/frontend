@@ -327,10 +327,10 @@ describe('signupSchema and password rules', () => {
 		});
 	});
 
-	it.each(['', 'other', undefined])('asks for men or women when the gender is %j', (gender) => {
+	it.each(['', 'other', undefined])('asks for man or woman when the gender is %j', (gender) => {
 		const result = signupSchema.safeParse({ ...base, gender_division: gender });
 		expect(!result.success && zodFieldErrors(result.error)).toEqual({
-			gender_division: ['Choose men or women.']
+			gender_division: ['Choose man or woman.']
 		});
 	});
 

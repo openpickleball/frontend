@@ -155,8 +155,8 @@
 						{...gender.attrs}
 						bind:value={genderDivision}
 					>
-						<RadioGroupItem id="signup-gender_division" value="mens">Men</RadioGroupItem>
-						<RadioGroupItem id="signup-gender_division-womens" value="womens">Women</RadioGroupItem>
+						<RadioGroupItem id="signup-gender_division" value="mens">Man</RadioGroupItem>
+						<RadioGroupItem id="signup-gender_division-womens" value="womens">Woman</RadioGroupItem>
 					</RadioGroup>
 					{#if form.errors.gender_division}
 						<FieldError id={gender.errorId}>{form.errors.gender_division}</FieldError>

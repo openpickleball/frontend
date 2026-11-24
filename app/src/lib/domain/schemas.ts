@@ -211,7 +211,7 @@ export const birthYearSchema = fieldText.transform((text, ctx) => {
 });
 
 /** The division a player signs up for: the backend's `gender_division`. */
-export const genderDivisionSchema = z.enum(['mens', 'womens'], 'Choose men or women.');
+export const genderDivisionSchema = z.enum(['mens', 'womens'], 'Choose man or woman.');
 
 /**
  * Sign-up, in page order. `password_confirm` is a typo guard only: it must match `password`

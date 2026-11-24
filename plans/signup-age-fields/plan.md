@@ -41,7 +41,7 @@ A player can create an account against the real backend. Signup has been broken 
 - `app/src/lib/features/auth/services.ts`: a `SignupDetails` type (`Credentials` plus `birth_year: number`, `birth_month: number`); `signup()` sends all four. `session.apply(state, email)` unchanged. Tests in `services.test.ts`.
 - `app/src/lib/features/auth/components/signup-form.svelte`: a `FieldSet` with `FieldLegend` "Birth month and year" and a description "We only ask for the month and year." above Email, holding:
   - Birth month: a native `<select>` (platform first, app/AGENTS.md "Reuse before you build") with a blank "Month" placeholder option and the twelve month names, values 1 to 12, `autocomplete="bday-month"`, id `signup-birth_month`, name `birth_month`. Add shadcn-svelte's `native-select` with the CLI (`pnpm dlx shadcn-svelte@latest add native-select`) and restyle it to our tokens to match `Input`, rather than hand-styling a select. If the CLI output conflicts with existing files, restore them and say so in the PR.
-  - Birth year: `TextField` with `inputmode="numeric"`, `autocomplete="bday-year"`, `maxlength="4"`, placeholder "YYYY" is not used (labels carry meaning), id `signup-birth_year`, name `birth_year`.
+  - Birth year: `TextField` with `inputmode="numeric"`, `autocomplete="bday-year"`, no `maxlength` (criterion 17: it cut a pasted " 1990"), placeholder "YYYY" is not used (labels carry meaning), id `signup-birth_year`, name `birth_year`.
   - Month and year sit side by side in a two-column grid inside the fieldset, on every width (they are short).
   - A gender `FieldSet` (legend "Gender") after the birth fieldset with the radio group (`Men` value `mens`, `Women` value `womens`), id prefix `signup-gender_division`, and its error wired like the other fields.
   - `createAuthForm('signup', ['birth_month', 'birth_year', 'gender_division', 'email', 'password', 'password_confirm'])`. `password_confirm` is checked in `signupSchema` with a refine whose issue path is `password_confirm`, and is stripped from the data sent. `onError` shows fields when any of these has a message, else the form problem (unchanged logic, extended field list), so `signup_refused` lands in the alert.
@@ -152,7 +152,8 @@ A player can create an account against the real backend. Signup has been broken 
 
 ### Steps (revision 2)
 
-- [ ] Criterion 17 fixes
+- [x] Criterion 17 fixes
+- [x] Gender labels "Man" and "Woman", missing message "Choose man or woman." (criterion 9, revision 2)
 - [ ] Dependencies merged, schemas and types regenerated
 - [ ] Domain schemas
 - [ ] Services and Photon search

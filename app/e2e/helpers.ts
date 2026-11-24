@@ -19,7 +19,7 @@ export async function fillSignup(
 ) {
 	await page.getByLabel('Month').selectOption('6');
 	await page.getByLabel('Year').fill(birthYear);
-	await page.getByRole('radio', { name: 'Women' }).click();
+	await page.getByRole('radio', { name: 'Woman' }).click();
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Password', { exact: true }).fill(password);
 	await page.getByLabel('Confirm password').fill(password);
