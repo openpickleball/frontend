@@ -43,7 +43,7 @@ test('signs in, records a singles match and sees it in the list', async ({ page 
 	await signIn(page, email!, password!);
 	await page.goto('/record');
 
-	// Until backend#124, the app asks for the player's own code once.
+	// An account with no player yet, or an older backend, is asked for its own code once.
 	const chip = page.getByTestId('chip');
 	const prompt = page.getByRole('heading', { name: 'Enter your OPEN code' });
 	await expect(chip.or(prompt)).toBeVisible();
