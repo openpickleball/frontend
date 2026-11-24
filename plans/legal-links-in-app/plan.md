@@ -1,6 +1,6 @@
 # Plan: Link the Terms of Service and Privacy Policy from the app (issue #198)
 
-**Status:** active
+**Status:** done
 
 Risk tier: Low. Static links and one line of copy in two existing components. Server-render and browser component tests cover them fully. No behavior, API or data changes.
 
@@ -12,7 +12,7 @@ The app links to the Terms of Service and the Privacy Policy on openpb.org from 
 
 ## Where #198 stands
 
-- The Terms page, its site footer link and the owner's request to have Claude write the text were done in frontend#201 (PR #202, merged 2026-11-24). Owner sign-off and legal review before launch stay with the project owner. This PR does not tick them.
+- The Terms page, its site footer link and the owner's request to have Claude write the text were done in frontend#201 (PR #202, merged 2026-11-24 UTC). Owner sign-off and legal review before launch stay with the project owner. This PR does not tick them.
 - This PR does the two app tasks: the app footer link and the signup line.
 
 ## Acceptance criteria
@@ -25,21 +25,25 @@ The app links to the Terms of Service and the Privacy Policy on openpb.org from 
 
 ## Files that change
 
-- `app/src/lib/ui/legal.ts` (new): `TERMS_URL` and `PRIVACY_URL`, the two page addresses, in one place. It lives in `ui` because `ui` may import only `ui` (eslint boundaries), and `features` may import `ui`. The addresses match each page's `<link rel="canonical">` in `site/public/terms/` and `site/public/privacy/`. It also holds `NEW_TAB`, the screen reader text " (opens in a new tab)", rendered as `{NEW_TAB}`: Svelte drops whitespace at the start of an element, so a literal `<span class="sr-only"> (opens...` reads "Terms(opens in a new tab)".
+- `app/src/lib/ui/legal.ts` (new): `TERMS_URL` and `PRIVACY_URL`, the two page addresses, in one place. It lives in `ui` because `ui` may import only `ui` (eslint boundaries), and `features` may import `ui`. The addresses match each page's `<link rel="canonical">` in `site/public/terms/` and `site/public/privacy/`. Since step 4b it also holds `NEW_TAB`, the screen reader text " (opens in a new tab)", rendered as `{NEW_TAB}`: Svelte drops whitespace at the start of an element, so a literal `<span class="sr-only"> (opens...` reads "Terms(opens in a new tab)".
 - `app/src/lib/ui/app-shell/site-footer.svelte`: a second line in the footer, under the license line, with "Terms" and "Privacy". Same link style as the source code link (`text-muted underline underline-offset-2 hover:text-secondary`). Vertical gap `mt-2` (lines in a group). The row is `flex flex-wrap gap-x-4`. Use a `<p>`, not a `<nav>`, because `app-shell.test.ts` counts the page's navs and account pages must have none.
 - `app/src/lib/ui/app-shell/app-shell.test.ts`: extend the footer test.
 - `app/src/lib/features/auth/components/signup-form.svelte`: the line as a `<p class="text-sm text-muted">` right after the Create account `Button`, before the form alert and "Already have an account?". Inline links styled like the footer links. Import the URLs from `#lib/ui/legal.js`.
 - `app/src/lib/features/auth/components/signup-form.svelte.test.ts`: new tests.
-- `app/AGENTS.md` only if it describes the footer's content (check in Phase 8).
+
+Checked and unchanged: `app/AGENTS.md`, because it does not describe the footer's content.
 
 ## Order of work
 
-1. Red: extend the footer test in `app-shell.test.ts`. For both `bare` and not, the footer has a link with text "Terms" and `href="https://openpb.org/terms/"`, and one with "Privacy" and `href="https://openpb.org/privacy/"`, each with `target="_blank"`, `rel="noopener"` and "(opens in a new tab)". The source code link checks stay. Run it and see it fail. Commit the test.
-2. Green: add `legal.ts` and the footer line. Commit.
-3. Red: in `signup-form.svelte.test.ts`, test that the line's text shows, that the links named "Terms of Service (opens in a new tab)" and "Privacy Policy (opens in a new tab)" have the right `href`, `target` and `rel`, that the line comes after the Create account button in document order (`compareDocumentPosition`), and that the "Check your email" view has no Terms link. Run and see it fail. Commit the test.
-4. Green: add the line to the signup form. Commit.
-5. Full gate in `app/`: `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test`, `pnpm build`.
-6. Live drive with `pnpm dev`: the footer on `/` and on `/account/signup`, the signup line, in both themes, at 390px and at 1280px. Check that the links open openpb.org in a new tab, have the right accessible names, and that the line wraps cleanly on a phone.
+- [x] 1. Red: extend the footer test in `app-shell.test.ts`. For both `bare` and not, the footer has a link with text "Terms" and `href="https://openpb.org/terms/"`, and one with "Privacy" and `href="https://openpb.org/privacy/"`, each with `target="_blank"`, `rel="noopener"` and "(opens in a new tab)". The source code link checks stay. Run it and see it fail. Commit the test.
+- [x] 2. Green: add `legal.ts` with the two URLs, and the footer line. Commit.
+- [x] 3. Red: in `signup-form.svelte.test.ts`, test that the line's text shows, that the links named "Terms of Service (opens in a new tab)" and "Privacy Policy (opens in a new tab)" have the right `href`, `target` and `rel`, that the line comes after the Create account button in document order (`compareDocumentPosition`), and that the "Check your email" view has no Terms link. Run and see it fail. Commit the test.
+- [x] 4. Green: add the line to the signup form, with `&#32;` before its new-tab text to keep the space. Commit.
+- [x] 4a. Red (found while doing step 4): the step 2 footer links drop the space before "(opens in a new tab)". A footer test that their names keep it. Commit it alone.
+- [x] 4b. Green: add `NEW_TAB` to `legal.ts` and render it as `{NEW_TAB}`, replacing the footer's literal space and the signup form's `&#32;`. Commit.
+- [x] 4c. After code review: tighten the step 3 order check to `nextElementSibling`, because the document-order check still passed with the line further down. Shown to fail by moving the line below "Already have an account?" (not committed), then committed.
+- [x] 5. Full gate in `app/`: `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test`, `pnpm build`.
+- [x] 6. Live drive with `pnpm dev`: the footer on `/` and on `/account/signup`, the signup line, in both themes, at 390px and at 1280px. Check that the links open openpb.org in a new tab, have the right accessible names, and that the line wraps cleanly on a phone.
 
 ## Risks
 
@@ -51,7 +55,7 @@ The app links to the Terms of Service and the Privacy Policy on openpb.org from 
 - Criteria 1, 3, 4 (footer): `app-shell.test.ts` footer test.
 - Criteria 2, 3, 4 (signup): `signup-form.svelte.test.ts`.
 - Criterion 5: the gate output.
-- Live drive: screenshots of the footer and the signup line in both themes at 390px, link targets and names from the accessibility tree.
+- Live drive: screenshots of the footer and the signup line in both themes at 390px and 1280px, link targets and names from the accessibility tree.
 
 ## Decisions
 
