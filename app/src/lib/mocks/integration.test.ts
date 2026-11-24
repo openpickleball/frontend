@@ -922,6 +922,35 @@ describe('player profile endpoints', () => {
 		expect(mockStore.playerOfAccount(FRESH)).toBeUndefined();
 	});
 
+	it('starts a player aged 13 to 17 with every privacy setting private', async () => {
+		const api = await freshAccount();
+		const made = await unwrap(
+			api.open.POST('/api/v1/me/player', {
+				body: {
+					...adult,
+					birth_year: new Date().getFullYear() - 15,
+					birth_month: 1,
+					city: 'Quillbury',
+					region: 'Norvane'
+				}
+			})
+		);
+		expect(made.privacy).toEqual({
+			city_region_visibility: 'private',
+			match_history_visibility: 'private',
+			rating_history_visibility: 'private',
+			stats_visibility: 'private',
+			home_club_visibility: 'private'
+		});
+
+		mockStore.logout();
+		const other = await signedIn('oren@example.com');
+		const seen = await other.open.GET('/api/v1/players/{code}', {
+			params: { path: { code: made.code } }
+		});
+		expect(seen.data).toMatchObject({ city: null, region: null });
+	});
+
 	it('refuses a second player for the account (409)', async () => {
 		const api = await signedIn();
 		const second = await api.open.POST('/api/v1/me/player', { body: adult });
