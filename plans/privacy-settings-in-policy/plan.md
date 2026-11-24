@@ -16,7 +16,7 @@ The profile's "Name and privacy" section has five switches (`app/src/lib/feature
 
 - Project owner, 2026-11-24: fix the gap in one PR that closes #199. The PR body says the owner sign-off and the legal review before launch are still open tasks for a person.
 - What each setting does today, from the backend at origin/main 8e6874f: only `match_history_visibility` and `city_region_visibility` are read when another player views a profile (`apps/players/api.py`). For stats, rating history and home club, their settings are stored, but OPEN keeps no stats, rating history or home club data. Home club is planned (#157), and no OPEN rating is published.
-- Project owner, 2026-11-24, wording: "Your choices" says, verbatim, "OPEN doesn't keep stats, a rating history or a home club for you yet. Those three settings are saved, but they don't change anything today. Anyone who can see your match history can work out your wins and losses from it." This replaces an earlier draft that said OPEN doesn't show those three to other players yet and that the settings will apply once it does, which implied OPEN holds that data. The "What OPEN records" item names the five settings without saying who can see the data. The item goes after "They don't hide you in other players' match histories", so that item's "They" still follows the first item about the settings.
+- Project owner, 2026-11-24, wording: "Your choices" says, verbatim, "OPEN doesn't keep stats, a rating history or a home club for you yet. Those three settings are saved, but they don't change anything today. Anyone who can see your match history can work out your wins and losses from it." This replaces an earlier draft that said OPEN doesn't show those three to other players yet and that the settings will apply once it does, which implied OPEN holds that data. The "What OPEN records" item names the five settings without saying who can see the data. The item goes after the existing item about other players' match histories, so that item still follows the first item about the settings. That item now starts "Your privacy settings don't hide you in other players' match histories." instead of "They don't hide you...", because the first item now ends with the sentence about stats, rating history and home club, and "They" would read as only those three.
 - The policy's own "Changes to this policy" section promises a new version number and date for each change. So the page moves to "Version 2 · Effective November 24, 2026". If the PR merges later, the reviewer updates the date. No email is owed: player accounts are not open yet.
 - Not changed: the who-can-see list. Stats, rating history and home club are not stored as separate data items today, so there is nothing to add there.
 
@@ -30,7 +30,7 @@ The profile's "Name and privacy" section has five switches (`app/src/lib/feature
 
 ## Files that change
 
-- `site/public/privacy/index.html`: the "What OPEN records" item about privacy settings, the first item of "Your choices" plus one new item after the "They don't hide you" item, and the version line.
+- `site/public/privacy/index.html`: the "What OPEN records" item about privacy settings, the first two items of "Your choices" plus one new item after the second, and the version line.
 - `plans/privacy-settings-in-policy/plan.md`: this plan.
 
 No doc changes are expected: `site/AGENTS.md` already says the policy follows the inventory.
@@ -41,7 +41,8 @@ No doc changes are expected: `site/AGENTS.md` already says the policy follows th
 2. Edit `site/public/privacy/index.html`:
    - "What OPEN records": `<li>Your privacy settings.</li>` becomes an item that names the five settings: one each for match history, stats, rating history, home club, and city and region.
    - "Your choices", first item: the settings choose who sees your own match history and your city and region, and there are settings for stats, rating history and home club too. Keep the existing defaults sentence ("signed-in players", or "only you" for players aged 13 to 17).
-   - A new item right after the "They don't hide you in other players' match histories" item: the owner's sentence from Decisions, verbatim.
+   - "Your choices", second item: "They don't hide you in other players' match histories." becomes "Your privacy settings don't hide you in other players' match histories." The rest of the item stays.
+   - A new item right after the second item: the owner's sentence from Decisions, verbatim.
    - Version line: "Version 2 · Effective November 24, 2026".
 3. Run the proof script (green), `pnpm build` in `site/`, and the live drive.
 4. Commit the page change with a body that explains why.
