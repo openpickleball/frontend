@@ -2,7 +2,7 @@
  * The real API client (`createApi`) against the mock handlers through msw/node. It is
  * the example later tests copy: `useMockApi()` once, a tiny cookie jar, then calls.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { allauthParams, createApi, unwrap } from '../api';
 import { buildCode } from '../domain/codes';
 import { toMatchPage } from '../domain/mappers';
@@ -500,16 +500,51 @@ describe('accounts', () => {
 		expect(mockStore.accountByEmail(valid.email)).toBeUndefined();
 	});
 
-	it('counts a birth month as ended: 13 only once the month of the 13th birthday is over', async () => {
-		const { api } = browser();
-		const now = new Date();
-		// Born this month 13 years ago: the month has not ended, so still 12.
-		const result = await signupRaw(api, {
-			...valid,
-			birth_year: now.getUTCFullYear() - 13,
-			birth_month: now.getUTCMonth() + 1
+	describe('13 from the last day of the birth month, on the date at UTC-12', () => {
+		afterEach(() => {
+			vi.useRealTimers();
 		});
-		expect(result.errors?.[0]?.code).toBe('signup_refused');
+
+		it.each([
+			// Born June 2013: 13 on 30 June 2026, once that date has begun at UTC-12.
+			['the day before the last day', '2026-06-30T11:59:00Z', 2013, 6, 'refused'],
+			['the last day, at UTC-12', '2026-06-30T12:00:00Z', 2013, 6, 'accepted'],
+			['the last day, late UTC', '2026-07-01T11:00:00Z', 2013, 6, 'accepted'],
+			// Born February 2012, a leap year: the last day is the 29th, so 13 only from 1 March 2025.
+			['28 February after a leap-year February birth', '2025-03-01T11:59:00Z', 2012, 2, 'refused'],
+			['1 March after a leap-year February birth', '2025-03-01T12:00:00Z', 2012, 2, 'accepted'],
+			// Before 12:00 UTC on 1 January it is still 31 December at UTC-12.
+			[
+				'1 January before 12:00 UTC, born the next January',
+				'2026-01-01T11:00:00Z',
+				2013,
+				1,
+				'refused'
+			],
+			[
+				'1 January before 12:00 UTC, born the December before',
+				'2026-01-01T11:00:00Z',
+				2012,
+				12,
+				'accepted'
+			]
+		])('%s', async (_name, now, birthYear, birthMonth, outcome) => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(now));
+			const { api } = browser();
+			const result = await signupRaw(api, {
+				...valid,
+				birth_year: birthYear,
+				birth_month: birthMonth
+			});
+			if (outcome === 'accepted') {
+				expect(result.status).toBe(401);
+			} else {
+				expect(result.errors).toEqual([
+					{ code: 'signup_refused', message: "We can't create an account with these details." }
+				]);
+			}
+		});
 	});
 
 	it('keeps refusing in the same session after an under-13 answer, whatever is sent', async () => {
