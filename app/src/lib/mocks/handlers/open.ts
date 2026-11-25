@@ -129,6 +129,7 @@ export function createOpenHandlers(store: MockStore) {
 		http.get('/api/v1/me/player', ({ request, cookies, response }) => {
 			const email = guard(request, cookies);
 			if (typeof email !== 'string') return response.untyped(email);
+			if (store.state.olderBackend) return response.untyped(notFound());
 			const player = store.playerOfAccount(email);
 			if (!player) return response.untyped(notFound());
 			return response(200).json(store.myPlayerOut(player));
@@ -137,6 +138,7 @@ export function createOpenHandlers(store: MockStore) {
 		http.post('/api/v1/me/player', async ({ request, cookies, response }) => {
 			const email = guard(request, cookies);
 			if (typeof email !== 'string') return response.untyped(email);
+			if (store.state.olderBackend) return response.untyped(notFound());
 			const body = await readJson(request);
 			const shape = createSchemaIssues(body);
 			if (shape.length > 0) return response.untyped(validationError(shape));
@@ -159,6 +161,7 @@ export function createOpenHandlers(store: MockStore) {
 		http.patch('/api/v1/me/player', async ({ request, cookies, response }) => {
 			const email = guard(request, cookies);
 			if (typeof email !== 'string') return response.untyped(email);
+			if (store.state.olderBackend) return response.untyped(notFound());
 			const body = await readJson(request);
 			const shape = updateSchemaIssues(body);
 			if (shape.length > 0) return response.untyped(validationError(shape));

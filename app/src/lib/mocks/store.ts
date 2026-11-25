@@ -134,6 +134,8 @@ export type MockState = {
 	signupRefused?: boolean;
 	/** Sign-up details held for the create. Older snapshots have no such field. */
 	signupHold?: SignupHold | null;
+	/** Answer every `me/player` call with a 404, as a backend older than backend#124 does. */
+	olderBackend?: boolean;
 	tokens: MockToken[];
 	outbox: MockMail[];
 	csrfToken: string;
@@ -436,6 +438,11 @@ export function createMockStore() {
 			state.session = null;
 			state.pendingEmail = null;
 			state.signupHold = null;
+		},
+
+		/** From now on, act as a backend older than backend#124: `me/player` is a 404. */
+		olderBackend(): void {
+			state.olderBackend = true;
 		},
 
 		/** Hold sign-up details for `email`, or bound to no account when `email` is null. */
