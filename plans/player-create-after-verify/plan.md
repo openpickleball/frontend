@@ -60,7 +60,7 @@ All paths are under `app/` unless they start with `../`.
 2. Mock store tests in `integration.test.ts` and `age-check.test.ts`, failing first: hold to 201 (adult and minor names, city, private privacy); a body sent with a hold is ignored; a taken address gets no hold; a repeated signup keeps its hold; logout drops the hold but keeps the refusal; 409 drops the hold; a 422 keeps it; every refusal drops it; 403 for an unverified account. Then a `restore` test. Then the code.
 3. `services.test.ts` for `fetchMyPlayer` and `createMyPlayer`, each result kind (stub with `server.use` for 404, 405, 500 and a network error). Then the code.
 4. `my-code.test.ts`: each transition in criteria 1 to 7, the dedupe and a stale run. Then the code.
-5. `own-code-gate.svelte.test.ts` and a new `player-details-form.svelte.test.ts` (fields, client errors, server field errors, refused copy, axe). Then the components.
+5. `own-code-gate.svelte.test.ts` and a new `player-details-form.svelte.test.ts` (fields, client errors, server field errors, refused copy). Then the components. The axe check runs in e2e only: the component tests have no axe runner, and adding one is out of scope.
 6. `profile-settings.svelte.test.ts`: reload after creation.
 7. The older-backend switch, then e2e, then docs.
 

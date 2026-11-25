@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { AppError } from '#lib/api/index.js';
+import { buildCode, type PlayerCode } from '#lib/domain/index.js';
+import { myCode } from './my-code.svelte.js';
 import ProfileSettings from './profile-settings.svelte';
 import type { MySettings, MySettingsChange } from './types.js';
 
@@ -33,6 +35,10 @@ async function renderReady(updateMySettings = backend()) {
 	});
 	return { screen, updateMySettings };
 }
+
+beforeEach(() => {
+	myCode.reset();
+});
 
 describe('ProfileSettings', () => {
 	it('shows the name and one switch per privacy setting', async () => {
@@ -144,4 +150,36 @@ describe('ProfileSettings', () => {
 			.element(screen.getByRole('link', { name: 'info@openpb.org' }))
 			.toHaveAttribute('href', 'mailto:info@openpb.org');
 	});
+
+	it('loads the real settings once the player is created', async () => {
+		const fetchMySettings = vi
+			.fn<() => Promise<MySettings | null>>()
+			.mockResolvedValueOnce(null)
+			.mockResolvedValue(SAVED);
+		myCode.status = 'loading';
+		const screen = await render(ProfileSettings, { deps: { fetchMySettings } });
+		await vi.waitFor(() => expect(fetchMySettings).toHaveBeenCalledTimes(1));
+
+		myCode.code = buildCode('player', '4RWN8TQ') as PlayerCode;
+		myCode.status = 'ready';
+		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
+		expect(fetchMySettings).toHaveBeenCalledTimes(2);
+	});
+
+	it.each(['needs-details', 'refused'] as const)(
+		'hides name and privacy while the status is %s',
+		async (status) => {
+			myCode.status = status;
+			const screen = await render(ProfileSettings, {
+				deps: { fetchMySettings: async () => null }
+			});
+			await expect
+				.element(screen.getByRole('heading', { level: 2, name: 'Your data' }))
+				.toBeVisible();
+			await expect
+				.element(screen.getByRole('heading', { name: 'Name and privacy' }))
+				.not.toBeInTheDocument();
+			await expect.element(screen.getByText(/You can't change/)).not.toBeInTheDocument();
+		}
+	);
 });

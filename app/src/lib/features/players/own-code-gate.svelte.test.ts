@@ -116,4 +116,69 @@ describe('OwnCodeGate', () => {
 			await expect.element(page.getByTestId('own')).toHaveTextContent(CODE);
 		});
 	});
+
+	describe('when the backend needs the details', () => {
+		beforeEach(() => {
+			myCode.status = 'needs-details';
+		});
+
+		it('shows the details form, with no code prompt', async () => {
+			await render(OwnCodeGate, { children, signedOut: 'x' });
+			await expect
+				.element(page.getByRole('heading', { name: 'Finish your player profile' }))
+				.toBeVisible();
+			await expect
+				.element(
+					page.getByText(
+						'We need your birth month and year, gender and a display name again. This can happen if you confirmed your email on another device.'
+					)
+				)
+				.toBeVisible();
+			await expect.element(page.getByLabelText('Display name')).toBeVisible();
+			await expect.element(page.getByLabelText('Your OPEN code')).not.toBeInTheDocument();
+		});
+
+		it('sends the details through myCode', async () => {
+			const submit = vi.spyOn(myCode, 'submitDetails').mockResolvedValue();
+			await render(OwnCodeGate, { children, signedOut: 'x' });
+			await page.getByLabelText('Month').selectOptions('June');
+			await page.getByLabelText('Year').fill('1990');
+			await page.getByRole('radio', { name: 'Man' }).click();
+			await page.getByLabelText('Display name').fill('Sam Rivera');
+			await page.getByRole('button', { name: 'Save and show my code' }).click();
+			expect(submit).toHaveBeenCalledWith({
+				birth_month: 6,
+				birth_year: 1990,
+				gender_division: 'mens',
+				display_name: 'Sam Rivera'
+			});
+			submit.mockRestore();
+		});
+
+		it("shows the backend's field errors", async () => {
+			myCode.detailErrors = { birth_year: 'Ensure this value is greater than or equal to 1900.' };
+			await render(OwnCodeGate, { children, signedOut: 'x' });
+			await expect
+				.element(page.getByLabelText('Year'))
+				.toHaveAccessibleDescription('Ensure this value is greater than or equal to 1900.');
+		});
+	});
+
+	it('says the profile cannot be created after an age refusal, with no form or prompt', async () => {
+		myCode.status = 'refused';
+		await render(OwnCodeGate, { children, signedOut: 'x' });
+		await expect
+			.element(page.getByText("We can't create a player profile with these details."))
+			.toBeVisible();
+		await expect.element(page.getByRole('textbox')).not.toBeInTheDocument();
+		await expect.element(page.getByRole('button')).not.toBeInTheDocument();
+	});
+
+	it('says the email is not verified yet, with Try again', async () => {
+		myCode.status = 'unverified';
+		await render(OwnCodeGate, { children, signedOut: 'x' });
+		await expect.element(page.getByText(/email address is not verified yet/)).toBeVisible();
+		await page.getByRole('button', { name: 'Try again' }).click();
+		expect(load).toHaveBeenCalledTimes(1);
+	});
 });
