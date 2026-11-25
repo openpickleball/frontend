@@ -98,7 +98,7 @@ All paths are under `app/` unless they start with `../`.
 ## Steps
 
 - [x] Plan approved and committed
-- [ ] Implementation, tests and gate
+- [x] Implementation, tests and gate
 - [ ] Review, verification and docs
 - [ ] PR open and green
 
