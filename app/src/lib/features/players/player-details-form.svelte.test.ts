@@ -96,4 +96,18 @@ describe('PlayerDetailsForm', () => {
 		await expect.element(page.getByText('Enter a birth year that has passed.')).toBeVisible();
 		expect(onsubmit).not.toHaveBeenCalled();
 	});
+
+	it('hides an earlier server error when the client check fails on another field', async () => {
+		const onsubmit = vi.fn();
+		await render(PlayerDetailsForm, {
+			onsubmit,
+			errors: { display_name: 'Ensure this value has at most 64 characters (it has 70).' }
+		});
+		await fill();
+		await page.getByLabelText('Year').fill('');
+		await page.getByRole('button', { name: 'Save and show my code' }).click();
+		await expect.element(page.getByText('Enter your birth year.')).toBeVisible();
+		await expect.element(page.getByText(/at most 64 characters/)).not.toBeInTheDocument();
+		expect(onsubmit).not.toHaveBeenCalled();
+	});
 });
