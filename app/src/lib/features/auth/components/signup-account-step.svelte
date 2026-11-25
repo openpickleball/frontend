@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { PASSWORD_MIN_LENGTH, ROUTES } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Spinner } from '#lib/ui/spinner/index.js';
 	import {
 		CardContent,
 		CardDescription,
@@ -15,17 +16,20 @@
 	let {
 		values = $bindable(),
 		errors,
+		busy,
 		oncontinue
 	}: {
 		values: SignupValues;
 		/** A message per field name. */
 		errors: Record<string, string>;
+		/** The password check is waiting for the backend. */
+		busy: boolean;
 		/** The form was sent: check these fields and move on. */
 		oncontinue: (event: SubmitEvent) => void;
 	} = $props();
 </script>
 
-<!-- Screen 1 of sign-up: the account. Nothing is sent from here. -->
+<!-- Screen 1 of sign-up: the account. Only the password check is sent from here. -->
 <CardHeader>
 	<div class="grid gap-1">
 		<p class="text-sm text-muted">Step 1 of 2</p>
@@ -70,7 +74,10 @@
 		/>
 	</CardContent>
 	<CardFooter>
-		<Button type="submit" class="w-full">Continue</Button>
+		<Button type="submit" aria-disabled={busy} aria-busy={busy} class="w-full">
+			{#if busy}<Spinner />{/if}
+			{busy ? 'Checking…' : 'Continue'}
+		</Button>
 		<p class="flex flex-wrap items-center gap-x-1 text-sm text-muted">
 			Already have an account?
 			<Button variant="link" href={resolve(ROUTES.login)} class="min-h-10 px-0 text-sm">

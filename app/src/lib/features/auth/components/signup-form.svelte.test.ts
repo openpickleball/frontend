@@ -4,12 +4,17 @@ import { render } from 'vitest-browser-svelte';
 import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { PlaceSearch, type Place } from '#lib/features/places/index.js';
 import { session } from '../session.svelte.js';
-import { checkSignupAge, signup } from '../services.js';
+import { checkSignupAge, checkSignupPassword, signup } from '../services.js';
 import SignupForm from './signup-form.svelte';
 
-vi.mock('../services.js', () => ({ signup: vi.fn(), checkSignupAge: vi.fn() }));
+vi.mock('../services.js', () => ({
+	signup: vi.fn(),
+	checkSignupAge: vi.fn(),
+	checkSignupPassword: vi.fn()
+}));
 const mockedSignup = vi.mocked(signup);
 const mockedCheckAge = vi.mocked(checkSignupAge);
+const mockedCheckPassword = vi.mocked(checkSignupPassword);
 
 type SearchFn = (text: string, options?: { signal?: AbortSignal }) => Promise<Place[]>;
 
@@ -42,11 +47,13 @@ beforeEach(() => {
 	session.apply({ status: 'signed_out' });
 	search = vi.fn<SearchFn>(async () => [RIVERBEND]);
 	mockedCheckAge.mockResolvedValue(undefined);
+	mockedCheckPassword.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
 	mockedSignup.mockReset();
 	mockedCheckAge.mockReset();
+	mockedCheckPassword.mockReset();
 	session.reset();
 });
 
@@ -156,6 +163,7 @@ describe('SignupForm, screen 1', () => {
 		await expect.element(heading(screen, 'Create account')).toBeVisible();
 		expect(mockedSignup).not.toHaveBeenCalled();
 		expect(mockedCheckAge).not.toHaveBeenCalled();
+		expect(mockedCheckPassword).not.toHaveBeenCalled();
 	});
 
 	it('checks the email and the password length', async () => {
@@ -203,6 +211,52 @@ describe('SignupForm, screen 1', () => {
 		await expect.poll(() => document.title).toBe('About you · OPEN Pickleball');
 		expect(mockedSignup).not.toHaveBeenCalled();
 		expect(mockedCheckAge).not.toHaveBeenCalled();
+		// The confirmation is a typo guard and is not sent.
+		expect(mockedCheckPassword).toHaveBeenCalledExactlyOnceWith({
+			email: EMAIL,
+			password: PASSWORD
+		});
+	});
+
+	it('keeps the player on screen 1 when the backend refuses the password', async () => {
+		mockedCheckPassword.mockRejectedValue(
+			appError({ fields: { password: ['This password is too common.'] } })
+		);
+		const screen = await open();
+		await account(screen);
+
+		await expect.element(screen.getByText('This password is too common.')).toBeVisible();
+		const password = screen.getByLabelText('Password', { exact: true });
+		await expect.element(password).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(password).toHaveFocus();
+		await expect.element(heading(screen, 'Create account')).toBeVisible();
+	});
+
+	it('shows the pending state while the password check runs', async () => {
+		let pass = () => {};
+		mockedCheckPassword.mockReturnValue(new Promise<void>((resolve) => (pass = resolve)));
+		const screen = await open();
+		await account(screen);
+
+		const checking = screen.getByRole('button', { name: 'Checking…' });
+		await expect.element(checking).toHaveAttribute('aria-busy', 'true');
+		await expect.element(checking).toHaveAttribute('aria-disabled', 'true');
+		// A second press while it waits sends nothing more.
+		(checking.element() as HTMLButtonElement).click();
+		expect(mockedCheckPassword).toHaveBeenCalledTimes(1);
+
+		pass();
+		await expect.element(heading(screen, 'About you')).toBeVisible();
+	});
+
+	it('moves on when the check fails for another reason: sign-up checks again', async () => {
+		mockedCheckPassword.mockRejectedValue(
+			appError({ kind: 'network', status: 0, code: 'network', message: 'No connection.' })
+		);
+		const screen = await open();
+		await account(screen);
+
+		await expect.element(heading(screen, 'About you')).toBeVisible();
 	});
 
 	it('keeps every value on Back and on returning', async () => {

@@ -1316,6 +1316,91 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/_allauth/{client}/v1/auth/signup/password-check': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Check the signup password
+		 * @description Checks only a password, with signup's password rules, before the app asks
+		 *     for the age or any other detail. The email address is optional and is used
+		 *     only to check that the password is not too similar to it: it is never
+		 *     validated or looked up, so the answer is the same whether or not an
+		 *     account has it.
+		 *
+		 *     A password that passes gets a success answer. One that fails gets a 400
+		 *     with one error per failed rule, each with `param` `password` and Django's
+		 *     message and code (`password_too_short`, `password_too_common`,
+		 *     `password_entirely_numeric`, `password_too_similar`), the same errors
+		 *     signup gives for that password and address. A missing, empty, or
+		 *     non-string password gets a field error on `password`.
+		 *
+		 *     Nothing is written to the session and no email is sent. A session whose
+		 *     signup was refused gets signup's fixed refusal (`signup_refused`). The
+		 *     check counts against signup's rate limit.
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody: {
+				content: {
+					'application/json': {
+						/** @description Optional. Used only for the similarity rule, never validated or looked up. */
+						email?: string;
+						password: string;
+					};
+				};
+			};
+			responses: {
+				200: components['responses']['StatusOK'];
+				/** @description One error per failed password rule, a missing or malformed password (a field error), or the fixed refusal for a session whose signup was refused. */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ErrorResponse'];
+					};
+				};
+				/** @description Forbidden, when signup is closed. */
+				403: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ForbiddenResponse'];
+					};
+				};
+				/** @description Conflict, when the session is signed in. */
+				409: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ConflictResponse'];
+					};
+				};
+				429: components['responses']['TooManyRequests'];
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {

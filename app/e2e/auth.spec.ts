@@ -123,18 +123,20 @@ test('an under-13 birth year gets the refusal at the age check', async ({ page }
 	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
 });
 
-test('a server error on the account fields goes back to screen 1', async ({ page }) => {
-	// The client accepts this password. The backend refuses it as too common. (The client and the
-	// mocks share one email check, so a server-only email error cannot be reached.)
+test('a password the backend refuses stays on screen 1, before About you', async ({ page }) => {
+	// The client accepts this password. The backend refuses it as too common at Continue.
 	await page.goto('/account/signup');
-	await fillSignup(page, 'new.player@example.com', 'password');
-	await page.getByRole('button', { name: 'Create account' }).click();
-	await expect(page.getByRole('heading', { level: 1, name: 'Create account' })).toBeVisible();
+	await page.getByLabel('Email').fill('new.player@example.com');
+	await page.getByLabel('Password', { exact: true }).fill('password');
+	await page.getByLabel('Confirm password').fill('password');
+	await page.getByRole('button', { name: 'Continue' }).click();
+	await expect(page.getByText('This password is too common.')).toBeVisible();
 	await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute(
 		'aria-invalid',
 		'true'
 	);
-	await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
+	await expect(page.getByRole('heading', { level: 1, name: 'Create account' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1, name: 'About you' })).toHaveCount(0);
 });
 
 test('a city chosen from the suggestions signs up', async ({ page }) => {
@@ -383,25 +385,23 @@ for (const scheme of ['dark', 'light'] as const) {
 		// Sign up with a weak password, then check your email.
 		await page.goto('/account/signup');
 		await expectNoViolations(page);
-		await fillSignupAccount(page, 'new.player@example.com', 'password');
+		// The backend refuses the weak password at Continue, on screen 1.
+		await page.getByLabel('Email').fill('new.player@example.com');
+		await page.getByLabel('Password', { exact: true }).fill('password');
+		await page.getByLabel('Confirm password').fill('password');
+		await page.getByRole('button', { name: 'Continue' }).click();
+		await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute(
+			'aria-invalid',
+			'true'
+		);
+		await expectNoViolations(page);
+		await fillSignupAccount(page, 'new.player@example.com', 'a-long-enough-pass');
 		// Screen 2 after the age check. Not before: axe reads the radios and Create account as low
 		// contrast while the fieldset locks them (WCAG exempts inactive controls, axe does not see it).
 		await submitAgeCheck(page);
 		await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
 		await expectNoViolations(page);
 		await fillSignupDetails(page);
-		await page.getByRole('button', { name: 'Create account' }).click();
-		await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute(
-			'aria-invalid',
-			'true'
-		);
-		await expectNoViolations(page);
-		await page.getByLabel('Password', { exact: true }).fill('a-long-enough-pass');
-		await page.getByLabel('Confirm password').fill('a-long-enough-pass');
-		await page.getByRole('button', { name: 'Continue' }).click();
-		// Back on screen 2, with the details kept from before.
-		await expect(page.getByRole('heading', { level: 1, name: 'About you' })).toBeVisible();
-		await expect(page.getByLabel('First name')).not.toHaveValue('');
 		await page.getByRole('button', { name: 'Create account' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
 		await expectNoViolations(page);

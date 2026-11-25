@@ -762,6 +762,86 @@
 				},
 				"parameters": [{ "$ref": "#/components/parameters/Client" }]
 			}
+		},
+		"/_allauth/{client}/v1/auth/signup/password-check": {
+			"post": {
+				"tags": ["Authentication: Account"],
+				"summary": "Check the signup password",
+				"description": "Checks only a password, with signup's password rules, before the app asks\nfor the age or any other detail. The email address is optional and is used\nonly to check that the password is not too similar to it: it is never\nvalidated or looked up, so the answer is the same whether or not an\naccount has it.\n\nA password that passes gets a success answer. One that fails gets a 400\nwith one error per failed rule, each with `param` `password` and Django's\nmessage and code (`password_too_short`, `password_too_common`,\n`password_entirely_numeric`, `password_too_similar`), the same errors\nsignup gives for that password and address. A missing, empty, or\nnon-string password gets a field error on `password`.\n\nNothing is written to the session and no email is sent. A session whose\nsignup was refused gets signup's fixed refusal (`signup_refused`). The\ncheck counts against signup's rate limit.\n",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"email": {
+										"type": "string",
+										"description": "Optional. Used only for the similarity rule, never validated or looked up."
+									},
+									"password": { "type": "string" }
+								},
+								"required": ["password"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": { "$ref": "#/components/responses/StatusOK" },
+					"400": {
+						"description": "One error per failed password rule, a missing or malformed password (a field error), or the fixed refusal for a session whose signup was refused.",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorResponse" },
+								"examples": {
+									"password_rules": {
+										"value": {
+											"status": 400,
+											"errors": [
+												{
+													"message": "This password is too common.",
+													"code": "password_too_common",
+													"param": "password"
+												},
+												{
+													"message": "This password is entirely numeric.",
+													"code": "password_entirely_numeric",
+													"param": "password"
+												}
+											]
+										}
+									},
+									"signup_refused": {
+										"value": {
+											"status": 400,
+											"errors": [
+												{
+													"message": "We can't create an account with these details.",
+													"code": "signup_refused"
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden, when signup is closed.",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/ForbiddenResponse" } }
+						}
+					},
+					"409": {
+						"description": "Conflict, when the session is signed in.",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/ConflictResponse" } }
+						}
+					},
+					"429": { "$ref": "#/components/responses/TooManyRequests" }
+				},
+				"parameters": [{ "$ref": "#/components/parameters/Client" }]
+			}
 		}
 	},
 	"components": {

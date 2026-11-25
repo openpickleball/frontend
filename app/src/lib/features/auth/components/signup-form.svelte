@@ -6,7 +6,7 @@
 	import { asAppError, issueMessages, serverMessages } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { session } from '../session.svelte.js';
-	import { checkSignupAge, signup } from '../services.js';
+	import { checkSignupAge, checkSignupPassword, signup } from '../services.js';
 	import CheckEmail from './check-email.svelte';
 	import SignupAccountStep from './signup-account-step.svelte';
 	import SignupDetailsStep, { type SignupValues } from './signup-details-step.svelte';
@@ -84,8 +84,21 @@
 	function continueToDetails(event: SubmitEvent) {
 		return form.submit(event, {
 			parse: () => signupAccountSchema.safeParse(values),
-			run: () => goTo('details'),
-			onError: () => {}
+			run: async (data) => {
+				// The backend's password rules (too common, all numbers, like the email) run here,
+				// so the player hears about them before filling in screen 2.
+				await checkSignupPassword(data);
+				await goTo('details');
+			},
+			onError: (_error, fields) => {
+				if (ACCOUNT_FIELDS.some((name) => fields[name])) {
+					form.showFields(fields);
+					return;
+				}
+				// Offline, throttled, or a backend without the check: sign-up checks the password
+				// again, so let the player go on.
+				void goTo('details');
+			}
 		});
 	}
 
@@ -179,7 +192,12 @@
 {:else}
 	<Card aria-labelledby="signup-title">
 		{#if step === 'account'}
-			<SignupAccountStep bind:values errors={form.errors} oncontinue={continueToDetails} />
+			<SignupAccountStep
+				bind:values
+				errors={form.errors}
+				busy={form.busy}
+				oncontinue={continueToDetails}
+			/>
 		{:else}
 			<SignupDetailsStep
 				bind:values

@@ -175,6 +175,24 @@ export async function checkSignupAge(
 	if (result.response.status !== 200) fail(result);
 }
 
+/**
+ * Check a new password with the backend's password rules before the rest of sign-up. Resolves
+ * when it passes. A password the rules refuse is an `AppError` with a message on `fields.password`.
+ * Nothing is stored and no email is sent: sign-up checks the password again.
+ */
+export async function checkSignupPassword(
+	{ email, password }: Credentials,
+	{ api = appApi }: ApiOption = {}
+): Promise<void> {
+	const result = await settle(
+		api.allauth.POST('/_allauth/{client}/v1/auth/signup/password-check', {
+			params: allauthParams,
+			body: { email, password }
+		})
+	);
+	if (result.response.status !== 200) fail(result);
+}
+
 const signOutListeners = new Set<(email: string | null) => void>();
 
 /**

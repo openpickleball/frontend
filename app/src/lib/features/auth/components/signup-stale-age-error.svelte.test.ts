@@ -6,7 +6,11 @@ import { session } from '../session.svelte.js';
 import { checkSignupAge, signup } from '../services.js';
 import SignupForm from './signup-form.svelte';
 
-vi.mock('../services.js', () => ({ signup: vi.fn(), checkSignupAge: vi.fn() }));
+vi.mock('../services.js', () => ({
+	signup: vi.fn(),
+	checkSignupAge: vi.fn(),
+	checkSignupPassword: vi.fn()
+}));
 const mockedCheckAge = vi.mocked(checkSignupAge);
 vi.mocked(signup);
 
