@@ -1,3 +1,4 @@
+import { birthYearSchema } from '#lib/domain/index.js';
 import type { PrivacyKey } from './types.js';
 
 /** The backend's `Player.display_name` max_length, counted after trimming. */
@@ -54,19 +55,20 @@ export type DetailsCheck =
  */
 export function checkDetails(values: DetailValues): DetailsCheck {
 	const errors: Partial<Record<keyof DetailValues, string>> = {};
-	const year = values.birth_year.trim();
 	if (values.birth_month === '') errors.birth_month = 'Enter your birth month.';
-	if (year === '') errors.birth_year = 'Enter your birth year.';
-	else if (!/^\d+$/.test(year)) errors.birth_year = 'Enter a whole number.';
+	// Signup's rule, 1900 to this year: a future year would get the backend's age refusal,
+	// which holds for the rest of the session.
+	const year = birthYearSchema.safeParse(values.birth_year);
+	if (!year.success) errors.birth_year = year.error.issues[0]?.message ?? 'Enter your birth year.';
 	if (values.gender_division === '') errors.gender_division = 'Choose a gender division.';
 	const name = checkDisplayName(values.display_name);
 	if (!name.ok) errors.display_name = name.message;
-	if (Object.keys(errors).length > 0 || !name.ok) return { ok: false, errors };
+	if (Object.keys(errors).length > 0 || !name.ok || !year.success) return { ok: false, errors };
 	return {
 		ok: true,
 		value: {
 			birth_month: Number(values.birth_month),
-			birth_year: Number(year),
+			birth_year: year.data,
 			gender_division: values.gender_division,
 			display_name: name.value
 		}
