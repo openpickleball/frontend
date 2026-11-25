@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError } from '#lib/api/index.js';
 import { buildCode, parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
-import { createMyCode, type MyCode } from './my-code.svelte.js';
+import { createMyCode, type MyCode, type MyCodeDeps } from './my-code.svelte.js';
+import type { CreateMyPlayerResult, PlayerCreateIn } from './services.js';
 import { createCodeStore, storageKey, type CodeStorage } from './storage.js';
 import type { MyPlayer } from './types.js';
 
@@ -38,7 +39,7 @@ describe('myCode.rename', () => {
 
 	it('leaves a code entered on this device without a name', async () => {
 		const mine = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => 'a@example.com',
 			store: createCodeStore(() => memoryStorage())
 		});
@@ -89,7 +90,7 @@ describe('myCode without me/player', () => {
 		storage = memoryStorage();
 		email = 'a@example.com';
 		mine = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => email,
 			store: createCodeStore(() => storage)
 		});
@@ -112,7 +113,7 @@ describe('myCode without me/player', () => {
 
 		// A later visit finds it without asking.
 		const later = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => 'a@example.com',
 			store: createCodeStore(() => storage)
 		});
@@ -135,7 +136,7 @@ describe('myCode without me/player', () => {
 
 		email = 'B@Example.com';
 		const other = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => email,
 			store: createCodeStore(() => storage)
 		});
@@ -188,7 +189,7 @@ describe('myCode without me/player', () => {
 
 	it('reports a failed save on the device', async () => {
 		const broken = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => 'a@example.com',
 			store: createCodeStore(() => ({
 				getItem: () => null,
@@ -211,7 +212,7 @@ describe('myCode reset and server codes', () => {
 		const store = createCodeStore(() => storage);
 		store.write('a@example.com', CODE_A);
 		const mine = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => null,
 			store
 		});
@@ -229,9 +230,9 @@ describe('myCode reset and server codes', () => {
 	});
 
 	it('drops a load that was in flight when reset ran', async () => {
-		let release: (player: MyPlayer | null) => void = () => {};
+		let release: (player: MyPlayer | 'unavailable') => void = () => {};
 		const mine = createMyCode({
-			fetchMyPlayer: () => new Promise<MyPlayer | null>((resolve) => (release = resolve)),
+			fetchMyPlayer: () => new Promise<MyPlayer | 'unavailable'>((resolve) => (release = resolve)),
 			accountEmail: async () => 'a@example.com',
 			store: createCodeStore(() => memoryStorage())
 		});
@@ -271,7 +272,7 @@ describe('myCode reset and server codes', () => {
 
 	it('shows the error state when the account cannot be found out (offline)', async () => {
 		const mine = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => {
 				throw appError('network', null);
 			},
@@ -324,13 +325,13 @@ describe('myCode when me/player fails', () => {
 	});
 
 	it('only the latest load counts', async () => {
-		let release: (player: MyPlayer | null) => void = () => {};
+		let release: (player: MyPlayer | 'unavailable') => void = () => {};
 		let calls = 0;
 		const mine = createMyCode({
 			fetchMyPlayer: () => {
 				calls += 1;
 				return calls === 1
-					? new Promise<MyPlayer | null>((resolve) => (release = resolve))
+					? new Promise<MyPlayer | 'unavailable'>((resolve) => (release = resolve))
 					: Promise.resolve({ code: CODE_B, displayName: 'Second' });
 			},
 			accountEmail: async () => 'a@example.com',
@@ -348,7 +349,7 @@ describe('myCode.forget (sign out)', () => {
 	it('deletes the saved code and forgets the account', async () => {
 		const storage = memoryStorage();
 		const mine = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => 'a@example.com',
 			store: createCodeStore(() => storage)
 		});
@@ -367,7 +368,7 @@ describe('myCode.forget (sign out)', () => {
 		const store = createCodeStore(() => storage);
 		store.write('a@example.com', CODE_A);
 		const mine = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => 'a@example.com',
 			store
 		});
@@ -380,7 +381,7 @@ describe('myCode.forget (sign out)', () => {
 		const store = createCodeStore(() => storage);
 		store.write('b@example.com', CODE_B);
 		const mine = createMyCode({
-			fetchMyPlayer: async () => null,
+			fetchMyPlayer: async () => 'unavailable' as const,
 			accountEmail: async () => 'a@example.com',
 			store
 		});
@@ -393,5 +394,289 @@ describe('codes in these tests', () => {
 	it('are valid player codes', () => {
 		expect(parsePlayerCode(CODE_A).ok).toBe(true);
 		expect(parsePlayerCode(CODE_B).ok).toBe(true);
+	});
+});
+
+describe('myCode creates the player when there is none (backend#124)', () => {
+	const DETAILS: PlayerCreateIn = {
+		display_name: 'Fern Mock',
+		birth_year: 1990,
+		birth_month: 6,
+		gender_division: 'womens'
+	};
+	let storage: ReturnType<typeof memoryStorage>;
+	let gets: number;
+	let posts: PlayerCreateIn[];
+
+	/** A MyCode whose GET answers `found` in turn (the last one repeats) and POST answers `create`. */
+	function make(
+		found: (MyPlayer | 'none' | 'unavailable' | AppError)[],
+		create: (body: PlayerCreateIn) => Promise<CreateMyPlayerResult>,
+		deps: Partial<MyCodeDeps> = {}
+	): MyCode {
+		return createMyCode({
+			fetchMyPlayer: async () => {
+				const answer = found[Math.min(gets, found.length - 1)];
+				gets += 1;
+				if (answer instanceof AppError) throw answer;
+				return answer;
+			},
+			createMyPlayer: (body = {}) => {
+				posts.push(body);
+				return create(body);
+			},
+			accountEmail: async () => 'a@example.com',
+			store: createCodeStore(() => storage),
+			...deps
+		});
+	}
+
+	beforeEach(() => {
+		storage = memoryStorage();
+		gets = 0;
+		posts = [];
+	});
+
+	it('posts {} once on a 404 and shows the created code with no prompt', async () => {
+		const mine = make(['none'], async () => ({ kind: 'created', player: SERVER_PLAYER }));
+		await mine.load();
+		expect(posts).toEqual([{}]);
+		expect(mine.status).toBe('ready');
+		expect(mine.source).toBe('server');
+		expect(mine.code).toBe(CODE_A);
+		expect(mine.displayName).toBe('Sample Player');
+		expect(mine.prompting).toBe(false);
+	});
+
+	it('does not post when the account has a player', async () => {
+		const mine = make([SERVER_PLAYER], async () => ({ kind: 'conflict' }));
+		await mine.load();
+		expect(posts).toEqual([]);
+	});
+
+	it('reads the player again after a 409 and shows it', async () => {
+		const mine = make(['none', SERVER_PLAYER], async () => ({ kind: 'conflict' }));
+		await mine.load();
+		expect(gets).toBe(2);
+		expect(posts).toHaveLength(1);
+		expect(mine.status).toBe('ready');
+		expect(mine.code).toBe(CODE_A);
+	});
+
+	it('is an error when there is still no player after a 409', async () => {
+		const mine = make(['none'], async () => ({ kind: 'conflict' }));
+		await mine.load();
+		expect(posts).toHaveLength(1);
+		expect(mine.status).toBe('error');
+	});
+
+	it('asks for the details on a 422, without showing errors yet', async () => {
+		const mine = make(['none'], async () => ({
+			kind: 'needs-details',
+			fields: { display_name: 'Enter a display name.' }
+		}));
+		await mine.load();
+		expect(mine.status).toBe('needs-details');
+		expect(mine.detailErrors).toEqual({});
+		expect(mine.prompting).toBe(false);
+	});
+
+	it('posts the details and shows the code', async () => {
+		let answer: CreateMyPlayerResult = { kind: 'needs-details', fields: {} };
+		const mine = make(['none'], async () => answer);
+		await mine.load();
+		answer = { kind: 'created', player: SERVER_PLAYER };
+		await mine.submitDetails(DETAILS);
+		expect(posts).toEqual([{}, DETAILS]);
+		expect(mine.status).toBe('ready');
+		expect(mine.code).toBe(CODE_A);
+	});
+
+	it('shows each field error from a 422, and other errors as a problem', async () => {
+		let answer: CreateMyPlayerResult = { kind: 'needs-details', fields: {} };
+		const mine = make(['none'], async () => answer);
+		await mine.load();
+		answer = {
+			kind: 'needs-details',
+			fields: { display_name: 'Too long.', birth_year: 'Too early.', city: 'Bad city.' }
+		};
+		await mine.submitDetails(DETAILS);
+		expect(mine.status).toBe('needs-details');
+		expect(mine.detailErrors).toEqual({ display_name: 'Too long.', birth_year: 'Too early.' });
+		expect(mine.detailProblem).toBe('Bad city.');
+	});
+
+	it('is refused on the age refusal, at load and on submit', async () => {
+		const refused = make(['none'], async () => ({ kind: 'refused' }));
+		await refused.load();
+		expect(refused.status).toBe('refused');
+		expect(refused.prompting).toBe(false);
+
+		let answer: CreateMyPlayerResult = { kind: 'needs-details', fields: {} };
+		const mine = make(['none'], async () => answer);
+		await mine.load();
+		answer = { kind: 'refused' };
+		await mine.submitDetails(DETAILS);
+		expect(mine.status).toBe('refused');
+	});
+
+	it('falls back to the device prompt when the backend has no create (404 or 405)', async () => {
+		const mine = make(['none'], async () => ({ kind: 'unavailable' }));
+		await mine.load();
+		expect(mine.status).toBe('needs-entry');
+	});
+
+	it('falls back to a device code when the backend has no create', async () => {
+		createCodeStore(() => storage).write('a@example.com', CODE_B);
+		const mine = make(['none'], async () => ({ kind: 'unavailable' }));
+		await mine.load();
+		expect(mine.status).toBe('ready');
+		expect(mine.source).toBe('device');
+		expect(mine.code).toBe(CODE_B);
+	});
+
+	it('does not post when GET me/player is a 405', async () => {
+		const mine = make(['unavailable'], async () => ({ kind: 'conflict' }));
+		await mine.load();
+		expect(posts).toEqual([]);
+		expect(mine.status).toBe('needs-entry');
+	});
+
+	it('is signed out on a 401 from the create', async () => {
+		const mine = make(['none'], async () => {
+			throw appError('unauthenticated', 401);
+		});
+		await mine.load();
+		expect(mine.status).toBe('signed-out');
+	});
+
+	it('is unverified on a 403 from the create', async () => {
+		const mine = make(['none'], async () => {
+			throw appError('forbidden', 403);
+		});
+		await mine.load();
+		expect(mine.status).toBe('unverified');
+		expect(mine.code).toBeNull();
+	});
+
+	it('is an error on a 5xx, even with a code saved on the device', async () => {
+		createCodeStore(() => storage).write('a@example.com', CODE_B);
+		const fromCreate = make(['none'], async () => {
+			throw appError('server', 500);
+		});
+		await fromCreate.load();
+		expect(fromCreate.status).toBe('error');
+
+		const fromRead = make([appError('server', 503)], async () => ({ kind: 'conflict' }));
+		await fromRead.load();
+		expect(fromRead.status).toBe('error');
+	});
+
+	it('is an error on a network failure of the create when nothing is saved', async () => {
+		const mine = make(['none'], async () => {
+			throw appError('network', null);
+		});
+		await mine.load();
+		expect(mine.status).toBe('error');
+	});
+
+	it('keeps the form with a problem when a submit fails to reach the server', async () => {
+		let fail = false;
+		const mine = make(['none'], async () => {
+			if (fail)
+				throw new AppError({
+					kind: 'network',
+					status: null,
+					code: 'network_error',
+					message: 'No connection.',
+					fields: {}
+				});
+			return { kind: 'needs-details', fields: {} };
+		});
+		await mine.load();
+		fail = true;
+		await mine.submitDetails(DETAILS);
+		expect(mine.status).toBe('needs-details');
+		expect(mine.detailProblem).toBe('No connection.');
+	});
+
+	it('is unverified when a submit gets a 403', async () => {
+		let error: AppError | null = null;
+		const mine = make(['none'], async () => {
+			if (error) throw error;
+			return { kind: 'needs-details', fields: {} };
+		});
+		await mine.load();
+		error = appError('forbidden', 403);
+		await mine.submitDetails(DETAILS);
+		expect(mine.status).toBe('unverified');
+	});
+
+	it('sends at most one POST in flight for two loads at once', async () => {
+		let release: (result: CreateMyPlayerResult) => void = () => {};
+		const mine = make(
+			['none'],
+			() => new Promise<CreateMyPlayerResult>((resolve) => (release = resolve))
+		);
+		const first = mine.load();
+		const second = mine.load();
+		await vi.waitFor(() => expect(posts).toHaveLength(1));
+		await Promise.resolve();
+		release({ kind: 'created', player: SERVER_PLAYER });
+		await Promise.all([first, second]);
+		expect(posts).toHaveLength(1);
+		expect(mine.status).toBe('ready');
+		expect(mine.code).toBe(CODE_A);
+	});
+
+	it('posts again on a later load once the first create has answered', async () => {
+		const mine = make(['none'], async () => ({ kind: 'needs-details', fields: {} }));
+		await mine.load();
+		await mine.load();
+		expect(posts).toHaveLength(2);
+	});
+
+	it('never lets a late create overwrite a newer load', async () => {
+		let release: (result: CreateMyPlayerResult) => void = () => {};
+		let calls = 0;
+		const mine = make(['none', { code: CODE_B, displayName: 'Second' }], (body) => {
+			calls += 1;
+			void body;
+			return new Promise<CreateMyPlayerResult>((resolve) => (release = resolve));
+		});
+		const first = mine.load();
+		await vi.waitFor(() => expect(calls).toBe(1));
+		const second = mine.load();
+		await second;
+		release({ kind: 'created', player: SERVER_PLAYER });
+		await first;
+		expect(mine.code).toBe(CODE_B);
+	});
+
+	it('clears the details state on reset, and never reuses the old create', async () => {
+		const mine = make(['none'], async () => ({ kind: 'needs-details', fields: {} }));
+		await mine.load();
+		await mine.submitDetails({});
+		mine.reset();
+		expect(mine.status).toBe('idle');
+		expect(mine.detailErrors).toEqual({});
+		expect(mine.detailProblem).toBeNull();
+
+		const releases: ((result: CreateMyPlayerResult) => void)[] = [];
+		posts = [];
+		const waiting = make(
+			['none'],
+			() => new Promise<CreateMyPlayerResult>((resolve) => releases.push(resolve))
+		);
+		const pending = waiting.load();
+		await vi.waitFor(() => expect(posts).toHaveLength(1));
+		waiting.reset();
+		const next = waiting.load('b@example.com');
+		await vi.waitFor(() => expect(posts).toHaveLength(2));
+		releases[1]({ kind: 'created', player: SERVER_PLAYER });
+		releases[0]({ kind: 'refused' });
+		await Promise.all([pending, next]);
+		expect(waiting.status).toBe('ready');
+		expect(waiting.code).toBe(CODE_A);
 	});
 });

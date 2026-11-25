@@ -4,7 +4,13 @@ import { AppError, allauthParams, createApi, type Api } from '#lib/api/index.js'
 import { MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
 import { mockStore } from '#lib/mocks/store.js';
-import { fetchMyPlayer, fetchMySettings, updateMySettings } from './services.js';
+import {
+	AGE_REFUSAL_MESSAGE,
+	createMyPlayer,
+	fetchMyPlayer,
+	fetchMySettings,
+	updateMySettings
+} from './services.js';
 
 useMockApi();
 
@@ -46,6 +52,19 @@ async function signIn(email: string) {
 	calls.length = 0;
 }
 
+const FRESH = 'fresh@example.com';
+
+/** Sign in as a verified account with no player. */
+async function signInFresh() {
+	mockStore.state.accounts.push({
+		email: FRESH,
+		password: MOCK_PASSWORD,
+		verified: true,
+		active: true
+	});
+	await signIn(FRESH);
+}
+
 beforeEach(async () => {
 	const browser = browserApi();
 	api = browser.api;
@@ -63,15 +82,35 @@ describe('fetchMyPlayer', () => {
 		expect(calls.map((c) => c.call)).toEqual(['GET /api/v1/me/player']);
 	});
 
-	it('is null for an account with no player (404)', async () => {
-		mockStore.state.accounts.push({
-			email: 'fresh@example.com',
-			password: MOCK_PASSWORD,
-			verified: true,
-			active: true
-		});
-		await signIn('fresh@example.com');
-		expect(await fetchMyPlayer({ api })).toBeNull();
+	it("is 'none' for an account with no player (404)", async () => {
+		await signInFresh();
+		expect(await fetchMyPlayer({ api })).toBe('none');
+	});
+
+	it("is 'unavailable' when the backend has no me/player (405)", async () => {
+		await signIn(VERIFIED_EMAIL);
+		server.use(
+			http.get('*/api/v1/me/player', () => new HttpResponse(null, { status: 405 }), {
+				once: true
+			})
+		);
+		expect(await fetchMyPlayer({ api })).toBe('unavailable');
+	});
+
+	it('throws a server error for a code that does not parse', async () => {
+		await signIn(VERIFIED_EMAIL);
+		server.use(
+			http.get(
+				'*/api/v1/me/player',
+				() =>
+					HttpResponse.json({
+						...mockStore.myPlayerOut(mockStore.playerByCode(tamsin.code)!),
+						code: '???'
+					}),
+				{ once: true }
+			)
+		);
+		await expect(fetchMyPlayer({ api })).rejects.toMatchObject({ kind: 'server' });
 	});
 
 	it('throws a 401 when nobody is signed in', async () => {
@@ -147,5 +186,148 @@ describe('updateMySettings', () => {
 		await expect(refused).rejects.toBeInstanceOf(AppError);
 		await expect(refused).rejects.toMatchObject({ status: 422 });
 		expect(mockStore.playerByCode(tamsin.code)?.displayName).toBe(tamsin.displayName);
+	});
+});
+
+describe('createMyPlayer', () => {
+	const details = {
+		display_name: 'Fern Mock',
+		birth_year: 1990,
+		birth_month: 6,
+		gender_division: 'womens'
+	};
+
+	/** A ninja error answer for POST me/player. */
+	function answerPost(status: number, errors: unknown[] = []) {
+		server.use(
+			http.post(
+				'*/api/v1/me/player',
+				() => HttpResponse.json({ code: 'error', message: 'Error.', errors }, { status }),
+				{ once: true }
+			)
+		);
+	}
+
+	it('posts {} by default and returns the created player from the hold', async () => {
+		mockStore.holdSignup(FRESH, {
+			birthYear: 1990,
+			birthMonth: 6,
+			genderDivision: 'womens',
+			firstName: 'Fern',
+			lastName: 'Mock',
+			city: '',
+			region: ''
+		});
+		await signInFresh();
+		const result = await createMyPlayer(undefined, { api });
+		expect(result).toEqual({
+			kind: 'created',
+			player: { code: mockStore.playerOfAccount(FRESH)?.code, displayName: 'Fern Mock' }
+		});
+		expect(calls).toEqual([{ call: 'POST /api/v1/me/player', body: {} }]);
+	});
+
+	it('posts the details it is given', async () => {
+		await signInFresh();
+		const result = await createMyPlayer(details, { api });
+		expect(result.kind).toBe('created');
+		expect(calls).toEqual([{ call: 'POST /api/v1/me/player', body: details }]);
+	});
+
+	it('is a conflict when the account already has a player (409)', async () => {
+		await signIn(VERIFIED_EMAIL);
+		expect(await createMyPlayer(undefined, { api })).toEqual({ kind: 'conflict' });
+	});
+
+	it('needs details, with a message per field and no body. prefix, when they are missing', async () => {
+		await signInFresh();
+		expect(await createMyPlayer(undefined, { api })).toEqual({
+			kind: 'needs-details',
+			fields: {
+				display_name: 'Enter a display name.',
+				birth_year: 'Enter your birth year.',
+				birth_month: 'Enter your birth month.',
+				gender_division: 'Choose a gender division.'
+			}
+		});
+	});
+
+	it('needs details for any other field error, such as a made-up division', async () => {
+		await signInFresh();
+		expect(await createMyPlayer({ ...details, gender_division: 'other' }, { api })).toEqual({
+			kind: 'needs-details',
+			fields: { gender_division: 'Choose one of the listed options.' }
+		});
+	});
+
+	it('is refused for the age refusal, and for every later create in the session', async () => {
+		await signInFresh();
+		const child = { ...details, birth_year: new Date().getFullYear() - 5 };
+		expect(await createMyPlayer(child, { api })).toEqual({ kind: 'refused' });
+		expect(await createMyPlayer(details, { api })).toEqual({ kind: 'refused' });
+	});
+
+	it('matches the backend refusal text', () => {
+		expect(AGE_REFUSAL_MESSAGE).toBe("This birth year and month can't be used.");
+	});
+
+	it('is not refused for another birth month error', async () => {
+		await signInFresh();
+		answerPost(422, [{ field: 'body.birth_month', code: 'invalid', message: 'Something else.' }]);
+		expect(await createMyPlayer(details, { api })).toEqual({
+			kind: 'needs-details',
+			fields: { birth_month: 'Something else.' }
+		});
+	});
+
+	it.each([404, 405])("is 'unavailable' for a %i (an older backend)", async (status) => {
+		await signInFresh();
+		server.use(
+			http.post('*/api/v1/me/player', () => new HttpResponse(null, { status }), { once: true })
+		);
+		expect(await createMyPlayer(undefined, { api })).toEqual({ kind: 'unavailable' });
+	});
+
+	it('throws a 401 when nobody is signed in', async () => {
+		await expect(createMyPlayer(undefined, { api })).rejects.toMatchObject({
+			kind: 'unauthenticated'
+		});
+	});
+
+	it('throws a forbidden error for an unverified email (403)', async () => {
+		await signInFresh();
+		answerPost(403);
+		await expect(createMyPlayer(undefined, { api })).rejects.toMatchObject({
+			kind: 'forbidden',
+			status: 403
+		});
+	});
+
+	it('throws a server error for a 500', async () => {
+		await signInFresh();
+		answerPost(500);
+		await expect(createMyPlayer(undefined, { api })).rejects.toMatchObject({ kind: 'server' });
+	});
+
+	it('throws a network error when there is no answer', async () => {
+		await signInFresh();
+		server.use(http.post('*/api/v1/me/player', () => HttpResponse.error(), { once: true }));
+		await expect(createMyPlayer(undefined, { api })).rejects.toMatchObject({ kind: 'network' });
+	});
+
+	it('throws a server error for a created code that does not parse', async () => {
+		await signInFresh();
+		server.use(
+			http.post(
+				'*/api/v1/me/player',
+				() =>
+					HttpResponse.json(
+						{ ...mockStore.myPlayerOut(mockStore.playerByCode(tamsin.code)!), code: '???' },
+						{ status: 201 }
+					),
+				{ once: true }
+			)
+		);
+		await expect(createMyPlayer(undefined, { api })).rejects.toMatchObject({ kind: 'server' });
 	});
 });

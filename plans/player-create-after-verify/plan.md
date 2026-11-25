@@ -67,7 +67,7 @@ All paths are under `app/` unless they start with `../`.
 ### Existing tests whose expectation changes
 
 - `services.test.ts`, "fetchMyPlayer > is null for an account with no player (404)": now expects `'none'`.
-- `my-code.test.ts`, the "myCode without me/player" block: the fake `fetchMyPlayer` returns `'unavailable'` instead of `null`. The device behavior stays tested.
+- `my-code.test.ts`, the "myCode without me/player" block, and every other fake `fetchMyPlayer` that returned `null` (rename, reset and forget): it returns `'unavailable'` instead. The device behavior stays tested.
 - `e2e/profile.spec.ts`, "an account with no player yet (me/player answers 404)": the two code prompt tests move under `olderBackend()`. "says name and privacy settings are not available yet" becomes the details form test, with a copy under `olderBackend()`.
 - `e2e/auth.spec.ts`, "sign out removes the saved code and email from this browser": runs under `olderBackend()`.
 - `integration.test.ts`, "accepts a body with a city and region, and a body with neither, and keeps neither": the city and region are now held for the create, so it expects them in `signupHold` (found while building step 2).
