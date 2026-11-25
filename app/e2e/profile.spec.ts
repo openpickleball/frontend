@@ -72,6 +72,19 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(page.getByRole('button', { name: 'Change code' })).toHaveCount(0);
 	});
 
+	test('reads me/player once for the code and once for the settings', async ({ page }) => {
+		const reads: string[] = [];
+		page.on('request', (request) => {
+			if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/v1/me/player') {
+				reads.push(request.url());
+			}
+		});
+		await page.reload();
+		await expect(page.getByRole('switch', { name: 'Match history' })).toBeVisible();
+		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
+		expect(reads).toHaveLength(2);
+	});
+
 	test('copies the code', async ({ page, context }) => {
 		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 		await page.getByRole('button', { name: 'Copy code' }).click();
@@ -253,6 +266,11 @@ test.describe('an account with no player, against an older backend (me/player an
 	test('says name and privacy settings are not available yet, and still offers the data copy', async ({
 		page
 	}) => {
+		// Nothing is said about the settings until the code is known.
+		await expect(page.getByRole('heading', { name: 'Name and privacy' })).toHaveCount(0);
+		await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(rosa.code);
+		await page.getByRole('button', { name: 'Save code' }).click();
+		await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
 		await expect(
 			page.getByText("You can't change your display name or privacy settings in the app yet.")
 		).toBeVisible();
