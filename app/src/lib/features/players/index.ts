@@ -7,9 +7,10 @@
  *   `GET me/player`, and when the account has no player yet it creates one with
  *   `POST me/player` from the details the backend holds from sign-up (backend#124). Read
  *   `myCode.status` and `myCode.code`. `status === 'ready'` means `code` is set.
- *   `'needs-details'` means the backend needs the details again: show `PlayerDetailsForm`
- *   and call `myCode.submitDetails()`. `'refused'` is the age refusal and `'unverified'` an
- *   email that is not verified yet. Only against a backend without the create, or offline, does
+ *   `'needs-details'` means the backend needs the details again: `OwnCodeGate` shows its
+ *   details form, which calls `myCode.submitDetails()`. `'refused'` is the age refusal,
+ *   `'unverified'` an email that is not verified yet, and `'not-created'` a create refused for
+ *   the values held from sign-up. The gate shows each of them. Only against a backend without the create, or offline, does
  *   it fall back to a code the player typed in once and that is kept in localStorage for their
  *   account (Decision Q3): `'needs-entry'` means show `CodeEntry`.
  * - The account email scopes the saved code, so two people on one device never share one.

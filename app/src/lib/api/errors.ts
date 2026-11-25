@@ -70,6 +70,8 @@ export class AppError extends Error implements AppErrorFields {
 const MESSAGES: Record<AppErrorKind, string> = {
 	network: "We can't reach the server. Check your connection and try again.",
 	unauthenticated: "You're not signed in. Sign in, then try again.",
+	// Most 403s are a match permission refusal. `POST me/player` also sends one for an unverified
+	// email; `MyCode` shows its own copy for that one, not this message.
 	forbidden: "You can't do that. Only the players in a match can change it.",
 	csrf: 'Your session check failed. Reload the page, then try again.',
 	not_found: "We can't find that. Check the link, or go back to your matches.",
@@ -139,7 +141,8 @@ function str(value: unknown): string | undefined {
  *
  * Ninja answers `403 {"code":"forbidden","message":"CSRF check Failed"}`. allauth's
  * headless views go through Django's CSRF middleware, which answers with an HTML 403
- * page. Any other JSON 403 (a match permission refusal) is a plain `forbidden`.
+ * page. Any other JSON 403 (a match permission refusal, or `POST me/player` for an email that
+ * is not verified) is a plain `forbidden`.
  *
  * `body` is what openapi-fetch hands back: parsed JSON, or the raw text when the body
  * is not JSON.

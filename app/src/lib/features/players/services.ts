@@ -22,7 +22,7 @@ function isMissing(error: unknown): boolean {
 }
 
 /**
- * The backend's `UNDER_MINIMUM_AGE_MESSAGE` (`apps/players/age.py`): the one message of the age
+ * The backend's `UNDER_MINIMUM_AGE_MESSAGE` (`apps/players/models.py`): the one message of the age
  * refusal, the only thing that tells it from another birth month error. If the backend changes
  * it, the refusal shows as a field error under Month instead.
  */

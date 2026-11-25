@@ -2,8 +2,9 @@ import { parsePlayerCode, type PlayerCode } from '#lib/domain/index.js';
 
 /**
  * Where a typed-in OPEN code is kept on this device (Decision Q3, plans/frontend-v1/plan.md). It is
- * the fallback when `GET me/player` finds no player for the account (a 404), or an older backend
- * has no such endpoint.
+ * the fallback only against a backend older than backend#124, which cannot create the player (a
+ * 405 from `GET me/player`, or a 404 or 405 from `POST me/player`), and when the server can't be
+ * reached.
  *
  * The key has a namespace and a version, and ends in the account's email, so two people who
  * share a device do not see each other's code. Bump `VERSION` if the stored value changes shape.
