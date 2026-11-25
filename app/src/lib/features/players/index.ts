@@ -39,11 +39,10 @@
  *   `sample={false}` shows "Ratings aren't live yet".
  *
  * - `ProfileSettings` is the "Name and privacy" and "Your data" sections. It reads
- *   `GET me/player` and saves with `PATCH me/player` (backend#124), and reads them again once
- *   `myCode` has created the player. Against a backend without them, it says the player can't
- *   change these in the app yet. While the details form or the refusal shows, it shows no
- *   "Name and privacy" section. The backend checks every
- *   change and decides who may make it. Saving a name updates `myCode.displayName`. "Your data"
+ *   `GET me/player` and saves with `PATCH me/player` (backend#124). It reads them once
+ *   `myCode` is ready, and shows no "Name and privacy" section before that. Against a backend
+ *   without them (the code came from this device), it says the player can't change these in
+ *   the app yet. The backend checks every change and decides who may make it. Saving a name updates `myCode.displayName`. "Your data"
  *   says how to ask for a copy, until a data export endpoint exists (backend#39).
  *
  * `services.ts` calls `me/player` (GET, POST and PATCH) with the generated types. Only `fetchRatings` reads
