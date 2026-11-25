@@ -100,7 +100,7 @@ All paths are under `app/` unless they start with `../`.
 
 - [x] Plan approved and committed
 - [x] Implementation, tests and gate
-- [ ] Review, verification and docs
+- [x] Review, verification and docs
 - [ ] PR open and green
 
 ## Decisions
