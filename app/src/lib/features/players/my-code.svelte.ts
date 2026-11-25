@@ -18,6 +18,8 @@ import type { MyPlayer } from './types.js';
  *   sign-up (birth month and year, gender division, display name). Show the details form.
  * - `refused`: the backend refused the age. It holds for the session: show no form and no prompt.
  * - `unverified`: the account's email is not verified yet (a 403 from the create).
+ * - `not-created`: the create on load was refused for its values (a 422 with nothing missing).
+ *   The backend used the details it holds from sign-up, so a form would not help.
  * - `needs-entry`: signed in, against a backend without the create, and no code yet. Show the
  *   one-time prompt.
  * - `signed-out`: nobody is signed in.
@@ -30,6 +32,7 @@ export type MyCodeStatus =
 	| 'needs-details'
 	| 'refused'
 	| 'unverified'
+	| 'not-created'
 	| 'needs-entry'
 	| 'signed-out'
 	| 'error';
@@ -157,7 +160,8 @@ export class MyCode {
 		try {
 			const result = await this.#create(body);
 			if (run !== this.#run) return;
-			if (result.kind === 'needs-details') {
+			// On a submit, any 422 shows its messages on the form.
+			if (result.kind === 'needs-details' || result.kind === 'invalid') {
 				const errors: Record<string, string> = {};
 				const others: string[] = [];
 				for (const [field, message] of Object.entries(result.fields)) {
@@ -267,6 +271,9 @@ export class MyCode {
 				return true;
 			case 'refused':
 				this.#clear('refused');
+				return true;
+			case 'invalid':
+				this.#clear('not-created');
 				return true;
 			case 'unavailable':
 				return false;

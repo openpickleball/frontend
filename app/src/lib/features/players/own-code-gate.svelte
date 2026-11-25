@@ -99,6 +99,15 @@
 	<section class={cn(fallbackClass, 'grid gap-4')}>
 		<p class="max-w-md text-muted">We can't create a player profile with these details.</p>
 	</section>
+{:else if myCode.status === 'not-created'}
+	<section class={cn(fallbackClass, 'grid gap-2')}>
+		<p class="max-w-md text-muted">We can't create your player profile from your signup details.</p>
+		<p class="max-w-md text-muted">
+			Email
+			<Button variant="link" size="inline" href="mailto:info@openpb.org">info@openpb.org</Button>
+			for help.
+		</p>
+	</section>
 {:else if myCode.status === 'unverified'}
 	<section class={cn(fallbackClass, 'grid justify-items-start gap-4')}>
 		<p class="max-w-md text-muted">

@@ -56,8 +56,16 @@ export type CreateMyPlayerResult =
 	| { kind: 'created'; player: MyPlayer }
 	/** The account has a player already (409). Read it again with `fetchMyPlayer`. */
 	| { kind: 'conflict' }
-	/** A 422: a message per field (`display_name`, `birth_year` and so on). */
+	/**
+	 * A 422 naming a missing detail: the backend holds none from sign-up and needs the body.
+	 * A message per field (`display_name`, `birth_year` and so on).
+	 */
 	| { kind: 'needs-details'; fields: Record<string, string> }
+	/**
+	 * A 422 with nothing missing: the values were refused. With details held from sign-up the
+	 * backend ignores the body, so sending other values may not help.
+	 */
+	| { kind: 'invalid'; fields: Record<string, string> }
 	/** The age refusal. It holds for the rest of the session. */
 	| { kind: 'refused' }
 	/** No such endpoint (a 404 or 405): a backend older than backend#124. */
@@ -105,7 +113,8 @@ export async function createMyPlayer(
 			for (const [field, messages] of Object.entries(toAppError(error, response).fields)) {
 				fields[field] = messages.join(' ');
 			}
-			return { kind: 'needs-details', fields };
+			const missing = items.some((item) => item.code === 'missing');
+			return { kind: missing ? 'needs-details' : 'invalid', fields };
 		}
 	}
 	throw toAppError(error, response);
