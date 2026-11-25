@@ -43,7 +43,8 @@ test('signs in, records a singles match and sees it in the list', async ({ page 
 	await signIn(page, email!, password!);
 	await page.goto('/record');
 
-	// An account with no player yet, or an older backend, is asked for its own code once.
+	// The app creates a missing player itself (frontend#205). Only a backend older than #124 asks
+	// for the player's own code, once.
 	const chip = page.getByTestId('chip');
 	const prompt = page.getByRole('heading', { name: 'Enter your OPEN code' });
 	await expect(chip.or(prompt)).toBeVisible();

@@ -138,7 +138,7 @@ The command prints no real data. Do not put real player names, emails or matches
 
 ### Your own OPEN code
 
-The app reads your code from `GET /api/v1/me/player` (backend [#124](https://github.com/openpickleball/backend/issues/124)). The app asks for your code only when the backend is older than #124, or when your account has no player yet. It asks the first time a screen needs it, and keeps the code in that browser until you sign out. With an older backend, use the code the snippet above printed on the same line as your login. An account with no player has no code of its own yet, so don't enter one: sign in with a seeded player instead. Creating the player after signup is frontend#205. For a player you created some other way, print it with:
+The app reads your code from `GET /api/v1/me/player` (backend [#124](https://github.com/openpickleball/backend/issues/124)). When your account has no player yet, the app creates it with `POST /api/v1/me/player`, from the details the backend holds from your signup in that browser session. If the backend holds none (you signed in again, or confirmed your email on another device), the app asks for your birth month and year, gender and a display name, then creates the player. The app asks for your code only when the backend is older than #124. It asks the first time a screen needs it, and keeps the code in that browser until you sign out. With an older backend, use the code the snippet above printed on the same line as your login. In mock mode, `window.__openMock.olderBackend()` in the browser console acts as an older backend until `window.__openMock.reset()`. For a player you created some other way, print its code with:
 
 ```sh
 uv run python manage.py shell -c "
