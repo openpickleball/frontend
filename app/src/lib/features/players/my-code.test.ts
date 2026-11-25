@@ -680,3 +680,42 @@ describe('myCode creates the player when there is none (backend#124)', () => {
 		expect(waiting.code).toBe(CODE_A);
 	});
 });
+
+describe('myCode when the create is refused for its values (a 422 with nothing missing)', () => {
+	const DETAILS: PlayerCreateIn = {
+		display_name: 'Fern Mock',
+		birth_year: 1990,
+		birth_month: 6,
+		gender_division: 'womens'
+	};
+
+	function make(create: () => Promise<CreateMyPlayerResult>): MyCode {
+		return createMyCode({
+			fetchMyPlayer: async () => 'none',
+			createMyPlayer: create,
+			accountEmail: async () => 'a@example.com',
+			store: createCodeStore(() => memoryStorage())
+		});
+	}
+
+	it('says the profile could not be created when POST {} on load gets one, with no form', async () => {
+		const mine = make(async () => ({
+			kind: 'invalid',
+			fields: { display_name: 'Ensure this value has at most 64 characters (it has 70).' }
+		}));
+		await mine.load();
+		expect(mine.status).toBe('not-created');
+		expect(mine.code).toBeNull();
+		expect(mine.prompting).toBe(false);
+	});
+
+	it('shows the field errors on the form when a submit gets one', async () => {
+		let answer: CreateMyPlayerResult = { kind: 'needs-details', fields: {} };
+		const mine = make(async () => answer);
+		await mine.load();
+		answer = { kind: 'invalid', fields: { gender_division: 'Choose one of the listed options.' } };
+		await mine.submitDetails(DETAILS);
+		expect(mine.status).toBe('needs-details');
+		expect(mine.detailErrors).toEqual({ gender_division: 'Choose one of the listed options.' });
+	});
+});

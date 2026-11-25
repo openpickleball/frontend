@@ -181,4 +181,13 @@ describe('OwnCodeGate', () => {
 		await page.getByRole('button', { name: 'Try again' }).click();
 		expect(load).toHaveBeenCalledTimes(1);
 	});
+
+	it('says the player profile could not be created, with no form or prompt', async () => {
+		myCode.status = 'not-created';
+		await render(OwnCodeGate, { children, signedOut: 'x' });
+		await expect
+			.element(page.getByText("We can't create your player profile from your signup details."))
+			.toBeVisible();
+		await expect.element(page.getByRole('textbox')).not.toBeInTheDocument();
+	});
 });

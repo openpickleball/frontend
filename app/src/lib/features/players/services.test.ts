@@ -252,11 +252,23 @@ describe('createMyPlayer', () => {
 		});
 	});
 
-	it('needs details for any other field error, such as a made-up division', async () => {
+	it('is invalid, not needs-details, for a 422 with no missing item', async () => {
 		await signInFresh();
 		expect(await createMyPlayer({ ...details, gender_division: 'other' }, { api })).toEqual({
-			kind: 'needs-details',
+			kind: 'invalid',
 			fields: { gender_division: 'Choose one of the listed options.' }
+		});
+	});
+
+	it('needs details when any item is missing, with every field message', async () => {
+		await signInFresh();
+		answerPost(422, [
+			{ field: 'body.display_name', code: 'missing', message: 'Enter a display name.' },
+			{ field: 'body.birth_year', code: 'min_value', message: 'Too early.' }
+		]);
+		expect(await createMyPlayer(undefined, { api })).toEqual({
+			kind: 'needs-details',
+			fields: { display_name: 'Enter a display name.', birth_year: 'Too early.' }
 		});
 	});
 
@@ -275,7 +287,7 @@ describe('createMyPlayer', () => {
 		await signInFresh();
 		answerPost(422, [{ field: 'body.birth_month', code: 'invalid', message: 'Something else.' }]);
 		expect(await createMyPlayer(details, { api })).toEqual({
-			kind: 'needs-details',
+			kind: 'invalid',
 			fields: { birth_month: 'Something else.' }
 		});
 	});
