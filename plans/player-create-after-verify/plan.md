@@ -28,19 +28,19 @@ All paths are under `app/` unless they start with `../`.
 8. The mock signup holds the details for the new account's email. For an address that is already taken, the hold is bound to no account, unless the session already holds details for that address (then they are kept, as the backend's `_is_held_for_login` does). Logout drops the hold and keeps `signupRefused`. Every age refusal (age check, signup, create) drops the hold.
 9. The mock POST follows `create_my_player` in this order: 403 unverified, 409 (drops the hold), the sticky refusal, then the hold if present, else the body. From the hold, the legal name is "First Last". The display name is the legal name for an adult, or "First L." for ages 13 to 17 (the first last-name character that renders, plus its combining marks). City and region come from the hold, and privacy starts `private` for a minor. A 201 drops the hold; any other failure keeps it.
 10. The mock store's `restore` loads old snapshots that have no hold field, and drops a snapshot whose hold has the wrong shape.
-11. After the player is created, `ProfileSettings` loads the real settings, once. It says "You can't change ... yet" only when that is true: an older backend, with the code from this device. Under any status but `ready` it shows no settings section.
+11. After the player is created, `ProfileSettings` loads the real settings, once. It says "You can't change ... yet" only when that is true: an older backend, with the code from this device. It shows the settings section only for the code it loaded, while that code is `ready` or the gate is checking it again (`loading`). Under any other status it shows none.
 12. Docs that would become false are fixed. The full gate passes.
 
 ## Files that change
 
 - `src/lib/features/players/services.ts`:
   - `fetchMyPlayer({api})` returns `MyPlayer | 'none' | 'unavailable'` (404 is `'none'`, 405 is `'unavailable'`). A code that fails to parse becomes a `server` `AppError` (today it silently returns null).
-  - New `createMyPlayer(body: PlayerCreateIn = {}, {api})` returns `{kind:'created', player} | {kind:'conflict'} | {kind:'needs-details', fields} | {kind:'refused'} | {kind:'unavailable'}` and throws an `AppError` for anything else. It reads the raw openapi-fetch 422 (`ErrorResponse` items `{field, code, message}`), because `AppError.fields` drops item codes. Field messages come from `toAppError(error, response).fields`, which strips `body.`. Export `AGE_REFUSAL_MESSAGE` with a comment naming the backend constant. If the backend changes that copy, the failure is mild: the form shows the message under Month.
+  - New `createMyPlayer(body: PlayerCreateIn = {}, {api})` returns `{kind:'created', player} | {kind:'conflict'} | {kind:'needs-details', fields} | {kind:'invalid', fields} | {kind:'refused'} | {kind:'unavailable'}` and throws an `AppError` for anything else. It reads the raw openapi-fetch 422 (`ErrorResponse` items `{field, code, message}`), because `AppError.fields` drops item codes. Field messages come from `toAppError(error, response).fields`, which strips `body.`. Export `AGE_REFUSAL_MESSAGE` with a comment naming the backend constant. If the backend changes that copy, the failure is mild: the form shows the message under Month.
   - `fetchMySettings` is unchanged.
-- `src/lib/features/players/my-code.svelte.ts`: statuses `needs-details`, `refused`, `unverified`; `detailErrors`, `detailProblem` and `submitDetails(values)`; new dep `createMyPlayer`; a `#creating` promise for the dedupe. The device fallback runs only for `unavailable` or a network failure. `reset()` clears the new state. Rewrite the class comment.
+- `src/lib/features/players/my-code.svelte.ts`: statuses `needs-details`, `refused`, `unverified`, `not-created`; `detailErrors`, `detailProblem` and `submitDetails(values)`; new dep `createMyPlayer`; a `#creating` promise for the dedupe. The device fallback runs only for `unavailable` or a network failure. `reset()` clears the new state. Rewrite the class comment.
 - `src/lib/features/players/player-details-form.svelte` (new): a `FieldSet`/`FieldLegend` "Birth month and year" with `SelectField` (month) and `TextField` (year, `inputmode="numeric"`, `autocomplete="bday-year"`); a `RadioGroup` Gender with Man/Woman laid out as in `signup-details-step.svelte`; `TextField` Display name with `DISPLAY_NAME_MAX`; a `Button` with a `Spinner`. `gap-4` between fields, `gap-8` between groups, `max-w-md`.
 - `src/lib/features/players/settings.ts`: `checkDetails(values)`, a client check for the required fields with the backend's four messages ("Enter a display name.", "Enter your birth year.", "Enter your birth month.", "Choose a gender division."), reusing `checkDisplayName`.
-- `src/lib/features/players/own-code-gate.svelte`: branches for `needs-details` (the form), `refused` and `unverified`. Copy, plain, with no em dashes and no rating claims:
+- `src/lib/features/players/own-code-gate.svelte`: branches for `needs-details` (the form), `refused`, `unverified` and `not-created`. Copy, plain, with no em dashes and no rating claims:
   - Form heading "Finish your player profile". Intro: "We need your birth month and year, gender and a display name again. This can happen if you confirmed your email on another device."
   - Refused: "We can't create a player profile with these details." (mirrors signup's "We can't create an account with these details.").
   - Unverified: says the email is not verified yet, with Try again.
@@ -71,7 +71,8 @@ All paths are under `app/` unless they start with `../`.
 - `e2e/profile.spec.ts`, "an account with no player yet (me/player answers 404)": the two code prompt tests move under `olderBackend()`. "says name and privacy settings are not available yet" becomes the details form test, with a copy under `olderBackend()`.
 - `e2e/auth.spec.ts`, "sign out removes the saved code and email from this browser": runs under `olderBackend()`.
 - `integration.test.ts`, "accepts a body with a city and region, and a body with neither, and keeps neither": the city and region are now held for the create, so it expects them in `signupHold` (found while building step 2).
-- Unchanged: settings-store "is unavailable when the backend has no me/player", profile-settings "says the settings are not available yet", integration "is a 404 for an account with no player".
+- `profile-settings.svelte.test.ts`, "says the settings are not available yet": now starts with a code from this device, since the section shows only for a ready code (review finding R2).
+- Unchanged: settings-store "is unavailable when the backend has no me/player", integration "is a 404 for an account with no player".
 
 ## Risks
 
