@@ -12,11 +12,11 @@
 		CardHeader,
 		CardTitle
 	} from '#lib/ui/card/index.js';
+	import { TextField } from '#lib/ui/field/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { requestPasswordReset } from '../services.js';
-	import TextField from './text-field.svelte';
 
 	let email = $state('');
 	const form = createAuthForm('reset', ['email']);

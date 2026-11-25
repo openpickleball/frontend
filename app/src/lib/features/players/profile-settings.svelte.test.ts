@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { AppError } from '#lib/api/index.js';
+import { buildCode, type PlayerCode } from '#lib/domain/index.js';
+import { myCode } from './my-code.svelte.js';
 import ProfileSettings from './profile-settings.svelte';
 import type { MySettings, MySettingsChange } from './types.js';
 
@@ -33,6 +35,21 @@ async function renderReady(updateMySettings = backend()) {
 	});
 	return { screen, updateMySettings };
 }
+
+const CODE = buildCode('player', '4RWN8TQ') as PlayerCode;
+
+/** myCode as the gate leaves it for a player whose code is known. */
+function readyCode(source: 'server' | 'device' = 'server') {
+	myCode.code = CODE;
+	myCode.source = source;
+	myCode.status = 'ready';
+}
+
+// Most tests are about a player the gate has already found.
+beforeEach(() => {
+	myCode.reset();
+	readyCode();
+});
 
 describe('ProfileSettings', () => {
 	it('shows the name and one switch per privacy setting', async () => {
@@ -116,6 +133,8 @@ describe('ProfileSettings', () => {
 	});
 
 	it('says the settings are not available yet when the backend has no me/player', async () => {
+		// An older backend: the code came from this device.
+		readyCode('device');
 		const screen = await render(ProfileSettings, { deps: { fetchMySettings: async () => null } });
 		await expect
 			.element(
@@ -144,4 +163,44 @@ describe('ProfileSettings', () => {
 			.element(screen.getByRole('link', { name: 'info@openpb.org' }))
 			.toHaveAttribute('href', 'mailto:info@openpb.org');
 	});
+
+	it('loads the settings once, when the code is ready, not while it is found', async () => {
+		const fetchMySettings = vi.fn<() => Promise<MySettings | null>>().mockResolvedValue(SAVED);
+		myCode.reset();
+		const screen = await render(ProfileSettings, { deps: { fetchMySettings } });
+		myCode.status = 'loading';
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		expect(fetchMySettings).not.toHaveBeenCalled();
+
+		readyCode();
+		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
+		expect(fetchMySettings).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not load again when the gate finds the same code again', async () => {
+		const fetchMySettings = vi.fn<() => Promise<MySettings | null>>().mockResolvedValue(SAVED);
+		const screen = await render(ProfileSettings, { deps: { fetchMySettings } });
+		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
+		myCode.status = 'loading';
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		readyCode();
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		expect(fetchMySettings).toHaveBeenCalledTimes(1);
+	});
+
+	it.each(['idle', 'loading', 'needs-details', 'refused', 'unverified', 'error'] as const)(
+		'never says the settings are not available while the status is %s',
+		async (status) => {
+			myCode.reset();
+			myCode.status = status;
+			const screen = await render(ProfileSettings, {
+				deps: { fetchMySettings: async () => null }
+			});
+			await expect
+				.element(screen.getByRole('heading', { level: 2, name: 'Your data' }))
+				.toBeVisible();
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			await expect.element(screen.getByText(/You can't change/)).not.toBeInTheDocument();
+		}
+	);
 });

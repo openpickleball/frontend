@@ -110,4 +110,35 @@ describe('signup age check', () => {
 			expect((await ageCheck({ birth_year: 2013, birth_month: 6 })).status).toBe(status);
 		});
 	});
+
+	describe('drops the signup hold on a refusal', () => {
+		const held = {
+			birthYear: 1990,
+			birthMonth: 6,
+			genderDivision: 'mens',
+			firstName: 'Sam',
+			lastName: 'Rivera',
+			city: '',
+			region: ''
+		};
+
+		it('at the age check', async () => {
+			mockStore.holdSignup('held@example.com', held);
+			await ageCheck(child);
+			expect(mockStore.state.signupHold ?? null).toBeNull();
+		});
+
+		it('at signup', async () => {
+			mockStore.holdSignup('held@example.com', held);
+			await signup({ ...fullBody, birth_year: child.birth_year });
+			expect(mockStore.state.signupHold ?? null).toBeNull();
+		});
+
+		it('at signup, when the session was refused before', async () => {
+			mockStore.state.signupRefused = true;
+			mockStore.holdSignup('held@example.com', held);
+			await signup(fullBody);
+			expect(mockStore.state.signupHold ?? null).toBeNull();
+		});
+	});
 });

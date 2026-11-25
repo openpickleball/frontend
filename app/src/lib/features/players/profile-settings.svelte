@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
+	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import DisplayNameForm from './display-name-form.svelte';
@@ -16,9 +17,27 @@
 
 	const settings = untrack(() => new SettingsStore(deps));
 
-	onMount(() => {
-		void settings.load();
+	// Load once the gate has the player's code, and again only for a different code (another
+	// account). Until then there is nothing true to say about the settings: the player may still
+	// be being found or created, or have no player at all.
+	const ready = $derived(myCode.status === 'ready' ? myCode.code : null);
+	let loadedFor = $state<PlayerCode | null>(null);
+	$effect(() => {
+		const code = ready;
+		if (code === null) return;
+		untrack(() => {
+			if (code === loadedFor) return;
+			loadedFor = code;
+			void settings.load();
+		});
 	});
+
+	// Shown for the code the settings belong to, and kept while the gate checks that code again.
+	const shown = $derived(
+		loadedFor !== null &&
+			myCode.code === loadedFor &&
+			(myCode.status === 'ready' || myCode.status === 'loading')
+	);
 
 	async function saveName(raw: string) {
 		const result = await settings.saveName(raw);
@@ -27,34 +46,36 @@
 	}
 </script>
 
-<section class="border-t border-line pt-6" aria-labelledby="settings-heading">
-	<h2 id="settings-heading" class="label">Name and privacy</h2>
-	<div class="mt-4">
-		{#if settings.status === 'ready' && settings.privacy}
-			<div class="grid gap-8">
-				<DisplayNameForm name={settings.displayName} onsave={saveName} />
-				<PrivacySettings
-					privacy={settings.privacy}
-					error={settings.privacyError}
-					onchange={(key, visibility) => void settings.setVisibility(key, visibility)}
-				/>
-			</div>
-		{:else if settings.status === 'unavailable'}
-			<p class="max-w-md text-base text-muted">
-				You can't change your display name or privacy settings in the app yet.
-			</p>
-		{:else if settings.status === 'error'}
-			<p class="max-w-md text-base text-muted">
-				We can't load your settings right now. Check your connection and try again.
-			</p>
-			<Button variant="outline" size="sm" class="mt-4" onclick={() => settings.load()}>
-				Try again
-			</Button>
-		{:else}
-			<LoadingState label="Loading your settings…" />
-		{/if}
-	</div>
-</section>
+{#if shown}
+	<section class="border-t border-line pt-6" aria-labelledby="settings-heading">
+		<h2 id="settings-heading" class="label">Name and privacy</h2>
+		<div class="mt-4">
+			{#if settings.status === 'ready' && settings.privacy}
+				<div class="grid gap-8">
+					<DisplayNameForm name={settings.displayName} onsave={saveName} />
+					<PrivacySettings
+						privacy={settings.privacy}
+						error={settings.privacyError}
+						onchange={(key, visibility) => void settings.setVisibility(key, visibility)}
+					/>
+				</div>
+			{:else if settings.status === 'unavailable'}
+				<p class="max-w-md text-base text-muted">
+					You can't change your display name or privacy settings in the app yet.
+				</p>
+			{:else if settings.status === 'error'}
+				<p class="max-w-md text-base text-muted">
+					We can't load your settings right now. Check your connection and try again.
+				</p>
+				<Button variant="outline" size="sm" class="mt-4" onclick={() => settings.load()}>
+					Try again
+				</Button>
+			{:else}
+				<LoadingState label="Loading your settings…" />
+			{/if}
+		</div>
+	</section>
+{/if}
 
 <section class="border-t border-line pt-6" aria-labelledby="data-heading">
 	<h2 id="data-heading" class="label">Your data</h2>

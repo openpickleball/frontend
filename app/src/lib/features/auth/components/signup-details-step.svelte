@@ -24,11 +24,14 @@
 	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { CardContent, CardFooter, CardHeader, CardTitle } from '#lib/ui/card/index.js';
+	import { GENDER_OPTIONS, MONTHS } from '#lib/domain/index.js';
 	import {
 		FieldDescription,
 		FieldError,
 		FieldLegend,
 		FieldSet,
+		SelectField,
+		TextField,
 		fieldA11y
 	} from '#lib/ui/field/index.js';
 	import { NEW_TAB, PRIVACY_URL, TERMS_URL } from '#lib/ui/legal.js';
@@ -36,8 +39,6 @@
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import type { FormProblem } from '../form.svelte.js';
 	import LocationField from './location-field.svelte';
-	import SelectField from './select-field.svelte';
-	import TextField from './text-field.svelte';
 
 	let {
 		values = $bindable(),
@@ -68,21 +69,6 @@
 		onchangeage: () => void;
 		oncreate: (event: SubmitEvent) => void;
 	} = $props();
-
-	const MONTHS = [
-		'January',
-		'February',
-		'March',
-		'April',
-		'May',
-		'June',
-		'July',
-		'August',
-		'September',
-		'October',
-		'November',
-		'December'
-	].map((label, index) => ({ value: String(index + 1), label }));
 
 	const AGREEMENTS = [
 		{ name: 'accepted_terms', page: 'Terms of Service', href: TERMS_URL },
@@ -184,8 +170,14 @@
 					{...gender.attrs}
 					bind:value={values.gender_division}
 				>
-					<RadioGroupItem id="signup-gender_division" value="mens">Man</RadioGroupItem>
-					<RadioGroupItem id="signup-gender_division-womens" value="womens">Woman</RadioGroupItem>
+					{#each GENDER_OPTIONS as option, index (option.value)}
+						<RadioGroupItem
+							id={index === 0 ? 'signup-gender_division' : `signup-gender_division-${option.value}`}
+							value={option.value}
+						>
+							{option.label}
+						</RadioGroupItem>
+					{/each}
 				</RadioGroup>
 				{#if errors.gender_division}
 					<FieldError id={gender.errorId}>{errors.gender_division}</FieldError>

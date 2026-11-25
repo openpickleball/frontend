@@ -1,3 +1,4 @@
+import { birthYearSchema } from '#lib/domain/index.js';
 import type { PrivacyKey } from './types.js';
 
 /** The backend's `Player.display_name` max_length, counted after trimming. */
@@ -26,4 +27,50 @@ export function checkDisplayName(raw: string): NameCheck {
 		return { ok: false, message: `Use ${DISPLAY_NAME_MAX} characters or fewer.` };
 	}
 	return { ok: true, value };
+}
+
+/** The details form's values, as typed. Each one is a form field name, as the backend names it. */
+export type DetailValues = {
+	birth_month: string;
+	birth_year: string;
+	gender_division: string;
+	display_name: string;
+};
+
+/** The body `POST me/player` takes when the backend holds no sign-up details. */
+export type DetailBody = {
+	birth_month: number;
+	birth_year: number;
+	gender_division: string;
+	display_name: string;
+};
+
+export type DetailsCheck =
+	| { ok: true; value: DetailBody }
+	| { ok: false; errors: Partial<Record<keyof DetailValues, string>> };
+
+/**
+ * A quick check before the details are sent, with the backend's own messages for a missing
+ * value. The backend checks them again, and its messages win.
+ */
+export function checkDetails(values: DetailValues): DetailsCheck {
+	const errors: Partial<Record<keyof DetailValues, string>> = {};
+	if (values.birth_month === '') errors.birth_month = 'Enter your birth month.';
+	// Signup's rule, 1900 to this year: a future year would get the backend's age refusal,
+	// which holds for the rest of the session.
+	const year = birthYearSchema.safeParse(values.birth_year);
+	if (!year.success) errors.birth_year = year.error.issues[0]?.message ?? 'Enter your birth year.';
+	if (values.gender_division === '') errors.gender_division = 'Choose a gender division.';
+	const name = checkDisplayName(values.display_name);
+	if (!name.ok) errors.display_name = name.message;
+	if (Object.keys(errors).length > 0 || !name.ok || !year.success) return { ok: false, errors };
+	return {
+		ok: true,
+		value: {
+			birth_month: Number(values.birth_month),
+			birth_year: year.data,
+			gender_division: values.gender_division,
+			display_name: name.value
+		}
+	};
 }

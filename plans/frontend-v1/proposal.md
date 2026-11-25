@@ -13,7 +13,7 @@ Scope:
 - **Auth, end to end:** sign up (email and password, then birth month and year, which the backend checks before anything else, then gender, first and last name, an optional city, and agreement to the Terms of Service and Privacy Policy), the "check your email" page, verify email from the link, log in and out, and password reset. Built on allauth headless with the `browser` client, same origin through the Vite dev proxy.
 - **Record a match:** singles or doubles, teams entered as OPEN codes, 1 to 5 games, client-side score rules that mirror the backend, then `POST /matches/`.
 - **My matches:** a paged list from `GET /players/{code}/matches`, match detail built from list data, and confirm or dispute.
-- **Profile and ratings:** the backend now has `me/player` (backend#124). The app reads and changes it with the generated types (frontend#207), and frontend#205 will create the player after signup. Ratings (backend#53) don't exist yet, so the ratings card is built against MSW handlers that only run in mock mode. With the real backend it says ratings aren't live yet.
+- **Profile and ratings:** the backend now has `me/player` (backend#124). The app reads and changes it with the generated types (frontend#207), and creates the player after signup with `POST me/player` (frontend#205). Ratings (backend#53) don't exist yet, so the ratings card is built against MSW handlers that only run in mock mode. With the real backend it says ratings aren't live yet.
 - **Installable PWA:** a manifest, a service worker that caches the app shell, and the site's design tokens and theme toggle. The offline match queue was proposed as the last v1 item (Q1), and is deferred to frontend#33.
 
 ### Decisions at a glance
@@ -49,7 +49,7 @@ Scope:
 | Confirm / dispute | **Build now** | `/confirm`, `/dispute` | Dispute asks first in an alert dialog. Repeats do nothing on the backend, so the buttons show on every pending match |
 | Another player's confirmed matches | **Build now** | same list endpoint | Page `/players/{code}`. Their name comes from the participant data. Private players return 404, and we show "not available" |
 | Offline match queue | **Deferred to frontend#33** (was: build last) | `POST /matches/` | Q1. IndexedDB, flushed when the app opens and on `online` |
-| Create/view my Player profile, onboarding | **Built on the real endpoint** for view and edit (frontend#207). Create after signup: frontend#205 | backend#124 `POST/GET/PATCH /me/player` | Without it a new account can't submit matches (403) |
+| Create/view my Player profile, onboarding | **Built on the real endpoint** for view and edit (frontend#207), and for create after signup (frontend#205) | backend#124 `POST/GET/PATCH /me/player` | Without it a new account can't submit matches (403) |
 | Public player profile header | **Build against mock** | backend#124 `GET /players/{code}` | |
 | Ratings card and history | **Build against mock** | backend#53 (needs #45) | Labeled as demonstration ratings, as #53 requires. Real mode shows "Coming soon" |
 | Opponent search by name | **Blocked** | new issue B1 | v1 uses code entry with paste and format check |
@@ -60,7 +60,7 @@ Scope:
 
 **Ratings presentation.** The site never shows the 2.0–8.0 scale, and its rule is "only say what is true today." So ratings don't appear against the real backend. In mock mode they render with a "Sample data" badge. The UI matches #53's planned shape: per format, the rating, reliability, provisional status, last updated, and a demonstration flag.
 
-**Local dev with a linked Player.** `seed_dev_data` creates Players, each with an Account, and confirmed matches. But the command prints no logins, the emails are Faker-generated, and no allauth `EmailAddress` row is verified, so mandatory verification blocks the first login. The password is the factory default in `apps/accounts/tests/factories.py`. The backend now has `POST /api/v1/me/player`, which creates the Player from the signup details held in the session after the email is verified. The app does not call it yet: that is frontend#205. Until B5 lands, `app/README.md` documents a one-off `manage.py shell` snippet. It marks the first few seeded accounts verified and prints each email with its player code. Accounts you sign up through the app can only use mock mode for profile and match submission.
+**Local dev with a linked Player.** `seed_dev_data` creates Players, each with an Account, and confirmed matches. But the command prints no logins, the emails are Faker-generated, and no allauth `EmailAddress` row is verified, so mandatory verification blocks the first login. The password is the factory default in `apps/accounts/tests/factories.py`. The backend now has `POST /api/v1/me/player`, which creates the Player from the signup details held in the session after the email is verified. The app calls it when `GET me/player` finds no Player (frontend#205), and asks for the required details when the session holds none. Until B5 lands, `app/README.md` documents a one-off `manage.py shell` snippet. It marks the first few seeded accounts verified and prints each email with its player code.
 
 ## 2. UI library
 

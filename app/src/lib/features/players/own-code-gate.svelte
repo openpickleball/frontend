@@ -8,6 +8,7 @@
 	import { cn } from '#lib/ui/utils.js';
 	import CodeEntry from './code-entry.svelte';
 	import { myCode } from './my-code.svelte.js';
+	import PlayerDetailsForm from './player-details-form.svelte';
 
 	let {
 		children,
@@ -77,6 +78,44 @@
 			</div>
 		</section>
 	{/if}
+{:else if myCode.status === 'needs-details'}
+	<section class={cn(fallbackClass, 'grid gap-8')} aria-labelledby="details-heading">
+		<div class="grid gap-4">
+			<h2 id="details-heading" class="text-2xl font-medium tracking-tight text-secondary">
+				Finish your player profile
+			</h2>
+			<p class="max-w-md text-muted">
+				We need your birth month and year, gender and a display name again. This can happen if you
+				confirmed your email on another device.
+			</p>
+		</div>
+		<PlayerDetailsForm
+			errors={myCode.detailErrors}
+			problem={myCode.detailProblem}
+			onsubmit={(body) => myCode.submitDetails(body)}
+		/>
+	</section>
+{:else if myCode.status === 'refused'}
+	<section class={cn(fallbackClass, 'grid gap-4')}>
+		<p class="max-w-md text-muted">We can't create a player profile with these details.</p>
+	</section>
+{:else if myCode.status === 'not-created'}
+	<section class={cn(fallbackClass, 'grid gap-2')}>
+		<p class="max-w-md text-muted">We can't create your player profile from your signup details.</p>
+		<p class="max-w-md text-muted">
+			Email
+			<Button variant="link" size="inline" href="mailto:info@openpb.org">info@openpb.org</Button>
+			for help.
+		</p>
+	</section>
+{:else if myCode.status === 'unverified'}
+	<section class={cn(fallbackClass, 'grid justify-items-start gap-4')}>
+		<p class="max-w-md text-muted">
+			Your email address is not verified yet. Open the link in the email we sent you, then try
+			again.
+		</p>
+		<Button variant="outline" onclick={retry}>Try again</Button>
+	</section>
 {:else if myCode.status === 'needs-entry' || !myCode.code || (showChange && changing)}
 	<div class={fallbackClass}>
 		{#if changing && changeHeading}

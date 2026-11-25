@@ -29,6 +29,13 @@ async function mail(page: Page): Promise<Mail[]> {
 	);
 }
 
+/** Act as a backend older than backend#124, which has no POST me/player. */
+async function olderBackend(page: Page): Promise<void> {
+	await page.evaluate(() =>
+		(window as unknown as { __openMock: { olderBackend: () => void } }).__openMock.olderBackend()
+	);
+}
+
 async function keyFor(page: Page, kind: string, to: string): Promise<string> {
 	let key: string | null | undefined;
 	await expect
@@ -62,6 +69,11 @@ test('sign up, verify the email from the link, sign in, then sign out', async ({
 	await submitSignIn(page, email, password);
 	await expect(page).toHaveURL(/\/$/);
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+	// The app made the player from the signup details: /record has the code, with no prompt.
+	await page.goto('/record');
+	await expect(page.getByTestId('chip')).toHaveText(/^P-/);
+	await expect(page.getByRole('heading', { name: /Enter your OPEN code/ })).toHaveCount(0);
 
 	await signOut(page);
 	// Signed out for real: a signed-in page sends us back to sign in.
@@ -179,9 +191,11 @@ test('sign in stays usable while a sign-up is waiting for its link', async ({ pa
 
 test('sign out removes the saved code and email from this browser', async ({ page }) => {
 	const rosa = PLAYERS.find((p) => p.key === 'rosa')!;
-	// This account has no player yet, so the code is typed in and kept on the device.
+	// This account has no player yet, and the backend is too old to create one, so the code is
+	// typed in and kept on the device.
 	await page.goto(`/account/verify-email/${MOCK_KEYS.verifyEmail}`);
 	await expect(page.getByRole('heading', { level: 1, name: 'Email verified' })).toBeVisible();
+	await olderBackend(page);
 	await signIn(page, UNVERIFIED_EMAIL, MOCK_PASSWORD);
 	await page.goto('/profile');
 	await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(rosa.code);

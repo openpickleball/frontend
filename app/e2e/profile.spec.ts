@@ -72,6 +72,19 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(page.getByRole('button', { name: 'Change code' })).toHaveCount(0);
 	});
 
+	test('reads me/player once for the code and once for the settings', async ({ page }) => {
+		const reads: string[] = [];
+		page.on('request', (request) => {
+			if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/v1/me/player') {
+				reads.push(request.url());
+			}
+		});
+		await page.reload();
+		await expect(page.getByRole('switch', { name: 'Match history' })).toBeVisible();
+		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
+		expect(reads).toHaveLength(2);
+	});
+
 	test('copies the code', async ({ page, context }) => {
 		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 		await page.getByRole('button', { name: 'Copy code' }).click();
@@ -162,12 +175,71 @@ test.describe('an account that has a player (me/player exists)', () => {
 	}
 });
 
-test.describe('an account with no player yet (me/player answers 404)', () => {
+test.describe('an account with no player and no signup details held', () => {
 	test.beforeEach(async ({ page }) => {
+		// The fixture signed up before this session, so nothing is held: the app must ask.
 		await signIn(page, UNVERIFIED_EMAIL, MOCK_KEYS.verifyEmail);
 		await page.goto('/profile');
 	});
 
+	test('asks for the details, names each missing one, then shows the code', async ({ page }) => {
+		await expect(page.getByRole('heading', { name: 'Finish your player profile' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Enter your OPEN code' })).toHaveCount(0);
+		await expect(page.getByRole('heading', { name: 'Name and privacy' })).toHaveCount(0);
+		await expect(page.getByText(/can't change your display name/)).toHaveCount(0);
+
+		await page.getByRole('button', { name: 'Save and show my code' }).click();
+		await expect(page.getByText('Enter your birth month.')).toBeVisible();
+		await expect(page.getByText('Enter your birth year.')).toBeVisible();
+		await expect(page.getByText('Choose a gender division.')).toBeVisible();
+		await expect(page.getByText('Enter a display name.')).toBeVisible();
+		await expectNoAxeViolations(page);
+
+		await page.getByLabel('Month').selectOption('6');
+		await page.getByLabel('Year').fill('1990');
+		await page.getByRole('radio', { name: 'Woman' }).click();
+		await page.getByLabel('Display name').fill('Wren Mock');
+		await page.getByRole('button', { name: 'Save and show my code' }).click();
+
+		await expect(page.getByTestId('my-code')).toHaveText(/^P-/);
+		await expect(page.getByRole('heading', { name: 'Finish your player profile' })).toHaveCount(0);
+		await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveValue('Wren Mock');
+		await page.reload();
+		await expect(page.getByTestId('my-code')).toHaveText(/^P-/);
+	});
+
+	for (const scheme of ['dark', 'light'] as const) {
+		test(`the details form has no WCAG 2.1 AA violations (${scheme})`, async ({ page }) => {
+			await page.emulateMedia({ colorScheme: scheme });
+			await expect(page.getByRole('heading', { name: 'Finish your player profile' })).toBeVisible();
+			await expectNoAxeViolations(page);
+		});
+	}
+
+	test('an under-13 birth year is refused, and stays refused after a reload', async ({ page }) => {
+		await page.getByLabel('Month').selectOption('6');
+		await page.getByLabel('Year').fill(String(new Date().getFullYear() - 5));
+		await page.getByRole('radio', { name: 'Man', exact: true }).click();
+		await page.getByLabel('Display name').fill('Kid Mock');
+		await page.getByRole('button', { name: 'Save and show my code' }).click();
+
+		const refusal = page.getByText("We can't create a player profile with these details.");
+		await expect(refusal).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Save and show my code' })).toHaveCount(0);
+		await expect(page.getByRole('heading', { name: 'Enter your OPEN code' })).toHaveCount(0);
+		await page.reload();
+		await expect(refusal).toBeVisible();
+	});
+});
+
+test.describe('an account with no player, against an older backend (me/player answers 404)', () => {
+	test.beforeEach(async ({ page }) => {
+		await signIn(page, UNVERIFIED_EMAIL, MOCK_KEYS.verifyEmail);
+		await page.evaluate(() =>
+			(window as unknown as { __openMock: { olderBackend: () => void } }).__openMock.olderBackend()
+		);
+		await page.goto('/profile');
+	});
 	test('asks for the code once, fixes its format, and remembers it', async ({ page }) => {
 		await expect(page.getByRole('heading', { name: 'Enter your OPEN code' })).toBeVisible();
 		await expect(page.getByTestId('my-code')).toHaveCount(0);
@@ -194,6 +266,11 @@ test.describe('an account with no player yet (me/player answers 404)', () => {
 	test('says name and privacy settings are not available yet, and still offers the data copy', async ({
 		page
 	}) => {
+		// Nothing is said about the settings until the code is known.
+		await expect(page.getByRole('heading', { name: 'Name and privacy' })).toHaveCount(0);
+		await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(rosa.code);
+		await page.getByRole('button', { name: 'Save code' }).click();
+		await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
 		await expect(
 			page.getByText("You can't change your display name or privacy settings in the app yet.")
 		).toBeVisible();

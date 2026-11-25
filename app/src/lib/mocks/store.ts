@@ -10,10 +10,11 @@
  * - django-allauth headless with this backend's settings (email and password,
  *   mandatory verification by link) for accounts. Sign-up also takes the birth month and
  *   year, the gender division, the names, an optional city and region, and the agreements.
- *   The store keeps none of those, only the refusal flag (`signupRefused`), which
- *   `POST me/player` sets too.
+ *   The store holds those details for the new account (`signupHold`), as the backend's
+ *   session does, until `POST me/player` uses them, and keeps the refusal flag
+ *   (`signupRefused`), which `POST me/player` sets too.
  * - `apps/players/api.py` and `schemas.py` for `me/player` and the public profile. The
- *   create reads only its body: the store holds no sign-up details.
+ *   create reads the hold when there is one, and its body otherwise.
  *
  * State is plain data (no Maps, no classes), so `snapshot` and `restore` can keep it in
  * `sessionStorage` across a page reload in the browser.
@@ -39,6 +40,7 @@ import {
 	isFutureMonth,
 	isMinor,
 	isOldEnough,
+	minorDisplayName,
 	missingIssues,
 	privacyNullIssues,
 	profileIssues,
@@ -101,6 +103,24 @@ export type MockMail = {
 	key: string | null;
 };
 
+/**
+ * The sign-up details the backend holds in the session for `create_my_player`. `email` is the
+ * account they belong to, or null when the address was already taken (bound to no account).
+ * Text is stored cleaned, as the sign-up form cleans it.
+ */
+export type SignupHold = {
+	email: string | null;
+	birthYear: number;
+	birthMonth: number;
+	genderDivision: string;
+	firstName: string;
+	lastName: string;
+	city: string;
+	region: string;
+};
+
+export type SignupDetails = Omit<SignupHold, 'email'>;
+
 export type MockState = {
 	accounts: MockAccount[];
 	players: MockPlayer[];
@@ -112,6 +132,10 @@ export type MockState = {
 	pendingEmail: string | null;
 	/** The backend's session flag after an under-13 sign-up: later sign-ups are refused too. */
 	signupRefused?: boolean;
+	/** Sign-up details held for the create. Older snapshots have no such field. */
+	signupHold?: SignupHold | null;
+	/** Answer every `me/player` call with a 404, as a backend older than backend#124 does. */
+	olderBackend?: boolean;
 	tokens: MockToken[];
 	outbox: MockMail[];
 	csrfToken: string;
@@ -247,6 +271,7 @@ export type LoginResult = 'ok' | 'mismatch' | 'unverified';
 
 export type CreatePlayerResult =
 	| { ok: true; player: MockPlayer }
+	| { ok: false; kind: 'unverified' }
 	| { ok: false; kind: 'conflict' }
 	| { ok: false; kind: 'validation'; issues: FieldIssue[] };
 
@@ -278,6 +303,29 @@ function isMockPlayer(value: unknown): boolean {
 		player.privacy !== null &&
 		!('homeClub' in player)
 	);
+}
+
+/** A saved hold in this version's shape. */
+function isSignupHold(value: unknown): boolean {
+	if (typeof value !== 'object' || value === null) return false;
+	const hold = value as Record<string, unknown>;
+	const texts = ['genderDivision', 'firstName', 'lastName', 'city', 'region'];
+	return (
+		(hold.email === null || typeof hold.email === 'string') &&
+		typeof hold.birthYear === 'number' &&
+		typeof hold.birthMonth === 'number' &&
+		texts.every((key) => typeof hold[key] === 'string')
+	);
+}
+
+/**
+ * The backend's `starting_display_name`: "First Last" for an adult, and "First L." for a player
+ * aged 13 to 17 (see `minorDisplayName`).
+ */
+function startingDisplayName(hold: SignupHold): string {
+	return isMinor(hold.birthYear, hold.birthMonth)
+		? minorDisplayName(hold.firstName, hold.lastName)
+		: `${hold.firstName} ${hold.lastName}`;
 }
 
 export type MockStore = ReturnType<typeof createMockStore>;
@@ -341,6 +389,9 @@ export function createMockStore() {
 				// Players saved before the profile fields (a home club, no city) would show
 				// undefined on the profile page: drop the snapshot.
 				if (!parsed.players.every(isMockPlayer)) return false;
+				// A hold of another shape would create a player with undefined fields.
+				const hold = parsed.signupHold;
+				if (hold !== undefined && hold !== null && !isSignupHold(hold)) return false;
 				// A snapshot from older fixtures would show stale data: drop it.
 				if (parsed.matches.length < fresh.matches.length) return false;
 				state = parsed;
@@ -382,22 +433,45 @@ export function createMockStore() {
 			return 'ok';
 		},
 
+		/** Logging out flushes the session: the hold goes, the refusal flag stays (ADR 0017). */
 		logout(): void {
 			state.session = null;
 			state.pendingEmail = null;
+			state.signupHold = null;
+		},
+
+		/** From now on, act as a backend older than backend#124: `me/player` is a 404. */
+		olderBackend(): void {
+			state.olderBackend = true;
+		},
+
+		/** Hold sign-up details for `email`, or bound to no account when `email` is null. */
+		holdSignup(email: string | null, details: SignupDetails): void {
+			state.signupHold = { email, ...details };
+		},
+
+		/** The backend's age refusal: the session is refused from now on, and the hold goes. */
+		refuseSignup(): void {
+			state.signupRefused = true;
+			state.signupHold = null;
 		},
 
 		/**
 		 * allauth's sign-up with `ACCOUNT_PREVENT_ENUMERATION`: a taken address gets the same
-		 * answer as a new one, and its owner is mailed that an account exists.
+		 * answer as a new one, and its owner is mailed that an account exists. The details are
+		 * held for the new account. A taken address holds them bound to no account, unless the
+		 * session already holds details for that address (a repeated sign-up): those are kept,
+		 * as the backend's `_is_held_for_login` does.
 		 */
-		signup(email: string, password: string): void {
+		signup(email: string, password: string, details?: SignupDetails): void {
 			const normalized = normalizeEmail(email);
 			if (accountByEmail(normalized)) {
 				sendMail('account_exists', normalized);
+				if (details && state.signupHold?.email !== normalized) this.holdSignup(null, details);
 			} else {
 				state.accounts.push({ email: normalized, password, verified: false, active: true });
 				sendMail('verify_email', normalized);
+				if (details) this.holdSignup(normalized, details);
 			}
 			state.pendingEmail = normalized;
 		},
@@ -465,27 +539,49 @@ export function createMockStore() {
 		},
 
 		/**
-		 * `create_my_player` after the body passed the schema, from the body only (the store
-		 * holds no sign-up details): 409 for a second player, the session's age refusal, the
-		 * missing details, then the age, then the model's other checks. An under-13 or future
-		 * age refuses the session, as sign-up does, whatever else is wrong with the body.
+		 * `create_my_player` after the body passed the schema: 403 for an unverified email, 409
+		 * for a second player (which drops the hold), the session's age refusal, then the
+		 * details held at sign-up for this account, or else the body with its missing details.
+		 * Then the age, then the model's other checks. An under-13 or future age refuses the
+		 * session, as sign-up does, whatever else is wrong. A 201 drops the hold; any other
+		 * failure keeps it, so the create can be tried again.
 		 */
 		createMyPlayer(email: string, body: PlayerCreateIn): CreatePlayerResult {
-			if (playerOfAccount(email)) return { ok: false, kind: 'conflict' };
+			if (!accountByEmail(email)?.verified) return { ok: false, kind: 'unverified' };
+			if (playerOfAccount(email)) {
+				state.signupHold = null;
+				return { ok: false, kind: 'conflict' };
+			}
 			if (state.signupRefused) return { ok: false, kind: 'validation', issues: [AGE_REFUSAL] };
-			const missing = missingIssues(body);
-			if (missing.length > 0) return { ok: false, kind: 'validation', issues: missing };
-			const year = body.birth_year as number;
-			const month = body.birth_month as number;
+			const held = state.signupHold?.email === email ? state.signupHold : null;
+			let values: ProfileValues;
+			if (held) {
+				values = {
+					display_name: startingDisplayName(held),
+					legal_name: `${held.firstName} ${held.lastName}`,
+					birth_year: held.birthYear,
+					birth_month: held.birthMonth,
+					gender_division: held.genderDivision,
+					city: held.city,
+					region: held.region
+				};
+			} else {
+				const missing = missingIssues(body);
+				if (missing.length > 0) return { ok: false, kind: 'validation', issues: missing };
+				values = body as ProfileValues;
+			}
+			const year = values.birth_year as number;
+			const month = values.birth_month as number;
 			// Django's full_clean runs the age rule even when a field fails, and the view checks
 			// the age refusal before it reports field errors. A month out of range has no age.
 			const datable = month >= 1 && month <= 12;
 			if (datable && (isFutureMonth(year, month) || !isOldEnough(year, month))) {
-				state.signupRefused = true;
+				this.refuseSignup();
 				return { ok: false, kind: 'validation', issues: [AGE_REFUSAL] };
 			}
-			const { issues, clean } = profileIssues(body as ProfileValues);
+			const { issues, clean } = profileIssues(values);
 			if (issues.length > 0) return { ok: false, kind: 'validation', issues };
+			state.signupHold = null;
 			const player: MockPlayer = {
 				code: buildCode('player', counterCode(nextCounter(), 7, 'NEW')),
 				displayName: clean.display_name as string,
