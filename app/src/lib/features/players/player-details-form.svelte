@@ -46,9 +46,12 @@
 	/** The client check's messages, from the last submit. */
 	let checked = $state<Partial<Record<keyof DetailValues, string>>>({});
 	let busy = $state(false);
+	/** False once the client check fails: the server's last answer is about older values. */
+	let serverCurrent = $state(true);
 	let form = $state<HTMLFormElement | null>(null);
 
-	const shown = (name: keyof DetailValues): string => checked[name] ?? errors[name] ?? '';
+	const shown = (name: keyof DetailValues): string =>
+		checked[name] ?? (serverCurrent ? errors[name] : undefined) ?? '';
 	const gender = $derived(
 		fieldA11y({ id: `${id}-gender_division`, error: shown('gender_division') })
 	);
@@ -59,11 +62,13 @@
 		const result = checkDetails(values);
 		if (!result.ok) {
 			checked = result.errors;
+			serverCurrent = false;
 			await tick();
 			form?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
 			return;
 		}
 		checked = {};
+		serverCurrent = true;
 		busy = true;
 		try {
 			await onsubmit(result.value);
@@ -140,7 +145,7 @@
 			{#if busy}<Spinner />{/if}
 			{busy ? 'Saving…' : 'Save and show my code'}
 		</Button>
-		{#if problem}
+		{#if problem && serverCurrent}
 			<Alert variant="destructive">
 				<CircleAlertIcon aria-hidden="true" />
 				<AlertTitle>{problem}</AlertTitle>
