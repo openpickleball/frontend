@@ -52,7 +52,7 @@ All paths are under `app/` unless they start with `../`.
 - `src/lib/mocks/handlers/allauth.ts`: the signup handler passes the cleaned names, city and region to `store.signup`. All three refusal sites call `store.refuseSignup()`.
 - `src/lib/mocks/player-rules.ts`: `minorDisplayName(first, last)` using `hasVisibleCharacter`.
 - Older-backend switch for e2e and the live drive: `window.__openMock.olderBackend()` in `mocks/browser.ts` sets a persisted `state.olderBackend`, and the `me/player` handlers in `handlers/open.ts` then answer 404. Mock only.
-- Docs: `README.md` ("Your own OPEN code" and the `LIVE_OWN_CODE` row), `../plans/frontend-v1/proposal.md` ("Local dev with a linked Player"), the `e2e-live/happy-path.spec.ts` comment.
+- Docs: `README.md` ("Your own OPEN code"; the `LIVE_OWN_CODE` row stays true and is unchanged), `../plans/frontend-v1/proposal.md` ("Local dev with a linked Player"), the `e2e-live/happy-path.spec.ts` comment.
 
 ## Order of work (TDD)
 
