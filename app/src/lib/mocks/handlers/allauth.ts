@@ -282,6 +282,28 @@ export function createAllauthHandlers(store: MockStore) {
 			}
 		),
 
+		http.post(
+			'/_allauth/{client}/v1/auth/signup/password-check',
+			async ({ request, cookies, response }) => {
+				if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
+				if (store.currentAccount()) return response.untyped(allauthStatus(store, 409));
+				if (store.state.signupRefused) {
+					return response.untyped(allauthErrors(store, [SIGNUP_REFUSED]));
+				}
+				// The same password rules as sign-up, with the email for the similarity rule. Nothing is
+				// stored, and no Account is looked up by the email.
+				const body = readObject(await readJson(request));
+				const password = text(body.password);
+				if (!password) return response.untyped(allauthErrors(store, [required('password')]));
+				const issues = passwordErrors(password, text(body.email) ?? '').map((issue) => ({
+					...issue,
+					param: 'password'
+				}));
+				if (issues.length > 0) return response.untyped(allauthErrors(store, issues));
+				return response.untyped(allauthStatus(store, 200));
+			}
+		),
+
 		http.post('/_allauth/{client}/v1/auth/signup', async ({ request, cookies, response }) => {
 			if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
 			if (store.currentAccount()) return response.untyped(allauthStatus(store, 409));

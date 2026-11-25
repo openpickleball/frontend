@@ -10,6 +10,7 @@ import {
 	bootstrap,
 	checkResetKey,
 	checkSignupAge,
+	checkSignupPassword,
 	login,
 	logout,
 	onSignOut,
@@ -204,6 +205,37 @@ describe('login', () => {
 		server.use(http.post(`${AUTH}/login`, () => HttpResponse.error()));
 		const error = await failure(login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD }, { api }));
 		expect(error.kind).toBe('network');
+	});
+});
+
+describe('checkSignupPassword', () => {
+	const PASSWORD_CHECK = `${AUTH}/signup/password-check`;
+	const EMAIL = 'new.player@example.com';
+
+	it('sends the email and password, and resolves for a strong password', async () => {
+		let body: unknown;
+		server.use(
+			http.post(PASSWORD_CHECK, async ({ request }) => {
+				body = await request.json();
+				return HttpResponse.json({ status: 200 });
+			})
+		);
+		await expect(
+			checkSignupPassword({ email: EMAIL, password: 'a-fine-password-9' }, { api })
+		).resolves.toBe(undefined);
+		expect(body).toStrictEqual({ email: EMAIL, password: 'a-fine-password-9' });
+		expect(session.status).toBe('unknown');
+	});
+
+	it.each([
+		['too common', 'password1', 'This password is too common.'],
+		['entirely numeric', '73519846', 'This password is entirely numeric.'],
+		['like the email', 'new.player-2026', 'The password is too similar to the email address.']
+	])('puts the message on the password field when it is %s', async (_, password, message) => {
+		const error = await failure(checkSignupPassword({ email: EMAIL, password }, { api }));
+		expect(error.kind).toBe('validation');
+		expect(error.fields.password).toContain(message);
+		expect(session.status).toBe('unknown');
 	});
 });
 
