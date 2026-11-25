@@ -43,6 +43,19 @@ export const hasVisibleCharacter = (value: string): boolean =>
 	[...value].some((char) => /[\p{L}\p{N}\p{P}\p{S}\p{Cn}]/u.test(char) && !FILLERS.has(char));
 
 /**
+ * The backend's `starting_display_name` for a player aged 13 to 17: "First L.", with the last
+ * name's first character that renders and the combining marks after it.
+ */
+export function minorDisplayName(first: string, last: string): string {
+	const chars = [...last];
+	const found = chars.findIndex((char) => hasVisibleCharacter(char));
+	const start = found === -1 ? 0 : found;
+	let end = start + 1;
+	while (end < chars.length && /\p{M}/u.test(chars[end])) end += 1;
+	return `${first} ${chars.slice(start, end).join('')}.`;
+}
+
+/**
  * At least 13, as backend `apps/players/age.py` counts it: born on the last day of the birth
  * month, on today's date at UTC-12 (the earliest date on Earth).
  */

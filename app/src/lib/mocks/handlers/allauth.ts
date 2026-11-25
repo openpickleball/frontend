@@ -25,7 +25,7 @@ import {
 	isOldEnough,
 	strip
 } from '../player-rules';
-import { passwordErrors, type MockStore } from '../store';
+import { passwordErrors, type MockStore, type SignupDetails } from '../store';
 
 const MISMATCH: AllauthIssue = {
 	code: 'email_password_mismatch',
@@ -197,6 +197,20 @@ function signupAgeIssues(body: Record<string, unknown>): AllauthIssue[] {
 	return issues;
 }
 
+/** The details the backend holds for the create, from a body that passed `signupAgeIssues`. */
+function signupDetails(body: Record<string, unknown>): SignupDetails {
+	const place = (value: unknown) => (typeof value === 'string' ? strip(value) : '');
+	return {
+		birthYear: Number(body.birth_year),
+		birthMonth: Number(body.birth_month),
+		genderDivision: String(body.gender_division),
+		firstName: strip(String(body.first_name)),
+		lastName: strip(String(body.last_name)),
+		city: place(body.city),
+		region: place(body.region)
+	};
+}
+
 const text = (value: unknown): string | undefined =>
 	typeof value === 'string' && value !== '' ? value : undefined;
 
@@ -204,7 +218,8 @@ const text = (value: unknown): string | undefined =>
  * allauth headless at `/_allauth/browser/v1`, with this backend's settings: email and
  * password. Sign-up also takes the birth month and year, the gender division, the names, an
  * optional city and region, and the two agreements. The age check takes the birth month and
- * year. Only the refusal flag is kept from any of them. Verification is mandatory and by link
+ * year. A sign-up holds its details for `POST me/player` (`store.signup`), and an age refusal
+ * sets the session's refusal flag and drops any hold (`store.refuseSignup`). Verification is mandatory and by link
  * (not by code), with no login on verification or on password reset. Because verification is
  * by link, `resend` is always a 409, as in allauth's `ResendEmailVerificationCodeView`.
  */
@@ -268,6 +283,7 @@ export function createAllauthHandlers(store: MockStore) {
 				if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
 				if (store.currentAccount()) return response.untyped(allauthStatus(store, 409));
 				if (store.state.signupRefused) {
+					store.refuseSignup();
 					return response.untyped(allauthErrors(store, [SIGNUP_REFUSED]));
 				}
 				// Only the birth year and month are read. Nothing is stored but the refusal flag.
@@ -275,7 +291,7 @@ export function createAllauthHandlers(store: MockStore) {
 				const issues = birthIssues(body);
 				if (issues.length > 0) return response.untyped(allauthErrors(store, issues));
 				if (!isOldEnough(Number(body.birth_year), Number(body.birth_month))) {
-					store.state.signupRefused = true;
+					store.refuseSignup();
 					return response.untyped(allauthErrors(store, [SIGNUP_REFUSED]));
 				}
 				return response.untyped(allauthStatus(store, 200));
@@ -308,15 +324,16 @@ export function createAllauthHandlers(store: MockStore) {
 			if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
 			if (store.currentAccount()) return response.untyped(allauthStatus(store, 409));
 			// The backend's age screen comes first. Once it refuses, every later sign-up in this
-			// session gets the same answer, whatever is sent. Only that flag is kept, never the age.
+			// session gets the same answer, whatever is sent, and nothing is held.
 			if (store.state.signupRefused) {
+				store.refuseSignup();
 				return response.untyped(allauthErrors(store, [SIGNUP_REFUSED]));
 			}
 			const body = readObject(await readJson(request));
 			const ageIssues = signupAgeIssues(body);
 			if (ageIssues.length > 0) return response.untyped(allauthErrors(store, ageIssues));
 			if (!isOldEnough(Number(body.birth_year), Number(body.birth_month))) {
-				store.state.signupRefused = true;
+				store.refuseSignup();
 				return response.untyped(allauthErrors(store, [SIGNUP_REFUSED]));
 			}
 			const email = text(body.email);
@@ -335,7 +352,7 @@ export function createAllauthHandlers(store: MockStore) {
 			if (issues.length > 0 || !email || !password) {
 				return response.untyped(allauthErrors(store, issues));
 			}
-			store.signup(email, password);
+			store.signup(email, password, signupDetails(body));
 			return response.untyped(unauthenticated(store));
 		}),
 

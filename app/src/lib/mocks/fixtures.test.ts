@@ -143,4 +143,52 @@ describe('the mock store snapshot', () => {
 		expect(store.restore(JSON.stringify(old))).toBe(false);
 		expect(store.state.players[0]).toHaveProperty('city');
 	});
+
+	it('restores a snapshot from before the signup hold', () => {
+		const store = createMockStore();
+		const old = JSON.parse(store.snapshot()) as Record<string, unknown>;
+		delete old.signupHold;
+		expect(store.restore(JSON.stringify(old))).toBe(true);
+		expect(store.state.signupHold ?? null).toBeNull();
+	});
+
+	it('restores a snapshot with a hold in this shape', () => {
+		const store = createMockStore();
+		store.holdSignup('hold@example.com', {
+			birthYear: 1990,
+			birthMonth: 6,
+			genderDivision: 'womens',
+			firstName: 'Fern',
+			lastName: 'Mock',
+			city: '',
+			region: ''
+		});
+		const saved = store.snapshot();
+		const other = createMockStore();
+		expect(other.restore(saved)).toBe(true);
+		expect(other.state.signupHold?.email).toBe('hold@example.com');
+	});
+
+	it.each([
+		['a string', 'held'],
+		['a hold with no names', { email: null, birthYear: 1990, birthMonth: 6 }],
+		[
+			'a hold with a numeric email',
+			{
+				email: 7,
+				birthYear: 1990,
+				birthMonth: 6,
+				genderDivision: 'mens',
+				firstName: 'Sam',
+				lastName: 'Rivera',
+				city: '',
+				region: ''
+			}
+		]
+	])('drops a snapshot whose hold is %s', (_, hold) => {
+		const store = createMockStore();
+		const old = JSON.parse(store.snapshot()) as Record<string, unknown>;
+		old.signupHold = hold;
+		expect(store.restore(JSON.stringify(old))).toBe(false);
+	});
 });

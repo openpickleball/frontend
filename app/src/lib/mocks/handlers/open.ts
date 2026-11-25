@@ -142,6 +142,11 @@ export function createOpenHandlers(store: MockStore) {
 			if (shape.length > 0) return response.untyped(validationError(shape));
 			const result = store.createMyPlayer(email, body as PlayerCreateIn);
 			if (!result.ok) {
+				if (result.kind === 'unverified') {
+					return response.untyped(
+						ninjaError(403, 'forbidden', 'Verify your email address before creating your player.')
+					);
+				}
 				return response.untyped(
 					result.kind === 'conflict'
 						? ninjaError(409, 'conflict', 'This account already has a player.')

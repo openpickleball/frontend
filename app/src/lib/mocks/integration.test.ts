@@ -532,11 +532,11 @@ describe('accounts', () => {
 		expect(tooLong.errors?.map((e) => e.param)).toEqual(['first_name']);
 	});
 
-	it('accepts a body with a city and region, and a body with neither, and keeps neither', async () => {
+	it('accepts a body with a city and region, and a body with neither, and holds them for the create', async () => {
 		const { api } = browser();
 		const withPlace = await signupRaw(api, { ...valid, city: 'Riverbend', region: 'Ohio' });
 		expect(withPlace.status).toBe(401);
-		expect(JSON.stringify(mockStore.state)).not.toContain('Riverbend');
+		expect(mockStore.state.signupHold).toMatchObject({ city: 'Riverbend', region: 'Ohio' });
 		const { api: other } = browser();
 		const without = await signupRaw(other, { ...valid, email: 'other.player@example.com' });
 		expect(without.status).toBe(401);
@@ -1155,5 +1155,213 @@ describe('a submission counts as the submitter confirming (backend #197)', () =>
 				existing_code: first.code
 			}
 		]);
+	});
+});
+
+describe('signup details held for the create (backend#124)', () => {
+	const PASSWORD = 'a-fine-password-9';
+	const HELD = {
+		birthYear: 1990,
+		birthMonth: 6,
+		genderDivision: 'womens',
+		firstName: 'Fern',
+		lastName: 'Mock',
+		city: '',
+		region: ''
+	};
+	const SIGNED_IN = {
+		city_region_visibility: 'signed_in',
+		match_history_visibility: 'signed_in',
+		rating_history_visibility: 'signed_in',
+		stats_visibility: 'signed_in',
+		home_club_visibility: 'signed_in'
+	};
+	const PRIVATE = Object.fromEntries(Object.keys(SIGNED_IN).map((key) => [key, 'private']));
+
+	async function signup(api: Api, email: string, extra: Record<string, unknown> = {}) {
+		const result = await api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
+			params: allauthParams,
+			body: { ...BORN, email, password: PASSWORD, ...extra } as never
+		});
+		expect(result.response.status).toBe(401);
+	}
+
+	/** Sign up, verify from the mailed link, then sign in. */
+	async function signupAndSignIn(email: string, extra: Record<string, unknown> = {}) {
+		const { api } = browser();
+		await api.initCsrf();
+		await signup(api, email, extra);
+		const key = mockStore.state.outbox.findLast((m) => m.to === email)?.key as string;
+		await api.allauth.POST('/_allauth/{client}/v1/auth/email/verify', {
+			params: allauthParams,
+			body: { key }
+		});
+		expect((await login(api, email, PASSWORD)).response.status).toBe(200);
+		return api;
+	}
+
+	it('creates an adult from the hold: the legal name as display name, city and region', async () => {
+		const api = await signupAndSignIn('held.adult@example.com', {
+			city: ' Vexmoor ',
+			region: 'Norvane'
+		});
+		const made = await api.open.POST('/api/v1/me/player', { body: {} });
+		expect(made.response.status).toBe(201);
+		expect(made.data).toMatchObject({
+			display_name: 'Sam Rivera',
+			legal_name: 'Sam Rivera',
+			birth_year: 1990,
+			birth_month: 6,
+			gender_division: 'mens',
+			city: 'Vexmoor',
+			region: 'Norvane',
+			privacy: SIGNED_IN
+		});
+		expect(mockStore.state.signupHold ?? null).toBeNull();
+	});
+
+	it('starts a player aged 13 to 17 as "First L." with every setting private', async () => {
+		const api = await signupAndSignIn('held.teen@example.com', {
+			birth_year: new Date().getUTCFullYear() - 15,
+			birth_month: 1,
+			last_name: '́élan'
+		});
+		const made = await unwrap(api.open.POST('/api/v1/me/player', { body: {} }));
+		expect(made.display_name).toBe('Sam é.');
+		expect(made.legal_name).toBe('Sam ́élan');
+		expect(made.privacy).toEqual(PRIVATE);
+	});
+
+	it('keeps the combining marks after the first character of the last name', async () => {
+		const api = await signupAndSignIn('held.marks@example.com', {
+			birth_year: new Date().getUTCFullYear() - 15,
+			birth_month: 1,
+			last_name: 'élan'
+		});
+		const made = await unwrap(api.open.POST('/api/v1/me/player', { body: {} }));
+		expect(made.display_name).toBe('Sam é.');
+	});
+
+	it('ignores a body sent while details are held', async () => {
+		const api = await signupAndSignIn('held.body@example.com');
+		const made = await unwrap(
+			api.open.POST('/api/v1/me/player', {
+				body: {
+					display_name: 'Other Name',
+					birth_year: 1980,
+					birth_month: 2,
+					gender_division: 'womens'
+				}
+			})
+		);
+		expect(made).toMatchObject({
+			display_name: 'Sam Rivera',
+			birth_year: 1990,
+			gender_division: 'mens'
+		});
+	});
+
+	it('binds the hold to no account for a taken address, so the create needs the details', async () => {
+		const { api } = browser();
+		await api.initCsrf();
+		await signup(api, UNVERIFIED_EMAIL);
+		expect(mockStore.state.signupHold).toMatchObject({ email: null, firstName: 'Sam' });
+
+		await api.allauth.POST('/_allauth/{client}/v1/auth/email/verify', {
+			params: allauthParams,
+			body: { key: MOCK_KEYS.verifyEmail }
+		});
+		expect((await login(api, UNVERIFIED_EMAIL)).response.status).toBe(200);
+		const result = await api.open.POST('/api/v1/me/player', { body: {} });
+		expect(result.response.status).toBe(422);
+		expect(result.error?.errors.map((e) => e.code)).toEqual([
+			'missing',
+			'missing',
+			'missing',
+			'missing'
+		]);
+	});
+
+	it('keeps the hold of a repeated signup for the same address', async () => {
+		const { api } = browser();
+		await api.initCsrf();
+		const email = 'held.again@example.com';
+		await signup(api, email);
+		await signup(api, email, { first_name: 'Other', birth_year: 1970 });
+		expect(mockStore.state.signupHold).toMatchObject({
+			email,
+			firstName: 'Sam',
+			birthYear: 1990
+		});
+	});
+
+	it('drops the hold on logout, but keeps the refusal', async () => {
+		mockStore.holdSignup(VERIFIED_EMAIL, HELD);
+		mockStore.state.signupRefused = true;
+		const { api } = browser();
+		await login(api);
+		await api.allauth.DELETE('/_allauth/{client}/v1/auth/session', { params: allauthParams });
+		expect(mockStore.state.signupHold ?? null).toBeNull();
+		expect(mockStore.state.signupRefused).toBe(true);
+	});
+
+	it('drops the hold on a 409', async () => {
+		mockStore.holdSignup(VERIFIED_EMAIL, HELD);
+		const { api } = browser();
+		await api.initCsrf();
+		await login(api);
+		const result = await api.open.POST('/api/v1/me/player', { body: {} });
+		expect(result.response.status).toBe(409);
+		expect(mockStore.state.signupHold ?? null).toBeNull();
+	});
+
+	it('keeps the hold after a 422, so the create can be tried again', async () => {
+		const email = 'held.long@example.com';
+		mockStore.state.accounts.push({ email, password: PASSWORD, verified: true, active: true });
+		mockStore.holdSignup(email, { ...HELD, firstName: 'F'.repeat(70) });
+		const { api } = browser();
+		await api.initCsrf();
+		await login(api, email, PASSWORD);
+		const result = await api.open.POST('/api/v1/me/player', { body: {} });
+		expect(result.response.status).toBe(422);
+		expect(result.error?.errors.map((e) => [e.field, e.code])).toEqual([
+			['body.display_name', 'max_length']
+		]);
+		expect(mockStore.state.signupHold?.email).toBe(email);
+	});
+
+	it('drops the hold when the create refuses the age', async () => {
+		const email = 'held.child@example.com';
+		mockStore.state.accounts.push({ email, password: PASSWORD, verified: true, active: true });
+		mockStore.holdSignup('someone.else@example.com', HELD);
+		const { api } = browser();
+		await api.initCsrf();
+		await login(api, email, PASSWORD);
+		const result = await api.open.POST('/api/v1/me/player', {
+			body: {
+				display_name: 'Kid',
+				birth_year: new Date().getFullYear() - 5,
+				birth_month: 6,
+				gender_division: 'mens'
+			}
+		});
+		expect(result.response.status).toBe(422);
+		expect(mockStore.state.signupRefused).toBe(true);
+		expect(mockStore.state.signupHold ?? null).toBeNull();
+	});
+
+	it('answers 403 for an account whose email is not verified, and keeps the hold', async () => {
+		mockStore.holdSignup(UNVERIFIED_EMAIL, HELD);
+		mockStore.state.session = { email: UNVERIFIED_EMAIL, at: 0 };
+		const { api } = browser();
+		await api.initCsrf();
+		const result = await api.open.POST('/api/v1/me/player', { body: {} });
+		expect(result.response.status).toBe(403);
+		expect(result.error).toEqual({
+			code: 'forbidden',
+			message: 'Verify your email address before creating your player.',
+			errors: []
+		});
+		expect(mockStore.state.signupHold?.email).toBe(UNVERIFIED_EMAIL);
 	});
 });
