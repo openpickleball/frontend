@@ -28,7 +28,7 @@ All paths are under `app/` unless they start with `../`.
 8. The mock signup holds the details for the new account's email. For an address that is already taken, the hold is bound to no account, unless the session already holds details for that address (then they are kept, as the backend's `_is_held_for_login` does). Logout drops the hold and keeps `signupRefused`. Every age refusal (age check, signup, create) drops the hold.
 9. The mock POST follows `create_my_player` in this order: 403 unverified, 409 (drops the hold), the sticky refusal, then the hold if present, else the body. From the hold, the legal name is "First Last". The display name is the legal name for an adult, or "First L." for ages 13 to 17 (the first last-name character that renders, plus its combining marks). City and region come from the hold, and privacy starts `private` for a minor. A 201 drops the hold; any other failure keeps it.
 10. The mock store's `restore` loads old snapshots that have no hold field, and drops a snapshot whose hold has the wrong shape.
-11. After the player is created, `ProfileSettings` loads the real settings. During `needs-details` or `refused` it does not say "You can't change ... yet".
+11. After the player is created, `ProfileSettings` loads the real settings, once. It says "You can't change ... yet" only when that is true: an older backend, with the code from this device. Under any status but `ready` it shows no settings section.
 12. Docs that would become false are fixed. The full gate passes.
 
 ## Files that change
@@ -44,7 +44,7 @@ All paths are under `app/` unless they start with `../`.
   - Form heading "Finish your player profile". Intro: "We need your birth month and year, gender and a display name again. This can happen if you confirmed your email on another device."
   - Refused: "We can't create a player profile with these details." (mirrors signup's "We can't create an account with these details.").
   - Unverified: says the email is not verified yet, with Try again.
-- `src/lib/features/players/profile-settings.svelte`: reload with an `$effect` keyed on `myCode.status === 'ready' ? myCode.code : null` instead of `onMount`. Hide "Name and privacy" while `myCode.status` is `needs-details` or `refused`.
+- `src/lib/features/players/profile-settings.svelte`: load with an `$effect` once `myCode.status` is `ready`, and again only for a different code, instead of `onMount`. Show "Name and privacy" only for that code, while it is `ready` (or the gate is checking it again). Under any other status there is nothing true to say yet, so the section is hidden (review finding R2: the "not available yet" line showed while the player was being created).
 - `src/lib/features/players/index.ts`: update the doc comment.
 - Consumers: `features/matches/components/code-gate.svelte` (home, history and match views) renders through the gate. `routes/record/+page.svelte`, `profile-view.svelte`, `home-view.svelte` and `routes/+layout.svelte` need no change (`reset()` covers the new state).
 - Move `features/auth/components/text-field.svelte` and `select-field.svelte` to `src/lib/ui/field/` and export them from its `index.ts` (the boundary rules stop `features/players` importing from `features/auth`). Update the auth imports. Move the `MONTHS` list from `signup-details-step.svelte` to `src/lib/domain/birth.ts` (exported from the domain index) with a `GENDER_OPTIONS` list; signup uses both.

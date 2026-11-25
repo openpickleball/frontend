@@ -17,21 +17,27 @@
 
 	const settings = untrack(() => new SettingsStore(deps));
 
-	// Load on open, and again when a new code is ready: a player created on this page (after a 404
-	// from me/player) has settings from then on. A reload of the same code asks only once.
-	const created = $derived(myCode.status === 'ready' ? myCode.code : null);
-	let loadedFor: PlayerCode | null | undefined;
+	// Load once the gate has the player's code, and again only for a different code (another
+	// account). Until then there is nothing true to say about the settings: the player may still
+	// be being found or created, or have no player at all.
+	const ready = $derived(myCode.status === 'ready' ? myCode.code : null);
+	let loadedFor = $state<PlayerCode | null>(null);
 	$effect(() => {
-		const code = created;
+		const code = ready;
+		if (code === null) return;
 		untrack(() => {
-			if (loadedFor !== undefined && (code === null || code === loadedFor)) return;
+			if (code === loadedFor) return;
 			loadedFor = code;
 			void settings.load();
 		});
 	});
 
-	// While the player is being created, or was refused, there are no settings to offer yet.
-	const hidden = $derived(myCode.status === 'needs-details' || myCode.status === 'refused');
+	// Shown for the code the settings belong to, and kept while the gate checks that code again.
+	const shown = $derived(
+		loadedFor !== null &&
+			myCode.code === loadedFor &&
+			(myCode.status === 'ready' || myCode.status === 'loading')
+	);
 
 	async function saveName(raw: string) {
 		const result = await settings.saveName(raw);
@@ -40,7 +46,7 @@
 	}
 </script>
 
-{#if !hidden}
+{#if shown}
 	<section class="border-t border-line pt-6" aria-labelledby="settings-heading">
 		<h2 id="settings-heading" class="label">Name and privacy</h2>
 		<div class="mt-4">
