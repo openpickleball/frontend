@@ -5,3 +5,4 @@ export * from './models';
 export * from './scores';
 export * from './schemas';
 export * from './mappers';
+export * from './birth';

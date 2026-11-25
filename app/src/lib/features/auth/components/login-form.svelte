@@ -13,13 +13,13 @@
 		CardHeader,
 		CardTitle
 	} from '#lib/ui/card/index.js';
+	import { TextField } from '#lib/ui/field/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { isThrottled } from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { session } from '../session.svelte.js';
 	import { login } from '../services.js';
 	import SessionCheck from './session-check.svelte';
-	import TextField from './text-field.svelte';
 
 	/** Called once the player is signed in. The page decides where they go next. */
 	let { onsuccess }: { onsuccess: () => void } = $props();

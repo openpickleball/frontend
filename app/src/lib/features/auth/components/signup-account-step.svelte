@@ -10,8 +10,8 @@
 		CardHeader,
 		CardTitle
 	} from '#lib/ui/card/index.js';
+	import { TextField } from '#lib/ui/field/index.js';
 	import type { SignupValues } from './signup-details-step.svelte';
-	import TextField from './text-field.svelte';
 
 	let {
 		values = $bindable(),
