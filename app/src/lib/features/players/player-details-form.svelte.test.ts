@@ -86,4 +86,14 @@ describe('PlayerDetailsForm', () => {
 		release();
 		await expect.element(button).toHaveAttribute('aria-busy', 'false');
 	});
+
+	it('refuses a birth year in the future and sends nothing', async () => {
+		const onsubmit = vi.fn();
+		await render(PlayerDetailsForm, { onsubmit });
+		await fill();
+		await page.getByLabelText('Year').fill('2206');
+		await page.getByRole('button', { name: 'Save and show my code' }).click();
+		await expect.element(page.getByText('Enter a birth year that has passed.')).toBeVisible();
+		expect(onsubmit).not.toHaveBeenCalled();
+	});
 });

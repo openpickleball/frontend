@@ -78,13 +78,23 @@ describe('checkDetails', () => {
 		});
 	});
 
-	it('wants a whole number for the year and a short display name', () => {
-		expect(checkDetails({ ...filled, birth_year: '19x0', display_name: 'Q'.repeat(65) })).toEqual({
+	it("checks the year with signup's rule, so a typo never reaches the backend", () => {
+		const year = (birth_year: string) => {
+			const result = checkDetails({ ...filled, birth_year });
+			return result.ok ? null : result.errors.birth_year;
+		};
+		expect(year('2206')).toBe('Enter a birth year that has passed.');
+		expect(year('20010')).toBe('Enter a birth year that has passed.');
+		expect(year(String(new Date().getFullYear() + 1))).toBe('Enter a birth year that has passed.');
+		expect(year('1899')).toBe('Enter a birth year of 1900 or later.');
+		expect(year('19x0')).toBe('Enter your birth year.');
+		expect(year('1990')).toBeNull();
+	});
+
+	it('wants a short display name', () => {
+		expect(checkDetails({ ...filled, display_name: 'Q'.repeat(65) })).toEqual({
 			ok: false,
-			errors: {
-				birth_year: 'Enter a whole number.',
-				display_name: 'Use 64 characters or fewer.'
-			}
+			errors: { display_name: 'Use 64 characters or fewer.' }
 		});
 	});
 });
