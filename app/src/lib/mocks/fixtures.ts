@@ -627,3 +627,60 @@ export const RATINGS: Partial<Record<PlayerKey, RatingsByFormat>> = {
 	oren: { doubles_men: demo(3.84, 91, '2026-11-17T09:00:00Z') },
 	bea: { singles: demo(3.05, 72, '2026-11-15T09:00:00Z') }
 };
+
+type RatingHistoryItemOut = components['schemas']['RatingHistoryItemOut'];
+
+/** A made-up change to a demonstration rating. */
+function change(
+	rating_format: RatingHistoryItemOut['rating_format'],
+	kind: RatingHistoryItemOut['kind'],
+	rating: number,
+	reliability: number,
+	recorded_at: string,
+	more: Partial<Pick<RatingOut, 'established' | 'provisional' | 'imported_reliability'>> = {}
+): RatingHistoryItemOut {
+	return {
+		rating_format,
+		kind,
+		rating,
+		reliability,
+		imported_reliability: null,
+		provisional: false,
+		established: true,
+		spec_version: '1.0.0rc1',
+		demonstration: true,
+		recorded_at,
+		...more
+	};
+}
+
+/**
+ * Rating history by player, newest first, as `list_player_rating_history` sends it: made-up
+ * numbers. The newest change in each format matches `RATINGS`. Tamsin's has more than one page,
+ * with a recount (`replay`) and a singles rating a recount took away (`removed`, with the numbers
+ * removed). A player left out has no history yet.
+ */
+export const RATING_HISTORY: Partial<Record<PlayerKey, readonly RatingHistoryItemOut[]>> = {
+	tamsin: [
+		change('mixed_doubles', 'live_update', 3.42, 65, '2026-11-17T09:00:00Z', { provisional: true }),
+		change('doubles_women', 'replay', 3.31, 40, '2026-11-16T09:00:00Z', {
+			established: false,
+			imported_reliability: 30
+		}),
+		change('singles', 'removed', 2.95, 12, '2026-11-16T09:00:00Z', { established: false }),
+		change('mixed_doubles', 'replay', 3.38, 60, '2026-11-16T09:00:00Z'),
+		change('mixed_doubles', 'live_update', 3.4, 58, '2026-11-14T09:00:00Z', { provisional: true }),
+		change('doubles_women', 'live_update', 3.28, 35, '2026-11-12T09:00:00Z', {
+			established: false,
+			imported_reliability: 30,
+			provisional: true
+		}),
+		change('singles', 'live_update', 2.95, 12, '2026-11-09T09:00:00Z', {
+			established: false,
+			provisional: true
+		}),
+		change('mixed_doubles', 'live_update', 3.35, 52, '2026-11-07T09:00:00Z', { provisional: true })
+	],
+	oren: [change('doubles_men', 'replay', 3.84, 91, '2026-11-17T09:00:00Z')],
+	bea: [change('singles', 'replay', 3.05, 72, '2026-11-15T09:00:00Z')]
+};

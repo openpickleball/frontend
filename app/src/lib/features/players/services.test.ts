@@ -10,6 +10,7 @@ import {
 	createMyPlayer,
 	fetchMyPlayer,
 	fetchMySettings,
+	fetchRatingHistory,
 	fetchRatings,
 	updateMySettings
 } from './services.js';
@@ -463,5 +464,79 @@ describe('fetchRatings', () => {
 			)
 		);
 		await expect(fetchRatings(tamsin.code, { api })).rejects.toBeInstanceOf(AppError);
+	});
+});
+
+describe('fetchRatingHistory', () => {
+	beforeEach(() => signIn(VERIFIED_EMAIL));
+
+	it('reads one page of 5, newest first, as the backend sent it', async () => {
+		const page = await fetchRatingHistory(tamsin.code, 0, { api });
+		expect(calls.map((c) => c.call)).toEqual([`GET /api/v1/players/${tamsin.code}/rating-history`]);
+		expect(page?.count).toBe(8);
+		expect(page?.items).toHaveLength(5);
+		expect(page?.items[0]).toEqual({
+			format: 'mixed_doubles',
+			kind: 'live_update',
+			value: 3.42,
+			reliability: 65,
+			importedReliability: null,
+			established: true,
+			provisional: true,
+			demonstration: true,
+			recordedAt: '2026-11-17T09:00:00Z'
+		});
+		expect(page?.items[2]).toMatchObject({ format: 'singles', kind: 'removed', value: 2.95 });
+	});
+
+	it('asks for the page at the offset it is given', async () => {
+		let asked = '';
+		server.use(
+			http.get(
+				'*/api/v1/players/:code/rating-history',
+				({ request }) => {
+					asked = new URL(request.url).search;
+					return HttpResponse.json({ items: [], count: 8 });
+				},
+				{ once: true }
+			)
+		);
+		expect(await fetchRatingHistory(tamsin.code, 5, { api })).toEqual({ items: [], count: 8 });
+		expect(asked).toBe('?limit=5&offset=5');
+	});
+
+	it('is an empty page for a player with no history yet', async () => {
+		expect(await fetchRatingHistory(playerCode('kit'), 0, { api })).toEqual({
+			items: [],
+			count: 0
+		});
+	});
+
+	it.each([
+		['an inactive account', () => playerCode('saul')],
+		['an unknown code', () => 'P-AAAA-AAAA']
+	])('is null for %s (404)', async (_, code) => {
+		expect(await fetchRatingHistory(code(), 0, { api })).toBeNull();
+	});
+
+	it("is null for another player's private history (404)", async () => {
+		const bea = mockStore.playerByCode(playerCode('bea'));
+		if (bea) bea.privacy.rating_history_visibility = 'private';
+		expect(await fetchRatingHistory(playerCode('bea'), 0, { api })).toBeNull();
+	});
+
+	it('throws other failures', async () => {
+		server.use(
+			http.get(
+				'*/api/v1/players/:code/rating-history',
+				() =>
+					HttpResponse.json(
+						{ code: 'server_error', message: 'Server error.', errors: [] },
+						{ status: 500 }
+					),
+				{ once: true }
+			)
+		);
+		await expect(fetchRatingHistory(tamsin.code, 0, { api })).rejects.toBeInstanceOf(AppError);
 	});
 });

@@ -271,6 +271,26 @@ export function createOpenHandlers(store: MockStore) {
 			const ratings = store.ratingsFor(code.value, email);
 			if (!ratings) return response.untyped(notFound());
 			return response(200).json(ratings);
+		}),
+
+		// `list_player_rating_history`: an unknown or malformed code, an inactive account and
+		// history the player keeps private all get the same 404. Paged with `limit` and `offset`.
+		http.get('/api/v1/players/{code}/rating-history', ({ request, cookies, params, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const code = normalizeCode(params.code, 'player');
+			if (!code.ok) return response.untyped(notFound());
+			const url = new URL(request.url);
+			const page = pageQuery(url.searchParams.get('limit'), url.searchParams.get('offset'));
+			if (!page.ok) return response.untyped(validationError(page.issues));
+			const history = store.ratingHistoryFor(
+				code.value,
+				email,
+				page.value.limit,
+				page.value.offset
+			);
+			if (!history) return response.untyped(notFound());
+			return response(200).json(history);
 		})
 	];
 }

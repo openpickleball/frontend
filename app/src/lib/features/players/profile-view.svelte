@@ -6,6 +6,8 @@
 	import { myCode } from './my-code.svelte.js';
 	import OwnCodeGate from './own-code-gate.svelte';
 	import { ProfileStats } from './profile-stats.svelte.js';
+	import RatingHistory from './rating-history.svelte';
+	import { RatingHistoryView } from './rating-history.svelte.js';
 	import RatingsCard from './ratings-card.svelte';
 
 	let {
@@ -20,11 +22,18 @@
 
 	// The deps are fixed for the life of the page.
 	const stats = untrack(() => new ProfileStats({ countMatches }));
+	const history = new RatingHistoryView();
 
 	$effect(() => {
 		const code = myCode.code;
-		untrack(() => void stats.load(code));
-		return () => stats.cancel();
+		untrack(() => {
+			void stats.load(code);
+			void history.load(code);
+		});
+		return () => {
+			stats.cancel();
+			history.cancel();
+		};
 	});
 </script>
 
@@ -68,6 +77,8 @@
 				loading={stats.ratingsLoading}
 				failed={stats.ratingsFailed}
 			/>
+
+			<RatingHistory {history} onpage={(offset) => void history.load(code, offset)} />
 		{/snippet}
 	</OwnCodeGate>
 

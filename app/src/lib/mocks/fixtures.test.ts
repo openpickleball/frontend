@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildCode, parseMatchCode, parsePlayerCode } from '../domain/codes';
 import { validateMatch } from '../domain/scores';
-import { ACCOUNTS, MATCHES, PLAYERS, RATINGS, VERIFIED_EMAIL } from './fixtures';
+import { ACCOUNTS, MATCHES, PLAYERS, RATING_HISTORY, RATINGS, VERIFIED_EMAIL } from './fixtures';
 import { createMockStore } from './store';
 
 describe('fixtures', () => {
@@ -236,6 +236,22 @@ describe('fixtures', () => {
 				expect(rating.demonstration).toBe(true);
 				expect(rating.reliability).toBeGreaterThan(1);
 				expect(rating.reliability).toBeLessThanOrEqual(100);
+			}
+		}
+	});
+
+	it('lists rating history newest first, ending at the current ratings', () => {
+		for (const [key, changes] of Object.entries(RATING_HISTORY)) {
+			const times = (changes ?? []).map((item) => item.recorded_at);
+			expect([...times].sort().reverse(), key).toEqual(times);
+			for (const item of changes ?? []) {
+				expect(item.demonstration).toBe(true);
+				expect(item.reliability).toBeLessThanOrEqual(100);
+				// The newest change in a format that still has a rating is that rating.
+				const current = RATINGS[key as keyof typeof RATINGS]?.[item.rating_format];
+				const newest = changes?.find((other) => other.rating_format === item.rating_format);
+				if (current && newest === item) expect(item.rating, key).toBe(current.rating);
+				if (!current && newest === item) expect(item.kind, key).toBe('removed');
 			}
 		}
 	});
