@@ -93,7 +93,7 @@ test.describe('an account that has a player (me/player exists)', () => {
 	});
 
 	test('shares with the share sheet when the browser has one', async ({ page }) => {
-		await page.evaluate(() => {
+		await page.addInitScript(() => {
 			(window as unknown as { shared: unknown[] }).shared = [];
 			Object.defineProperty(navigator, 'share', {
 				configurable: true,
@@ -102,19 +102,19 @@ test.describe('an account that has a player (me/player exists)', () => {
 				}
 			});
 		});
+		await page.reload();
 		await page.getByRole('button', { name: 'Share' }).click();
 		const shared = await page.evaluate(() => (window as unknown as { shared: unknown[] }).shared);
 		expect(JSON.stringify(shared)).toContain(tamsin.code);
 	});
 
-	test('shares by copying when there is no share sheet', async ({ page, context }) => {
-		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-		await page.evaluate(() =>
+	test('hides Share when there is no share sheet', async ({ page }) => {
+		await page.addInitScript(() =>
 			Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
 		);
-		await page.getByRole('button', { name: 'Share' }).click();
-		await expect(page.getByText('Code copied')).toBeVisible();
-		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(tamsin.code);
+		await page.reload();
+		await expect(page.getByRole('button', { name: 'Copy code' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(0);
 	});
 
 	test('changes the display name, and keeps it after a reload', async ({ page }) => {
