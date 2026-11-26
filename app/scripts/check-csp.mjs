@@ -1,5 +1,7 @@
 // Checks the content security policy in a built index.html (plans/app-csp-and-hosting). Used by
-// scripts/check-build.mjs, and tested in src/check-csp.test.ts. Pure: it reads a string.
+// scripts/check-build.mjs. `checkCsp` is pure: it reads a string. `checkIndexCsp` reads index.html
+// from a build folder. Tested in src/check-csp.test.ts, src/check-csp-parse.test.ts and
+// src/check-build.test.ts.
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -8,9 +10,13 @@ import { join } from 'node:path';
 const META = /<meta\s+http-equiv="content-security-policy"\s+content="([^"]*)"\s*\/?>/gi;
 // Any policy meta tag, in any attribute order and quoting. Counted, never parsed.
 const ANY_META = /<meta\b[^>]*\bhttp-equiv\s*=\s*["']?content-security-policy\b[^>]*>/gi;
-const SCRIPT = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
-// One attribute: a name, then an optional value in double, single or no quotes.
-const ATTRIBUTE = /([^\s"'=<>/]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?/g;
+// A browser ends script data at "</script" followed by whitespace, "/" or ">".
+const SCRIPT = /<script\b([^>]*)>([\s\S]*?)<\/script(?:[\s/][^>]*)?>/gi;
+// A script element or a comment, whichever starts first. Comments inside a script are its text.
+const SCRIPT_OR_COMMENT = /<script\b[^>]*>[\s\S]*?<\/script(?:[\s/][^>]*)?>|<!--[\s\S]*?-->/gi;
+// One attribute: a name, then an optional value in double, single or no quotes. HTML keeps
+// quotes, "=" and backticks inside an unquoted value; only whitespace or ">" ends it.
+const ATTRIBUTE = /([^\s"'=<>/]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g;
 // Sources that would let scripts in without a hash.
 const WIDE = [
 	"'unsafe-inline'",
@@ -19,7 +25,9 @@ const WIDE = [
 	'*',
 	'https:',
 	'http:',
-	'data:'
+	'data:',
+	'blob:',
+	'filesystem:'
 ];
 
 /** @param {string} text */
@@ -33,11 +41,19 @@ const attributeNames = (attributes) =>
 	[...attributes.matchAll(ATTRIBUTE)].map((match) => match[1].toLowerCase());
 
 /**
+ * The page without its comments, which a browser never applies. Script text is kept as it is.
+ * @param {string} html
+ */
+const withoutComments = (html) =>
+	html.replace(SCRIPT_OR_COMMENT, (match) => (match.startsWith('<!--') ? '' : match));
+
+/**
  * Problems with the policy in a built page, or an empty list when it is fine.
- * @param {string} html The page, as built.
+ * @param {string} page The page, as built.
  * @returns {string[]}
  */
-export function checkCsp(html) {
+export function checkCsp(page) {
+	const html = withoutComments(page);
 	const metas = [...html.matchAll(META)];
 	const any = [...html.matchAll(ANY_META)];
 	if (any.length === 0 && metas.length === 0) {
@@ -51,7 +67,7 @@ export function checkCsp(html) {
 	if (metas.length === 0) return problems;
 
 	const firstMeta = Math.min(...[...any, ...metas].map((match) => match.index ?? 0));
-	const firstScript = html.search(/<script[\s>]/i);
+	const firstScript = html.search(/<script[\s/>]/i);
 	if (firstScript !== -1 && firstScript < firstMeta) {
 		problems.push('a <script> comes before the content-security-policy meta tag');
 	}
@@ -83,6 +99,9 @@ export function checkCsp(html) {
 	);
 	for (const wide of WIDE) {
 		if (sources.includes(wide)) problems.push(`script-src allows ${wide}`);
+	}
+	for (const source of scriptSrc) {
+		if (/^'nonce-/i.test(source)) problems.push(`script-src allows a nonce: ${source}`);
 	}
 	for (const [, attributes = '', body] of html.matchAll(SCRIPT)) {
 		if (attributeNames(attributes).includes('src')) continue;
