@@ -18,18 +18,17 @@
 		toast((await copy()) ? 'Code copied' : "Couldn't copy. Select the code and copy it by hand.");
 	}
 
-	// Share with the device's own share sheet when there is one, and copy otherwise.
+	// Only offer Share where the device has a share sheet. Elsewhere, Copy code does the job.
+	const canShare = typeof navigator.share === 'function';
+
 	async function onShare() {
-		if (typeof navigator.share === 'function') {
-			try {
-				await navigator.share({ title: 'My OPEN code', text: `My OPEN code is ${code}` });
-				return;
-			} catch (error) {
-				// Closing the share sheet is not a failure.
-				if (error instanceof DOMException && error.name === 'AbortError') return;
-			}
+		try {
+			await navigator.share({ title: 'My OPEN code', text: `My OPEN code is ${code}` });
+		} catch (error) {
+			// Closing the share sheet is not a failure.
+			if (error instanceof DOMException && error.name === 'AbortError') return;
+			toast("Couldn't share. Use Copy code instead.");
 		}
-		toast((await copy()) ? 'Code copied' : "Couldn't share. Select the code and copy it by hand.");
 	}
 </script>
 
@@ -48,6 +47,8 @@
 	</p>
 	<div class="flex flex-wrap items-center gap-3">
 		<Button variant="outline" size="sm" onclick={onCopy}>Copy code</Button>
-		<Button variant="outline" size="sm" onclick={onShare}>Share</Button>
+		{#if canShare}
+			<Button variant="outline" size="sm" onclick={onShare}>Share</Button>
+		{/if}
 	</div>
 </section>
