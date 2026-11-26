@@ -75,6 +75,27 @@ export async function listAwaitingConfirmation(
 }
 
 /**
+ * One page of the disputed matches the signed-in player played in, newest first, whoever
+ * disputed them. A match leaves the list once its dispute is withdrawn, settled or ends. Every
+ * match on the page goes into the cache. `offset` is how many matches to skip.
+ */
+export async function listMyDisputes(
+	offset = 0,
+	{
+		limit = PAGE_SIZE,
+		cache = matchCache,
+		api = appApi
+	}: { limit?: number; cache?: MatchCache } & ApiOption = {}
+): Promise<MatchPage> {
+	const dto = await unwrap(
+		api.open.GET('/api/v1/me/matches/disputes', { params: { query: { limit, offset } } })
+	);
+	const page = toMatchPage(dto);
+	cache.rememberAll(page.items);
+	return page;
+}
+
+/**
  * Read one match from the API and remember it. Only the match's players can read it. Anyone else,
  * and any unknown or malformed code, gets the same 404, so a `not_found` `AppError` means "not
  * yours or not there". Any other failure is an `AppError` too. It always asks the API, so it
@@ -113,8 +134,9 @@ export async function confirmMatch(
 }
 
 /**
- * Dispute a match the player played in. It takes no reason, and the backend stores none. Repeats
- * are safe. Resolves to the match as the API now has it (`disputed`).
+ * Dispute a match the player played in. It takes no reason, and the backend stores none. A player
+ * disputes a match once: a repeat, also after they withdrew, changes nothing. Resolves to the
+ * match as the API now has it (`disputed`, unless they had withdrawn).
  */
 export async function disputeMatch(
 	code: MatchCode,
@@ -122,6 +144,26 @@ export async function disputeMatch(
 ): Promise<Match> {
 	const dto = await unwrap(
 		api.open.POST('/api/v1/matches/{code}/dispute', { params: { path: { code } } })
+	);
+	const match = toMatch(dto);
+	cache.remember(match);
+	return match;
+}
+
+/**
+ * Withdraw the player's own open dispute. Resolves to the match as the API now has it, and
+ * remembers it: still `disputed` while another player's dispute is open, else back to
+ * `confirmed` or `pending`, as it was before. The withdrawn dispute still counts as the player's
+ * one dispute, so disputing again changes nothing. Throws an `AppError`: a 409 `conflict` when
+ * the player has no open dispute on the match or it was voided, and a 404 `not_found` for a
+ * match they did not play in.
+ */
+export async function withdrawDispute(
+	code: MatchCode,
+	{ cache = matchCache, api = appApi }: { cache?: MatchCache } & ApiOption = {}
+): Promise<Match> {
+	const dto = await unwrap(
+		api.open.POST('/api/v1/matches/{code}/withdraw-dispute', { params: { path: { code } } })
 	);
 	const match = toMatch(dto);
 	cache.remember(match);

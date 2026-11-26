@@ -14,7 +14,8 @@ import HomeView from './home-view.svelte';
 vi.mock('../services.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('../services.js')>()),
 	listMatches: vi.fn(),
-	listAwaitingConfirmation: vi.fn()
+	listAwaitingConfirmation: vi.fn(),
+	listMyDisputes: vi.fn()
 }));
 const mocked = vi.mocked(services);
 
@@ -23,6 +24,8 @@ const NEEDS = code('7QK2H9WD3NF');
 const NEEDS_TOO = code('3FTB8ZRMK6P');
 const WAITING = code('X4NC2GHJ9VQ');
 const RECENT = code('D9PW5KXE7RM');
+const DISPUTED = code('R5GK9WBD2XF');
+const DISPUTED_TOO = code('6YEM3HNV8QT');
 
 const needs = viewerMatch({ b: true }, { code: NEEDS });
 const needsToo = viewerMatch({}, { code: NEEDS_TOO, playedOn: '2026-11-12' });
@@ -34,6 +37,23 @@ const done = viewerMatch(
 	{ a: true, b: true, decision: 'confirm' },
 	{ code: RECENT, status: 'confirmed', playedOn: '2026-11-08' }
 );
+
+// Tamsin disputed this one. Another player disputed the second, which she confirmed.
+const myDispute = viewerMatch(
+	{ decision: 'dispute' },
+	{ code: DISPUTED, status: 'disputed', playedOn: '2026-11-03' }
+);
+const theirDispute = viewerMatch(
+	{ a: true, decision: 'confirm' },
+	{ code: DISPUTED_TOO, status: 'disputed', playedOn: '2026-11-01' }
+);
+
+function serveDisputes(disputes: Match[], count = disputes.length) {
+	mocked.listMyDisputes.mockImplementation(async (_offset, options) => {
+		options?.cache?.rememberAll(disputes);
+		return { items: disputes, count };
+	});
+}
 
 function serve(history: Match[], awaiting: Match[], awaitingCount = awaiting.length) {
 	mocked.listMatches.mockImplementation(async (_player, _offset, options) => {
@@ -56,6 +76,7 @@ beforeEach(() => {
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
 	myCode.code = TAMSIN;
 	myCode.status = 'ready';
+	serveDisputes([]);
 });
 
 afterEach(() => {
@@ -205,3 +226,83 @@ describe('HomeView', () => {
 function failure(kind: AppErrorKind): AppError {
 	return new AppError({ kind, status: null, code: kind, message: 'Backend text', fields: {} });
 }
+
+describe('HomeView disputed matches', () => {
+	it('lists the disputed matches after what needs the player, and not again under recent', async () => {
+		serve([needs, waiting, myDispute, theirDispute, done], [needs]);
+		serveDisputes([myDispute, theirDispute]);
+		const screen = await render(HomeView);
+
+		await expect.element(heading('Disputed matches')).toBeVisible();
+		await expect
+			.element(page.getByText(/A player said these scores are wrong\. They don't count/))
+			.toBeVisible();
+		const list = page.getByRole('list', { name: 'Disputed matches' });
+		expect(list.getByTestId('match-row').elements()).toHaveLength(2);
+		await expect.element(list.getByText('You disputed this score.')).toBeVisible();
+		await expect.element(page.getByText('2 matches')).toBeVisible();
+
+		// The order: Needs your confirmation, Disputed matches, Waiting for the other team.
+		const titles = [...screen.container.querySelectorAll('h2')].map((h) => h.textContent?.trim());
+		expect(titles).toEqual([
+			'Needs your confirmation',
+			'Disputed matches',
+			'Waiting for the other team',
+			'Recent matches'
+		]);
+		const recent = page.getByRole('list', { name: 'Recent matches' });
+		expect(recent.getByTestId('match-row').elements()).toHaveLength(1);
+	});
+
+	it('leaves the section out when nothing is disputed', async () => {
+		serve([done], []);
+		await render(HomeView);
+		await expect.element(heading('Recent matches')).toBeVisible();
+		await expect.element(heading('Disputed matches')).not.toBeInTheDocument();
+	});
+
+	it('drops a match once its cached copy is no longer disputed, and keeps one still disputed', async () => {
+		serve([done], []);
+		serveDisputes([myDispute, theirDispute]);
+		await render(HomeView);
+		const list = page.getByRole('list', { name: 'Disputed matches' });
+		await expect.element(list.getByTestId('match-row').first()).toBeVisible();
+
+		// She withdrew, and no one else disputes it: it is pending again.
+		matchCache.remember(viewerMatch({ decision: 'withdraw' }, { code: DISPUTED }));
+		await expect.poll(() => list.getByTestId('match-row').elements()).toHaveLength(1);
+		await expect.element(heading('Disputed matches')).toBeVisible();
+
+		// She withdrew, but another player still disputes it: it stays.
+		matchCache.remember(
+			viewerMatch({ a: true, decision: 'withdraw' }, { code: DISPUTED_TOO, status: 'disputed' })
+		);
+		await new Promise((done) => setTimeout(done, 50));
+		expect(list.getByTestId('match-row').elements()).toHaveLength(1);
+	});
+
+	it('says how many more are disputed when the first page leaves some out', async () => {
+		serve([done], []);
+		serveDisputes([myDispute], 3);
+		await render(HomeView);
+		await expect
+			.element(page.getByTestId('more-disputes'))
+			.toHaveTextContent('2 more disputed matches are in your history. See all matches.');
+		await expect.element(page.getByText('3 matches')).toBeVisible();
+	});
+
+	it('still shows the history, with a notice and Try again, when only the disputed list fails', async () => {
+		serve([waiting, done], []);
+		mocked.listMyDisputes.mockRejectedValueOnce(new Error('down'));
+		await render(HomeView);
+		await expect.element(page.getByTestId('disputes-error')).toBeVisible();
+		await expect.element(page.getByText("We couldn't check your disputed matches.")).toBeVisible();
+		await expect.element(heading('Recent matches')).toBeVisible();
+		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
+
+		serveDisputes([myDispute]);
+		await page.getByTestId('disputes-error').getByRole('button', { name: 'Try again' }).click();
+		await expect.element(heading('Disputed matches')).toBeVisible();
+		await expect.element(page.getByTestId('disputes-error')).not.toBeInTheDocument();
+	});
+});

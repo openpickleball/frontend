@@ -91,6 +91,65 @@ describe('fixtures', () => {
 		expect(store.matchOut(disputed, VERIFIED_EMAIL).my_decision).toBe('withdraw');
 	});
 
+	it('withdraws as workflow.withdraw_dispute does', () => {
+		const store = createMockStore();
+		const oren = PLAYERS.find((p) => p.key === 'oren')!.accountEmail!;
+		const own = store.state.matches.find(
+			(m) =>
+				m.status === 'disputed' &&
+				m.decisions.every((d) => d.player === PLAYERS[0].code && d.decision === 'dispute')
+		);
+		const shared = store.matchByCode(buildCode('match', 'R5GK9WBD2XF'));
+		const confirmed = store.matchByCode(buildCode('match', 'D9PW5KXE7RM'));
+		const notHers = store.matchByCode(buildCode('match', 'C4VD8RME2TX'));
+		if (!own || !shared || !confirmed || !notHers) throw new Error('fixture match is missing');
+
+		// Not in the match: the unknown-code 404.
+		expect(store.withdrawDispute(VERIFIED_EMAIL, notHers.code)).toEqual({
+			ok: false,
+			kind: 'not_found'
+		});
+		// No open dispute of hers: 409.
+		expect(store.withdrawDispute(VERIFIED_EMAIL, confirmed.code)).toEqual({
+			ok: false,
+			kind: 'conflict'
+		});
+		// Already withdrawn: a repeat changes nothing, and Bea's dispute keeps it disputed.
+		expect(store.withdrawDispute(VERIFIED_EMAIL, shared.code).ok).toBe(true);
+		expect(shared.status).toBe('disputed');
+
+		// Her own dispute, the only one open: the match goes back to pending.
+		expect(store.withdrawDispute(VERIFIED_EMAIL, own.code).ok).toBe(true);
+		expect(store.matchOut(own, VERIFIED_EMAIL)).toMatchObject({
+			status: 'pending',
+			my_decision: 'withdraw'
+		});
+		expect(store.listMyDisputes(VERIFIED_EMAIL, 20, 0).items.map((m) => m.code)).toEqual([
+			shared.code
+		]);
+
+		// A confirmed match she disputes goes back to confirmed once Oren's dispute is withdrawn too.
+		const both = store.state.matches.find(
+			(m) => m.status === 'confirmed' && m.teamA.includes(PLAYERS[0].code) && m.teamB.length === 1
+		)!;
+		const opponent = PLAYERS.find((p) => p.code === both.teamB[0])!.accountEmail!;
+		store.changeMatch(VERIFIED_EMAIL, both.code, 'dispute');
+		store.changeMatch(opponent, both.code, 'dispute');
+		store.withdrawDispute(VERIFIED_EMAIL, both.code);
+		expect(both.status).toBe('disputed');
+		store.withdrawDispute(opponent, both.code);
+		expect(both.status).toBe('confirmed');
+
+		// A voided match is a 409, even after a withdraw.
+		own.status = 'voided';
+		expect(store.withdrawDispute(VERIFIED_EMAIL, own.code)).toEqual({
+			ok: false,
+			kind: 'conflict'
+		});
+		expect(store.listMyDisputes(oren, 20, 0).items.map((m) => m.code)).not.toContain(own.code);
+		expect(store.listMyDisputes('nobody@example.com', 20, 0)).toEqual({ items: [], count: 0 });
+	});
+
 	it("lists a pending match as awaiting until the player's team confirms or disputes", () => {
 		const store = createMockStore();
 		const codes = () =>

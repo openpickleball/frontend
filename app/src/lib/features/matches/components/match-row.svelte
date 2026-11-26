@@ -37,8 +37,12 @@
 		}))
 	);
 	const games = $derived(match.games.length === 1 ? '1 game' : `${match.games.length} games`);
-	// What the player can do about a pending match, from what the API says about their team.
+	// What the player can do about a pending match, from what the API says about their team, and
+	// whose dispute a disputed match waits on.
 	const note = $derived.by(() => {
+		if (match.status === 'disputed' && match.viewerDecision === 'dispute') {
+			return 'You disputed this score.';
+		}
 		if (needsViewerConfirmation(match)) return 'Needs your confirmation.';
 		if (waitingOnOtherTeam(match)) {
 			return match.viewerDecision === 'confirm'

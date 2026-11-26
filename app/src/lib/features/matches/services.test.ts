@@ -2,7 +2,8 @@ import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { allauthParams, createApi, isAppError, type Api, type AppError } from '#lib/api/index.js';
 import { buildCode, type MatchCode, type PlayerCode } from '#lib/domain/index.js';
-import { MATCHES, MOCK_PASSWORD, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
+import { MATCHES, MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
+import { mockStore } from '#lib/mocks/store.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
 import { MatchCache } from './cache.svelte.js';
 import {
@@ -13,7 +14,9 @@ import {
 	getMatch,
 	listAwaitingConfirmation,
 	listMatches,
-	rememberMatch
+	listMyDisputes,
+	rememberMatch,
+	withdrawDispute
 } from './services.js';
 import { TAMSIN, sampleMatch } from './testing.js';
 
@@ -28,6 +31,10 @@ const ALREADY_CONFIRMED = code('X4NC2GHJ9VQ'); // pending, Tamsin confirmed
 const CONFIRMED = code('D9PW5KXE7RM');
 const DISPUTED = code('R5GK9WBD2XF');
 const NOT_MINE = code('C4VD8RME2TX'); // Oren against Bea
+// An older match only Tamsin disputed. It was pending before her dispute.
+const MY_DISPUTE = code(
+	MATCHES.find((m) => m.status === 'disputed' && m.random !== 'R5GK9WBD2XF')!.random
+);
 const oldest = MATCHES.filter((m) => [...m.teamA, ...m.teamB].includes('tamsin')).reduce((a, b) =>
 	a.playedOn <= b.playedOn ? a : b
 );
@@ -254,6 +261,77 @@ describe('disputeMatch', () => {
 
 	it('fails with not found for a match the player is not in', async () => {
 		expect((await failure(disputeMatch(NOT_MINE, { cache, api }))).kind).toBe('not_found');
+	});
+});
+
+describe('listMyDisputes', () => {
+	it('lists the disputed matches the player is in, whoever disputed them, newest first', async () => {
+		const page = await listMyDisputes(0, { cache, api });
+		expect(calls).toEqual([`GET /api/v1/me/matches/disputes?limit=${PAGE_SIZE}&offset=0`]);
+		expect(page.items.map((m) => m.code)).toEqual([DISPUTED, MY_DISPUTE]);
+		expect(page.count).toBe(2);
+		expect(page.items.map((m) => m.viewerDecision)).toEqual(['withdraw', 'dispute']);
+		expect(cache.get(DISPUTED)).toBe(page.items[0]);
+	});
+
+	it('picks up a match once the player disputes it', async () => {
+		await disputeMatch(WAITING_ON_ME, { cache, api });
+		const page = await listMyDisputes(0, { cache, api });
+		expect(page.items.map((m) => m.code)).toContain(WAITING_ON_ME);
+	});
+
+	it('drops a match once its last open dispute is withdrawn', async () => {
+		await withdrawDispute(MY_DISPUTE, { cache, api });
+		const page = await listMyDisputes(0, { cache, api });
+		expect(page.items.map((m) => m.code)).toEqual([DISPUTED]);
+	});
+
+	it('pages with limit and offset', async () => {
+		const page = await listMyDisputes(1, { limit: 1, cache, api });
+		expect(page.items.map((m) => m.code)).toEqual([MY_DISPUTE]);
+		expect(page.count).toBe(2);
+	});
+});
+
+describe('withdrawDispute', () => {
+	it('withdraws with no body, and the match goes back to pending', async () => {
+		const match = await withdrawDispute(MY_DISPUTE, { cache, api });
+		expect(calls).toEqual([`POST /api/v1/matches/${MY_DISPUTE}/withdraw-dispute`]);
+		expect(match).toMatchObject({ status: 'pending', viewerDecision: 'withdraw' });
+		expect(cache.get(MY_DISPUTE)).toBe(match);
+	});
+
+	it('goes back to confirmed when the match was confirmed before the dispute', async () => {
+		expect((await disputeMatch(CONFIRMED, { cache, api })).status).toBe('disputed');
+		expect((await withdrawDispute(CONFIRMED, { cache, api })).status).toBe('confirmed');
+	});
+
+	it('keeps the match disputed while another player still disputes it', async () => {
+		// Oren, her opponent, disputes it too. Her withdraw leaves his dispute open.
+		const oren = PLAYERS.find((p) => p.key === 'oren')!.accountEmail!;
+		expect(mockStore.changeMatch(oren, MY_DISPUTE, 'dispute').ok).toBe(true);
+		const match = await withdrawDispute(MY_DISPUTE, { cache, api });
+		expect(match).toMatchObject({ status: 'disputed', viewerDecision: 'withdraw' });
+	});
+
+	it('is safe to repeat', async () => {
+		await withdrawDispute(MY_DISPUTE, { cache, api });
+		expect((await withdrawDispute(MY_DISPUTE, { cache, api })).status).toBe('pending');
+	});
+
+	it('leaves a second dispute after a withdraw with no effect', async () => {
+		await withdrawDispute(MY_DISPUTE, { cache, api });
+		const again = await disputeMatch(MY_DISPUTE, { cache, api });
+		expect(again).toMatchObject({ status: 'pending', viewerDecision: 'withdraw' });
+	});
+
+	it('fails with a conflict when the player has no open dispute on the match', async () => {
+		expect((await failure(withdrawDispute(WAITING_ON_ME, { cache, api }))).kind).toBe('conflict');
+		expect((await failure(withdrawDispute(CONFIRMED, { cache, api }))).kind).toBe('conflict');
+	});
+
+	it('fails with not found for a match the player is not in', async () => {
+		expect((await failure(withdrawDispute(NOT_MINE, { cache, api }))).kind).toBe('not_found');
 	});
 });
 

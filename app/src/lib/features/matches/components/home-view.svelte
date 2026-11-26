@@ -12,7 +12,7 @@
 	import { matchCountLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
 	import { matchCache } from '../cache.svelte.js';
-	import { listAwaitingConfirmation } from '../services.js';
+	import { listAwaitingConfirmation, listMyDisputes } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import CodeStrip from './code-strip.svelte';
 	import EmptyMatches from './empty-matches.svelte';
@@ -27,9 +27,14 @@
 	const awaiting = new MatchListView(matchCache, (_player, offset, options) =>
 		listAwaitingConfirmation(offset, options)
 	);
+	// The player's disputed matches, whoever disputed them, from their own endpoint too.
+	const disputed = new MatchListView(matchCache, (_player, offset, options) =>
+		listMyDisputes(offset, options)
+	);
 	onDestroy(() => {
 		view.cancel();
 		awaiting.cancel();
+		disputed.cancel();
 	});
 
 	$effect(() => {
@@ -38,6 +43,7 @@
 			untrack(() => {
 				void view.load(code);
 				void awaiting.load(code);
+				void disputed.load(code);
 			});
 		}
 	});
@@ -45,19 +51,27 @@
 	const firstName = $derived(myCode.displayName?.trim().split(/\s+/)[0] ?? '');
 	const greeting = $derived(firstName ? `Hi, ${firstName}` : 'Home');
 
-	// The page fails as a whole only when the history does. If just the awaiting list fails, the
-	// history sections still show, with a small notice where "Needs your confirmation" would be.
+	// The page fails as a whole only when the history does. If just the awaiting or the disputed
+	// list fails, the history sections still show, with a small notice where that list would be.
 	// Retrying only that list does not put the whole page back to loading.
 	let retryingAwaiting = $state(false);
+	let retryingDisputed = $state(false);
 	const status = $derived(
 		view.status === 'error'
 			? 'error'
-			: view.status === 'loading' || (awaiting.status === 'loading' && !retryingAwaiting)
+			: view.status === 'loading' ||
+				  (awaiting.status === 'loading' && !retryingAwaiting) ||
+				  (disputed.status === 'loading' && !retryingDisputed)
 				? 'loading'
 				: 'ready'
 	);
 	const awaitingFailed = $derived(awaiting.status === 'error');
-	const offline = $derived(view.offline || (awaiting.offline && !retryingAwaiting));
+	const disputedFailed = $derived(disputed.status === 'error');
+	const offline = $derived(
+		view.offline ||
+			(awaiting.offline && !retryingAwaiting) ||
+			(disputed.offline && !retryingDisputed)
+	);
 
 	// Matches that need the player. A confirm on a match page updates the cached copy, so a match
 	// the player just confirmed drops out of the list.
@@ -67,15 +81,12 @@
 	// Matches the player's team confirmed. This looks only at the newest page (20 matches) of the
 	// history. An older one shows under "All matches".
 	const waiting = $derived(view.matches.filter(waitingOnOtherTeam));
-	const recent = $derived(
-		view.matches
-			.filter(
-				(match) =>
-					!needs.some((item) => item.code === match.code) &&
-					!waiting.some((item) => item.code === match.code)
-			)
-			.slice(0, RECENT)
-	);
+	// Disputed matches. A withdraw on a match page updates the cached copy, so a match that is no
+	// longer disputed drops out of the list. One that another player still disputes stays.
+	const disputes = $derived(disputed.matches.filter((match) => match.status === 'disputed'));
+	const moreDisputes = $derived(Math.max(0, disputed.count - disputed.items.length));
+	const shown = $derived(new Set([...needs, ...disputes, ...waiting].map((match) => match.code)));
+	const recent = $derived(view.matches.filter((match) => !shown.has(match.code)).slice(0, RECENT));
 </script>
 
 <h1 class="page-title">{greeting}</h1>
@@ -88,8 +99,10 @@
 					kind={offline ? 'network' : view.errorKind}
 					onretry={() => {
 						retryingAwaiting = false;
+						retryingDisputed = false;
 						void view.load(you);
 						void awaiting.load(you);
+						void disputed.load(you);
 					}}
 				/>
 			</div>
@@ -151,6 +164,60 @@
 						{#if moreNeeds > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-needs">
 								{moreNeeds === 1 ? '1 more match is' : `${moreNeeds} more matches are`} waiting for you.
+								<Button variant="link" size="inline" href={resolve(ROUTES.matches)}>
+									See all matches
+								</Button>.
+							</p>
+						{/if}
+					</section>
+				{/if}
+
+				{#if disputedFailed}
+					<div class="mt-12" data-testid="disputes-error">
+						<Alert variant={disputed.offline ? 'default' : 'destructive'}>
+							{#if disputed.offline}
+								<WifiOffIcon aria-hidden="true" />
+							{:else}
+								<CircleAlertIcon aria-hidden="true" />
+							{/if}
+							<AlertTitle>We couldn't check your disputed matches.</AlertTitle>
+							<AlertDescription>
+								The rest of your matches are below. Try again to see which are disputed.
+							</AlertDescription>
+							<AlertAction>
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={() => {
+										retryingDisputed = true;
+										void disputed.load(you);
+									}}
+								>
+									Try again
+								</Button>
+							</AlertAction>
+						</Alert>
+					</div>
+				{:else if disputes.length > 0}
+					<section class="mt-12" aria-labelledby="disputes-title">
+						<div class="flex items-baseline justify-between gap-4">
+							<h2 id="disputes-title" class="text-2xl font-semibold tracking-tight">
+								Disputed matches
+							</h2>
+							<span class="text-base text-muted">
+								{matchCountLabel(disputes.length + moreDisputes)}
+							</span>
+						</div>
+						<p class="mt-2 mb-4 text-base text-muted">
+							A player said these scores are wrong. They don't count while they are disputed. Open a
+							match to see how its dispute can end.
+						</p>
+						<MatchList matches={disputes} {you} label="Disputed matches" />
+						{#if moreDisputes > 0}
+							<p class="mt-3 text-base text-muted" data-testid="more-disputes">
+								{moreDisputes === 1
+									? '1 more disputed match is'
+									: `${moreDisputes} more disputed matches are`} in your history.
 								<Button variant="link" size="inline" href={resolve(ROUTES.matches)}>
 									See all matches
 								</Button>.

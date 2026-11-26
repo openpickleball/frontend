@@ -191,7 +191,66 @@ describe('StatusPanel', () => {
 		await expect.element(disputed.getByText(/You said this score is wrong/)).toBeVisible();
 	});
 
+	describe('a disputed match the player disputed', () => {
+		const disputed = () => viewerMatch({ decision: 'dispute' }, { status: 'disputed' });
+
+		it('says how the dispute ends and offers Withdraw my dispute', async () => {
+			const onwithdraw = vi.fn();
+			const screen = await render(StatusPanel, {
+				match: disputed(),
+				...handlers(),
+				onwithdraw
+			});
+			await expect.element(screen.getByRole('heading', { name: 'Disputed' })).toBeVisible();
+			await expect
+				.element(screen.getByText(/every player who disputed the score withdraws/))
+				.toBeVisible();
+			await expect.element(screen.getByText(/the match is voided/)).toBeVisible();
+			await expect
+				.element(screen.getByRole('button', { name: 'Confirm score' }))
+				.not.toBeInTheDocument();
+			await expect
+				.element(screen.getByRole('button', { name: 'Dispute', exact: true }))
+				.not.toBeInTheDocument();
+			await screen.getByRole('button', { name: 'Withdraw my dispute' }).click();
+			expect(onwithdraw).toHaveBeenCalledOnce();
+		});
+
+		it('waits while the withdraw is in flight', async () => {
+			const onwithdraw = vi.fn();
+			const screen = await render(StatusPanel, {
+				match: disputed(),
+				busy: 'withdraw',
+				...handlers(),
+				onwithdraw
+			});
+			const button = screen.getByRole('button', { name: 'Withdrawing…' });
+			await expect.element(button).toHaveAttribute('aria-busy', 'true');
+			await expect.element(button).toHaveAttribute('aria-disabled', 'true');
+			// A DOM click, as Enter or Space on the focused button sends it.
+			(button.element() as HTMLButtonElement).click();
+			expect(onwithdraw).not.toHaveBeenCalled();
+		});
+	});
+
 	describe('a player who withdrew their dispute', () => {
+		it('offers Confirm but not Dispute once the match is pending again', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ decision: 'withdraw' }),
+				...handlers()
+			});
+			await expect
+				.element(screen.getByRole('heading', { name: 'Is this the right score?' }))
+				.toBeVisible();
+			await expect
+				.element(screen.getByText(/You withdrew your dispute, so you can't dispute this match/))
+				.toBeVisible();
+			await expect.element(screen.getByRole('button', { name: 'Confirm score' })).toBeVisible();
+			await expect
+				.element(screen.getByRole('button', { name: 'Dispute', exact: true }))
+				.not.toBeInTheDocument();
+		});
+
 		it('says so while another player keeps the match disputed', async () => {
 			const screen = await render(StatusPanel, {
 				match: viewerMatch({ decision: 'withdraw' }, { status: 'disputed' }),
