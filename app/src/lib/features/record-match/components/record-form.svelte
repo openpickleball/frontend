@@ -196,8 +196,9 @@
 				<AlertDescription class="grid gap-1.5">
 					{#if form.failure.kind === 'organizer' && target}
 						<p>
-							Players can only correct a match that wasn't played at an event. For a match played at
-							an event, the event's organizer settles a disputed score.
+							Players can only correct a match that players recorded themselves. A match an
+							organizer recorded, such as one played at an event, can only be changed by that
+							organizer.
 						</p>
 						<p>
 							<Button

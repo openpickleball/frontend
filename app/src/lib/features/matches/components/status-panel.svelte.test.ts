@@ -411,9 +411,7 @@ describe('StatusPanel', () => {
 			});
 			await expect.element(screen.getByRole('link', { name: 'Correct the score' })).toBeVisible();
 			await expect
-				.element(
-					screen.getByText(/Only the event's organizer can change a match played at an event/)
-				)
+				.element(screen.getByText(/Only the organizer can change a match an organizer recorded/))
 				.toBeVisible();
 		});
 

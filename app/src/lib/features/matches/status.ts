@@ -126,7 +126,7 @@ export const CORRECT_NOTE =
  * offers a correction and says who changes an event match. The backend answers 404 for one.
  */
 export const CORRECT_EVENT_NOTE =
-	"Only the event's organizer can change a match played at an event.";
+	'Only the organizer can change a match an organizer recorded, such as one played at an event.';
 
 /**
  * True when the signed-in player may try to correct the match (backend#267): it is pending or

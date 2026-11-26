@@ -663,7 +663,9 @@ describe('RecordForm correcting a match', () => {
 		await expect
 			.element(screen.getByText('This match can only be changed by its organizer'))
 			.toBeVisible();
-		await expect.element(screen.getByText(/wasn't played at an event/)).toBeVisible();
+		await expect
+			.element(screen.getByText(/a match that players recorded themselves/))
+			.toBeVisible();
 		await expect
 			.element(screen.getByRole('link', { name: 'Back to the match' }))
 			.toHaveAttribute('href', `/matches/${matchCode}`);

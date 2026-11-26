@@ -566,7 +566,7 @@ test.describe('corrections', () => {
 		await page.goto(`/matches/${MY_DISPUTE}`);
 		const panel = page.getByTestId('status-panel');
 		await expect(
-			panel.getByText(/Only the event's organizer can change a match played at an event/)
+			panel.getByText(/Only the organizer can change a match an organizer recorded/)
 		).toBeVisible();
 		await page.getByRole('link', { name: 'Correct the score' }).click();
 		await page.getByLabel("Game 3, your team's points").fill('11');
