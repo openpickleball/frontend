@@ -44,8 +44,8 @@ The built app carries a Content Security Policy that allows only what it uses, a
 - `app/e2e/fixtures.ts` (new) or `app/e2e/helpers.ts`: a `test` extended with an auto fixture that collects CSP violations and fails the test. Every spec in `e2e/` and `e2e-pwa/` imports `test` and `expect` from it.
 - `app/src/pwa/routing.ts` and `routing.test.ts`: `/oauth/` network-only.
 - `app/README.md`, `app/AGENTS.md`: criteria 8 and 9.
-- `app/src/check-csp.test.ts` (new) and `app/src/check-build.test.ts` (new): the build check's fixtures and how it reads `index.html`.
-- `app/src/lib/domain/zod.ts` (new), `app/src/lib/domain/schemas.ts`, `app/src/lib/domain/zod-config.test.ts` (new), `app/src/zod-import.test.ts` (new), `app/eslint.config.js`: Zod runs jitless, from one module (see Decisions).
+- `app/src/check-csp.test.ts`, `app/src/check-csp-parse.test.ts` and `app/src/check-build.test.ts` (all new): the build check's fixtures and how it reads `index.html`.
+- `app/src/lib/domain/zod.ts` (new), `app/src/lib/domain/schemas.ts`, `app/src/lib/domain/zod-config.test.ts` (new), `app/src/zod-import.test.ts` and `app/src/zod-import-dynamic.test.ts` (new), `app/eslint.config.js`: Zod runs jitless, from one module (see Decisions).
 - `app/src/routes/routes.test.ts`, `app/src/routes/layout.test.ts`: the theme tests read `static/theme.js`, and app.html has no inline script.
 - `app/src/routes/layout.css`, `app/src/lib/ui/theme-toggle/theme.ts`, `app/src/service-worker/index.ts`, `app/src/lib/features/places/photon.ts`, `.github/workflows/ci-app.yml`: comments only.
 - `app/e2e/*.spec.ts`, `app/e2e/*.test.ts`, `app/e2e-pwa/pwa.spec.ts`, `app/e2e-live/happy-path.spec.ts`: import `test` and `expect` from `e2e/fixtures.ts`.
