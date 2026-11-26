@@ -2,8 +2,8 @@ import { test as base, expect } from '@playwright/test';
 
 /**
  * Playwright's `test`, with an automatic check that the page broke no rule of the content
- * security policy (src/csp.ts). Every spec in e2e/ and e2e-pwa/ imports `test` and `expect`
- * from here, so a policy that blocks something the app needs fails the suite.
+ * security policy (src/csp.ts). Every spec in e2e/, e2e-pwa/ and e2e-live/ imports `test` and
+ * `expect` from here, so a policy that blocks something the app needs fails the suite.
  *
  * It watches the whole browser context: Chrome's console error that names the Content Security
  * Policy, and the `securitypolicyviolation` event, reported to the console by an init script

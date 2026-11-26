@@ -16,7 +16,7 @@ The full frontend, built with SvelteKit and Tailwind. It is not deployed yet: `p
 - `pnpm e2e:live` runs one happy path against `pnpm dev` and the real local backend (`playwright.live.config.ts`, `e2e-live/`). Local only: CI never runs it, and it skips unless the backend and the `LIVE_*` values are set. See [README.md](README.md).
 - `pnpm e2e:pwa` runs `e2e-pwa/` against a build with `PUBLIC_API_MOCK=off` (port 4184, or `E2E_PWA_PORT`): manifest, service worker and the offline shell. It builds into `build/` too, so don't run it at the same time as `pnpm e2e`. `pnpm icons` re-renders `static/icons/` from the favicon.
 - `pnpm build` produces a production build.
-- `pnpm check:build` checks that the build in `build/` ships no API mocks (no msw code, no mock fixtures and no `mockServiceWorker.js`) and that `index.html` has one content security policy meta tag, before any script, that hashes every inline script. Run it after a `PUBLIC_API_MOCK=off` build. A mock build fails it on purpose.
+- `pnpm check:build` checks that the build in `build/` ships no API mocks (no msw code, no mock fixtures and no `mockServiceWorker.js`) and that `index.html` carries one content security policy that the browser applies before any script, hashes every inline script, and allows no broad or unsafe script source (see `scripts/check-csp.mjs`). Run it after a `PUBLIC_API_MOCK=off` build. A mock build fails it on purpose.
 
 CI runs `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test:coverage`, `pnpm build` and `pnpm check:build` (job `app-checks`) and `pnpm e2e` (job `app-e2e`) on every PR, and on pushes to `main` that change `app/`. Both jobs install Chromium, from a cached Playwright browser directory.
 
