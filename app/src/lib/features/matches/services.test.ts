@@ -11,11 +11,14 @@ import {
 	confirmMatch,
 	countMatches,
 	disputeMatch,
+	findHold,
 	getMatch,
 	listAwaitingConfirmation,
 	listMatches,
 	listMyDisputes,
+	listMyHolds,
 	rememberMatch,
+	vouchForMatch,
 	withdrawDispute
 } from './services.js';
 import { TAMSIN, sampleMatch } from './testing.js';
@@ -31,6 +34,10 @@ const ALREADY_CONFIRMED = code('X4NC2GHJ9VQ'); // pending, Tamsin confirmed
 const CONFIRMED = code('D9PW5KXE7RM');
 const DISPUTED = code('R5GK9WBD2XF');
 const NOT_MINE = code('C4VD8RME2TX'); // Oren against Bea
+// Held matches. Rosa's team and the other match vouched for the first, so Tamsin's vouch ends
+// its hold. Tamsin's team vouched for the second already.
+const HELD = code('H2ZA6TQN4CJ');
+const HELD_VOUCHED = code('6YEM3HNV8QT');
 // An older match only Tamsin disputed. It was pending before her dispute.
 const MY_DISPUTE = code(
 	MATCHES.find((m) => m.status === 'disputed' && m.random !== 'R5GK9WBD2XF')!.random
@@ -332,6 +339,99 @@ describe('withdrawDispute', () => {
 
 	it('fails with not found for a match the player is not in', async () => {
 		expect((await failure(withdrawDispute(NOT_MINE, { cache, api }))).kind).toBe('not_found');
+	});
+});
+
+describe('listMyHolds', () => {
+	it('lists the held matches she may vouch for, newest first, and caches them', async () => {
+		const page = await listMyHolds(0, { cache, api });
+		expect(calls).toEqual(['GET /api/v1/me/matches/holds?limit=20&offset=0']);
+		expect(page.count).toBe(2);
+		expect(page.items.map((hold) => [hold.match.code, hold.vouched])).toEqual([
+			[HELD, false],
+			[HELD_VOUCHED, true]
+		]);
+		expect(cache.get(HELD)).toBe(page.items[0].match);
+		expect(cache.holdOf(HELD)).toEqual({ vouched: false });
+		expect(cache.holdOf(HELD_VOUCHED)).toEqual({ vouched: true });
+	});
+
+	it('drops a match once its hold ends', async () => {
+		await vouchForMatch(HELD, { cache, api });
+		const page = await listMyHolds(0, { cache, api });
+		expect(page.items.map((hold) => hold.match.code)).toEqual([HELD_VOUCHED]);
+		expect(cache.holdOf(HELD)).toBeUndefined();
+	});
+
+	it('pages with limit and offset, and keeps holds a partial page left out', async () => {
+		await listMyHolds(0, { cache, api });
+		const page = await listMyHolds(1, { limit: 1, cache, api });
+		expect(page.items.map((hold) => hold.match.code)).toEqual([HELD_VOUCHED]);
+		expect(cache.holdOf(HELD)).toEqual({ vouched: false });
+	});
+});
+
+describe('findHold', () => {
+	it('finds a held match in the holds list', async () => {
+		expect(await findHold(HELD_VOUCHED, { cache, api })).toMatchObject({
+			vouched: true,
+			match: { code: HELD_VOUCHED, status: 'confirmed' }
+		});
+		expect(calls).toEqual(['GET /api/v1/me/matches/holds?limit=100&offset=0']);
+	});
+
+	it('says null for a match that is not held, and ends a cached hold', async () => {
+		cache.rememberHolds([{ match: sampleMatch({ code: CONFIRMED }), vouched: false }]);
+		expect(await findHold(CONFIRMED, { cache, api })).toBeNull();
+		expect(cache.holdOf(CONFIRMED)).toBeUndefined();
+	});
+
+	it('reads the next page when the first one has not got the match', async () => {
+		const holdOf = (match: MatchCode) => ({
+			match: mockStore.matchOut(mockStore.matchByCode(match)!, VERIFIED_EMAIL),
+			vouched: false
+		});
+		let page = 0;
+		server.use(
+			http.get('*/api/v1/me/matches/holds', () => {
+				page += 1;
+				return HttpResponse.json({ items: [holdOf(page === 1 ? CONFIRMED : HELD)], count: 101 });
+			})
+		);
+		expect((await findHold(HELD, { cache, api }))?.match.code).toBe(HELD);
+		expect(page).toBe(2);
+	});
+
+	it('throws an AppError when the list fails', async () => {
+		server.use(http.get('*/api/v1/me/matches/holds', () => HttpResponse.error()));
+		expect((await failure(findHold(HELD, { cache, api }))).kind).toBe('network');
+	});
+});
+
+describe('vouchForMatch', () => {
+	it('vouches with no body and caches the match and the vouch', async () => {
+		await listMyHolds(0, { cache, api });
+		calls.length = 0;
+		const match = await vouchForMatch(HELD, { cache, api });
+		expect(calls).toEqual([`POST /api/v1/matches/${HELD}/vouch`]);
+		expect(match).toMatchObject({ code: HELD, status: 'confirmed' });
+		expect(cache.get(HELD)).toBe(match);
+		expect(cache.holdOf(HELD)).toEqual({ vouched: true });
+	});
+
+	it('is safe to repeat while the hold waits on the other side', async () => {
+		expect((await vouchForMatch(HELD_VOUCHED, { cache, api })).code).toBe(HELD_VOUCHED);
+		expect((await findHold(HELD_VOUCHED, { cache, api }))?.vouched).toBe(true);
+	});
+
+	it('fails with a conflict for a match no hold keeps', async () => {
+		expect((await failure(vouchForMatch(CONFIRMED, { cache, api }))).kind).toBe('conflict');
+		await vouchForMatch(HELD, { cache, api });
+		expect((await failure(vouchForMatch(HELD, { cache, api }))).kind).toBe('conflict');
+	});
+
+	it('fails with not found for a match the player is not in', async () => {
+		expect((await failure(vouchForMatch(NOT_MINE, { cache, api }))).kind).toBe('not_found');
 	});
 });
 

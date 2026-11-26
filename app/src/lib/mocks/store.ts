@@ -98,7 +98,17 @@ export type MockMatch = {
 	 * when not set.
 	 */
 	disputedFrom?: 'pending' | 'confirmed';
+	/** Set while a possible duplicate hold keeps the match from counting. */
+	hold?: MockHold;
 };
+
+/**
+ * A possible duplicate hold on a match with no Event (ADR 0034). The backend links two matches;
+ * the mock keeps only this one, since no screen may name the other. `vouched` lists the teams of
+ * this match with a player who vouched, and `otherVouched` says whether the other match was
+ * vouched for. The hold ends once both teams and the other match have vouched.
+ */
+export type MockHold = { vouched: ('A' | 'B')[]; otherVouched: boolean };
 
 export type MockToken = { key: string; kind: 'verify_email' | 'reset_password'; email: string };
 
@@ -236,7 +246,10 @@ function seed(): MockState {
 			seq: total - index,
 			createdAt: `${m.playedOn}T18:00:00Z`,
 			decisions: m.decisions.map((d) => ({ player: code(d.player), decision: d.decision })),
-			...(m.disputedFrom ? { disputedFrom: m.disputedFrom } : {})
+			...(m.disputedFrom ? { disputedFrom: m.disputedFrom } : {}),
+			...(m.hold
+				? { hold: { vouched: [...m.hold.vouched], otherVouched: m.hold.otherVouched } }
+				: {})
 		})),
 		ratings,
 		session: null,
@@ -945,6 +958,49 @@ export function createMockStore() {
 				.filter((m) => m.status === 'disputed' && [...m.teamA, ...m.teamB].includes(own.code))
 				.sort(newestFirst);
 			return { items: all.slice(offset, offset + limit), count: all.length };
+		},
+
+		/**
+		 * `list_my_holds` for a player: the held matches with no Event the signed-in account's
+		 * player played in, newest first, that are not voided. `vouched` is true once a player on
+		 * their team vouched. The mock has no Event organizer, so it lists no Event match.
+		 */
+		listMyHolds(
+			viewerEmail: string,
+			limit: number,
+			offset: number
+		): { items: { match: MockMatch; vouched: boolean }[]; count: number } {
+			const own = playerOfAccount(viewerEmail);
+			if (!own) return { items: [], count: 0 };
+			const all = state.matches
+				.filter(
+					(m) => m.hold && m.status !== 'voided' && [...m.teamA, ...m.teamB].includes(own.code)
+				)
+				.sort(newestFirst)
+				.map((match) => {
+					const team = match.teamA.includes(own.code) ? 'A' : 'B';
+					return { match, vouched: match.hold!.vouched.includes(team) };
+				});
+			return { items: all.slice(offset, offset + limit), count: all.length };
+		},
+
+		/**
+		 * `workflow.vouch_for_match` for a player of a match with no Event. Anyone who did not play
+		 * gets the unknown-code 404. A voided match, and a match no hold keeps, are a 409. A repeat
+		 * changes nothing. The hold ends once a player of each team vouched and the other match was
+		 * vouched for.
+		 */
+		vouch(email: string, code: string): ChangeResult {
+			const match = this.matchByCode(code);
+			const own = playerOfAccount(email);
+			if (!match || !own || ![...match.teamA, ...match.teamB].includes(own.code)) {
+				return { ok: false, kind: 'not_found' };
+			}
+			if (match.status === 'voided' || !match.hold) return { ok: false, kind: 'conflict' };
+			const team = match.teamA.includes(own.code) ? 'A' : 'B';
+			if (!match.hold.vouched.includes(team)) match.hold.vouched.push(team);
+			if (match.hold.vouched.length === 2 && match.hold.otherVouched) delete match.hold;
+			return { ok: true, match };
 		},
 
 		/** Whether a code is a well-formed player code (a malformed one is a 404 in the API). */

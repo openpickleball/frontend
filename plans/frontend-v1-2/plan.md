@@ -82,7 +82,7 @@ These block app work. The app can't do them yet.
 - [x] C1 Remove the typed-in own code fallback for backends older than #124 (#223), after S1 and before S3
 - [ ] S2 Swap the mocked ratings for the real endpoints, and add the `rating_visibility` control (#35, and the privacy part of #109), after S1
 - [x] S3 Show disputed matches and let players withdraw a dispute (#214), after S1
-- [ ] S4 Show held matches and let players vouch for them (#216), after S3
+- [x] S4 Show held matches and let players vouch for them (#216), after S3
 - [ ] S5 Let players correct a pending or disputed match with no Event (#215), after S3
 - [x] B1 Open backend issues for organizer memberships (backend#301) and for the Event on `MatchOut` (backend#302)
 - [ ] S6 Organizer area: list, create, edit and delete Events (#217), after S1 and B1
@@ -116,6 +116,9 @@ These block app work. The app can't do them yet.
 - **One dispute per player (S3).** The backend treats a withdrawn dispute as the player's one dispute, so after a withdraw the app offers Confirm only, never Dispute. A player with no open dispute on a disputed match gets no button.
 - **No end date for disputes (S3).** The API gives none, and doesn't say whether a match has an Event, so the copy says a dispute ends when every player who disputed withdraws, when an Event's organizer settles it, or after a set time when the match is voided. No copy mentions a moderator.
 - **The backend enforces who may act.** The organizer area and the vouch, correct and resolve controls only hide what the backend would refuse anyway (rule 6). Each step handles the 403, 404 and 409 answers in plain words.
+- **Only the holds list says a match is held (S4).** `MatchOut` has no hold field, so the match page reads `GET me/matches/holds` beside the match, and the home and history pages read it too. The cache keeps each known hold. A held match the viewer may not vouch for (an event match, for its players) reads as its plain status, since the API doesn't say it is held.
+- **Organizers open a held event match from the holds list (S4).** `GET matches/{code}` gives players only, so an organizer member who follows the hold email to `/matches/{code}` would get a 404. The page shows the match from the holds list then. A viewer with no team in the match can only be such a member, so the vouch copy speaks to the organizer.
+- **How a held match reads (S4).** A pending or confirmed held match reads "On hold" with an "On hold" badge next to its status, says why without naming the other match, keeps Confirm and Dispute when they apply, and offers "This match really happened" until the viewer's side has vouched. A disputed held match keeps its dispute copy and adds the hold. The vouch answer doesn't say whether the hold ended, so the page reads the holds list again. Like disputes, the copy promises no end date.
 
 ## Open questions
 

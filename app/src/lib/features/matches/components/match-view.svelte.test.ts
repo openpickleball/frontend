@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
+import { toast } from 'svelte-sonner';
 import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { buildCode, type MatchCode } from '#lib/domain/index.js';
 import { session } from '#lib/features/auth/index.js';
@@ -15,10 +16,14 @@ vi.mock('../services.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('../services.js')>()),
 	confirmMatch: vi.fn(),
 	disputeMatch: vi.fn(),
+	findHold: vi.fn(),
 	getMatch: vi.fn(),
+	vouchForMatch: vi.fn(),
 	withdrawDispute: vi.fn()
 }));
 const mocked = vi.mocked(services);
+// The page has no Toaster in these tests, so the toasts are read from this stand-in.
+vi.mock('svelte-sonner', () => ({ toast: vi.fn() }));
 
 const notFound = new AppError({
 	kind: 'not_found',
@@ -36,13 +41,14 @@ const conflict = new AppError({
 	fields: {}
 });
 
-// The fresh read of the match: by default it finds the cached copy still current.
+// The fresh read of the match: by default it finds the cached copy still current, and no hold.
 const freshRead = () => {
 	mocked.getMatch.mockImplementation(async () => {
 		const found = viewerMatch();
 		matchCache.remember(found);
 		return found;
 	});
+	mocked.findHold.mockResolvedValue(null);
 };
 
 // State is reset before each test, not after: the rendered view is still mounted when afterEach
@@ -639,6 +645,191 @@ describe('MatchView withdraw', () => {
 
 		await expect
 			.element(page.getByRole('alert').getByText("We couldn't withdraw your dispute. Try again."))
+			.toBeVisible();
+	});
+});
+
+describe('MatchView vouch', () => {
+	const confirmed = () =>
+		viewerMatch({ a: true, b: true, decision: 'confirm' }, { status: 'confirmed' });
+
+	/** What the holds list says, as `findHold` puts it in the cache. */
+	function holdsSay(
+		vouched: boolean | null,
+		match: () => ReturnType<typeof confirmed> = confirmed
+	) {
+		mocked.findHold.mockImplementation(async (code) => {
+			if (vouched === null) {
+				matchCache.endHold(code);
+				return null;
+			}
+			const hold = { match: match(), vouched };
+			matchCache.rememberHolds([hold]);
+			return hold;
+		});
+	}
+
+	/** The page opens on a confirmed match the holds list has, not vouched for yet. */
+	function openHeld() {
+		matchCache.rememberHolds([{ match: confirmed(), vouched: false }]);
+		mocked.getMatch.mockImplementation(async () => {
+			const found = confirmed();
+			matchCache.remember(found);
+			return found;
+		});
+		holdsSay(false);
+	}
+
+	async function vouch() {
+		await page.getByRole('button', { name: 'This match really happened' }).click();
+		const dialog = page.getByRole('alertdialog', { name: 'Vouch for this match?' });
+		await expect.element(dialog.getByText(/You can't undo a vouch/)).toBeVisible();
+		await dialog.getByRole('button', { name: 'Vouch for match' }).click();
+	}
+
+	it('says a held match is on hold, with a badge, before the score', async () => {
+		openHeld();
+		const screen = await render(MatchView, { code: code() });
+		await expect.element(page.getByRole('heading', { name: 'On hold' })).toBeVisible();
+		const badges = [...screen.container.querySelectorAll('[data-slot="badge"]')];
+		expect(badges.map((badge) => badge.textContent?.trim())).toEqual(['Confirmed', 'On hold']);
+		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
+		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
+	it('finds the hold itself when the page opens with no cached hold', async () => {
+		holdsSay(false);
+		await render(MatchView, { code: code() });
+		await expect.element(page.getByRole('heading', { name: 'On hold' })).toBeVisible();
+		expect(mocked.findHold).toHaveBeenCalledWith(code());
+		await expect
+			.element(page.getByRole('button', { name: 'This match really happened' }))
+			.toBeVisible();
+	});
+
+	it('still shows the match when the holds list fails', async () => {
+		mocked.findHold.mockRejectedValue(new Error('offline'));
+		await render(MatchView, { code: code() });
+		await expect
+			.element(page.getByRole('heading', { name: 'Is this the right score?' }))
+			.toBeVisible();
+		await expect.element(page.getByRole('heading', { name: 'On hold' })).not.toBeInTheDocument();
+	});
+
+	it('shows an event match from the holds list to an organizer, whom the match read refuses', async () => {
+		matchCache.reset();
+		matchCache.setOwnerSource(() => myCode.code);
+		mocked.getMatch.mockRejectedValue(notFound);
+		holdsSay(false, () => sampleMatch({ status: 'confirmed' }));
+		await render(MatchView, { code: code() });
+		await expect.element(page.getByRole('heading', { name: 'On hold' })).toBeVisible();
+		await expect
+			.element(page.getByText(/vouch for it as a member of the event's organizer/))
+			.toBeVisible();
+		await expect
+			.element(page.getByRole('heading', { name: "We couldn't find this match" }))
+			.not.toBeInTheDocument();
+	});
+
+	it('vouches after the dialog, then says the hold waits on the others', async () => {
+		openHeld();
+		mocked.vouchForMatch.mockImplementation(async () => {
+			const found = confirmed();
+			matchCache.remember(found);
+			matchCache.markVouched(found.code);
+			return found;
+		});
+		await render(MatchView, { code: code() });
+		holdsSay(true);
+
+		await vouch();
+
+		expect(mocked.vouchForMatch).toHaveBeenCalledExactlyOnceWith(code());
+		await expect.element(page.getByRole('heading', { name: 'On hold' })).toHaveFocus();
+		await expect.element(page.getByText(/Your team has vouched for this match/)).toBeVisible();
+		expect(toast).toHaveBeenCalledWith('Vouched. The hold ends once the others vouch too.');
+		await expect
+			.element(page.getByRole('button', { name: 'This match really happened' }))
+			.not.toBeInTheDocument();
+	});
+
+	it('says the hold ended when the vouch was the last one', async () => {
+		openHeld();
+		mocked.vouchForMatch.mockImplementation(async () => {
+			const found = confirmed();
+			matchCache.remember(found);
+			return found;
+		});
+		await render(MatchView, { code: code() });
+		holdsSay(null);
+
+		await vouch();
+
+		await expect.element(page.getByRole('heading', { name: 'Confirmed' })).toHaveFocus();
+		expect(toast).toHaveBeenCalledWith('Vouched. The hold has ended and the match now counts.');
+		await expect.element(page.getByText('On hold', { exact: true })).not.toBeInTheDocument();
+	});
+
+	it('Cancel vouches for nothing and puts focus back on the button', async () => {
+		openHeld();
+		await render(MatchView, { code: code() });
+		await page.getByRole('button', { name: 'This match really happened' }).click();
+		await page.getByRole('button', { name: 'Cancel' }).click();
+		expect(mocked.vouchForMatch).not.toHaveBeenCalled();
+		await expect
+			.element(page.getByRole('button', { name: 'This match really happened' }))
+			.toHaveFocus();
+	});
+
+	it('reads the match again after a 409 and says it is not on hold any more', async () => {
+		openHeld();
+		mocked.vouchForMatch.mockRejectedValue(conflict);
+		await render(MatchView, { code: code() });
+		holdsSay(null);
+
+		await vouch();
+
+		await expect.element(page.getByRole('heading', { name: 'Confirmed' })).toBeVisible();
+		await expect
+			.element(page.getByRole('alert').getByText(/This match isn't on hold any more/))
+			.toBeVisible();
+		await expect
+			.element(page.getByRole('button', { name: 'This match really happened' }))
+			.not.toBeInTheDocument();
+	});
+
+	for (const [kind, status] of [
+		['not_found', 404],
+		['forbidden', 403]
+	] as const) {
+		it(`says who can vouch on a ${status}, and keeps focus on the button`, async () => {
+			openHeld();
+			mocked.vouchForMatch.mockRejectedValue(
+				new AppError({ kind, status, code: kind, message: 'No.', fields: {} })
+			);
+			await render(MatchView, { code: code() });
+
+			await vouch();
+
+			await expect
+				.element(page.getByRole('alert').getByText(/You can't vouch for this match\./))
+				.toBeVisible();
+			await expect
+				.element(page.getByRole('button', { name: 'This match really happened' }))
+				.toHaveFocus();
+		});
+	}
+
+	it('asks to try again when the vouch fails for another reason', async () => {
+		openHeld();
+		mocked.vouchForMatch.mockRejectedValue(new Error('network'));
+		await render(MatchView, { code: code() });
+
+		await vouch();
+
+		await expect
+			.element(page.getByRole('alert').getByText("We couldn't vouch for this match. Try again."))
 			.toBeVisible();
 	});
 });

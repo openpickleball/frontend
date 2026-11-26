@@ -150,6 +150,43 @@ describe('fixtures', () => {
 		expect(store.listMyDisputes('nobody@example.com', 20, 0)).toEqual({ items: [], count: 0 });
 	});
 
+	it('lists holds and vouches as workflow.vouch_for_match does', () => {
+		const store = createMockStore();
+		const held = store.matchByCode(buildCode('match', 'H2ZA6TQN4CJ'))!;
+		const vouched = store.matchByCode(buildCode('match', '6YEM3HNV8QT'))!;
+		const notHers = store.matchByCode(buildCode('match', 'C4VD8RME2TX'))!;
+		const confirmed = store.matchByCode(buildCode('match', 'D9PW5KXE7RM'))!;
+		const rosa = PLAYERS.find((p) => p.key === 'rosa')!.accountEmail!;
+		const holds = (email: string) =>
+			store.listMyHolds(email, 20, 0).items.map((h) => [h.match.code, h.vouched]);
+
+		// Newest first, with her own side's vouch. Rosa's team vouched for the first one.
+		expect(holds(VERIFIED_EMAIL)).toEqual([
+			[held.code, false],
+			[vouched.code, true]
+		]);
+		expect(holds(rosa)).toEqual([[held.code, true]]);
+		expect(store.listMyHolds('nobody@example.com', 20, 0)).toEqual({ items: [], count: 0 });
+
+		expect(store.vouch(VERIFIED_EMAIL, notHers.code)).toEqual({ ok: false, kind: 'not_found' });
+		expect(store.vouch(VERIFIED_EMAIL, confirmed.code)).toEqual({ ok: false, kind: 'conflict' });
+
+		// Her team still owes the other match's vouch, so the hold stays after a repeat.
+		expect(store.vouch(VERIFIED_EMAIL, vouched.code).ok).toBe(true);
+		expect(vouched.hold).toEqual({ vouched: ['A'], otherVouched: false });
+
+		// Both teams and the other match have vouched: the hold ends and the match leaves the list.
+		expect(store.vouch(VERIFIED_EMAIL, held.code).ok).toBe(true);
+		expect(held.hold).toBeUndefined();
+		expect(holds(VERIFIED_EMAIL)).toEqual([[vouched.code, true]]);
+		expect(store.vouch(VERIFIED_EMAIL, held.code)).toEqual({ ok: false, kind: 'conflict' });
+
+		// A voided match is not listed, and a vouch on it is a 409.
+		vouched.status = 'voided';
+		expect(holds(VERIFIED_EMAIL)).toEqual([]);
+		expect(store.vouch(VERIFIED_EMAIL, vouched.code)).toEqual({ ok: false, kind: 'conflict' });
+	});
+
 	it("lists a pending match as awaiting until the player's team confirms or disputes", () => {
 		const store = createMockStore();
 		const codes = () =>

@@ -23,6 +23,11 @@ const MY_DISPUTE = matchCode(
 );
 const STILL_DISPUTED = matchCode('R5GK9WBD2XF');
 
+// Held matches, both confirmed. Rosa's team and the other match vouched for the first, so
+// Tamsin's vouch ends its hold. Tamsin vouched for the second already.
+const HELD = matchCode('H2ZA6TQN4CJ');
+const HELD_VOUCHED = matchCode('6YEM3HNV8QT');
+
 // A confirmed match between Oren and Bea. Tamsin is not in it, so she cannot read it.
 const NOT_HERS = matchCode('C4VD8RME2TX');
 
@@ -415,6 +420,104 @@ test.describe('disputes', () => {
 			await expectNoAxeViolations(page);
 			await page.keyboard.press('Escape');
 			await expect(page.getByRole('button', { name: 'Withdraw my dispute' })).toBeFocused();
+		}
+	});
+});
+
+test.describe('holds', () => {
+	test('lists her held matches on home, after disputes and before what waits on the other team', async ({
+		page
+	}) => {
+		const disputed = page.getByRole('heading', { level: 2, name: 'Disputed matches' });
+		const held = page.getByRole('heading', { level: 2, name: 'Matches on hold' });
+		const waiting = page.getByRole('heading', { level: 2, name: 'Waiting for the other team' });
+		await expect(held).toBeVisible();
+		expect((await disputed.boundingBox())!.y).toBeLessThan((await held.boundingBox())!.y);
+		expect((await held.boundingBox())!.y).toBeLessThan((await waiting.boundingBox())!.y);
+
+		const list = page.getByRole('list', { name: 'Matches on hold' });
+		await expect(list.getByTestId('match-row')).toHaveCount(2);
+		await expect(list.locator(`a[href$="/matches/${HELD}"]`)).toContainText(
+			"On hold. It doesn't count yet. Open it to vouch for it."
+		);
+		await expect(list.locator(`a[href$="/matches/${HELD_VOUCHED}"]`)).toContainText(
+			'Your side has vouched for it.'
+		);
+		await expect(
+			page.getByRole('list', { name: 'Recent matches' }).locator(`a[href$="/matches/${HELD}"]`)
+		).toHaveCount(0);
+	});
+
+	test('vouches for a held match through the dialog, and the hold ends', async ({ page }) => {
+		await page
+			.getByRole('list', { name: 'Matches on hold' })
+			.locator(`a[href$="/matches/${HELD}"]`)
+			.click();
+		await expect(page).toHaveURL(new RegExp(`/matches/${HELD}$`));
+		const panel = page.getByTestId('status-panel');
+		await expect(panel).toHaveAttribute('data-held', 'true');
+		await expect(panel.getByRole('heading', { name: 'On hold' })).toBeVisible();
+		await expect(
+			panel.getByText(/Another match on OPEN has the same teams and date/)
+		).toBeVisible();
+		await expect(panel.getByText(/One player from each team needs to vouch/)).toBeVisible();
+		await expect(page.getByText(/moderator/i)).toHaveCount(0);
+
+		await page.getByRole('button', { name: 'This match really happened' }).click();
+		const dialog = page.getByRole('alertdialog', { name: 'Vouch for this match?' });
+		await expect(dialog.getByText(/You can't undo a vouch/)).toBeVisible();
+		await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+		await dialog.getByRole('button', { name: 'Vouch for match' }).click();
+
+		// Rosa's team and the other match had vouched, so hers was the last vouch.
+		await expect(
+			page.getByText('Vouched. The hold has ended and the match now counts.')
+		).toBeVisible();
+		await expect(panel).not.toHaveAttribute('data-held');
+		await expect(page.getByRole('heading', { name: 'Confirmed' })).toBeFocused();
+		await expect(page.getByRole('button', { name: 'This match really happened' })).toHaveCount(0);
+
+		// Home: it left the held list.
+		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
+		await expect(
+			page.getByRole('list', { name: 'Matches on hold' }).getByTestId('match-row')
+		).toHaveCount(1);
+	});
+
+	test('says her team vouched already and offers nothing, from a link with nothing cached', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${HELD_VOUCHED}`);
+		const panel = page.getByTestId('status-panel');
+		await expect(panel.getByRole('heading', { name: 'On hold' })).toBeVisible();
+		await expect(panel.getByText(/Your team has vouched for this match/)).toBeVisible();
+		await expect(panel.getByRole('button')).toHaveCount(0);
+	});
+
+	test('has no WCAG 2.1 AA violations on home, a held match and the dialog, in either theme', async ({
+		page
+	}) => {
+		for (const scheme of ['dark', 'light'] as const) {
+			await page.emulateMedia({ colorScheme: scheme });
+			await page.goto('/');
+			await expect(page.getByRole('heading', { name: 'Matches on hold' })).toBeVisible();
+			await expectNoAxeViolations(page);
+
+			await page.goto(`/matches/${HELD}`);
+			const vouch = page.getByRole('button', { name: 'This match really happened' });
+			await expect(vouch).toBeVisible();
+			await expectNoAxeViolations(page);
+
+			await vouch.click();
+			const dialog = page.getByRole('alertdialog', { name: 'Vouch for this match?' });
+			await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+			// Axe reads colors mid fade-in otherwise.
+			await page.waitForFunction(() =>
+				document.getAnimations().every((animation) => animation.playState !== 'running')
+			);
+			await expectNoAxeViolations(page);
+			await page.keyboard.press('Escape');
+			await expect(vouch).toBeFocused();
 		}
 	});
 });

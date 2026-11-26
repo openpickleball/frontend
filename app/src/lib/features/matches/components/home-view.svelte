@@ -12,7 +12,7 @@
 	import { matchCountLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
 	import { matchCache } from '../cache.svelte.js';
-	import { listAwaitingConfirmation, listMyDisputes } from '../services.js';
+	import { listAwaitingConfirmation, listMyDisputes, listMyHolds } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import CodeStrip from './code-strip.svelte';
 	import EmptyMatches from './empty-matches.svelte';
@@ -31,10 +31,17 @@
 	const disputed = new MatchListView(matchCache, (_player, offset, options) =>
 		listMyDisputes(offset, options)
 	);
+	// The held matches the player may vouch for. The list says whether their side vouched, and the
+	// cache keeps that next to each match.
+	const held = new MatchListView(matchCache, async (_player, offset, options) => {
+		const page = await listMyHolds(offset, options);
+		return { items: page.items.map((hold) => hold.match), count: page.count };
+	});
 	onDestroy(() => {
 		view.cancel();
 		awaiting.cancel();
 		disputed.cancel();
+		held.cancel();
 	});
 
 	$effect(() => {
@@ -44,6 +51,7 @@
 				void view.load(code);
 				void awaiting.load(code);
 				void disputed.load(code);
+				void held.load(code);
 			});
 		}
 	});
@@ -56,21 +64,25 @@
 	// Retrying only that list does not put the whole page back to loading.
 	let retryingAwaiting = $state(false);
 	let retryingDisputed = $state(false);
+	let retryingHeld = $state(false);
 	const status = $derived(
 		view.status === 'error'
 			? 'error'
 			: view.status === 'loading' ||
 				  (awaiting.status === 'loading' && !retryingAwaiting) ||
-				  (disputed.status === 'loading' && !retryingDisputed)
+				  (disputed.status === 'loading' && !retryingDisputed) ||
+				  (held.status === 'loading' && !retryingHeld)
 				? 'loading'
 				: 'ready'
 	);
 	const awaitingFailed = $derived(awaiting.status === 'error');
 	const disputedFailed = $derived(disputed.status === 'error');
+	const heldFailed = $derived(held.status === 'error');
 	const offline = $derived(
 		view.offline ||
 			(awaiting.offline && !retryingAwaiting) ||
-			(disputed.offline && !retryingDisputed)
+			(disputed.offline && !retryingDisputed) ||
+			(held.offline && !retryingHeld)
 	);
 
 	// Matches that need the player. A confirm on a match page updates the cached copy, so a match
@@ -85,7 +97,25 @@
 	// longer disputed drops out of the list. One that another player still disputes stays.
 	const disputes = $derived(disputed.matches.filter((match) => match.status === 'disputed'));
 	const moreDisputes = $derived(Math.max(0, disputed.count - disputed.items.length));
-	const shown = $derived(new Set([...needs, ...disputes, ...waiting].map((match) => match.code)));
+	// Held matches. A vouch that ends the hold drops the match from the cache's holds, so it leaves
+	// the list. One whose side vouched stays until the hold ends. A match listed above already, to
+	// confirm or as disputed, is not listed again: its row says it is on hold.
+	const above = $derived(new Set([...needs, ...disputes].map((match) => match.code)));
+	const holds = $derived(
+		held.matches.filter(
+			(match) =>
+				match.status !== 'voided' &&
+				matchCache.holdOf(match.code) !== undefined &&
+				!above.has(match.code)
+		)
+	);
+	const moreHolds = $derived(Math.max(0, held.count - held.items.length));
+	const heldCodes = $derived(new Set(holds.map((match) => match.code)));
+	// Waiting for the other team leaves out held matches, which have their own section.
+	const waitingShown = $derived(waiting.filter((match) => !heldCodes.has(match.code)));
+	const shown = $derived(
+		new Set([...needs, ...disputes, ...holds, ...waitingShown].map((match) => match.code))
+	);
 	const recent = $derived(view.matches.filter((match) => !shown.has(match.code)).slice(0, RECENT));
 </script>
 
@@ -100,9 +130,11 @@
 					onretry={() => {
 						retryingAwaiting = false;
 						retryingDisputed = false;
+						retryingHeld = false;
 						void view.load(you);
 						void awaiting.load(you);
 						void disputed.load(you);
+						void held.load(you);
 					}}
 				/>
 			</div>
@@ -226,19 +258,71 @@
 					</section>
 				{/if}
 
-				{#if waiting.length > 0}
+				{#if heldFailed}
+					<div class="mt-12" data-testid="holds-error">
+						<Alert variant={held.offline ? 'default' : 'destructive'}>
+							{#if held.offline}
+								<WifiOffIcon aria-hidden="true" />
+							{:else}
+								<CircleAlertIcon aria-hidden="true" />
+							{/if}
+							<AlertTitle>We couldn't check your matches on hold.</AlertTitle>
+							<AlertDescription>
+								The rest of your matches are below. Try again to see which are on hold.
+							</AlertDescription>
+							<AlertAction>
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={() => {
+										retryingHeld = true;
+										void held.load(you);
+									}}
+								>
+									Try again
+								</Button>
+							</AlertAction>
+						</Alert>
+					</div>
+				{:else if holds.length > 0}
+					<section class="mt-12" aria-labelledby="holds-title">
+						<div class="flex items-baseline justify-between gap-4">
+							<h2 id="holds-title" class="text-2xl font-semibold tracking-tight">
+								Matches on hold
+							</h2>
+							<span class="text-base text-muted">{matchCountLabel(holds.length + moreHolds)}</span>
+						</div>
+						<p class="mt-2 mb-4 text-base text-muted">
+							Each of these has the same teams and date as another match on OPEN, but other scores.
+							They don't count until each one is vouched for. Open a match to vouch for it.
+						</p>
+						<MatchList matches={holds} {you} label="Matches on hold" />
+						{#if moreHolds > 0}
+							<p class="mt-3 text-base text-muted" data-testid="more-holds">
+								{moreHolds === 1
+									? '1 more match is on hold.'
+									: `${moreHolds} more matches are on hold.`}
+								<Button variant="link" size="inline" href={resolve(ROUTES.matches)}>
+									See all matches
+								</Button>.
+							</p>
+						{/if}
+					</section>
+				{/if}
+
+				{#if waitingShown.length > 0}
 					<section class="mt-12" aria-labelledby="waiting-title">
 						<div class="flex items-baseline justify-between gap-4">
 							<h2 id="waiting-title" class="text-2xl font-semibold tracking-tight">
 								Waiting for the other team
 							</h2>
-							<span class="text-base text-muted">{matchCountLabel(waiting.length)}</span>
+							<span class="text-base text-muted">{matchCountLabel(waitingShown.length)}</span>
 						</div>
 						<p class="mt-2 mb-4 text-base text-muted">
 							Your team confirmed these scores. A match counts once a player on the other team
 							confirms it too.
 						</p>
-						<MatchList matches={waiting} {you} label="Waiting for the other team" />
+						<MatchList matches={waitingShown} {you} label="Waiting for the other team" />
 					</section>
 				{/if}
 

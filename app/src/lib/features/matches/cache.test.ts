@@ -46,6 +46,41 @@ describe('MatchCache', () => {
 		expect(cache.get(kept.code)).toBe(kept);
 	});
 
+	it('keeps holds from the holds list, and drops the ones a full list left out', () => {
+		const { cache, signInAs } = cacheFor(TAMSIN);
+		const held = sampleMatch();
+		const other = sampleMatch({ code: buildCode('match', 'D9PW5KXE7RM') as MatchCode });
+		expect(cache.holdOf(held.code)).toBeUndefined();
+		cache.rememberHolds([
+			{ match: held, vouched: false },
+			{ match: other, vouched: true }
+		]);
+		expect(cache.get(held.code)).toBe(held);
+		expect(cache.holdOf(held.code)).toEqual({ vouched: false });
+		expect(cache.holdOf(other.code)).toEqual({ vouched: true });
+
+		cache.markVouched(held.code);
+		expect(cache.holdOf(held.code)).toEqual({ vouched: true });
+
+		// A page that is not the whole list keeps the others.
+		cache.rememberHolds([{ match: held, vouched: true }]);
+		expect(cache.holdOf(other.code)).toEqual({ vouched: true });
+		// The whole list: the other match is no longer held.
+		cache.rememberHolds([{ match: held, vouched: true }], { complete: true });
+		expect(cache.holdOf(other.code)).toBeUndefined();
+		expect(cache.get(other.code)).toBe(other);
+
+		cache.endHold(held.code);
+		expect(cache.holdOf(held.code)).toBeUndefined();
+		// Vouching for a match that is not held marks nothing.
+		cache.markVouched(held.code);
+		expect(cache.holdOf(held.code)).toBeUndefined();
+
+		cache.rememberHolds([{ match: held, vouched: false }]);
+		signInAs(BEA);
+		expect(cache.holdOf(held.code)).toBeUndefined();
+	});
+
 	it('fills from a list', () => {
 		const { cache } = cacheFor(TAMSIN);
 		const a = sampleMatch();

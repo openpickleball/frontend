@@ -107,6 +107,34 @@ export function createOpenHandlers(store: MockStore) {
 			}
 		),
 
+		http.post('/api/v1/matches/{code}/vouch', ({ request, cookies, params, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const code = normalizeCode(params.code, 'match');
+			if (!code.ok) return response.untyped(notFound());
+			const result = store.vouch(email, code.value);
+			if (!result.ok) {
+				return response.untyped(result.kind === 'conflict' ? stateConflict() : notFound());
+			}
+			return response(200).json(store.matchOut(result.match, email));
+		}),
+
+		http.get('/api/v1/me/matches/holds', ({ request, cookies, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const url = new URL(request.url);
+			const page = pageQuery(url.searchParams.get('limit'), url.searchParams.get('offset'));
+			if (!page.ok) return response.untyped(validationError(page.issues));
+			const result = store.listMyHolds(email, page.value.limit, page.value.offset);
+			return response(200).json({
+				items: result.items.map(({ match, vouched }) => ({
+					match: store.matchOut(match, email),
+					vouched
+				})),
+				count: result.count
+			});
+		}),
+
 		http.get('/api/v1/me/matches/disputes', ({ request, cookies, response }) => {
 			const email = guard(request, cookies);
 			if (typeof email !== 'string') return response.untyped(email);

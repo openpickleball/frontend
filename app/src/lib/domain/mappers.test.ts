@@ -5,6 +5,8 @@ import {
 	MappingError,
 	PRIVATE_PLAYER_NAME,
 	toGame,
+	toHold,
+	toHoldPage,
 	toMatch,
 	toMatchPage,
 	toPlayer
@@ -190,5 +192,41 @@ describe('toMatchPage', () => {
 
 	it('maps an empty page', () => {
 		expect(toMatchPage({ items: [], count: 0 })).toEqual({ items: [], count: 0 });
+	});
+});
+
+describe('toHold', () => {
+	it('maps the match and keeps vouched', () => {
+		const hold = toHold({ match: dto({ status: 'confirmed', my_team: 'B' }), vouched: true });
+		expect(hold.vouched).toBe(true);
+		expect(hold.match).toMatchObject({ code: matchCode, status: 'confirmed', viewerSide: 'b' });
+	});
+
+	it('maps a hold not vouched for yet, as an organizer sees it', () => {
+		const hold = toHold({ match: dto(), vouched: false });
+		expect(hold).toMatchObject({ vouched: false, match: { viewerSide: null } });
+	});
+
+	it('throws a MappingError for a bad match code', () => {
+		expect(() => toHold({ match: dto({ code: 'M-AAAA-AAAA-AAAA' }), vouched: false })).toThrow(
+			MappingError
+		);
+	});
+});
+
+describe('toHoldPage', () => {
+	it('maps the items and keeps the count', () => {
+		const page = toHoldPage({
+			items: [
+				{ match: dto(), vouched: false },
+				{ match: dto({ status: 'confirmed' }), vouched: true }
+			],
+			count: 3
+		});
+		expect(page.count).toBe(3);
+		expect(page.items.map((h) => [h.match.status, h.vouched])).toEqual([
+			['pending', false],
+			['confirmed', true]
+		]);
 	});
 });

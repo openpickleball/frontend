@@ -1,8 +1,11 @@
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import type { Match, MatchCode, PlayerCode } from '#lib/domain/index.js';
+import type { Hold, Match, MatchCode, PlayerCode } from '#lib/domain/index.js';
 
-/** What a player can do to a match they played in. */
-export type MatchAction = 'confirm' | 'dispute' | 'withdraw';
+/** What a player can do to a match they played in, or an organizer to a held event match. */
+export type MatchAction = 'confirm' | 'dispute' | 'withdraw' | 'vouch';
+
+/** What the app knows about a match's hold: whether the viewer's side has vouched for it. */
+export type HoldState = { vouched: boolean };
 
 /**
  * Who the cache belongs to: the account's email and the player's code together. Two accounts that
@@ -29,6 +32,9 @@ export class MatchCache {
 	#currentOwner: () => string | null;
 	// Matches the player has just recorded, until their page says so once.
 	#recorded = new SvelteSet<MatchCode>();
+	// Held matches the viewer may vouch for, from the holds list. `MatchOut` has no hold field,
+	// so a match not in here is either not held or not known to be held.
+	#holds = new SvelteMap<MatchCode, HoldState>();
 
 	/**
 	 * `currentOwner` says who is signed in, for example `ownerKey(session.email, myCode.code)`. With
@@ -49,6 +55,7 @@ export class MatchCache {
 		const owner = this.#currentOwner();
 		if (owner !== this.#owner) {
 			this.#matches.clear();
+			this.#holds.clear();
 			this.#owner = owner;
 		}
 		return owner !== null;
@@ -75,6 +82,38 @@ export class MatchCache {
 	/** Drop one match, for example when the API says it is not there for this player. */
 	forget(code: MatchCode): void {
 		this.#matches.delete(code);
+		this.#holds.delete(code);
+	}
+
+	/** The match's hold, when the holds list says it is held. Undefined when not held or not known. */
+	holdOf(code: MatchCode): HoldState | undefined {
+		return this.#valid() ? this.#holds.get(code) : undefined;
+	}
+
+	/**
+	 * Keep held matches from the holds list, and their matches. With `complete`, the list was read
+	 * in full, so a match no longer in it is no longer held.
+	 */
+	rememberHolds(holds: readonly Hold[], { complete = false }: { complete?: boolean } = {}): void {
+		if (!this.#sync()) return;
+		if (complete) {
+			const listed = (code: MatchCode) => holds.some((hold) => hold.match.code === code);
+			for (const code of [...this.#holds.keys()]) if (!listed(code)) this.#holds.delete(code);
+		}
+		for (const hold of holds) {
+			this.#matches.set(hold.match.code, hold.match);
+			this.#holds.set(hold.match.code, { vouched: hold.vouched });
+		}
+	}
+
+	/** Note that the viewer's side vouched for a held match. */
+	markVouched(code: MatchCode): void {
+		if (this.#sync() && this.#holds.has(code)) this.#holds.set(code, { vouched: true });
+	}
+
+	/** Drop a match's hold: the holds list no longer has it, or the API said it is not held. */
+	endHold(code: MatchCode): void {
+		this.#holds.delete(code);
 	}
 
 	/** Note that the player just recorded this match, so its page can say so once. */
@@ -90,6 +129,7 @@ export class MatchCache {
 	reset(): void {
 		this.#recorded.clear();
 		this.#matches.clear();
+		this.#holds.clear();
 		this.#owner = null;
 	}
 }
