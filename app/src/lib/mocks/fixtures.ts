@@ -13,9 +13,11 @@
  */
 import { ALPHABET, buildCode } from '../domain/codes';
 import type { components } from '../api/generated/open';
-import type { PlayerRatingsOut } from '../api/provisional';
 
 type PrivacyOut = components['schemas']['PrivacyOut'];
+type RatingOut = components['schemas']['RatingOut'];
+/** A player's ratings keyed by format, as `PlayerRatingsOut.ratings`. */
+export type RatingsByFormat = components['schemas']['PlayerRatingsOut']['ratings'];
 
 /**
  * MOCK ONLY. Not a real password: it exists so the mock login has something to check.
@@ -577,45 +579,38 @@ export const MATCHES: readonly FixtureMatch[] = [
 	}
 ];
 
-/** Demonstration ratings: made-up numbers, always labelled as a demonstration. */
-export const RATINGS: Partial<Record<PlayerKey, PlayerRatingsOut>> = {
+/** A made-up demonstration rating. Reliability is 0 to 100, as the backend sends it. */
+function demo(
+	rating: number,
+	reliability: number,
+	updatedAt: string,
+	more: Partial<Pick<RatingOut, 'established' | 'provisional' | 'imported_reliability'>> = {}
+): RatingOut {
+	return {
+		rating,
+		reliability,
+		imported_reliability: null,
+		provisional: false,
+		established: true,
+		spec_version: '1.0.0rc1',
+		demonstration: true,
+		updated_at: updatedAt,
+		...more
+	};
+}
+
+/**
+ * Demonstration ratings by format: made-up numbers, always labelled as a demonstration. A player
+ * left out has no ratings yet.
+ */
+export const RATINGS: Partial<Record<PlayerKey, RatingsByFormat>> = {
 	tamsin: {
-		ratings: {
-			singles: {
-				rating: 3.31,
-				reliability: 0.4,
-				provisional: true,
-				updated_at: '2026-11-16T09:00:00Z'
-			},
-			doubles: {
-				rating: 3.42,
-				reliability: 0.65,
-				provisional: true,
-				updated_at: '2026-11-17T09:00:00Z'
-			}
-		},
-		demonstration: true
+		mixed_doubles: demo(3.42, 65, '2026-11-17T09:00:00Z', { provisional: true }),
+		doubles_women: demo(3.31, 40, '2026-11-16T09:00:00Z', {
+			established: false,
+			imported_reliability: 30
+		})
 	},
-	oren: {
-		ratings: {
-			doubles: {
-				rating: 3.84,
-				reliability: 0.91,
-				provisional: false,
-				updated_at: '2026-11-17T09:00:00Z'
-			}
-		},
-		demonstration: true
-	},
-	bea: {
-		ratings: {
-			singles: {
-				rating: 3.05,
-				reliability: 0.72,
-				provisional: false,
-				updated_at: '2026-11-15T09:00:00Z'
-			}
-		},
-		demonstration: true
-	}
+	oren: { doubles_men: demo(3.84, 91, '2026-11-17T09:00:00Z') },
+	bea: { singles: demo(3.05, 72, '2026-11-15T09:00:00Z') }
 };

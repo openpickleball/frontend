@@ -1,6 +1,4 @@
-import type { Client } from 'openapi-fetch';
 import { createApi, type Api } from './client';
-import type { paths as ProvisionalPaths } from './provisional';
 
 export { createApi, allauthParams, ALLAUTH_CLIENT, type Api } from './client';
 export { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, CSRF_HOST_COOKIE_NAME, readCsrfToken } from './csrf';
@@ -18,11 +16,3 @@ export const api = createApi();
  * the app-wide `api` without it. For tests, which need a base URL and a cookie jar in node.
  */
 export type ApiOption = { api?: Api };
-
-/**
- * The open client typed by the hand-written `provisional.ts` paths, for the one endpoint the
- * backend does not have yet: ratings (frontend#35). Same client, same CSRF and error handling,
- * only the types differ. This is the one place that cast lives. The cast compiles against any
- * shape, so delete this export with `provisional.ts` (see the README) rather than leave it behind.
- */
-export const provisionalApi = api.open as unknown as Client<ProvisionalPaths>;

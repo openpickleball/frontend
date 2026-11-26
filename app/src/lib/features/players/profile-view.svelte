@@ -10,19 +10,16 @@
 
 	let {
 		countMatches,
-		sample,
 		children
 	}: {
 		/** `countMatches` from `features/matches`, which this feature does not import. */
 		countMatches: (code: PlayerCode) => Promise<number>;
-		/** Show sample ratings. Only the mock modes do (Decision Q2). */
-		sample: boolean;
 		/** More sections at the end of the page, such as the account section. */
 		children?: Snippet;
 	} = $props();
 
 	// The deps are fixed for the life of the page.
-	const stats = untrack(() => new ProfileStats({ countMatches, sample }));
+	const stats = untrack(() => new ProfileStats({ countMatches }));
 
 	$effect(() => {
 		const code = myCode.code;
@@ -66,7 +63,11 @@
 				</div>
 			</dl>
 
-			<RatingsCard {sample} ratings={stats.ratings} loading={stats.ratingsLoading} />
+			<RatingsCard
+				ratings={stats.ratings}
+				loading={stats.ratingsLoading}
+				failed={stats.ratingsFailed}
+			/>
 		{/snippet}
 	</OwnCodeGate>
 

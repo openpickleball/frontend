@@ -10,6 +10,7 @@ import {
 	createMyPlayer,
 	fetchMyPlayer,
 	fetchMySettings,
+	fetchRatings,
 	updateMySettings
 } from './services.js';
 
@@ -17,6 +18,7 @@ useMockApi();
 
 const BASE = 'http://localhost';
 const tamsin = PLAYERS.find((p) => p.key === 'tamsin') as (typeof PLAYERS)[number];
+const playerCode = (key: string) => PLAYERS.find((p) => p.key === key)?.code as string;
 
 /** The real client with a cookie jar, as a browser has, recording each call and its body. */
 function browserApi() {
@@ -132,7 +134,8 @@ describe('fetchMySettings', () => {
 				stats: 'private',
 				rating_history: 'signed_in',
 				home_club: 'signed_in',
-				city_region: 'signed_in'
+				city_region: 'signed_in',
+				rating: 'signed_in'
 			}
 		});
 		expect(calls.map((c) => c.call)).toEqual(['GET /api/v1/me/player']);
@@ -173,6 +176,22 @@ describe('updateMySettings', () => {
 			{ call: 'PATCH /api/v1/me/player', body: { privacy: { stats_visibility: 'private' } } },
 			{ call: 'PATCH /api/v1/me/player', body: { display_name: 'Tam Vale' } }
 		]);
+	});
+
+	it("sends current ratings as rating_visibility, and keeps the backend's refusal", async () => {
+		const refused = updateMySettings({ privacy: { rating: 'private' } }, { api });
+		await expect(refused).rejects.toMatchObject({
+			status: 422,
+			fields: {
+				'privacy.rating_visibility': [
+					"Current ratings are always shown to signed-in players and can't be hidden."
+				]
+			}
+		});
+		expect(calls[0]).toEqual({
+			call: 'PATCH /api/v1/me/player',
+			body: { privacy: { rating_visibility: 'private' } }
+		});
 	});
 
 	it('returns the settings the backend holds', async () => {
@@ -375,5 +394,74 @@ describe('myCode over these services', () => {
 		await mine.load();
 		expect(mine.status).toBe('error');
 		expect(mine.code).toBeNull();
+	});
+});
+
+describe('fetchRatings', () => {
+	beforeEach(() => signIn(VERIFIED_EMAIL));
+
+	it('maps the ratings, in the format order, with reliability 0 to 100', async () => {
+		const found = await fetchRatings(tamsin.code, { api });
+		expect(calls.map((c) => c.call)).toEqual([`GET /api/v1/players/${tamsin.code}/ratings`]);
+		expect(found).toEqual({
+			demonstration: true,
+			ratings: [
+				{
+					format: 'mixed_doubles',
+					value: 3.42,
+					reliability: 65,
+					importedReliability: null,
+					established: true,
+					provisional: true,
+					demonstration: true,
+					updatedAt: '2026-11-17T09:00:00Z'
+				},
+				{
+					format: 'doubles_women',
+					value: 3.31,
+					reliability: 40,
+					importedReliability: 30,
+					established: false,
+					provisional: false,
+					demonstration: true,
+					updatedAt: '2026-11-16T09:00:00Z'
+				}
+			]
+		});
+	});
+
+	it('is an empty list for a player with no ratings yet', async () => {
+		expect(await fetchRatings(playerCode('kit'), { api })).toEqual({
+			demonstration: true,
+			ratings: []
+		});
+	});
+
+	it.each([
+		['an inactive account', () => playerCode('saul')],
+		['an unknown code', () => 'P-AAAA-AAAA']
+	])('is null for %s (404)', async (_, code) => {
+		expect(await fetchRatings(code(), { api })).toBeNull();
+	});
+
+	it("is null for another player's private ratings (404)", async () => {
+		const bea = mockStore.playerByCode(playerCode('bea'));
+		if (bea) bea.privacy.rating_visibility = 'private';
+		expect(await fetchRatings(playerCode('bea'), { api })).toBeNull();
+	});
+
+	it('throws other failures', async () => {
+		server.use(
+			http.get(
+				'*/api/v1/players/:code/ratings',
+				() =>
+					HttpResponse.json(
+						{ code: 'server_error', message: 'Server error.', errors: [] },
+						{ status: 500 }
+					),
+				{ once: true }
+			)
+		);
+		await expect(fetchRatings(tamsin.code, { api })).rejects.toBeInstanceOf(AppError);
 	});
 });

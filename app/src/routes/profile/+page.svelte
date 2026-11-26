@@ -1,18 +1,14 @@
 <script lang="ts">
-	import { PUBLIC_API_MOCK } from '$app/env/public';
 	import { countMatches } from '#lib/features/matches/index.js';
-	import { ProfileSettings, ProfileView, isSampleMode } from '#lib/features/players/index.js';
+	import { ProfileSettings, ProfileView } from '#lib/features/players/index.js';
 	import { SignOutButton, session } from '#lib/features/auth/index.js';
-
-	// Sample ratings only in the mock modes. The real backend has no ratings (Decision Q2).
-	const sample = isSampleMode(PUBLIC_API_MOCK);
 </script>
 
 <svelte:head>
 	<title>Profile · OPEN Pickleball</title>
 </svelte:head>
 
-<ProfileView {countMatches} {sample}>
+<ProfileView {countMatches}>
 	{#if session.isSignedIn}
 		<ProfileSettings />
 		<!-- From 1024px the side nav foot has Sign out, so it is not shown twice. -->

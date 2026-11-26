@@ -7,13 +7,23 @@ export type MyPlayer = {
 	displayName: string;
 };
 
-/** One format's rating as the app shows it. */
+/** A rating pool, such as singles or mixed doubles. The backend's `RatingFormat`. */
+export type RatingFormat = OpenComponents['schemas']['RatingFormat'];
+
+/** One format's current rating, as the backend sent it. */
 export type Rating = {
+	format: RatingFormat;
 	value: number;
-	/** 0 to 1: how much play it rests on. */
+	/** 0 to 100: the reliability earned in OPEN. */
 	reliability: number;
-	/** True while there is too little play for a settled number. */
+	/** 0 to 100: the reliability carried from an external rating, or `null` when there is none. */
+	importedReliability: number | null;
+	/** False until the rating rests on enough matches to be established. */
+	established: boolean;
+	/** True while it holds updates a recount has not confirmed yet, so it can still change. */
 	provisional: boolean;
+	/** True while the rating engine is a demonstration package. */
+	demonstration: boolean;
 	/** ISO 8601 timestamp. */
 	updatedAt: string;
 };
@@ -23,11 +33,14 @@ export type Visibility = OpenComponents['schemas']['Visibility'];
 
 /**
  * The profile details that have a privacy setting. The display name has none. `home_club` stays
- * while `PrivacyOut` still has `home_club_visibility`. `PrivacyOut` also has `rating_visibility`,
- * which is left out: an adult's current ratings are always shown, and the app has no ratings
- * screen yet.
+ * while `PrivacyOut` still has `home_club_visibility`. `rating` is `rating_visibility`: who sees
+ * the current ratings. It has its own rules, so it is not a plain switch (`SwitchKey`).
  */
-export type PrivacyKey = 'match_history' | 'stats' | 'rating_history' | 'home_club' | 'city_region';
+export type PrivacyKey =
+	'match_history' | 'stats' | 'rating_history' | 'home_club' | 'city_region' | 'rating';
+
+/** The settings a player can switch either way at any time. */
+export type SwitchKey = Exclude<PrivacyKey, 'rating'>;
 
 export type Privacy = Record<PrivacyKey, Visibility>;
 
@@ -43,9 +56,9 @@ export type MySettingsChange = {
 	privacy?: Partial<Privacy>;
 };
 
+/** A player's current ratings, one per format they have one in, in the profile's format order. */
 export type PlayerRatings = {
-	singles: Rating | null;
-	doubles: Rating | null;
+	ratings: Rating[];
 	/** The backend says every number is a demonstration. */
 	demonstration: boolean;
 };
