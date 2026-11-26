@@ -22,9 +22,8 @@ concurrency:
   group: ci-app-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# app-checks is a required status check on main, so renaming the job
-# must also update the main ruleset. app-e2e is not required yet: the owner makes it
-# required once it is on main (plans/frontend-v1/plan.md, Q5).
+# app-checks and app-e2e are both required status checks on main, so renaming either job
+# must also update the main ruleset (plans/frontend-v1/plan.md, Q5).
 jobs:
   app-checks:
     runs-on: ubuntu-latest
