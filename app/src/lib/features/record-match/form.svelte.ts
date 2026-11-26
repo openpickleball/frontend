@@ -51,11 +51,23 @@ export type Failure =
 	| { kind: 'duplicate'; message: string; matchCode: string | null }
 	/** The backend refused this player as the submitter. */
 	| { kind: 'forbidden'; message: string }
+	/** A correction the backend answered with 404: in practice, a match played at an event. */
+	| { kind: 'organizer'; message: string }
+	/** A correction the backend answered with 409: the match is no longer pending or disputed. */
+	| { kind: 'conflict'; message: string }
 	| { kind: 'other'; message: string };
 
 export const OFFLINE_MESSAGE = 'We lost the connection. Your match may not have been saved.';
 export const FORBIDDEN_MESSAGE =
 	"We couldn't record this match. You can only record a match you played in.";
+export const CORRECT_FORBIDDEN_MESSAGE =
+	"We couldn't correct this match. You can only correct a match you played in.";
+/**
+ * `correct_match` answers 404 for a match with an event or a club, and `MatchOut` can't say which
+ * matches have one (backend#302), so the app explains the 404 instead of hiding the button.
+ */
+export const ORGANIZER_ONLY_MESSAGE = 'This match can only be changed by its organizer';
+export const CORRECT_CONFLICT_MESSAGE = "This match can't be corrected now";
 export const DUPLICATE_MESSAGE = 'This match was already recorded';
 
 const emptySlot = (): Slot => ({ code: null, name: '', text: '', error: '' });
@@ -113,8 +125,15 @@ export class RecordForm {
 	 */
 	#server = $state<{ fields: FieldErrors; values: Record<string, string> } | null>(null);
 
-	constructor(own: PlayerCode) {
+	/**
+	 * True when the form corrects a match. The players and the format are the match's and can't
+	 * change (a correction keeps the same two teams), and a 404 or 409 reads as a correction's.
+	 */
+	readonly correcting: boolean;
+
+	constructor(own: PlayerCode, { correcting = false }: { correcting?: boolean } = {}) {
 		this.own = own;
+		this.correcting = correcting;
 	}
 
 	/** What the player has entered, in a shape that can be kept and put back with `restore`. */
@@ -464,10 +483,28 @@ export class RecordForm {
 			}
 			case 'forbidden':
 				// The CSRF case has its own kind. This is a refusal of the submitter.
+				if (this.correcting) {
+					this.failure = { kind: 'forbidden', message: CORRECT_FORBIDDEN_MESSAGE };
+					return;
+				}
 				this.failure =
 					error.code === 'forbidden'
 						? { kind: 'forbidden', message: FORBIDDEN_MESSAGE }
 						: { kind: 'other', message: error.message };
+				return;
+			case 'not_found':
+				if (this.correcting) {
+					this.failure = { kind: 'organizer', message: ORGANIZER_ONLY_MESSAGE };
+					return;
+				}
+				this.failure = { kind: 'other', message: error.message };
+				return;
+			case 'conflict':
+				if (this.correcting) {
+					this.failure = { kind: 'conflict', message: CORRECT_CONFLICT_MESSAGE };
+					return;
+				}
+				this.failure = { kind: 'other', message: error.message };
 				return;
 			default:
 				this.failure = { kind: 'other', message: error.message };

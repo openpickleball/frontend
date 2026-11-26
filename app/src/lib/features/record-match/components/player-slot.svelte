@@ -23,6 +23,7 @@
 		text = $bindable(''),
 		error = '',
 		locked = false,
+		fixed = false,
 		exclude = [],
 		search = searchPlayers,
 		oncommit,
@@ -43,6 +44,8 @@
 		error?: string;
 		/** The player's own code: shown as "You", with nothing to remove. */
 		locked?: boolean;
+		/** A player who can't be changed here, such as in a correction: no remove button. */
+		fixed?: boolean;
 		/** Codes to leave out of the search results: the player and everyone already in the match. */
 		exclude?: string[];
 		/** The name search. Tests pass a stand-in. */
@@ -161,8 +164,8 @@
 			<span
 				class={[
 					'inline-flex min-h-11 max-w-full min-w-0 items-center gap-x-2 rounded-3xl border bg-surface py-1 pl-4 text-secondary',
-					locked ? 'pr-4' : 'pr-0',
-					error ? 'border-danger' : locked ? 'border-line' : 'border-secondary'
+					locked || fixed ? 'pr-4' : 'pr-0',
+					error ? 'border-danger' : locked || fixed ? 'border-line' : 'border-secondary'
 				]}
 			>
 				{#if locked}
@@ -182,7 +185,7 @@
 				>
 					{code}
 				</span>
-				{#if !locked}
+				{#if !locked && !fixed}
 					<button
 						type="button"
 						{id}

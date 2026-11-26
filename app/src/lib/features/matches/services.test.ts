@@ -17,6 +17,7 @@ import {
 	listMatches,
 	listMyDisputes,
 	listMyHolds,
+	rememberCorrection,
 	rememberMatch,
 	vouchForMatch,
 	withdrawDispute
@@ -460,5 +461,29 @@ describe('rememberMatch', () => {
 		rememberMatch(match, cache);
 		expect(cache.takeRecorded(match.code)).toBe(true);
 		expect(cache.takeRecorded(match.code)).toBe(false);
+	});
+});
+
+describe('rememberCorrection', () => {
+	const NEW = buildCode('match', 'FXD00000001') as MatchCode;
+
+	it('keeps the correction, voids the old copy and links the old match to the new one', () => {
+		const old = sampleMatch({ status: 'disputed' });
+		cache.remember(old);
+		cache.rememberHolds([{ match: old, vouched: false }]);
+		const correction = sampleMatch({ code: NEW });
+		rememberCorrection(correction, old.code, cache);
+		expect(cache.get(NEW)).toBe(correction);
+		expect(cache.get(old.code)?.status).toBe('voided');
+		expect(cache.holdOf(old.code)).toBeUndefined();
+		expect(cache.replacementOf(old.code)).toBe(NEW);
+	});
+
+	it('notes the correction as just corrected, once, and not as recorded', () => {
+		const old = sampleMatch();
+		rememberCorrection(sampleMatch({ code: NEW }), old.code, cache);
+		expect(cache.takeRecorded(NEW)).toBe(false);
+		expect(cache.takeCorrected(NEW)).toBe(true);
+		expect(cache.takeCorrected(NEW)).toBe(false);
 	});
 });

@@ -522,3 +522,124 @@ test.describe('holds', () => {
 		}
 	});
 });
+
+test.describe('corrections', () => {
+	test('corrects a pending match, opens the correction, and links the old match to it', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${WAITING_ON_ME_TOO}`);
+		await page.getByRole('link', { name: 'Correct the score' }).click();
+		await expect(page).toHaveURL(new RegExp(`/matches/${WAITING_ON_ME_TOO}/correct$`));
+		await expect(page.getByRole('heading', { level: 1, name: 'Correct the score' })).toBeVisible();
+		await expect(page.getByTestId('fixed-format')).toHaveText('Singles');
+		await expect(page.getByText('Rosa Fenwick', { exact: true })).toBeVisible();
+		await expect(page.getByRole('button', { name: /^Remove Rosa/ })).toHaveCount(0);
+		await expect(page.getByLabel("Game 3, your team's points")).toHaveValue('12');
+
+		await page.getByLabel("Game 3, your team's points").fill('11');
+		await page.getByLabel("Game 3, opponents' points").fill('8');
+		await page.getByRole('button', { name: 'Save the correction' }).click();
+
+		await expect(page.getByText('Correction saved', { exact: true })).toBeVisible();
+		await expect(page).toHaveURL(/\/matches\/M-FXD/);
+		const corrected = new URL(page.url()).pathname;
+		const panel = page.getByTestId('status-panel');
+		await expect(panel).toHaveAttribute('data-status', 'pending');
+		await expect(panel.getByText(/You just corrected this match/)).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Waiting for the other team' })).toBeVisible();
+		await expect(page.getByText('8-11, 11-6, 11-8')).toBeVisible();
+
+		// Back to the old match within the visit: it is voided and links to the correction.
+		await page.getByRole('link', { name: 'Matches', exact: true }).first().click();
+		await rowFor(page, WAITING_ON_ME_TOO).first().click();
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'voided');
+		await expect(page.getByText(/If a player corrected this match/)).toBeVisible();
+		await expect(page.getByRole('link', { name: 'See the corrected match' })).toHaveAttribute(
+			'href',
+			corrected
+		);
+	});
+
+	test('corrects a disputed match, and the correction waits on the other team', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${MY_DISPUTE}`);
+		const panel = page.getByTestId('status-panel');
+		await expect(
+			panel.getByText(/Only the organizer can change a match an organizer recorded/)
+		).toBeVisible();
+		await page.getByRole('link', { name: 'Correct the score' }).click();
+		await page.getByLabel("Game 3, your team's points").fill('11');
+		await page.getByLabel("Game 3, opponents' points").fill('9');
+		await page.getByRole('button', { name: 'Save the correction' }).click();
+		await expect(page).toHaveURL(/\/matches\/M-FXD/);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'pending');
+
+		// Home: the old match left the disputed list.
+		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
+		await expect(page.getByRole('heading', { name: 'Disputed matches' })).toBeVisible();
+		await expect(
+			page
+				.getByRole('list', { name: 'Disputed matches' })
+				.locator(`a[href$="/matches/${MY_DISPUTE}"]`)
+		).toHaveCount(0);
+	});
+
+	test('says the old match is voided when its correction page is opened again', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${WAITING_ON_ME_TOO}/correct`);
+		await page.getByRole('button', { name: 'Save the correction' }).click();
+		await expect(page).toHaveURL(/\/matches\/M-FXD/);
+		await page.goto(`/matches/${WAITING_ON_ME_TOO}/correct`);
+		await expect(page.getByText(/was voided, so there is nothing to correct/)).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Save the correction' })).toHaveCount(0);
+	});
+
+	test('shows a score the rules refuse on its field', async ({ page }) => {
+		await page.goto(`/matches/${WAITING_ON_ME_TOO}/correct`);
+		await page.getByLabel("Game 1, your team's points").fill('11');
+		await page.getByLabel("Game 1, opponents' points").fill('11');
+		// Enter sends the form, as the button does, without the row's error moving the button.
+		await page.getByLabel("Game 1, opponents' points").press('Enter');
+		await expect(page.getByText(/to save this correction/)).toBeVisible();
+		await expect(page.getByLabel("Game 1, your team's points")).toHaveAttribute(
+			'aria-invalid',
+			'true'
+		);
+	});
+
+	test('offers no correction on a confirmed match, or one with a private player', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${HELD_VOUCHED}`);
+		await expect(page.getByTestId('status-panel')).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Correct the score' })).toHaveCount(0);
+		await page.goto(`/matches/${STILL_DISPUTED}`);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'disputed');
+		await expect(page.getByRole('link', { name: 'Correct the score' })).toHaveCount(0);
+	});
+
+	test('has no WCAG 2.1 AA violations on a pending match and its correction, in either theme', async ({
+		page
+	}) => {
+		for (const scheme of ['dark', 'light'] as const) {
+			await page.emulateMedia({ colorScheme: scheme });
+			await page.goto(`/matches/${WAITING_ON_ME_TOO}`);
+			await expect(page.getByRole('link', { name: 'Correct the score' })).toBeVisible();
+			await expectNoAxeViolations(page);
+
+			await page.goto(`/matches/${WAITING_ON_ME_TOO}/correct`);
+			await expect(page.getByRole('button', { name: 'Save the correction' })).toBeVisible();
+			await expectNoAxeViolations(page);
+
+			await page.getByLabel("Game 1, opponents' points").fill('');
+			await page.getByLabel("Game 1, opponents' points").press('Enter');
+			await expect(page.getByText(/to save this correction/)).toBeVisible();
+			await page.waitForFunction(() =>
+				document.getAnimations().every((animation) => animation.playState !== 'running')
+			);
+			await expectNoAxeViolations(page);
+		}
+	});
+});
