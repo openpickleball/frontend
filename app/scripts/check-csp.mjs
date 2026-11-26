@@ -1,6 +1,8 @@
 // Checks the content security policy in a built index.html (plans/app-csp-and-hosting). Used by
 // scripts/check-build.mjs, and tested in src/check-csp.test.ts. Pure: it reads a string.
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 const META = /<meta\s+http-equiv="content-security-policy"\s+content="([^"]*)"\s*\/?>/gi;
 const SCRIPT = /<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi;
@@ -47,4 +49,21 @@ export function checkCsp(html) {
 		}
 	}
 	return problems;
+}
+
+/**
+ * Reads `index.html` in a build folder and checks its policy. Only a failed read becomes
+ * "index.html is missing". An error in the check itself is thrown as it is.
+ * @param {string} dir The build folder.
+ * @param {(html: string) => string[]} [check] The check, `checkCsp` unless a test passes another.
+ * @returns {Promise<string[]>}
+ */
+export async function checkIndexCsp(dir, check = checkCsp) {
+	let html;
+	try {
+		html = await readFile(join(dir, 'index.html'), 'utf8');
+	} catch {
+		return ['index.html is missing'];
+	}
+	return check(html);
 }

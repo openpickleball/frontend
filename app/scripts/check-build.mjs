@@ -8,7 +8,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkCsp } from './check-csp.mjs';
+import { checkIndexCsp } from './check-csp.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dir = join(root, process.argv[2] ?? 'build');
@@ -48,12 +48,7 @@ for (const file of files) {
 	}
 }
 
-let csp;
-try {
-	csp = checkCsp(await readFile(join(dir, 'index.html'), 'utf8'));
-} catch {
-	csp = ['index.html is missing'];
-}
+const csp = await checkIndexCsp(dir);
 
 if (problems.length) {
 	console.error('This build ships API mock code. Was it built with PUBLIC_API_MOCK=off?');
