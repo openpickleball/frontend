@@ -16,7 +16,7 @@
  */
 import type { components } from '../api/generated/open';
 import { parseMatchCode, parsePlayerCode } from './codes';
-import type { Game, Match, Player, Team } from './models';
+import type { Game, Hold, Match, Player, Team } from './models';
 
 type Schemas = components['schemas'];
 
@@ -24,6 +24,8 @@ export type MatchDto = Schemas['MatchOut'];
 export type ParticipantDto = Schemas['ParticipantOut'];
 export type GameDto = Schemas['GameOut'];
 export type PagedMatchDto = Schemas['PagedMatchOut'];
+export type HoldDto = Schemas['HoldOut'];
+export type PagedHoldDto = Schemas['PagedHoldOut'];
 
 /** What a player is called when the API hides them. Matches the backend's `PRIVATE_PLAYER_NAME`. */
 export const PRIVATE_PLAYER_NAME = 'Private player';
@@ -39,6 +41,12 @@ export class MappingError extends Error {
 /** One page of matches: the domain matches and the total across all pages. */
 export type MatchPage = {
 	items: Match[];
+	count: number;
+};
+
+/** One page of held matches and the total across all pages. */
+export type HoldPage = {
+	items: Hold[];
 	count: number;
 };
 
@@ -82,4 +90,12 @@ export function toMatch(dto: MatchDto): Match {
 
 export function toMatchPage(dto: PagedMatchDto): MatchPage {
 	return { items: dto.items.map(toMatch), count: dto.count };
+}
+
+export function toHold(dto: HoldDto): Hold {
+	return { match: toMatch(dto.match), vouched: dto.vouched };
+}
+
+export function toHoldPage(dto: PagedHoldDto): HoldPage {
+	return { items: dto.items.map(toHold), count: dto.count };
 }

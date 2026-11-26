@@ -4,9 +4,10 @@ import {
 	waitingOnOtherTeam,
 	type Match
 } from '#lib/domain/index.js';
+import type { HoldState } from './cache.svelte.js';
 
 /** A button the status panel can offer. Each one maps to a match action on the match page. */
-export type PanelAction = 'confirm' | 'dispute' | 'withdraw';
+export type PanelAction = 'confirm' | 'dispute' | 'withdraw' | 'vouch';
 
 /**
  * What the status panel says about a match and what it offers. `text` is the main line, `notes`
@@ -27,8 +28,89 @@ export type MatchStatusCopy = {
 export const DISPUTE_ENDS =
 	"A dispute ends when every player who disputed the score withdraws. For a match played at an event, the event's organizer can settle it too. If no one settles it within a set time, the match is voided and doesn't count.";
 
-/** The status panel's copy for a match, from its status and the signed-in player's decision. */
-export function matchStatusCopy(match: Match): MatchStatusCopy {
+/**
+ * Why a match is on hold. The API never names the other match, so neither does the copy. The
+ * backend's hold email says the same.
+ */
+export const HOLD_WHY =
+	"Another match on OPEN has the same teams and date as this one, but other scores. Both matches are on hold and don't count until each one is vouched for.";
+
+/**
+ * How a hold ends when no one settles it. The API gives no end date (the period is a backend
+ * setting), so this promises none.
+ */
+export const HOLD_ENDS =
+	'If no one settles the hold within a set time, the newer of the two matches is voided, as long as the older one is confirmed by then.';
+
+/**
+ * Who vouches, and what is left, for the side the viewer is on. A viewer with no team in the
+ * match can only find it in the holds list as a member of the event's organizer.
+ */
+function vouchNote(match: Match, hold: HoldState): string {
+	const organizer = match.viewerSide === null;
+	if (hold.vouched) {
+		return organizer
+			? 'Your organizer has vouched for this match. The hold ends once the other match is vouched for too.'
+			: 'Your team has vouched for this match. The hold ends once a player on the other team vouches too, and the other match is vouched for.';
+	}
+	return organizer
+		? "If this is a separate match, not a repeat of the other one, vouch for it as a member of the event's organizer. You can't undo a vouch."
+		: "If this is a separate match, not a repeat of the other one, vouch for it. One player from each team needs to vouch. You can't undo a vouch.";
+}
+
+/** The vouch button, while the viewer's side has not vouched. */
+function vouchAction(hold: HoldState): PanelAction[] {
+	return hold.vouched ? [] : ['vouch'];
+}
+
+/**
+ * The status panel's copy for a held match. A disputed match keeps its dispute copy and adds the
+ * hold. A pending or confirmed match reads "On hold" first, since it doesn't count either way.
+ */
+function heldCopy(match: Match, hold: HoldState): MatchStatusCopy {
+	const base = statusCopy(match);
+	if (match.status === 'disputed') {
+		return {
+			...base,
+			notes: [
+				...base.notes,
+				'This match is also on hold. Another match on OPEN has the same teams and date, but other scores.',
+				vouchNote(match, hold)
+			],
+			actions: [...base.actions, ...vouchAction(hold)]
+		};
+	}
+	let line: string;
+	if (match.status === 'confirmed') {
+		line = 'The score is confirmed. The match counts once the hold ends.';
+	} else if (needsViewerConfirmation(match)) {
+		line =
+			match.viewerDecision === 'withdraw'
+				? "Your team hasn't confirmed the score yet. Confirm it if it's right. You withdrew your dispute, so you can't dispute this match again."
+				: "Your team hasn't confirmed the score yet. Confirm it if it's right, or dispute it if it's wrong.";
+	} else if (waitingOnOtherTeam(match)) {
+		line = 'Your team confirmed the score. A player on the other team needs to confirm it too.';
+	} else {
+		line = 'The score also needs a player on each team to confirm it.';
+	}
+	return {
+		title: 'On hold',
+		text: HOLD_WHY,
+		notes: [line, vouchNote(match, hold), HOLD_ENDS],
+		actions: [...base.actions, ...vouchAction(hold)]
+	};
+}
+
+/**
+ * The status panel's copy for a match, from its status and the signed-in player's decision. Pass
+ * `hold` when the holds list says the match is held: `MatchOut` itself can't say so.
+ */
+export function matchStatusCopy(match: Match, hold?: HoldState): MatchStatusCopy {
+	if (hold && match.status !== 'voided') return heldCopy(match, hold);
+	return statusCopy(match);
+}
+
+function statusCopy(match: Match): MatchStatusCopy {
 	const decision = match.viewerDecision;
 	switch (match.status) {
 		case 'confirmed':
@@ -122,6 +204,6 @@ export function matchStatusCopy(match: Match): MatchStatusCopy {
 }
 
 /** True when the status panel offers the player something to do, so it goes before the score. */
-export function hasActions(match: Match): boolean {
-	return matchStatusCopy(match).actions.length > 0;
+export function hasActions(match: Match, hold?: HoldState): boolean {
+	return matchStatusCopy(match, hold).actions.length > 0;
 }

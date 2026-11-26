@@ -81,6 +81,18 @@ export type Match = {
 	createdAt: string;
 };
 
+/**
+ * A held match the signed-in account may vouch for (`HoldOut`). A possible duplicate hold keeps
+ * a match from counting when another match has the same teams and date with other scores. The
+ * API never names that other match. `MatchOut` has no hold field, so only the holds list says a
+ * match is held. `vouched` is true when the account's own side has vouched on every open hold of
+ * the match: a player on their team for a match with no event, or the event's organizer.
+ */
+export type Hold = {
+	match: Match;
+	vouched: boolean;
+};
+
 export function otherSide(side: Side): Side {
 	return side === 'a' ? 'b' : 'a';
 }

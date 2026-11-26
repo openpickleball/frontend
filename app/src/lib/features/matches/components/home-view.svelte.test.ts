@@ -15,7 +15,8 @@ vi.mock('../services.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('../services.js')>()),
 	listMatches: vi.fn(),
 	listAwaitingConfirmation: vi.fn(),
-	listMyDisputes: vi.fn()
+	listMyDisputes: vi.fn(),
+	listMyHolds: vi.fn()
 }));
 const mocked = vi.mocked(services);
 
@@ -48,6 +49,24 @@ const theirDispute = viewerMatch(
 	{ code: DISPUTED_TOO, status: 'disputed', playedOn: '2026-11-01' }
 );
 
+const HELD = code('H2ZA6TQN4CJ');
+const HELD_TOO = code('N3QH7DFR5KZ');
+const held = viewerMatch(
+	{ a: true, b: true, decision: 'confirm' },
+	{ code: HELD, status: 'confirmed', playedOn: '2026-11-07' }
+);
+const heldToo = viewerMatch(
+	{ a: true, decision: 'confirm' },
+	{ code: HELD_TOO, playedOn: '2026-10-27' }
+);
+
+function serveHolds(holds: { match: Match; vouched: boolean }[], count = holds.length) {
+	mocked.listMyHolds.mockImplementation(async (_offset, options) => {
+		options?.cache?.rememberHolds(holds);
+		return { items: holds, count };
+	});
+}
+
 function serveDisputes(disputes: Match[], count = disputes.length) {
 	mocked.listMyDisputes.mockImplementation(async (_offset, options) => {
 		options?.cache?.rememberAll(disputes);
@@ -77,6 +96,7 @@ beforeEach(() => {
 	myCode.code = TAMSIN;
 	myCode.status = 'ready';
 	serveDisputes([]);
+	serveHolds([]);
 });
 
 afterEach(() => {
@@ -304,5 +324,90 @@ describe('HomeView disputed matches', () => {
 		await page.getByTestId('disputes-error').getByRole('button', { name: 'Try again' }).click();
 		await expect.element(heading('Disputed matches')).toBeVisible();
 		await expect.element(page.getByTestId('disputes-error')).not.toBeInTheDocument();
+	});
+});
+
+describe('HomeView matches on hold', () => {
+	it('lists held matches after disputes, says why, and lists none again below', async () => {
+		serve([needs, myDispute, held, heldToo, done], [needs]);
+		serveDisputes([myDispute]);
+		serveHolds([
+			{ match: held, vouched: false },
+			{ match: heldToo, vouched: true }
+		]);
+		const screen = await render(HomeView);
+
+		await expect.element(heading('Matches on hold')).toBeVisible();
+		await expect
+			.element(page.getByText(/same teams and date as another match on OPEN, but other scores/))
+			.toBeVisible();
+		const list = page.getByRole('list', { name: 'Matches on hold' });
+		expect(list.getByTestId('match-row').elements()).toHaveLength(2);
+		await expect
+			.element(list.getByText("On hold. It doesn't count yet. Open it to vouch for it."))
+			.toBeVisible();
+		await expect
+			.element(list.getByText("On hold. It doesn't count yet. Your team has vouched for it."))
+			.toBeVisible();
+
+		// heldToo waits on the other team too, but it is listed once, under Matches on hold.
+		const titles = [...screen.container.querySelectorAll('h2')].map((h) => h.textContent?.trim());
+		expect(titles).toEqual([
+			'Needs your confirmation',
+			'Disputed matches',
+			'Matches on hold',
+			'Recent matches'
+		]);
+		const recent = page.getByRole('list', { name: 'Recent matches' });
+		expect(recent.getByTestId('match-row').elements()).toHaveLength(1);
+	});
+
+	it('leaves the section out when nothing is held', async () => {
+		serve([done], []);
+		await render(HomeView);
+		await expect.element(heading('Recent matches')).toBeVisible();
+		await expect.element(heading('Matches on hold')).not.toBeInTheDocument();
+	});
+
+	it('drops a match once its hold ends, and keeps one whose side vouched', async () => {
+		serve([done], []);
+		serveHolds([
+			{ match: held, vouched: false },
+			{ match: heldToo, vouched: false }
+		]);
+		await render(HomeView);
+		const list = page.getByRole('list', { name: 'Matches on hold' });
+		await expect.poll(() => list.getByTestId('match-row').elements()).toHaveLength(2);
+
+		matchCache.markVouched(HELD_TOO);
+		await expect
+			.element(list.getByText("On hold. It doesn't count yet. Your team has vouched for it."))
+			.toBeVisible();
+		matchCache.endHold(HELD);
+		await expect.poll(() => list.getByTestId('match-row').elements()).toHaveLength(1);
+	});
+
+	it('says how many more are on hold when the first page leaves some out', async () => {
+		serve([done], []);
+		serveHolds([{ match: held, vouched: false }], 3);
+		await render(HomeView);
+		await expect
+			.element(page.getByTestId('more-holds'))
+			.toHaveTextContent('2 more matches are on hold. See all matches.');
+		await expect.element(page.getByText('3 matches')).toBeVisible();
+	});
+
+	it('still shows the history, with a notice and Try again, when only the holds list fails', async () => {
+		serve([waiting, done], []);
+		mocked.listMyHolds.mockRejectedValueOnce(new Error('down'));
+		await render(HomeView);
+		await expect.element(page.getByTestId('holds-error')).toBeVisible();
+		await expect.element(page.getByText("We couldn't check your matches on hold.")).toBeVisible();
+		await expect.element(heading('Recent matches')).toBeVisible();
+
+		serveHolds([{ match: held, vouched: false }]);
+		await page.getByTestId('holds-error').getByRole('button', { name: 'Try again' }).click();
+		await expect.element(heading('Matches on hold')).toBeVisible();
+		await expect.element(page.getByTestId('holds-error')).not.toBeInTheDocument();
 	});
 });

@@ -3,19 +3,23 @@
 	import { Alert, AlertDescription } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
-	import type { MatchAction } from '../cache.svelte.js';
+	import type { HoldState, MatchAction } from '../cache.svelte.js';
 	import { matchStatusCopy } from '../status.js';
 
 	let {
 		match,
+		hold,
 		busy = null,
 		error = null,
 		recorded = false,
 		onconfirm,
 		ondispute,
-		onwithdraw = () => {}
+		onwithdraw = () => {},
+		onvouch = () => {}
 	}: {
 		match: Match;
+		/** The match's hold, when the holds list says it is held. `MatchOut` can't say so. */
+		hold?: HoldState;
 		/** The action in flight, so its button waits. */
 		busy?: MatchAction | null;
 		/** Why the last action failed. */
@@ -27,23 +31,30 @@
 		ondispute: () => void;
 		/** Opens the withdraw dialog. The dialog's own button withdraws. */
 		onwithdraw?: () => void;
+		/** Opens the vouch dialog. The dialog's own button vouches. */
+		onvouch?: () => void;
 	} = $props();
 
-	const panel = $derived(matchStatusCopy(match));
+	const panel = $derived(matchStatusCopy(match, hold));
+	const held = $derived(hold !== undefined && match.status !== 'voided');
 	const offers = (action: MatchAction) => panel.actions.includes(action);
 </script>
 
 <section
-	class="mt-8 border border-l-4 border-line bg-surface px-5 py-5 {match.status === 'confirmed'
-		? 'border-l-confirmed'
-		: match.status === 'disputed'
-			? 'border-l-disputed'
-			: match.status === 'voided'
-				? 'border-l-voided'
-				: 'border-l-secondary'}"
+	class="mt-8 border border-l-4 border-line bg-surface px-5 py-5 {held &&
+	match.status !== 'disputed'
+		? 'border-l-secondary'
+		: match.status === 'confirmed'
+			? 'border-l-confirmed'
+			: match.status === 'disputed'
+				? 'border-l-disputed'
+				: match.status === 'voided'
+					? 'border-l-voided'
+					: 'border-l-secondary'}"
 	aria-labelledby="status-heading"
 	data-testid="status-panel"
 	data-status={match.status}
+	data-held={held || undefined}
 >
 	<h2 id="status-heading" tabindex="-1" class="text-lg font-semibold outline-none">
 		{panel.title}
@@ -94,6 +105,19 @@
 				>
 					{#if busy === 'withdraw'}<Spinner />{/if}
 					{busy === 'withdraw' ? 'Withdrawing…' : 'Withdraw my dispute'}
+				</Button>
+			{/if}
+			{#if offers('vouch')}
+				<!-- The main button when it is the only one, else after Confirm and Dispute. -->
+				<Button
+					id="vouch-button"
+					variant={panel.actions.length === 1 ? 'default' : 'outline'}
+					onclick={() => busy === null && onvouch()}
+					aria-disabled={busy !== null}
+					aria-busy={busy === 'vouch'}
+				>
+					{#if busy === 'vouch'}<Spinner />{/if}
+					{busy === 'vouch' ? 'Vouching…' : 'This match really happened'}
 				</Button>
 			{/if}
 		</div>

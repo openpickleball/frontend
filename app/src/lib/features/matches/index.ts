@@ -1,6 +1,6 @@
 /**
- * Matches: the player's match history, one match's detail, and confirm, dispute and withdraw a
- * dispute.
+ * Matches: the player's match history, one match's detail, confirm, dispute and withdraw a
+ * dispute, and vouch for a held match.
  *
  * What the screens can and cannot know
  *
@@ -17,6 +17,14 @@
  *   them. A player withdraws their own open dispute with `POST matches/{code}/withdraw-dispute`.
  *   The match stays disputed while another player's dispute is open. A withdrawn dispute still
  *   counts as the player's one dispute, so the page offers no Dispute after it.
+ * - A possible duplicate hold keeps a match from counting when another match has the same teams
+ *   and date with other scores. `MatchOut` has no hold field, and the other match is never named.
+ *   `GET me/matches/holds` lists the held matches the account may vouch for, with `vouched` for
+ *   its own side: matches with no event it played in, and event matches of an organizer it is a
+ *   member of. `GET matches/{code}` gives players only, so the match page falls back to the holds
+ *   list on a 404, for an organizer who came from a hold email. `POST matches/{code}/vouch`
+ *   can't be undone, and its answer doesn't say whether the hold ended, so the page reads the
+ *   holds list again. The cache keeps each known hold (`holdOf`).
  * - `status.ts` (`matchStatusCopy`) says how each status and decision reads and which buttons
  *   the status panel offers. Add a new status or action there.
  *
@@ -32,26 +40,38 @@
  *   response. `matchCache.get(code)` is reactive. It empties by itself when the signed-in player
  *   changes.
  * - `listMatches(player, offset)`, `countMatches(player)`, `listAwaitingConfirmation(offset)`,
- *   `listMyDisputes(offset)`, `getMatch(code)`, `confirmMatch(code)`, `disputeMatch(code)` and
- *   `withdrawDispute(code)` are the services. They throw an `AppError` when a call fails.
+ *   `listMyDisputes(offset)`, `listMyHolds(offset)`, `findHold(code)`, `getMatch(code)`,
+ *   `confirmMatch(code)`, `disputeMatch(code)`, `withdrawDispute(code)` and `vouchForMatch(code)`
+ *   are the services. They throw an `AppError` when a call fails.
  * - `format.ts` helpers (`scoreLine`, `teamNames`, `formatDate`, ...) are exported for other
  *   screens that show a match.
  */
-export { MatchCache, matchCache, ownerKey, type MatchAction } from './cache.svelte.js';
+export {
+	MatchCache,
+	matchCache,
+	ownerKey,
+	type HoldState,
+	type MatchAction
+} from './cache.svelte.js';
 export {
 	PAGE_SIZE,
 	confirmMatch,
 	countMatches,
 	disputeMatch,
+	findHold,
 	getMatch,
 	listAwaitingConfirmation,
 	listMatches,
 	listMyDisputes,
+	listMyHolds,
 	rememberMatch,
+	vouchForMatch,
 	withdrawDispute
 } from './services.js';
 export {
 	DISPUTE_ENDS,
+	HOLD_ENDS,
+	HOLD_WHY,
 	hasActions,
 	matchStatusCopy,
 	type MatchStatusCopy,
@@ -84,4 +104,5 @@ export { default as MatchList } from './components/match-list.svelte';
 export { default as StatusPanel } from './components/status-panel.svelte';
 export { default as DisputeDialog } from './components/dispute-dialog.svelte';
 export { default as WithdrawDialog } from './components/withdraw-dialog.svelte';
+export { default as VouchDialog } from './components/vouch-dialog.svelte';
 export { default as Scoreboard } from './components/scoreboard.svelte';

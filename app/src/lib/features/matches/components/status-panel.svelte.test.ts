@@ -305,4 +305,82 @@ describe('StatusPanel', () => {
 			}
 		}
 	});
+	describe('a held match', () => {
+		const confirmed = () =>
+			viewerMatch({ a: true, b: true, decision: 'confirm' }, { status: 'confirmed' });
+
+		it('says it is on hold and why, and offers This match really happened', async () => {
+			const onvouch = vi.fn();
+			const screen = await render(StatusPanel, {
+				match: confirmed(),
+				hold: { vouched: false },
+				...handlers(),
+				onvouch
+			});
+			await expect.element(screen.getByRole('heading', { name: 'On hold' })).toBeVisible();
+			await expect
+				.element(screen.getByText(/Another match on OPEN has the same teams and date/))
+				.toBeVisible();
+			await expect.element(screen.getByText(/You can't undo a vouch/)).toBeVisible();
+			await expect
+				.element(screen.getByText(/the newer of the two matches is voided/))
+				.toBeVisible();
+			await expect
+				.element(screen.getByText(/It counts in your match history/))
+				.not.toBeInTheDocument();
+			await expect.element(screen.getByTestId('status-panel')).toHaveAttribute('data-held', 'true');
+			await screen.getByRole('button', { name: 'This match really happened' }).click();
+			expect(onvouch).toHaveBeenCalledOnce();
+		});
+
+		it('says the team vouched and offers nothing once it has', async () => {
+			const screen = await render(StatusPanel, {
+				match: confirmed(),
+				hold: { vouched: true },
+				...handlers()
+			});
+			await expect.element(screen.getByText(/Your team has vouched for this match/)).toBeVisible();
+			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+		});
+
+		it('keeps Confirm first on a pending match the player has to confirm', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch(),
+				hold: { vouched: false },
+				...handlers()
+			});
+			const buttons = screen.getByRole('button').elements();
+			expect(buttons.map((button) => button.textContent?.trim())).toEqual([
+				'Confirm score',
+				'Dispute',
+				'This match really happened'
+			]);
+		});
+
+		it('waits while the vouch is in flight', async () => {
+			const onvouch = vi.fn();
+			const screen = await render(StatusPanel, {
+				match: confirmed(),
+				hold: { vouched: false },
+				busy: 'vouch',
+				...handlers(),
+				onvouch
+			});
+			const button = screen.getByRole('button', { name: 'Vouching…' });
+			await expect.element(button).toHaveAttribute('aria-busy', 'true');
+			await expect.element(button).toHaveAttribute('aria-disabled', 'true');
+			(button.element() as HTMLButtonElement).click();
+			expect(onvouch).not.toHaveBeenCalled();
+		});
+
+		it('says nothing of a hold on a voided match', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({}, { status: 'voided' }),
+				hold: { vouched: false },
+				...handlers()
+			});
+			await expect.element(screen.getByRole('heading', { name: 'Voided' })).toBeVisible();
+			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+		});
+	});
 });

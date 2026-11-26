@@ -14,6 +14,12 @@ describe('WithdrawDialog', () => {
 		await expect.element(dialog.getByRole('textbox')).not.toBeInTheDocument();
 	});
 
+	it('keeps "Withdraw dispute" in the danger color', async () => {
+		await render(WithdrawDialog, { open: true, onconfirm: vi.fn() });
+		const button = page.getByRole('button', { name: 'Withdraw dispute' }).element();
+		expect(button.className).toContain('bg-danger');
+	});
+
 	it('opens with focus on Cancel, the safe choice', async () => {
 		await render(WithdrawDialog, { open: true, onconfirm: vi.fn() });
 		await expect.element(page.getByRole('button', { name: 'Cancel' })).toHaveFocus();

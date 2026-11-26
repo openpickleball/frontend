@@ -21,7 +21,7 @@
 		EmptyMedia,
 		EmptyTitle
 	} from '#lib/ui/empty/index.js';
-	import { matchCache, type MatchAction } from '../cache.svelte.js';
+	import { matchCache, type HoldState, type MatchAction } from '../cache.svelte.js';
 	import {
 		STATUS_LABELS,
 		formatLongDate,
@@ -31,12 +31,20 @@
 		scoringName,
 		viewpoint
 	} from '../format.js';
-	import { confirmMatch, disputeMatch, getMatch, withdrawDispute } from '../services.js';
+	import {
+		confirmMatch,
+		disputeMatch,
+		findHold,
+		getMatch,
+		vouchForMatch,
+		withdrawDispute
+	} from '../services.js';
 	import { hasActions } from '../status.js';
 	import CodeGate from './code-gate.svelte';
 	import DisputeDialog from './dispute-dialog.svelte';
 	import Scoreboard from './scoreboard.svelte';
 	import StatusPanel from './status-panel.svelte';
+	import VouchDialog from './vouch-dialog.svelte';
 	import WithdrawDialog from './withdraw-dialog.svelte';
 
 	/** The match code from the address, as typed. */
@@ -68,6 +76,9 @@
 			? (matchCache.get(code) ?? (mine ? result.fetched : null) ?? undefined)
 			: undefined
 	);
+	// `MatchOut` has no hold field, so the holds list says whether the match is held. The cache
+	// keeps what the home list or this page's own lookup found.
+	const hold = $derived(match && code ? matchCache.holdOf(code) : undefined);
 	const title = $derived(code ? `Match ${code} · OPEN Pickleball` : 'Match · OPEN Pickleball');
 
 	// Counts reads and actions. A read that finishes after a newer one started, or after the player
@@ -89,9 +100,16 @@
 	}
 
 	/** Did the read change what the player sees or can do? */
-	function changed(before: Match, after: Match): boolean {
+	function changed(
+		before: Match,
+		after: Match,
+		holdBefore: HoldState | undefined,
+		holdAfter: HoldState | undefined
+	): boolean {
 		return (
 			before.status !== after.status ||
+			// A hold the page did not know of before is not a change the player saw.
+			(holdBefore !== undefined && holdBefore.vouched !== holdAfter?.vouched) ||
 			before.viewerDecision !== after.viewerDecision ||
 			JSON.stringify(before.confirmedBySide) !== JSON.stringify(after.confirmedBySide)
 		);
@@ -109,20 +127,40 @@
 		}
 	}
 
+	/**
+	 * Read the match and whether it is held, side by side. The holds list also has the event
+	 * matches a member of the event's organizer may vouch for, which `GET matches/{code}` gives
+	 * players only, so a 404 shows the match from the holds list when it is there. Whether it is
+	 * held stays unknown when only the holds list fails. Throws what the match read threw.
+	 */
+	async function read(code: MatchCode): Promise<Match> {
+		const [matchRead, holdRead] = await Promise.allSettled([
+			getMatch(code, { remember: false }),
+			findHold(code)
+		]);
+		if (matchRead.status === 'fulfilled') return matchRead.value;
+		const notFound = isAppError(matchRead.reason) && matchRead.reason.kind === 'not_found';
+		if (notFound && holdRead.status === 'fulfilled' && holdRead.value) return holdRead.value.match;
+		throw matchRead.reason;
+	}
+
 	async function load() {
 		if (!code) return;
 		const token = ++run;
 		const shown = match;
+		const holdShown = hold;
 		result = { code, state: 'loading', fetched: null };
 		try {
-			const found = await getMatch(code, { remember: false });
+			const found = await read(code);
 			if (token !== run) return;
 			adopt(found);
 			result = { code, state: 'done', fetched: found };
 			// The saved-copy line goes with the retry, so focus has to move on after this.
 			retrying = false;
 			if (shown) {
-				if (changed(shown, found)) toast('This match changed. Here is where it stands.');
+				if (changed(shown, found, holdShown, matchCache.holdOf(code))) {
+					toast('This match changed. Here is where it stands.');
+				}
 				// The control that had focus may be gone now, even when the status did not change.
 				await tick();
 				// The player may have left, or acted, while the page updated.
@@ -169,21 +207,29 @@
 	let error = $state<string | null>(null);
 	let disputeOpen = $state(false);
 	let withdrawOpen = $state(false);
+	let vouchOpen = $state(false);
 
 	const FAILED: Record<MatchAction, string> = {
 		confirm: "We couldn't confirm the score. Try again.",
 		dispute: "We couldn't dispute the score. Try again.",
-		withdraw: "We couldn't withdraw your dispute. Try again."
+		withdraw: "We couldn't withdraw your dispute. Try again.",
+		vouch: "We couldn't vouch for this match. Try again."
 	};
 
 	function problem(cause: unknown, action: MatchAction): string {
 		if (isAppError(cause)) {
 			if (cause.kind === 'conflict') {
+				if (action === 'vouch') {
+					return "This match isn't on hold any more, or it was voided. There's nothing to vouch for now. Here is where it stands.";
+				}
 				return action === 'withdraw'
 					? "There's no dispute of yours to withdraw on this match now. It may have been settled, or the match was voided. Check where it stands."
 					: "This match can't be changed any more. Check where it stands, then try again.";
 			}
 			if (cause.kind === 'not_found' || cause.kind === 'forbidden') {
+				if (action === 'vouch') {
+					return "You can't vouch for this match. For a match with no event, a player from each team vouches. For an event match, the event's organizer does.";
+				}
 				return action === 'withdraw'
 					? 'You can only withdraw a dispute on a match you played in.'
 					: 'You can only confirm or dispute a match you played in.';
@@ -198,17 +244,19 @@
 	let dialogGone: Promise<void> = Promise.resolve();
 	let dialogDone: () => void = () => {};
 
-	function openDialog(which: 'dispute' | 'withdraw') {
+	function openDialog(which: 'dispute' | 'withdraw' | 'vouch') {
 		dialogGone = new Promise((done) => (dialogDone = done));
 		if (which === 'dispute') disputeOpen = true;
-		else withdrawOpen = true;
+		else if (which === 'withdraw') withdrawOpen = true;
+		else vouchOpen = true;
 	}
 
 	/** Move focus to an element once the buttons are enabled again and the open dialog is gone. */
 	async function focusAfterDialog(id: string) {
 		await tick();
 		await dialogGone;
-		document.getElementById(id)?.focus();
+		// The button may be gone after a fresh read, so the status heading takes focus then.
+		(document.getElementById(id) ?? document.getElementById('status-heading'))?.focus();
 	}
 
 	/**
@@ -220,10 +268,13 @@
 		try {
 			// What the page shows now. The fresh read replaces it in the cache.
 			const shown = match?.status;
+			const heldBefore = hold !== undefined;
 			run++;
-			const found = await getMatch(code, { remember: false });
+			const found = await read(code);
 			adopt(found);
-			if (found.status !== shown) toast('This match changed. Here is where it stands.');
+			if (found.status !== shown || heldBefore !== (matchCache.holdOf(code) !== undefined)) {
+				toast('This match changed. Here is where it stands.');
+			}
 			return true;
 		} catch {
 			return false;
@@ -251,6 +302,25 @@
 			} else if (action === 'dispute') {
 				adopt(await disputeMatch(code));
 				toast('Score disputed');
+			} else if (action === 'vouch') {
+				const updated = await vouchForMatch(code);
+				adopt(updated);
+				// The answer doesn't say whether the hold ended, so read the holds list.
+				let ended: boolean | null = null;
+				try {
+					ended = (await findHold(code)) === null;
+				} catch {
+					// The vouch went through. The page shows the vouch and checks again next time.
+				}
+				toast(
+					ended === null
+						? 'Vouched for this match.'
+						: !ended
+							? 'Vouched. The hold ends once the others vouch too.'
+							: updated.status === 'confirmed'
+								? 'Vouched. The hold has ended and the match now counts.'
+								: 'Vouched. The hold has ended.'
+				);
 			} else {
 				const updated = await withdrawDispute(code);
 				adopt(updated);
@@ -269,8 +339,8 @@
 				error = problem(cause, action);
 				// The button the player pressed is still here, so put focus back on it.
 				focusId = `${action}-button`;
-			} else if (action === 'withdraw') {
-				// The page now shows where the match stands. Say why the withdraw did nothing.
+			} else if (action === 'withdraw' || action === 'vouch') {
+				// The page now shows where the match stands. Say why the action did nothing.
 				error = problem(cause, action);
 			}
 		} finally {
@@ -307,6 +377,9 @@
 		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match))}</p>
 		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
 			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
+			{#if hold && match.status !== 'voided'}
+				<Badge>On hold</Badge>
+			{/if}
 			<span class="font-display text-base text-muted">
 				<span class="sr-only">Match code </span>{match.code}
 			</span>
@@ -323,17 +396,19 @@
 	{#snippet status()}
 		<StatusPanel
 			{match}
+			{hold}
 			{busy}
 			{error}
 			recorded={justRecorded}
 			onconfirm={() => act('confirm')}
 			ondispute={() => openDialog('dispute')}
 			onwithdraw={() => openDialog('withdraw')}
+			onvouch={() => openDialog('vouch')}
 		/>
 	{/snippet}
 
 	<!-- When the player has something to do, the buttons come before the scoreboard. -->
-	{#if hasActions(match)}
+	{#if hasActions(match, hold)}
 		{@render status()}
 		{@render score()}
 	{:else}
@@ -362,6 +437,7 @@
 		onconfirm={() => act('withdraw')}
 		onclosed={() => dialogDone()}
 	/>
+	<VouchDialog bind:open={vouchOpen} onconfirm={() => act('vouch')} onclosed={() => dialogDone()} />
 {:else if code && (lookup === 'loading' || lookup === 'done')}
 	<h1 class="page-title">Match</h1>
 	<CodeGate>

@@ -165,7 +165,16 @@ export type FixtureMatch = {
 	decisions: readonly FixtureDecision[];
 	/** For a disputed match: its status before the dispute, which a withdraw goes back to. */
 	disputedFrom?: 'pending' | 'confirmed';
+	/** For a held match: who has vouched for it so far (see `MockHold`). */
+	hold?: FixtureHold;
 };
+
+/**
+ * A possible duplicate hold. The other match of the hold is not a fixture: no screen may show it.
+ * `vouched` lists the teams of this match with a player who vouched, and `otherVouched` says
+ * whether the other match was vouched for at its own level.
+ */
+export type FixtureHold = { vouched: readonly ('A' | 'B')[]; otherVouched: boolean };
 
 const dec = (
 	player: PlayerKey,
@@ -441,7 +450,9 @@ export const MATCHES: readonly FixtureMatch[] = [
 			[11, 8]
 		],
 		submittedBy: 'oren',
-		decisions: [dec('oren'), dec('rosa')]
+		decisions: [dec('oren'), dec('rosa')],
+		// On hold. Rosa's team and the other match have vouched, so Tamsin's vouch ends the hold.
+		hold: { vouched: ['B'], otherVouched: true }
 	},
 	{
 		// Disputed, with the private player on the other side. Tamsin disputed and then withdrew,
@@ -478,7 +489,9 @@ export const MATCHES: readonly FixtureMatch[] = [
 		teamB: ['saul'],
 		games: [[11, 3]],
 		submittedBy: 'tamsin',
-		decisions: [dec('tamsin'), dec('saul')]
+		decisions: [dec('tamsin'), dec('saul')],
+		// On hold. Tamsin vouched already, so it waits on the other side.
+		hold: { vouched: ['A'], otherVouched: false }
 	},
 	{
 		random: 'B8TS4PCX1JW',

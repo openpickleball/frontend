@@ -17,6 +17,7 @@
 		sideScores,
 		viewpoint
 	} from '../format.js';
+	import { matchCache } from '../cache.svelte.js';
 
 	let {
 		match,
@@ -36,12 +37,19 @@
 			won: winner(match) === side
 		}))
 	);
+	// Known from the holds list only: `MatchOut` has no hold field.
+	const hold = $derived(match.status === 'voided' ? undefined : matchCache.holdOf(match.code));
 	const games = $derived(match.games.length === 1 ? '1 game' : `${match.games.length} games`);
 	// What the player can do about a pending match, from what the API says about their team, and
 	// whose dispute a disputed match waits on.
 	const note = $derived.by(() => {
 		if (match.status === 'disputed' && match.viewerDecision === 'dispute') {
 			return 'You disputed this score.';
+		}
+		if (hold) {
+			return hold.vouched
+				? "On hold. It doesn't count yet. Your team has vouched for it."
+				: "On hold. It doesn't count yet. Open it to vouch for it.";
 		}
 		if (needsViewerConfirmation(match)) return 'Needs your confirmation.';
 		if (waitingOnOtherTeam(match)) {
@@ -63,6 +71,7 @@
 	<span class="sr-only">{rowLabel(match, you)}</span>
 	<div class="mb-3 flex items-center justify-between gap-3 text-base text-muted" aria-hidden="true">
 		<span>{formatShortDate(match.playedOn)} · {formatName(match.format)}, {games}</span>
+		<!-- One badge: a second one wraps the date on a phone. The note below says it is on hold. -->
 		<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
 	</div>
 	<!-- eslint-disable local/no-arbitrary-tailwind-values -- label and score columns, no default grid template -->

@@ -8,7 +8,7 @@
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { rangeLabel, matchCountLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
-	import { PAGE_SIZE } from '../services.js';
+	import { PAGE_SIZE, listMyHolds } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import EmptyMatches from './empty-matches.svelte';
 	import LoadError from './load-error.svelte';
@@ -24,6 +24,14 @@
 		const code = myCode.code;
 		const offset = (page - 1) * PAGE_SIZE;
 		if (myCode.status === 'ready' && code) untrack(() => void view.load(code, offset));
+	});
+
+	// The rows say when a match is on hold, which only the holds list knows. One large page covers
+	// almost every player. The rows just leave the note out when it fails.
+	$effect(() => {
+		if (myCode.status === 'ready' && myCode.code) {
+			untrack(() => void listMyHolds(0, { limit: 100 }).catch(() => {}));
+		}
 	});
 
 	function pageHref(target: number): string {
