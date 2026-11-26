@@ -20,7 +20,7 @@ Decision Q5 in `plans/frontend-v1/plan.md`: the "Protect main" ruleset requires 
 ## Steps
 
 - [x] Update the ruleset with `gh api -X PUT repos/openpickleball/frontend/rulesets/26885653`, keeping every other field, and read it back (done before the branch was cut).
-- [ ] Rewrite the comment in `.github/workflows/ci-app.yml`.
+- [x] Rewrite the comment in `.github/workflows/ci-app.yml`.
 - [ ] Open the PR and confirm `app-e2e` runs and is required on it.
 
 ## Files that change
