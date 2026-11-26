@@ -7,7 +7,7 @@ import {
 import type { HoldState } from './cache.svelte.js';
 
 /** A button the status panel can offer. Each one maps to a match action on the match page. */
-export type PanelAction = 'confirm' | 'dispute' | 'withdraw' | 'vouch';
+export type PanelAction = 'confirm' | 'dispute' | 'withdraw' | 'vouch' | 'correct';
 
 /**
  * What the status panel says about a match and what it offers. `text` is the main line, `notes`
@@ -27,6 +27,13 @@ export type MatchStatusCopy = {
  */
 export const DISPUTE_ENDS =
 	"A dispute ends when every player who disputed the score withdraws. For a match played at an event, the event's organizer can settle it too. If no one settles it within a set time, the match is voided and doesn't count.";
+
+/**
+ * What a voided match may have become. `MatchOut` doesn't link a match to its correction, so
+ * this can't say whether this one was corrected.
+ */
+export const VOIDED_CORRECTED =
+	'If a player corrected this match, the corrected match is in your match history, with a new code.';
 
 /**
  * Why a match is on hold. The API never names the other match, so neither does the copy. The
@@ -106,8 +113,42 @@ function heldCopy(match: Match, hold: HoldState): MatchStatusCopy {
  * `hold` when the holds list says the match is held: `MatchOut` itself can't say so.
  */
 export function matchStatusCopy(match: Match, hold?: HoldState): MatchStatusCopy {
-	if (hold && match.status !== 'voided') return heldCopy(match, hold);
-	return statusCopy(match);
+	const copy = hold && match.status !== 'voided' ? heldCopy(match, hold) : statusCopy(match);
+	return canCorrect(match) ? withCorrect(match, copy) : copy;
+}
+
+/** What a correction does, said where the panel offers one. */
+export const CORRECT_NOTE =
+	'To fix a wrong score, correct it. This match is then voided, and the corrected one counts once a player on the other team confirms it.';
+
+/**
+ * A disputed match may have an event, and `MatchOut` can't say so (backend#302), so the panel
+ * offers a correction and says who changes an event match. The backend answers 404 for one.
+ */
+export const CORRECT_EVENT_NOTE =
+	"Only the event's organizer can change a match played at an event.";
+
+/**
+ * True when the signed-in player may try to correct the match (backend#267): it is pending or
+ * disputed, they played in it, and every player in it has a code, since a correction names the
+ * same players and the API gives no code for a private player. The backend also refuses a match
+ * with an event or a club, which the app can't tell apart (backend#302). It decides (rule 6).
+ */
+export function canCorrect(match: Match): boolean {
+	if (match.status !== 'pending' && match.status !== 'disputed') return false;
+	if (!match.viewerSide) return false;
+	return [...match.teamA.players, ...match.teamB.players].every((player) => player.code !== null);
+}
+
+function withCorrect(match: Match, copy: MatchStatusCopy): MatchStatusCopy {
+	return {
+		...copy,
+		notes: [
+			...copy.notes,
+			match.status === 'disputed' ? `${CORRECT_NOTE} ${CORRECT_EVENT_NOTE}` : CORRECT_NOTE
+		],
+		actions: [...copy.actions, 'correct']
+	};
 }
 
 function statusCopy(match: Match): MatchStatusCopy {
@@ -149,7 +190,7 @@ function statusCopy(match: Match): MatchStatusCopy {
 			return {
 				title: 'Voided',
 				text: "This match was voided. It doesn't count towards anyone's history.",
-				notes: [],
+				notes: [VOIDED_CORRECTED],
 				actions: []
 			};
 		default:
@@ -203,7 +244,11 @@ function statusCopy(match: Match): MatchStatusCopy {
 	};
 }
 
-/** True when the status panel offers the player something to do, so it goes before the score. */
+/**
+ * True when the status panel offers the player something to do, so it goes before the score. A
+ * correction alone doesn't count: it is there for when the score is wrong, not a step the match
+ * waits on.
+ */
 export function hasActions(match: Match, hold?: HoldState): boolean {
-	return matchStatusCopy(match, hold).actions.length > 0;
+	return matchStatusCopy(match, hold).actions.some((action) => action !== 'correct');
 }

@@ -49,7 +49,37 @@ export async function submitMatch(
 	options: SubmitOptions = {}
 ): Promise<SubmitResult> {
 	const client = options.api ?? api;
+	const body = checkedBody(draft, myCode);
+	const created = await unwrap(client.open.POST('/api/v1/matches/', { body }));
+	return { match: toMatch(created) };
+}
 
+/**
+ * Correct a pending or disputed match with no event (`POST matches/{code}/correction`,
+ * backend#267). Send the whole corrected match, with the same two teams in either order. The
+ * backend voids the old match and returns the correction: a new match with a new code, pending,
+ * with `myCode`'s team confirmation already recorded.
+ *
+ * Throws an `AppError` like `submitMatch`, plus `not_found` (404) for a match with an event or a
+ * club, a match the player did not play in, or other teams, and `conflict` (409) for a match that
+ * is confirmed or voided. A 403 is only ever the CSRF check.
+ */
+export async function correctMatch(
+	code: MatchCode,
+	draft: MatchInput,
+	myCode: PlayerCode,
+	options: SubmitOptions = {}
+): Promise<SubmitResult> {
+	const client = options.api ?? api;
+	const body = checkedBody(draft, myCode);
+	const corrected = await unwrap(
+		client.open.POST('/api/v1/matches/{code}/correction', { params: { path: { code } }, body })
+	);
+	return { match: toMatch(corrected) };
+}
+
+/** The request body, once the draft passes the score rules and `myCode` is one of the players. */
+function checkedBody(draft: MatchInput, myCode: PlayerCode) {
 	const checked = validateMatch(draft);
 	if (!checked.ok) {
 		throw localError(
@@ -67,22 +97,16 @@ export async function submitMatch(
 			'You must be one of the players to record a match.'
 		);
 	}
-
-	const created = await unwrap(
-		client.open.POST('/api/v1/matches/', {
-			body: {
-				format: valid.format,
-				played_on: valid.playedOn,
-				team_a: [...valid.teamA],
-				team_b: [...valid.teamB],
-				games: valid.games.map((g) => ({ team_a: g.teamA, team_b: g.teamB })),
-				best_of: valid.bestOf,
-				game_target: valid.gameTarget,
-				scoring_type: valid.scoringType
-			}
-		})
-	);
-	return { match: toMatch(created) };
+	return {
+		format: valid.format,
+		played_on: valid.playedOn,
+		team_a: [...valid.teamA],
+		team_b: [...valid.teamB],
+		games: valid.games.map((g) => ({ team_a: g.teamA, team_b: g.teamB })),
+		best_of: valid.bestOf,
+		game_target: valid.gameTarget,
+		scoring_type: valid.scoringType
+	};
 }
 
 /**

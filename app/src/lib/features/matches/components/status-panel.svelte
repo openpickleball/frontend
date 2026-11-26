@@ -4,7 +4,7 @@
 	import { Button } from '#lib/ui/button/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import type { HoldState, MatchAction } from '../cache.svelte.js';
-	import { matchStatusCopy } from '../status.js';
+	import { matchStatusCopy, type PanelAction } from '../status.js';
 
 	let {
 		match,
@@ -12,6 +12,9 @@
 		busy = null,
 		error = null,
 		recorded = false,
+		corrected = false,
+		correctHref,
+		replacedByHref,
 		onconfirm,
 		ondispute,
 		onwithdraw = () => {},
@@ -26,6 +29,15 @@
 		error?: string | null;
 		/** The player just recorded this match, so the panel says so. */
 		recorded?: boolean;
+		/** The player just saved this match as a correction of another one, so the panel says so. */
+		corrected?: boolean;
+		/** Where "Correct the score" goes: the correction page for this match. */
+		correctHref?: string;
+		/**
+		 * The match that replaced this one, when the player corrected it in this visit. `MatchOut`
+		 * doesn't link the two, so the app only knows it then.
+		 */
+		replacedByHref?: string;
 		onconfirm: () => void;
 		/** Opens the dispute dialog. The dialog's own button disputes. */
 		ondispute: () => void;
@@ -37,7 +49,7 @@
 
 	const panel = $derived(matchStatusCopy(match, hold));
 	const held = $derived(hold !== undefined && match.status !== 'voided');
-	const offers = (action: MatchAction) => panel.actions.includes(action);
+	const offers = (action: PanelAction) => panel.actions.includes(action);
 </script>
 
 <section
@@ -59,13 +71,22 @@
 	<h2 id="status-heading" tabindex="-1" class="text-lg font-semibold outline-none">
 		{panel.title}
 	</h2>
-	{#if recorded}
+	{#if corrected}
+		<p class="mt-2 max-w-md text-secondary">
+			You just corrected this match. It has a new code, and the old match is voided.
+		</p>
+	{:else if recorded}
 		<p class="mt-2 max-w-md text-secondary">You just recorded this match.</p>
 	{/if}
 	<p class="mt-2 max-w-md text-muted">{panel.text}</p>
 	{#each panel.notes as note (note)}
 		<p class="mt-2 max-w-md text-muted">{note}</p>
 	{/each}
+	{#if replacedByHref && match.status === 'voided'}
+		<p class="mt-2 max-w-md">
+			<Button variant="link" size="inline" href={replacedByHref}>See the corrected match</Button>
+		</p>
+	{/if}
 	{#if error}
 		<Alert variant="destructive" class="mt-4 max-w-md">
 			<AlertDescription>{error}</AlertDescription>
@@ -118,6 +139,17 @@
 				>
 					{#if busy === 'vouch'}<Spinner />{/if}
 					{busy === 'vouch' ? 'Vouching…' : 'This match really happened'}
+				</Button>
+			{/if}
+			{#if offers('correct') && correctHref}
+				<!-- A link to the correction page. Never the main button: a match doesn't wait on it. -->
+				<Button
+					id="correct-button"
+					variant="outline"
+					href={busy === null ? correctHref : undefined}
+					aria-disabled={busy !== null || undefined}
+				>
+					Correct the score
 				</Button>
 			{/if}
 		</div>

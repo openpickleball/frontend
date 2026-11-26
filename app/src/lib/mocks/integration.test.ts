@@ -1441,3 +1441,154 @@ describe('signup details held for the create (backend#124)', () => {
 		expect(mockStore.state.signupHold?.email).toBe(UNVERIFIED_EMAIL);
 	});
 });
+
+describe('correct_match (backend#267)', () => {
+	const fixture = (random: string) => buildCode('match', random);
+	// Tamsin and Rosa, singles, pending and waiting on Tamsin.
+	const PENDING = fixture('3FTB8ZRMK6P');
+	// Tamsin and Kit against Bea and the private player Saul, disputed.
+	const DISPUTED = fixture('R5GK9WBD2XF');
+	// Tamsin and Nell against Idris and Saul, confirmed.
+	const CONFIRMED = fixture('D9PW5KXE7RM');
+	const singles = {
+		format: 'singles' as const,
+		played_on: '2026-11-12',
+		team_a: [tamsin],
+		team_b: [code('rosa')],
+		games: [
+			{ team_a: 11, team_b: 8 },
+			{ team_a: 11, team_b: 6 }
+		]
+	};
+	const at = (matchCode: string) => ({ params: { path: { code: matchCode } } });
+
+	async function signedIn() {
+		const { api } = browser();
+		await login(api);
+		return api;
+	}
+
+	it('voids a pending match and returns a pending correction with her confirmation', async () => {
+		const api = await signedIn();
+		const corrected = await unwrap(
+			api.open.POST('/api/v1/matches/{code}/correction', { ...at(PENDING), body: singles })
+		);
+		expect(corrected.code).not.toBe(PENDING);
+		expect(corrected).toMatchObject({
+			status: 'pending',
+			my_decision: 'confirm',
+			confirmed_by_team: { a: true, b: false },
+			game_target: 11,
+			scoring_type: 'side_out'
+		});
+		expect(corrected.games).toEqual([
+			{ number: 1, team_a: 11, team_b: 8 },
+			{ number: 2, team_a: 11, team_b: 6 }
+		]);
+		const old = await unwrap(api.open.GET('/api/v1/matches/{code}', at(PENDING)));
+		expect(old.status).toBe('voided');
+		expect(mockStore.matchByCode(corrected.code)?.corrects).toBe(PENDING);
+	});
+
+	it('takes the teams in either order', async () => {
+		const api = await signedIn();
+		const swapped = {
+			...singles,
+			team_a: [code('rosa')],
+			team_b: [tamsin],
+			games: [{ team_a: 6, team_b: 11 }]
+		};
+		const result = await api.open.POST('/api/v1/matches/{code}/correction', {
+			...at(PENDING),
+			body: swapped
+		});
+		expect(result.response.status).toBe(200);
+	});
+
+	it('corrects a disputed match, and the correction is pending', async () => {
+		const api = await signedIn();
+		const body = {
+			format: 'doubles' as const,
+			played_on: '2026-11-03',
+			team_a: [tamsin, code('kit')],
+			team_b: [code('bea'), code('saul')],
+			games: [
+				{ team_a: 11, team_b: 9 },
+				{ team_a: 11, team_b: 6 }
+			]
+		};
+		const corrected = await unwrap(
+			api.open.POST('/api/v1/matches/{code}/correction', { ...at(DISPUTED), body })
+		);
+		expect(corrected.status).toBe('pending');
+		expect(mockStore.matchByCode(DISPUTED)?.status).toBe('voided');
+	});
+
+	it('refuses a confirmed match with 409, so she disputes it first', async () => {
+		const api = await signedIn();
+		const body = {
+			format: 'doubles' as const,
+			played_on: '2026-11-08',
+			team_a: [tamsin, code('nell')],
+			team_b: [code('idris'), code('saul')],
+			games: [{ team_a: 15, team_b: 13 }]
+		};
+		const result = await api.open.POST('/api/v1/matches/{code}/correction', {
+			...at(CONFIRMED),
+			body
+		});
+		expect(result.response.status).toBe(409);
+		expect(result.error).toMatchObject({ code: 'conflict', errors: [] });
+		expect(mockStore.matchByCode(CONFIRMED)?.status).toBe('confirmed');
+	});
+
+	it('answers 404 for a match with an event, as for an unknown code', async () => {
+		const match = mockStore.matchByCode(PENDING)!;
+		match.event = true;
+		const api = await signedIn();
+		const result = await api.open.POST('/api/v1/matches/{code}/correction', {
+			...at(PENDING),
+			body: singles
+		});
+		expect(result.response.status).toBe(404);
+		expect(result.error).toMatchObject({ code: 'not_found' });
+		expect(match.status).toBe('pending');
+	});
+
+	it('answers 404 for other teams and for a match she did not play in', async () => {
+		const api = await signedIn();
+		const other = await api.open.POST('/api/v1/matches/{code}/correction', {
+			...at(PENDING),
+			body: { ...singles, team_b: [code('kit')] }
+		});
+		expect(other.response.status).toBe(404);
+		const notHers = await api.open.POST('/api/v1/matches/{code}/correction', {
+			...at(fixture('C4VD8RME2TX')),
+			body: singles
+		});
+		expect(notHers.response.status).toBe(404);
+	});
+
+	it('answers 422 with the field for a score the rules refuse, and voids nothing', async () => {
+		const api = await signedIn();
+		const result = await api.open.POST('/api/v1/matches/{code}/correction', {
+			...at(PENDING),
+			body: { ...singles, games: [{ team_a: 11, team_b: 11 }] }
+		});
+		expect(result.response.status).toBe(422);
+		expect(result.error?.errors[0]?.field).toMatch(/^body\.games\.0/);
+		expect(mockStore.matchByCode(PENDING)?.status).toBe('pending');
+	});
+
+	it('refuses a second correction of the same match with 409', async () => {
+		const api = await signedIn();
+		await unwrap(
+			api.open.POST('/api/v1/matches/{code}/correction', { ...at(PENDING), body: singles })
+		);
+		const again = await api.open.POST('/api/v1/matches/{code}/correction', {
+			...at(PENDING),
+			body: singles
+		});
+		expect(again.response.status).toBe(409);
+	});
+});

@@ -137,7 +137,9 @@ describe('StatusPanel', () => {
 			await expect
 				.element(screen.getByRole('heading', { name: 'Waiting for confirmation' }))
 				.toBeVisible();
-			await expect.element(screen.getByText(/other team/)).not.toBeInTheDocument();
+			await expect
+				.element(screen.getByRole('heading', { name: 'Waiting for the other team' }))
+				.not.toBeInTheDocument();
 			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
 		});
 	});
@@ -274,7 +276,7 @@ describe('StatusPanel', () => {
 			});
 			await expect.element(screen.getByText(/This score is confirmed/)).toBeVisible();
 			await expect.element(screen.getByText(/You confirmed/)).not.toBeInTheDocument();
-			await expect.element(screen.getByText(/wrong/)).not.toBeInTheDocument();
+			await expect.element(screen.getByText(/dispute it/)).not.toBeInTheDocument();
 		});
 
 		it('reads a pending match from the teams, not from the withdrawn dispute', async () => {
@@ -288,7 +290,7 @@ describe('StatusPanel', () => {
 			await expect
 				.element(screen.getByText(/A player on your team confirmed this score/))
 				.toBeVisible();
-			await expect.element(screen.getByText(/wrong/)).not.toBeInTheDocument();
+			await expect.element(screen.getByText(/dispute it/)).not.toBeInTheDocument();
 		});
 	});
 
@@ -381,6 +383,87 @@ describe('StatusPanel', () => {
 			});
 			await expect.element(screen.getByRole('heading', { name: 'Voided' })).toBeVisible();
 			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+		});
+	});
+
+	describe('correcting the score', () => {
+		const href = '/matches/M-7QK2-H9WD-3NF0/correct';
+
+		it('links to the correction page after the other buttons, on a pending match', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch(),
+				correctHref: href,
+				...handlers()
+			});
+			const link = screen.getByRole('link', { name: 'Correct the score' });
+			await expect.element(link).toHaveAttribute('href', href);
+			await expect.element(link).toHaveAttribute('id', 'correct-button');
+			await expect.element(screen.getByText(/To fix a wrong score, correct it/)).toBeVisible();
+			const buttons = [...screen.container.querySelectorAll('a, button')].map((el) => el.id);
+			expect(buttons).toEqual(['confirm-button', 'dispute-button', 'correct-button']);
+		});
+
+		it('says only the organizer changes an event match, on a disputed match', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ decision: 'dispute' }, { status: 'disputed' }),
+				correctHref: href,
+				...handlers()
+			});
+			await expect.element(screen.getByRole('link', { name: 'Correct the score' })).toBeVisible();
+			await expect
+				.element(
+					screen.getByText(/Only the event's organizer can change a match played at an event/)
+				)
+				.toBeVisible();
+		});
+
+		it('offers no correction on a confirmed match', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ a: true, b: true }, { status: 'confirmed' }),
+				correctHref: href,
+				...handlers()
+			});
+			await expect
+				.element(screen.getByRole('link', { name: 'Correct the score' }))
+				.not.toBeInTheDocument();
+		});
+
+		it('stops being a link while another action is in flight', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch(),
+				correctHref: href,
+				busy: 'confirm',
+				...handlers()
+			});
+			await expect
+				.element(screen.getByRole('link', { name: 'Correct the score' }))
+				.not.toBeInTheDocument();
+			await expect
+				.element(screen.getByRole('button', { name: 'Correct the score' }))
+				.toHaveAttribute('aria-disabled', 'true');
+		});
+
+		it('says the player just corrected the match', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ a: true, decision: 'confirm' }),
+				corrected: true,
+				...handlers()
+			});
+			await expect
+				.element(screen.getByText(/You just corrected this match\. It has a new code/))
+				.toBeVisible();
+		});
+
+		it('links a voided match to the correction that replaced it', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({}, { status: 'voided' }),
+				replacedByHref: '/matches/M-FXD0-0000-0001',
+				...handlers()
+			});
+			await expect.element(screen.getByText(/If a player corrected this match/)).toBeVisible();
+			await expect
+				.element(screen.getByRole('link', { name: 'See the corrected match' }))
+				.toHaveAttribute('href', '/matches/M-FXD0-0000-0001');
 		});
 	});
 });
