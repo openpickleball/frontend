@@ -6,6 +6,7 @@
 		SCORE_INPUT_MAX_LENGTH,
 		todayLocal,
 		type GameTarget,
+		type MatchCode,
 		type MatchFormat,
 		type PlayerCode,
 		type ScoringType
@@ -17,27 +18,35 @@
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { Label } from '#lib/ui/label/index.js';
-	import { createDraftStore, isBlank, type DraftStore } from '../draft.js';
+	import { createDraftStore, isBlank, noDrafts, type Draft, type DraftStore } from '../draft.js';
 	import { RecordForm } from '../form.svelte.js';
 	import { searchPlayers, type SearchFn } from '../search.js';
-	import { submitMatch, type SubmitResult } from '../service.js';
+	import { correctMatch, submitMatch, type SubmitResult } from '../service.js';
 	import PlayerSlot from './player-slot.svelte';
 	import Segmented from './segmented.svelte';
 
 	let {
 		own,
 		onrecorded,
-		submit = submitMatch,
+		correcting,
+		submit,
 		search = searchPlayers,
-		drafts = createDraftStore()
+		drafts: keptDrafts
 	}: {
 		/** The signed-in player's own OPEN code. */
 		own: PlayerCode;
 		/**
 		 * Called once the match is saved. The backend records the submitter's team confirmation with
-		 * the match, so `result.match` waits on the other team only.
+		 * the match, so `result.match` waits on the other team only. For a correction, `result.match`
+		 * is the new match, with a new code. The old one is voided.
 		 */
 		onrecorded: (result: SubmitResult) => void;
+		/**
+		 * Correct this match instead of recording a new one. `draft` is where the form starts
+		 * (`correctionDraft`). The players and the format stay fixed, and nothing is kept between
+		 * visits.
+		 */
+		correcting?: { code: MatchCode; draft: Draft };
 		/** The service that sends the match. Tests pass a stand-in. */
 		submit?: typeof submitMatch;
 		/** The name search. Tests pass a stand-in. */
@@ -46,9 +55,20 @@
 		drafts?: DraftStore;
 	} = $props();
 
-	// The form belongs to one player. The page remounts this if their code changes.
+	// The form belongs to one player and one match. The page remounts this if either changes.
 	// svelte-ignore state_referenced_locally
-	const form = new RecordForm(own);
+	const target = correcting;
+	// svelte-ignore state_referenced_locally
+	const drafts = target ? noDrafts : (keptDrafts ?? createDraftStore());
+	const send: typeof submitMatch = (input, player, options) =>
+		submit
+			? submit(input, player, options)
+			: target
+				? correctMatch(target.code, input, player, options)
+				: submitMatch(input, player, options);
+	// svelte-ignore state_referenced_locally
+	const form = new RecordForm(own, { correcting: target !== undefined });
+	if (target) form.restore(target.draft);
 
 	// Put back what this player had entered before a reload or a stray tap, and keep it current.
 	// svelte-ignore state_referenced_locally
@@ -74,7 +94,7 @@
 		// The button is aria-disabled while sending, so Enter in a field can still land here.
 		if (form.sending) return;
 		maxDate = todayLocal();
-		const result = await form.send(submit);
+		const result = await form.send(send);
 		if (result) {
 			// The match is saved, so the draft is done.
 			drafts.clear(own);
@@ -89,16 +109,6 @@
 	function focusField(event: MouseEvent, id: string) {
 		event.preventDefault();
 		document.getElementById(id)?.focus();
-	}
-
-	/** Show a game's errors once focus has left its whole row, not on the way from one score to the next. */
-	function leaveRow(event: FocusEvent, index: number) {
-		const row = event.currentTarget as HTMLElement;
-		if (row.contains(event.relatedTarget as Node | null)) return;
-		// A row left empty says nothing until the player submits. Otherwise the message would push
-		// the "Add a game" button away as it is pressed.
-		const game = form.games[index];
-		if (game && (game.a.trim() !== '' || game.b.trim() !== '')) form.touch(`games.${index}`);
 	}
 
 	async function addGame() {
@@ -133,9 +143,9 @@
 			<Alert variant="destructive" id="error-summary" bind:ref={summaryBox} tabindex={-1}>
 				<CircleAlertIcon aria-hidden="true" />
 				<AlertTitle>
-					{summary.length === 1
-						? 'Fix 1 thing to record this match'
-						: `Fix ${summary.length} things to record this match`}
+					{`${summary.length === 1 ? 'Fix 1 thing' : `Fix ${summary.length} things`} ${
+						target ? 'to save this correction' : 'to record this match'
+					}`}
 				</AlertTitle>
 				<AlertDescription>
 					<ul class="grid gap-1 text-secondary">
@@ -167,10 +177,43 @@
 			<Alert variant="destructive" bind:ref={failureBox} tabindex={-1}>
 				<CircleAlertIcon aria-hidden="true" />
 				<AlertTitle>
-					{form.failure.kind === 'other' ? "We couldn't record this match" : form.failure.message}
+					{form.failure.kind !== 'other'
+						? form.failure.message
+						: target
+							? "We couldn't correct this match"
+							: "We couldn't record this match"}
 				</AlertTitle>
 				<AlertDescription class="grid gap-1.5">
-					{#if form.failure.kind === 'offline'}
+					{#if form.failure.kind === 'organizer' && target}
+						<p>
+							Players can only correct a match that players recorded themselves. A match an
+							organizer recorded, such as one played at an event, can only be changed by that
+							organizer.
+						</p>
+						<p>
+							<Button
+								variant="link"
+								size="inline"
+								href={resolve('/matches/[code]', { code: target.code })}
+							>
+								Back to the match
+							</Button>
+						</p>
+					{:else if form.failure.kind === 'conflict' && target}
+						<p>
+							Only a pending or disputed match can be corrected. It may have been confirmed or
+							voided since you opened it.
+						</p>
+						<p>
+							<Button
+								variant="link"
+								size="inline"
+								href={resolve('/matches/[code]', { code: target.code })}
+							>
+								See where it stands
+							</Button>
+						</p>
+					{:else if form.failure.kind === 'offline'}
 						<p>
 							Everything you entered is still here. Check your matches before you try again, so the
 							same match is not recorded twice. Then connect to the internet and send it again.
@@ -207,15 +250,25 @@
 	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
 		<FieldLegend>Match</FieldLegend>
 		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
-			<Segmented
-				name="format"
-				label="Format"
-				options={[
-					{ value: 'singles', label: 'Singles' },
-					{ value: 'doubles', label: 'Doubles' }
-				]}
-				bind:value={() => form.format, (v) => (form.format = v as MatchFormat)}
-			/>
+			{#if target}
+				<!-- A correction keeps the same players, so the format can't change. -->
+				<div class="grid gap-2">
+					<p class="text-base font-semibold text-secondary">Format</p>
+					<p class="flex min-h-11 items-center" data-testid="fixed-format">
+						{form.doubles ? 'Doubles' : 'Singles'}
+					</p>
+				</div>
+			{:else}
+				<Segmented
+					name="format"
+					label="Format"
+					options={[
+						{ value: 'singles', label: 'Singles' },
+						{ value: 'doubles', label: 'Doubles' }
+					]}
+					bind:value={() => form.format, (v) => (form.format = v as MatchFormat)}
+				/>
+			{/if}
 			<div class="grid gap-2">
 				<Label for="played-on">Date played</Label>
 				<Input
@@ -240,8 +293,12 @@
 	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
 		<FieldLegend>Players</FieldLegend>
 		<p class="max-w-md text-base text-muted">
-			Type a player's name to find them, or enter their OPEN code. They can find theirs on their
-			Profile page.
+			{#if target}
+				A correction keeps the same players. If the players are wrong, dispute the match instead.
+			{:else}
+				Type a player's name to find them, or enter their OPEN code. They can find theirs on their
+				Profile page.
+			{/if}
 		</p>
 
 		<div class="grid gap-3" role="group" aria-labelledby="team-a-title">
@@ -260,6 +317,7 @@
 					label="Your partner: name or OPEN code"
 					placeholder="Name or P-XXXX-XXXX"
 					code={form.partner.code}
+					fixed={target !== undefined}
 					name={form.partner.name}
 					exclude={form.taken}
 					{search}
@@ -281,6 +339,7 @@
 						? `${index === 0 ? 'First' : 'Second'} opponent: name or OPEN code`
 						: 'Your opponent: name or OPEN code'}
 					code={slot.code}
+					fixed={target !== undefined}
 					name={slot.name}
 					exclude={form.taken}
 					{search}
@@ -331,11 +390,12 @@
 			{#each form.games as game, index (index)}
 				{@const gameError = errors[`games.${index}`]?.[0] ?? ''}
 				{@const a11y = gameA11y(index)}
+				<!-- A row's error waits for submit. Shown on blur, it would push the submit button down
+				     before the click lands, and the first click would miss. -->
 				<div
 					class="grid gap-1.5 border-t border-line py-2.5"
 					role="group"
 					aria-label="Game {index + 1}"
-					onfocusout={(event) => leaveRow(event, index)}
 				>
 					<div class="flex items-center gap-x-2">
 						<span class="w-20 text-base font-semibold text-secondary">Game {index + 1}</span>
@@ -402,12 +462,22 @@
 		<div>
 			<Button type="submit" aria-disabled={form.sending} aria-describedby="submit-note">
 				{#if form.sending}<Spinner />{/if}
-				{form.sending ? 'Recording…' : 'Record and confirm score'}
+				{#if target}
+					{form.sending ? 'Saving…' : 'Save the correction'}
+				{:else}
+					{form.sending ? 'Recording…' : 'Record and confirm score'}
+				{/if}
 			</Button>
 		</div>
 		<p id="submit-note" class="max-w-md text-base text-muted">
-			This confirms the score for your team. The match stays pending until a player on the other
-			team confirms it too.
+			{#if target}
+				This voids the match as it is now and records the corrected one, with a new match code. It
+				confirms the score for your team. The corrected match counts once a player on the other team
+				confirms it.
+			{:else}
+				This confirms the score for your team. The match stays pending until a player on the other
+				team confirms it too.
+			{/if}
 		</p>
 	</div>
 </form>

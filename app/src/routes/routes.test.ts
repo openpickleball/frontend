@@ -13,6 +13,7 @@ const expected: Record<string, string> = {
 	'./record/+page.svelte': 'Record a match',
 	'./matches/+page.svelte': 'Matches',
 	'./matches/[code]/+page.svelte': 'Match',
+	'./matches/[code]/correct/+page.svelte': 'Correct the score',
 	'./profile/+page.svelte': 'Profile',
 	'./account/login/+page.svelte': 'Sign in',
 	'./account/signup/+page.svelte': 'Create account',
@@ -25,7 +26,12 @@ const expected: Record<string, string> = {
 const MATCH_CODE = buildCode('match', '7QK2H9WD3NF');
 const propsFor = (path: string): Record<string, unknown> => {
 	if (path === './matches/+page.svelte') return { data: { page: 1 } };
-	if (path === './matches/[code]/+page.svelte') return { params: { code: MATCH_CODE } };
+	if (
+		path === './matches/[code]/+page.svelte' ||
+		path === './matches/[code]/correct/+page.svelte'
+	) {
+		return { params: { code: MATCH_CODE } };
+	}
 	return { params: { key: 'example-key' } };
 };
 

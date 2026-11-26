@@ -263,3 +263,19 @@ export async function vouchForMatch(
 	cache.markVouched(code);
 	return match;
 }
+
+/**
+ * Seed the app-wide cache with a correction the player just saved (backend#267). Pass the match
+ * as `POST matches/{code}/correction` returned it, and the code of the match it replaced. The old
+ * match is voided, so its cached copy says so and its page links to the correction. The
+ * correction's page says once that the player just corrected it. Call it before going to the
+ * correction.
+ */
+export function rememberCorrection(
+	correction: Match,
+	old: MatchCode,
+	cache: MatchCache = matchCache
+): void {
+	cache.remember(correction);
+	cache.markCorrected(correction.code, old);
+}

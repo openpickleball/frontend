@@ -5,6 +5,7 @@ import {
 	SCORING_TYPES,
 	parsePlayerCode,
 	type GameTarget,
+	type Match,
 	type MatchFormat,
 	type PlayerCode,
 	type ScoringType
@@ -141,4 +142,39 @@ export function isBlank(draft: Draft, today: string): boolean {
 		draft.games[0].a === '' &&
 		draft.games[0].b === ''
 	);
+}
+
+/** A draft store that keeps nothing. A correction starts from its match each time. */
+export const noDrafts: DraftStore = { read: () => null, write: () => {}, clear: () => {} };
+
+/**
+ * The form's starting values for correcting `match`, from `own`'s side: their partner on their
+ * team, the other team as opponents, and each game's points with their team's first. Null when
+ * `own` did not play in the match, or a player in it is private: the API gives no code for a
+ * private player, and a correction must name the same players.
+ */
+export function correctionDraft(match: Match, own: PlayerCode): Draft | null {
+	const mine = [match.teamA, match.teamB].find((team) =>
+		team.players.some((player) => player.code === own)
+	);
+	if (!mine) return null;
+	const theirs = mine === match.teamA ? match.teamB : match.teamA;
+	const players = [...match.teamA.players, ...match.teamB.players];
+	if (players.some((player) => player.code === null)) return null;
+	const slot = (player: { code: PlayerCode | null; displayName: string } | undefined) =>
+		player ? { code: player.code, name: player.displayName } : { code: null, name: '' };
+	const partner = mine.players.find((player) => player.code !== own);
+	const flip = mine.side === 'b';
+	return {
+		format: match.format,
+		playedOn: match.playedOn,
+		gameTarget: match.gameTarget,
+		scoringType: match.scoringType,
+		partner: slot(partner),
+		opponents: [slot(theirs.players[0]), slot(theirs.players[1])],
+		games: match.games.map((game) => ({
+			a: String(flip ? game.teamB : game.teamA),
+			b: String(flip ? game.teamA : game.teamB)
+		}))
+	};
 }

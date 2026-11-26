@@ -106,6 +106,13 @@ export type MockMatch = {
 	disputedFrom?: 'pending' | 'confirmed';
 	/** Set while a possible duplicate hold keeps the match from counting. */
 	hold?: MockHold;
+	/**
+	 * True for a match with an Event (or a Club). Players can't correct it: `correct_match`
+	 * answers 404. No fixture has one, since `MatchOut` can't show it; tests set it.
+	 */
+	event?: boolean;
+	/** The code of the match this one corrects, as `corrects` links them in the backend. */
+	corrects?: string;
 };
 
 /**
@@ -284,6 +291,13 @@ function counterCode(counter: number, width: number, lead: string): string {
 export type SubmitResult =
 	| { ok: true; match: MockMatch }
 	| { ok: false; kind: 'forbidden' }
+	| { ok: false; kind: 'validation'; issues: FieldIssue[] }
+	| { ok: false; kind: 'duplicate'; existing: string };
+
+export type CorrectResult =
+	| { ok: true; match: MockMatch }
+	| { ok: false; kind: 'not_found' }
+	| { ok: false; kind: 'conflict' }
 	| { ok: false; kind: 'validation'; issues: FieldIssue[] }
 	| { ok: false; kind: 'duplicate'; existing: string };
 
@@ -852,6 +866,108 @@ export function createMockStore() {
 				createdAt: new Date().toISOString(),
 				// The submission is the submitter's own confirmation (backend #197).
 				decisions: [{ player: own.code, decision: 'confirm' }]
+			};
+			state.matches.push(match);
+			return { ok: true, match };
+		},
+
+		/**
+		 * `correct_match` after the request body has passed schema validation (backend#267). Follows
+		 * `apps/matches/api.py`: anyone who did not play, and a match with an Event or Club, get the
+		 * unknown-code 404 first. A match that is not pending or disputed is a 409. Then every code
+		 * must belong to a player (422), the teams must be the match's own two, in either order (404),
+		 * the score rules (422) and the duplicate check (409). The old match is voided, and the
+		 * correction is pending with the corrector's confirmation, submitted by the corrector. A
+		 * scoring type or game target left out is the old match's.
+		 */
+		correctMatch(email: string, code: string, body: MatchCreateIn): CorrectResult {
+			const old = this.matchByCode(code);
+			const own = playerOfAccount(email);
+			if (!old || !own || old.event || ![...old.teamA, ...old.teamB].includes(own.code)) {
+				return { ok: false, kind: 'not_found' };
+			}
+			if (old.status !== 'pending' && old.status !== 'disputed') {
+				return { ok: false, kind: 'conflict' };
+			}
+			const normalize = (raw: string): string | null => {
+				const result = normalizeCode(raw, 'player');
+				return result.ok ? result.value : null;
+			};
+			const unknown: FieldIssue[] = [];
+			for (const [team, codes] of [
+				['team_a', body.team_a],
+				['team_b', body.team_b]
+			] as const) {
+				codes.forEach((raw, index) => {
+					const found = normalize(raw);
+					if (found === null || !playerByCode(found)) {
+						unknown.push({
+							field: `body.${team}.${index}`,
+							code: 'unknown_player',
+							message: 'No player has this OPEN Code.'
+						});
+					}
+				});
+			}
+			if (unknown.length > 0) return { ok: false, kind: 'validation', issues: unknown };
+
+			const team = (codes: readonly string[]) =>
+				codes
+					.map(normalize)
+					.filter((c): c is string => c !== null)
+					.sort()
+					.join(',');
+			const stored = new Set([team(old.teamA), team(old.teamB)]);
+			const sent = new Set([team(body.team_a), team(body.team_b)]);
+			if (sent.size !== 2 || [...sent].some((t) => !stored.has(t))) {
+				return { ok: false, kind: 'not_found' };
+			}
+
+			const checked = validateMatch({
+				format: body.format,
+				playedOn: body.played_on,
+				teamA: body.team_a,
+				teamB: body.team_b,
+				games: body.games.map((g) => ({ teamA: g.team_a, teamB: g.team_b })),
+				bestOf: body.best_of,
+				gameTarget: body.game_target ?? old.gameTarget,
+				scoringType: body.scoring_type ?? old.scoringType
+			});
+			if (!checked.ok) return { ok: false, kind: 'validation', issues: checked.error.map(inBody) };
+			const valid = checked.value;
+			const teamA = valid.teamA.map((c) => normalize(c) as string);
+			const teamB = valid.teamB.map((c) => normalize(c) as string);
+			const games = valid.games.map((g) => ({ a: g.teamA, b: g.teamB }));
+
+			// The old match is voided before the duplicate check, so a correction may repeat it.
+			const duplicate = state.matches.find(
+				(m) =>
+					m !== old &&
+					m.status !== 'voided' &&
+					fingerprint(m.teamA, m.teamB, m.playedOn, m.games) ===
+						fingerprint(teamA, teamB, valid.playedOn, games)
+			);
+			if (duplicate) return { ok: false, kind: 'duplicate', existing: duplicate.code };
+
+			old.status = 'voided';
+			delete old.disputedFrom;
+			delete old.hold;
+			const match: MockMatch = {
+				code: buildCode('match', counterCode(nextCounter(), 11, 'FXD')),
+				status: 'pending',
+				format: valid.format,
+				playedOn: valid.playedOn,
+				bestOf: valid.bestOf,
+				scoringType: valid.scoringType,
+				gameTarget: valid.gameTarget,
+				teamA,
+				teamB,
+				games,
+				submittedBy: email,
+				seq: Math.max(0, ...state.matches.map((m) => m.seq)) + 1,
+				createdAt: new Date().toISOString(),
+				decisions: [{ player: own.code, decision: 'confirm' }],
+				corrects: old.code
 			};
 			state.matches.push(match);
 			return { ok: true, match };

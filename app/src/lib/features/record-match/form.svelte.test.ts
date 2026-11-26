@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { AppError } from '#lib/api/index.js';
 import { parseMatchCode, parsePlayerCode, type Match, type PlayerCode } from '#lib/domain/index.js';
 import { PLAYERS } from '#lib/mocks/fixtures.js';
-import { RecordForm } from './form.svelte.js';
+import {
+	CORRECT_CONFLICT_MESSAGE,
+	CORRECT_FORBIDDEN_MESSAGE,
+	ORGANIZER_ONLY_MESSAGE,
+	RecordForm
+} from './form.svelte.js';
 import type { SubmitResult } from './service.js';
 
 function code(key: string): PlayerCode {
@@ -144,5 +149,50 @@ describe('RecordForm score and date checks', () => {
 		expect(form.dateHint).toBeNull();
 		form.playedOn = '2000-01-01';
 		expect(form.dateHint).toBeNull();
+	});
+});
+
+describe('RecordForm correcting a match', () => {
+	const refused = (kind: 'not_found' | 'conflict' | 'forbidden', status: number) =>
+		new AppError({ kind, status, code: kind, message: 'Refused.', fields: {} });
+
+	function correcting(): RecordForm {
+		const form = new RecordForm(code('tamsin'), { correcting: true });
+		form.partner.code = code('oren');
+		form.opponents[0].code = code('kit');
+		form.opponents[1].code = code('bea');
+		form.games[0] = { a: '11', b: '7' };
+		return form;
+	}
+
+	it('says a 404 means only the organizer can change the match', async () => {
+		const form = correcting();
+		expect(await form.send(() => Promise.reject(refused('not_found', 404)))).toBeNull();
+		expect(form.failure).toEqual({ kind: 'organizer', message: ORGANIZER_ONLY_MESSAGE });
+	});
+
+	it('says a 409 means the match can no longer be corrected', async () => {
+		const form = correcting();
+		await form.send(() => Promise.reject(refused('conflict', 409)));
+		expect(form.failure).toEqual({ kind: 'conflict', message: CORRECT_CONFLICT_MESSAGE });
+	});
+
+	it('words a 403 for a correction', async () => {
+		const form = correcting();
+		await form.send(() => Promise.reject(refused('forbidden', 403)));
+		expect(form.failure).toEqual({ kind: 'forbidden', message: CORRECT_FORBIDDEN_MESSAGE });
+	});
+
+	it('puts a 422 on the fields, as for a new match', async () => {
+		const form = correcting();
+		await form.send(() => Promise.reject(rejection));
+		expect(form.failure).toBeNull();
+		expect(form.errors['games.0']).toEqual(['Not a valid score.']);
+	});
+
+	it('keeps a 404 and a 409 plain when recording a new match', async () => {
+		const form = filled();
+		await form.send(() => Promise.reject(refused('not_found', 404)));
+		expect(form.failure).toEqual({ kind: 'other', message: 'Refused.' });
 	});
 });

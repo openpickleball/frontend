@@ -832,4 +832,35 @@ describe('MatchView vouch', () => {
 			.element(page.getByRole('alert').getByText("We couldn't vouch for this match. Try again."))
 			.toBeVisible();
 	});
+
+	describe('correcting the score', () => {
+		const NEW = buildCode('match', 'FXD00000001') as MatchCode;
+
+		it('links Correct the score to the correction page', async () => {
+			await render(MatchView, { code: code() });
+			await expect
+				.element(page.getByRole('link', { name: 'Correct the score' }))
+				.toHaveAttribute('href', `/matches/${code()}/correct`);
+		});
+
+		it('says once that the player just corrected the match', async () => {
+			matchCache.markCorrected(code(), NEW);
+			const first = await render(MatchView, { code: code() });
+			await expect.element(page.getByText(/You just corrected this match/)).toBeVisible();
+			first.unmount();
+			await render(MatchView, { code: code() });
+			await expect.element(page.getByText(/You just corrected this match/)).not.toBeInTheDocument();
+		});
+
+		it('links the voided old match to its correction', async () => {
+			const old = viewerMatch({}, { status: 'voided' });
+			mocked.getMatch.mockResolvedValue(old);
+			matchCache.markCorrected(NEW, code());
+			await render(MatchView, { code: code() });
+			await expect.element(page.getByRole('heading', { name: 'Voided' })).toBeVisible();
+			await expect
+				.element(page.getByRole('link', { name: 'See the corrected match' }))
+				.toHaveAttribute('href', `/matches/${NEW}`);
+		});
+	});
 });

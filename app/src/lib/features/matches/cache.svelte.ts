@@ -32,6 +32,11 @@ export class MatchCache {
 	#currentOwner: () => string | null;
 	// Matches the player has just recorded, until their page says so once.
 	#recorded = new SvelteSet<MatchCode>();
+	// Corrections the player has just saved, until their page says so once.
+	#corrected = new SvelteSet<MatchCode>();
+	// Old match to the correction that replaced it, for corrections saved in this visit.
+	// `MatchOut` doesn't link the two, so the app knows only what it did itself.
+	#replacedBy = new SvelteMap<MatchCode, MatchCode>();
 	// Held matches the viewer may vouch for, from the holds list. `MatchOut` has no hold field,
 	// so a match not in here is either not held or not known to be held.
 	#holds = new SvelteMap<MatchCode, HoldState>();
@@ -56,6 +61,7 @@ export class MatchCache {
 		if (owner !== this.#owner) {
 			this.#matches.clear();
 			this.#holds.clear();
+			this.#replacedBy.clear();
 			this.#owner = owner;
 		}
 		return owner !== null;
@@ -126,8 +132,33 @@ export class MatchCache {
 		return this.#recorded.delete(code);
 	}
 
+	/**
+	 * Note that the player just saved `correction` in place of `old`: its page says so once, and
+	 * the old match's page links to it. The old match is voided now, so its cached copy says so.
+	 */
+	markCorrected(correction: MatchCode, old: MatchCode): void {
+		if (!this.#sync()) return;
+		this.#corrected.add(correction);
+		this.#replacedBy.set(old, correction);
+		const before = this.#matches.get(old);
+		if (before) this.#matches.set(old, { ...before, status: 'voided' });
+		this.#holds.delete(old);
+	}
+
+	/** True once after `markCorrected`, then false. Not reactive: call it from an effect. */
+	takeCorrected(code: MatchCode): boolean {
+		return this.#corrected.delete(code);
+	}
+
+	/** The correction the player saved in place of this match, in this visit. */
+	replacementOf(code: MatchCode): MatchCode | undefined {
+		return this.#valid() ? this.#replacedBy.get(code) : undefined;
+	}
+
 	reset(): void {
 		this.#recorded.clear();
+		this.#corrected.clear();
+		this.#replacedBy.clear();
 		this.#matches.clear();
 		this.#holds.clear();
 		this.#owner = null;

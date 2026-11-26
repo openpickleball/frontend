@@ -4,7 +4,7 @@ import { userEvent } from 'vitest/browser';
 import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { parseMatchCode, parsePlayerCode, type Match, type PlayerCode } from '#lib/domain/index.js';
 import { PLAYERS } from '#lib/mocks/fixtures.js';
-import { createDraftStore, type DraftStore } from '../draft.js';
+import { createDraftStore, type Draft, type DraftStore } from '../draft.js';
 import type { SubmitResult } from '../service.js';
 import RecordForm from './record-form.svelte';
 
@@ -205,14 +205,20 @@ describe('RecordForm', () => {
 		await vi.waitFor(() => expect(document.activeElement?.id).toBe('game-0-a'));
 	});
 
-	it('shows a score error under its game when the player leaves it', async () => {
+	it('holds a score error back until submit, so leaving the row moves nothing', async () => {
 		const { screen } = await setup();
 		await screen.getByLabelText("Game 1, your team's points").fill('11');
 		await screen.getByLabelText("Game 1, opponents' points").fill('10');
 		await screen.getByLabelText("Game 1, opponents' points").element().blur();
+		expect(screen.getByText('Game 1: the winner must win by 2 points.').elements()).toHaveLength(0);
+		await expect
+			.element(screen.getByLabelText("Game 1, your team's points"))
+			.not.toHaveAttribute('aria-invalid', 'true');
+
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 
 		await expect
-			.element(screen.getByText('Game 1: the winner must win by 2 points.'))
+			.element(screen.getByText('Game 1: the winner must win by 2 points.').last())
 			.toBeVisible();
 		await expect
 			.element(screen.getByLabelText("Game 1, your team's points"))
@@ -270,15 +276,15 @@ describe('RecordForm', () => {
 		expect(onrecorded).not.toHaveBeenCalled();
 	});
 
-	it('announces a field error as an alert when focus leaves the field', async () => {
+	it('announces a game error as an alert linked to its fields once submitted', async () => {
 		const { screen } = await setup(vi.fn());
 		const points = screen.getByLabelText("Game 1, your team's points");
 		await points.fill('x');
-		await points.element().blur();
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 
-		const alert = screen.getByRole('alert');
+		const alert = screen.getByRole('alert').filter({ hasText: '! Game 1: enter both scores.' });
 		await expect.element(alert).toBeVisible();
-		await expect.element(alert).toHaveTextContent('! Game 1: enter both scores.');
+		await expect.element(points).toHaveAttribute('aria-describedby', 'game-0-error');
 	});
 
 	it('shows the offline message, keeps the form filled and queues nothing', async () => {
@@ -587,5 +593,111 @@ describe('RecordForm draft', () => {
 		await screen.getByRole('button', { name: /record and confirm/i }).click();
 		await vi.waitFor(() => expect(onrecorded).toHaveBeenCalled());
 		expect(drafts.read(tamsin)).toBeNull();
+	});
+});
+
+describe('RecordForm correcting a match', () => {
+	const draft: Draft = {
+		format: 'doubles',
+		playedOn: '2024-06-01',
+		gameTarget: 11,
+		scoringType: 'side_out',
+		partner: { code: code('kit'), name: 'Kit Ashdown' },
+		opponents: [
+			{ code: code('bea'), name: 'Bea Marlowe' },
+			{ code: code('oren'), name: 'Oren Quill' }
+		],
+		games: [
+			{ a: '11', b: '9' },
+			{ a: '6', b: '11' },
+			{ a: '11', b: '7' }
+		]
+	};
+
+	async function correcting(submit = vi.fn().mockResolvedValue(recordedResult)) {
+		const onrecorded = vi.fn();
+		const drafts = memoryDrafts();
+		const screen = await render(RecordForm, {
+			own: tamsin,
+			onrecorded,
+			submit,
+			drafts,
+			correcting: { code: matchCode!, draft }
+		});
+		return { screen, submit, onrecorded, drafts };
+	}
+
+	it('starts from the match, with the players and format fixed', async () => {
+		const { screen } = await correcting();
+		await expect.element(screen.getByTestId('fixed-format')).toHaveTextContent('Doubles');
+		await expect.element(screen.getByRole('radio', { name: 'Singles' })).not.toBeInTheDocument();
+		await expect.element(screen.getByText('Kit Ashdown')).toBeVisible();
+		await expect.element(screen.getByText('Oren Quill')).toBeVisible();
+		await expect
+			.element(screen.getByRole('button', { name: 'Remove Kit Ashdown' }))
+			.not.toBeInTheDocument();
+		await expect.element(screen.getByLabelText('Date played')).toHaveValue('2024-06-01');
+		await expect.element(screen.getByLabelText("Game 2, your team's points")).toHaveValue('6');
+		await expect.element(screen.getByText(/A correction keeps the same players/)).toBeVisible();
+		await expect.element(screen.getByRole('button', { name: 'Save the correction' })).toBeVisible();
+		await expect.element(screen.getByText(/with a new match code/)).toBeVisible();
+	});
+
+	it('sends the edited scores with the same players, and keeps no draft', async () => {
+		const { screen, submit, onrecorded, drafts } = await correcting();
+		await screen.getByLabelText("Game 2, your team's points").fill('8');
+		await screen.getByRole('button', { name: 'Save the correction' }).click();
+		await vi.waitFor(() => expect(onrecorded).toHaveBeenCalledWith(recordedResult));
+		const [input, own] = submit.mock.calls[0];
+		expect(own).toBe(tamsin);
+		expect(input.teamA).toEqual([tamsin, code('kit')]);
+		expect(input.teamB).toEqual([code('bea'), code('oren')]);
+		expect(input.games).toEqual([
+			{ teamA: 11, teamB: 9 },
+			{ teamA: 8, teamB: 11 },
+			{ teamA: 11, teamB: 7 }
+		]);
+		expect(drafts.read(tamsin)).toBeNull();
+	});
+
+	it('says only the organizer can change an event match, with a way back', async () => {
+		const submit = vi
+			.fn()
+			.mockRejectedValue(appError({ kind: 'not_found', status: 404, code: 'not_found' }));
+		const { screen } = await correcting(submit);
+		await screen.getByRole('button', { name: 'Save the correction' }).click();
+		await expect
+			.element(screen.getByText('This match can only be changed by its organizer'))
+			.toBeVisible();
+		await expect
+			.element(screen.getByText(/a match that players recorded themselves/))
+			.toBeVisible();
+		await expect
+			.element(screen.getByRole('link', { name: 'Back to the match' }))
+			.toHaveAttribute('href', `/matches/${matchCode}`);
+	});
+
+	it('says a match that changed meanwhile can no longer be corrected', async () => {
+		const submit = vi
+			.fn()
+			.mockRejectedValue(appError({ kind: 'conflict', status: 409, code: 'conflict' }));
+		const { screen } = await correcting(submit);
+		await screen.getByRole('button', { name: 'Save the correction' }).click();
+		await expect.element(screen.getByText("This match can't be corrected now")).toBeVisible();
+		await expect.element(screen.getByRole('link', { name: 'See where it stands' })).toBeVisible();
+	});
+
+	it('shows a 422 on its field, with the correction wording in the summary', async () => {
+		const submit = vi
+			.fn()
+			.mockRejectedValue(
+				appError({ fields: { played_on: ['The date played cannot be in the future.'] } })
+			);
+		const { screen } = await correcting(submit);
+		await screen.getByRole('button', { name: 'Save the correction' }).click();
+		await expect.element(screen.getByText('Fix 1 thing to save this correction')).toBeVisible();
+		await expect
+			.element(screen.getByLabelText('Date played'))
+			.toHaveAccessibleDescription(/cannot be in the future/);
 	});
 });

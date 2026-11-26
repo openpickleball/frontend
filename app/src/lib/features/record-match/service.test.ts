@@ -8,10 +8,16 @@ import {
 	isAppError,
 	type Api
 } from '#lib/api/index.js';
-import { buildCode, parsePlayerCode, type MatchInput, type PlayerCode } from '#lib/domain/index.js';
+import {
+	buildCode,
+	parsePlayerCode,
+	type MatchCode,
+	type MatchInput,
+	type PlayerCode
+} from '#lib/domain/index.js';
 import { MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
-import { duplicateMatchCode, submitMatch } from './service';
+import { correctMatch, duplicateMatchCode, submitMatch } from './service';
 
 useMockApi();
 
@@ -221,6 +227,83 @@ describe('submitMatch', () => {
 		server.use(http.post('*/api/v1/matches/', () => HttpResponse.error()));
 		const error = await failure(submitMatch(singles, tamsin, { api }));
 		expect(error.kind).toBe('network');
+		expect(error.status).toBeNull();
+	});
+});
+
+describe('correctMatch', () => {
+	// Tamsin against Rosa, pending, and Tamsin against Saul, confirmed.
+	const pending = buildCode('match', '3FTB8ZRMK6P') as MatchCode;
+	const confirmed = buildCode('match', '6YEM3HNV8QT') as MatchCode;
+	const fixed: MatchInput = {
+		format: 'singles',
+		playedOn: '2026-11-12',
+		teamA: [tamsin],
+		teamB: [codeOf('rosa')],
+		games: [
+			{ teamA: 11, teamB: 8 },
+			{ teamA: 11, teamB: 6 }
+		],
+		gameTarget: 11,
+		scoringType: 'side_out'
+	};
+
+	it('sends the correction and resolves to the new match, pending on the other team', async () => {
+		const sent: string[] = [];
+		server.events.on('request:start', ({ request }) => {
+			const path = new URL(request.url).pathname;
+			if (path.startsWith('/api/v1/matches')) sent.push(`${request.method} ${path}`);
+		});
+		const { match } = await correctMatch(pending, fixed, tamsin, { api });
+		expect(sent).toEqual([`POST /api/v1/matches/${pending}/correction`]);
+		expect(match.code).not.toBe(pending);
+		expect(match.status).toBe('pending');
+		expect(match.confirmedBySide).toEqual({ a: true, b: false });
+		expect(match.games.map((g) => [g.teamA, g.teamB])).toEqual([
+			[11, 8],
+			[11, 6]
+		]);
+	});
+
+	it('rejects a confirmed match with a conflict', async () => {
+		const input: MatchInput = { ...fixed, teamB: [codeOf('saul')], playedOn: '2026-11-01' };
+		const error = await failure(correctMatch(confirmed, input, tamsin, { api }));
+		expect(error.kind).toBe('conflict');
+	});
+
+	it('rejects a match the backend says players cannot correct with not_found', async () => {
+		server.use(
+			http.post('*/api/v1/matches/:code/correction', () =>
+				HttpResponse.json({ code: 'not_found', message: 'Not found.', errors: [] }, { status: 404 })
+			)
+		);
+		const error = await failure(correctMatch(pending, fixed, tamsin, { api }));
+		expect(error.kind).toBe('not_found');
+	});
+
+	it('maps a 422 onto its field keys', async () => {
+		server.use(
+			http.post('*/api/v1/matches/:code/correction', () =>
+				HttpResponse.json(
+					{
+						code: 'validation_error',
+						message: 'The request is not valid.',
+						errors: [{ field: 'body.played_on', code: 'future', message: 'Too late.' }]
+					},
+					{ status: 422 }
+				)
+			)
+		);
+		const error = await failure(correctMatch(pending, fixed, tamsin, { api }));
+		expect(error.kind).toBe('validation');
+		expect(error.fields).toEqual({ played_on: ['Too late.'] });
+	});
+
+	it('catches a score the rules refuse before sending anything', async () => {
+		const error = await failure(
+			correctMatch(pending, { ...fixed, games: [{ teamA: 11, teamB: 11 }] }, tamsin, { api })
+		);
+		expect(error.kind).toBe('validation');
 		expect(error.status).toBeNull();
 	});
 });

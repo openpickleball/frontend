@@ -83,7 +83,7 @@ These block app work. The app can't do them yet.
 - [x] S2 Swap the mocked ratings for the real endpoints, and add the `rating_visibility` control (#35, and the privacy part of #109), after S1
 - [x] S3 Show disputed matches and let players withdraw a dispute (#214), after S1
 - [x] S4 Show held matches and let players vouch for them (#216), after S3
-- [ ] S5 Let players correct a pending or disputed match with no Event (#215), after S3
+- [x] S5 Let players correct a pending or disputed match with no Event (#215), after S3
 - [x] B1 Open backend issues for organizer memberships (backend#301) and for the Event on `MatchOut` (backend#302)
 - [ ] S6 Organizer area: list, create, edit and delete Events (#217), after S1 and B1
 - [ ] S7 Upload a CSV results file and read its report (#218), after S6
@@ -120,6 +120,11 @@ These block app work. The app can't do them yet.
 - **Only the holds list says a match is held (S4).** `MatchOut` has no hold field, so the match page reads `GET me/matches/holds` beside the match, and the home and history pages read it too. The cache keeps each known hold. A held match the viewer may not vouch for (an event match, for its players) reads as its plain status, since the API doesn't say it is held.
 - **Organizers open a held event match from the holds list (S4).** `GET matches/{code}` gives players only, so an organizer member who follows the hold email to `/matches/{code}` would get a 404. The page shows the match from the holds list then. A viewer with no team in the match can only be such a member, so the vouch copy speaks to the organizer.
 - **How a held match reads (S4).** A pending or confirmed held match reads "On hold" with an "On hold" badge next to its status, says why without naming the other match, keeps Confirm and Dispute when they apply, and offers "This match really happened" until the viewer's side has vouched. A disputed held match keeps its dispute copy and adds the hold. The vouch answer doesn't say whether the hold ended, so the page reads the holds list again. Like disputes, the copy promises no end date.
+- **Explain the 404 on an event match, don't wait for backend#302 (S5).** `correct_match` answers 404 for a match with an Event or a Club, and `MatchOut` can't say which matches have one. The panel offers "Correct the score" on every pending or disputed match the player played in, and on a disputed one it says only the organizer can change a match an organizer recorded, such as one played at an event or a club. When the backend answers 404, the form says "This match can only be changed by its organizer". Once backend#302 adds the Event to `MatchOut`, hide the button on event matches instead.
+- **A correction has its own page and reuses the record form (S5).** "Correct the score" links to `/matches/{code}/correct`, which reads the match fresh and fills the record-match form from it (`correctionDraft`), from the player's own side. The players and format are fixed, since the backend needs the same two teams. The date, scoring and games can change. Nothing is kept in `sessionStorage`. After saving, the app opens the correction, which has a new code and waits on the other team.
+- **The old match reads as voided (S5).** `MatchOut` doesn't link a match to its correction. A voided match says that a corrected match would be in the player's history with a new code, and within the visit the old match's page links to the correction the player just saved.
+- **No correction with a private player (S5).** The API gives no code for a private player, and a correction must name the same players, so the app offers no correction on such a match. The player can still dispute it.
+- **A correction alone doesn't move the panel (S5).** The status panel goes before the score only for actions the match waits on. "Correct the score" is an outline link after the other buttons.
 
 ## Open questions
 

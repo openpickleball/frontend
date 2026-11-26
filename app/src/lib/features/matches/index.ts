@@ -25,6 +25,14 @@
  *   list on a 404, for an organizer who came from a hold email. `POST matches/{code}/vouch`
  *   can't be undone, and its answer doesn't say whether the hold ended, so the page reads the
  *   holds list again. The cache keeps each known hold (`holdOf`).
+ * - A player corrects a pending or disputed match with no event on its own page,
+ *   `/matches/{code}/correct`, which the route builds from the record-match form (backend#267).
+ *   The backend voids the old match and returns the correction, a new match with a new code.
+ *   `MatchOut` doesn't link the two or say whether a match has an event (backend#302), so the
+ *   panel offers "Correct the score" on every pending or disputed match the player can name
+ *   every player of (`canCorrect`), and the form explains the 404 an event match gets.
+ *   `rememberCorrection(correction, old)` tells the cache, so the old match's page links to the
+ *   correction in this visit.
  * - `status.ts` (`matchStatusCopy`) says how each status and decision reads and which buttons
  *   the status panel offers. Add a new status or action there.
  *
@@ -64,11 +72,16 @@ export {
 	listMatches,
 	listMyDisputes,
 	listMyHolds,
+	rememberCorrection,
 	rememberMatch,
 	vouchForMatch,
 	withdrawDispute
 } from './services.js';
 export {
+	CORRECT_EVENT_NOTE,
+	CORRECT_NOTE,
+	VOIDED_CORRECTED,
+	canCorrect,
 	DISPUTE_ENDS,
 	HOLD_ENDS,
 	HOLD_WHY,
@@ -99,6 +112,7 @@ export {
 export { default as HomeView } from './components/home-view.svelte';
 export { default as HistoryView } from './components/history-view.svelte';
 export { default as MatchView } from './components/match-view.svelte';
+export { default as CorrectView } from './components/correct-view.svelte';
 export { default as MatchRow } from './components/match-row.svelte';
 export { default as MatchList } from './components/match-list.svelte';
 export { default as StatusPanel } from './components/status-panel.svelte';
