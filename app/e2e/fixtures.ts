@@ -24,6 +24,22 @@ export const test = base.extend<{ cspViolations: string[] }>({
 				});
 			});
 			await use(violations);
+			// A round trip to each open page that waits one frame, so console messages and
+			// violation events still on their way arrive before the check.
+			for (const page of context.pages()) {
+				if (page.isClosed()) continue;
+				await page
+					.evaluate(
+						() =>
+							new Promise<void>((resolve) => {
+								requestAnimationFrame(() => resolve());
+								// A page that is not painting gets no frame; do not wait forever.
+								setTimeout(resolve, 1000);
+							})
+					)
+					// The page closed or navigated away during the round trip: nothing left to wait for.
+					.catch(() => undefined);
+			}
 			expect(violations, 'content security policy violations').toEqual([]);
 		},
 		{ auto: true }
