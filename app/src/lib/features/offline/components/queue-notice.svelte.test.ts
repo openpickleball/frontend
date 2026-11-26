@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { Match } from '#lib/domain/index.js';
+import { accountKey } from '../account.js';
 import { createOfflineQueue } from '../queue.svelte.js';
 import type { SendOutcome } from '../send.js';
 import { memoryStore } from '../store.js';
@@ -57,6 +58,37 @@ describe('QueueNotice', () => {
 			.toBeVisible();
 		await expect.element(screen.getByRole('button', { name: 'Send now' })).not.toBeInTheDocument();
 		await expect.element(screen.getByRole('status')).toBeVisible();
+	});
+
+	it('tells the player once that old matches were deleted', async () => {
+		const store = memoryStore();
+		const queue = createOfflineQueue({
+			store,
+			send: vi.fn(async (): Promise<SendOutcome> => ({ kind: 'retry', offline: true })),
+			online: () => false,
+			exclusive: (work) => work()
+		});
+		await store.put({
+			id: 'old',
+			account: await accountKey(EMAIL),
+			own: OWN,
+			body: body('2026-01-01'),
+			form: {},
+			queuedAt: '2026-01-01T10:00:00Z',
+			problem: null
+		});
+		await queue.setAccount(EMAIL);
+		const screen = await render(QueueNotice, { queue, onfix: vi.fn() });
+		await expect
+			.element(
+				screen.getByText(
+					"A match you recorded offline was deleted from this device because it still hadn't been sent after 30 days."
+				)
+			)
+			.toBeVisible();
+		await screen.getByRole('button', { name: 'OK' }).click();
+		await expect.element(screen.getByTestId('queue-expired')).not.toBeInTheDocument();
+		expect(await store.expiredCount(await accountKey(EMAIL))).toBe(0);
 	});
 
 	it('offers Send now after a server failure, and sends', async () => {

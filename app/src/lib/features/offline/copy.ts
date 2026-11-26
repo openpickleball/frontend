@@ -50,3 +50,13 @@ export function problemLines(item: QueuedMatch): string[] {
 	}
 	return lines;
 }
+
+/** What to tell a player whose queued matches were deleted for age. Null when none were. */
+export function expiredText(count: number, days: number): string | null {
+	if (count <= 0) return null;
+	const what =
+		count === 1
+			? 'A match you recorded offline was deleted from this device'
+			: `${count} matches you recorded offline were deleted from this device`;
+	return `${what} because ${count === 1 ? 'it' : 'they'} still hadn't been sent after ${days} days.`;
+}

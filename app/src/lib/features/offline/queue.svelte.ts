@@ -38,6 +38,9 @@ export type QueueDeps = {
 	exclusive: (work: () => Promise<void>) => Promise<void>;
 };
 
+/** A queued match older than this is deleted. See `plans/offline-match-queue/plan.md`. */
+export const MAX_QUEUE_AGE_DAYS = 30;
+
 export type NewQueuedMatch = { own: string; body: MatchBody; form: unknown };
 
 const LOCK_NAME = 'open-offline-queue';
@@ -68,6 +71,8 @@ export class OfflineQueue {
 	items = $state<QueuedMatch[]>([]);
 	/** Why the waiting matches are still waiting. */
 	reason = $state<WaitReason>('idle');
+	/** How many of this account's matches were deleted for age and the player hasn't been told. */
+	expired = $state(0);
 	/** True while a send is under way. */
 	sending = $state(false);
 	/** What the browser says about the connection. Kept current by `start()`. */
@@ -78,6 +83,7 @@ export class OfflineQueue {
 	/** Bumped on every account change, so a late answer never lands in another account's queue. */
 	#run = 0;
 	#flushing: Promise<void> | null = null;
+	#purging: Promise<void> | null = null;
 	/** Set when a match was added during a send, so one more send picks it up. */
 	#again = false;
 	#listeners: ((sent: SentMatch[]) => void)[] = [];
@@ -111,8 +117,13 @@ export class OfflineQueue {
 		this.#account = account;
 		this.items = [];
 		this.reason = 'idle';
+		this.expired = 0;
 		if (!account) return;
+		await this.purgeExpired();
+		if (run !== this.#run) return;
 		await this.#reload(run);
+		await this.#loadExpired(run);
+		if (run !== this.#run) return;
 		await this.flush();
 	}
 
@@ -219,6 +230,56 @@ export class OfflineQueue {
 		}
 	}
 
+	/**
+	 * Delete every account's matches that were queued more than `MAX_QUEUE_AGE_DAYS` ago, so a
+	 * player who never signs in on this device again leaves nothing behind. Each account keeps a
+	 * count of what was deleted (a number only), which is told to that player at their next sign
+	 * in. The count is written in the same step as the delete, so nothing goes unreported.
+	 */
+	purgeExpired(): Promise<void> {
+		this.#purging ??= (async () => {
+			try {
+				const cutoff = this.#deps.now().getTime() - MAX_QUEUE_AGE_DAYS * 24 * 60 * 60 * 1000;
+				const old = (await this.#deps.store.listAll()).filter(
+					(item) => Date.parse(item.queuedAt) < cutoff
+				);
+				if (old.length === 0) return;
+				await this.#deps.store.expire(old.map(({ id, account }) => ({ id, account })));
+				const run = this.#run;
+				await this.#reload(run);
+				await this.#loadExpired(run);
+			} catch {
+				// The store failed. The cleanup runs again the next time the app opens.
+			} finally {
+				this.#purging = null;
+			}
+		})();
+		return this.#purging;
+	}
+
+	/** The player has read the notice about deleted matches: forget the count. */
+	async dismissExpired(): Promise<void> {
+		const account = this.#account;
+		this.expired = 0;
+		if (!account) return;
+		try {
+			await this.#deps.store.clearExpired(account);
+		} catch {
+			// The notice may show once more on the next sign in.
+		}
+	}
+
+	async #loadExpired(run: number): Promise<void> {
+		const account = this.#account;
+		if (!account) return;
+		try {
+			const count = await this.#deps.store.expiredCount(account);
+			if (run === this.#run) this.expired = count;
+		} catch {
+			// No count could be read. It stays on the device for the next sign in.
+		}
+	}
+
 	/** Delete one match from this device, because the player asked to. */
 	async remove(id: string): Promise<void> {
 		await this.#deps.store.remove(id);
@@ -235,6 +296,7 @@ export class OfflineQueue {
 		this.#account = null;
 		this.items = [];
 		this.reason = 'idle';
+		this.expired = 0;
 		this.sending = false;
 		if (account) await this.#deps.store.removeAccount(account);
 	}

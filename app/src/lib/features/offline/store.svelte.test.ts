@@ -57,6 +57,34 @@ describe('indexedDbStore', () => {
 		expect((await store.list('v1:two')).map((i) => i.id)).toEqual(['c']);
 	});
 
+	it('deletes expired matches of every account and counts them', async () => {
+		const store = indexedDbStore();
+		await store.put(item('a', 'v1:one', '2026-01-01T10:00:00Z'));
+		await store.put(item('b', 'v1:one', '2026-11-14T10:00:00Z'));
+		await store.put(item('c', 'v1:two', '2026-01-02T10:00:00Z'));
+		await store.put(item('d', 'v1:two', '2026-01-03T10:00:00Z'));
+		expect((await store.listAll()).map((i) => i.id)).toEqual(['a', 'c', 'd', 'b']);
+
+		await store.expire([
+			{ id: 'a', account: 'v1:one' },
+			{ id: 'c', account: 'v1:two' },
+			{ id: 'd', account: 'v1:two' }
+		]);
+		await store.expire([]);
+		const again = indexedDbStore();
+		expect((await again.listAll()).map((i) => i.id)).toEqual(['b']);
+		expect(await again.expiredCount('v1:one')).toBe(1);
+		expect(await again.expiredCount('v1:two')).toBe(2);
+		expect(await again.expiredCount('v1:three')).toBe(0);
+
+		await again.clearExpired('v1:two');
+		expect(await again.expiredCount('v1:two')).toBe(0);
+		expect(await again.expiredCount('v1:one')).toBe(1);
+
+		await again.removeAccount('v1:one');
+		expect(await again.expiredCount('v1:one')).toBe(0);
+	});
+
 	it('rejects when IndexedDB is not there', async () => {
 		const store = indexedDbStore(() => undefined);
 		await expect(store.put(item('a', 'v1:one', '2026-11-14T10:00:01Z'))).rejects.toThrow();

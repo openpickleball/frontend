@@ -17,6 +17,7 @@ This fits in one PR.
 - [x] Show the queue state, and let the player fix a match the backend refused.
 - [x] Warn before a sign out deletes unsent matches.
 - [x] Unit, component and e2e tests.
+- [x] Delete queued matches after an age limit, and tell the player (frontend#251).
 
 ## What the backend does (backend `f4090e5`)
 
@@ -44,6 +45,8 @@ This fits in one PR.
 - **CSRF.** The client's CSRF middleware already covers a send after the app reopens: it reads the cookie on every unsafe call, fetches it first when it is missing, and on a CSRF 403 refreshes it and retries once. Bootstrap also calls `initCsrf` on open. No change was needed.
 - **Service worker.** Unchanged. `/api/` and `/_allauth/` stay network-only, so a queued send always reaches the network.
 - **The queue state.** A notice at the top of every signed-in page: "1 match waiting to send" or "2 matches waiting to send", with what happens next ("We'll send it when you're back online", "Sign in again to send it", or "We couldn't send it yet" with Send now). A refused match has its own notice: "This match wasn't recorded", its date and score, the backend's messages, "Fix and record again" and "Delete".
+- **Age limit.** A queued match is deleted 30 days after it was queued (`MAX_QUEUE_AGE_DAYS`). The backend sets no limit to copy: `record_match` (`apps/matches/services.py`) and the match schema take any `played_on` date, with no maximum age and no "recorded late" rule, and `config/settings.py` has no expiry setting for matches. So the number is ours. 30 days is long enough for a trip with no connection, and short enough that a match doesn't sit on a shared device for months. Age counts from when the match was queued (`queuedAt`), not `played_on`. The risk is time on the device, and a player may fairly record a match from last week, which `played_on` would delete at once.
+- **The cleanup.** It runs on app open over every account's records, and again when an account is set, so the absent player is covered. One transaction deletes the matches and adds to a per-account count in the `expired` object store (database version 2), under the same hashed key. The count is a number only: no match data, no email. When that player signs in, the notice says how many were deleted and why. It stays until they press OK, so a closed tab doesn't lose it, then the count is cleared. Signing out deletes the count with the queue. A match the backend refused ages out too.
 - **Layers.** `features/offline` owns the store, the queue and the notice. It imports only `api`, `domain` and `ui`. `features/record-match` queues through `offline`'s index. The root layout wires the account, the sign-out cleanup and the toasts. The sign-out warning is a hook in `features/auth` (`setSignOutWarning`), so every Sign out button warns, including the one on the profile page.
 
 ## Known limits
