@@ -7,6 +7,7 @@
 		type Match,
 		type PlayerCode
 	} from '#lib/domain/index.js';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import {
 		STATUS_LABELS,
@@ -63,43 +64,53 @@
 
 <a
 	href={resolve('/matches/[code]', { code: match.code })}
-	class="block py-4"
+	class="group -mx-2 flex items-stretch gap-2 px-2 py-4 hover:bg-surface active:bg-surface"
 	data-testid="match-row"
 	data-status={match.status}
 >
 	<!-- The link's name is this sentence. The drawn row below repeats it for the eye. -->
 	<span class="sr-only">{rowLabel(match, you)}</span>
-	<div class="mb-3 flex items-center justify-between gap-3 text-base text-muted" aria-hidden="true">
-		<span>{formatShortDate(match.playedOn)} · {formatName(match.format)}, {games}</span>
-		<!-- One badge: a second one wraps the date on a phone. The note below says it is on hold. -->
-		<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
+	<div class="min-w-0 flex-1">
+		<div
+			class="mb-3 flex items-center justify-between gap-3 text-base text-muted"
+			aria-hidden="true"
+		>
+			<span>{formatShortDate(match.playedOn)} · {formatName(match.format)}, {games}</span>
+			<!-- One badge: a second one wraps the date on a phone. The note below says it is on hold. -->
+			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
+		</div>
+		<!-- eslint-disable local/no-arbitrary-tailwind-values -- label and score columns, no default grid template -->
+		<div
+			class="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-1 {match.status === 'voided'
+				? 'line-through decoration-faint'
+				: ''}"
+			aria-hidden="true"
+		>
+			{#each rows as row (row.side)}
+				<span class="min-w-0 truncate {row.won ? 'font-semibold text-secondary' : 'text-muted'}">
+					{row.names}
+				</span>
+				<span class="flex divide-x divide-line tabular-nums">
+					{#each row.scores as score, index (index)}
+						<span
+							class="min-w-10 px-2 text-right {score.won
+								? 'font-semibold text-secondary'
+								: 'text-muted'}"
+						>
+							{score.points}
+						</span>
+					{/each}
+				</span>
+			{/each}
+		</div>
+		<!-- eslint-enable local/no-arbitrary-tailwind-values -->
+		{#if note}
+			<p class="mt-2 text-sm text-muted">{note}</p>
+		{/if}
 	</div>
-	<!-- eslint-disable local/no-arbitrary-tailwind-values -- label and score columns, no default grid template -->
-	<div
-		class="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-1 {match.status === 'voided'
-			? 'line-through decoration-faint'
-			: ''}"
+	<!-- Shows the row opens. Hidden from screen readers: the link's name already says it. -->
+	<ChevronRight
+		class="size-4 flex-none self-center text-faint group-hover:text-secondary motion-safe:transition motion-safe:group-hover:translate-x-0.5"
 		aria-hidden="true"
-	>
-		{#each rows as row (row.side)}
-			<span class="min-w-0 truncate {row.won ? 'font-semibold text-secondary' : 'text-muted'}">
-				{row.names}
-			</span>
-			<span class="flex divide-x divide-line tabular-nums">
-				{#each row.scores as score, index (index)}
-					<span
-						class="min-w-10 px-2 text-right {score.won
-							? 'font-semibold text-secondary'
-							: 'text-muted'}"
-					>
-						{score.points}
-					</span>
-				{/each}
-			</span>
-		{/each}
-	</div>
-	<!-- eslint-enable local/no-arbitrary-tailwind-values -->
-	{#if note}
-		<p class="mt-2 text-sm text-muted">{note}</p>
-	{/if}
+	/>
 </a>
