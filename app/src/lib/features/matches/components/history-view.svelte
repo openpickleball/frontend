@@ -2,7 +2,7 @@
 	import { onDestroy, untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { ROUTES } from '#lib/domain/index.js';
-	import { myCode } from '#lib/features/players/index.js';
+	import { SettingsStore, myCode, type SettingsDeps } from '#lib/features/players/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from '#lib/ui/empty/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
@@ -15,10 +15,32 @@
 	import MatchList from './match-list.svelte';
 
 	/** `page` is 1 for the newest matches, 2 for the next 20, and so on. */
-	let { page = 1 }: { page?: number } = $props();
+	let {
+		page = 1,
+		settingsDeps = {}
+	}: {
+		page?: number;
+		/** For tests. The page uses the real services. */
+		settingsDeps?: Partial<SettingsDeps>;
+	} = $props();
 
 	const view = new MatchListView();
 	onDestroy(() => view.cancel());
+
+	// Who sees the matches is the Match history setting. The profile reads it from the same
+	// `me/player`, with the same store. Until it has loaded, or when it fails, the page says
+	// nothing about it rather than guess.
+	const settings = untrack(() => new SettingsStore(settingsDeps));
+	let settingsFor: string | null = null;
+	$effect(() => {
+		const code = myCode.status === 'ready' ? myCode.code : null;
+		if (code === null || code === settingsFor) return;
+		settingsFor = code;
+		untrack(() => void settings.load());
+	});
+	const visibility = $derived(
+		settings.status === 'ready' && settings.privacy ? settings.privacy.match_history : null
+	);
 
 	$effect(() => {
 		const code = myCode.code;
@@ -69,8 +91,17 @@
 	{#snippet children(you)}
 		{#if view.status === 'ready' && view.count > 0}
 			<p class="mt-4 max-w-md text-muted">
-				{matchCountLabel(view.count)}, newest first. Other signed-in players see only your confirmed
-				matches.
+				{matchCountLabel(view.count)}, newest first.
+				{#if visibility === 'private'}
+					Only you can see your matches.
+				{:else if visibility === 'signed_in'}
+					Other signed-in players see your confirmed matches.
+				{/if}
+				{#if visibility !== null}
+					<a href="{resolve(ROUTES.profile)}#settings-heading" class="underline">
+						Change who sees them
+					</a>
+				{/if}
 			</p>
 		{/if}
 
