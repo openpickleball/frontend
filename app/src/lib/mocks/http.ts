@@ -2,7 +2,6 @@ import { createOpenApiHttp } from 'openapi-msw';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, CSRF_HOST_COOKIE_NAME } from '../api/csrf';
 import type { paths as AllauthPaths } from '../api/generated/allauth';
 import type { paths as OpenPaths } from '../api/generated/open';
-import type { paths as ProvisionalPaths } from '../api/provisional';
 import type { MockStore } from './store';
 
 /**
@@ -14,7 +13,6 @@ const ANY_ORIGIN = '*';
 /** MSW's `http`, typed by the generated paths. */
 export const openHttp = createOpenApiHttp<OpenPaths>({ baseUrl: ANY_ORIGIN });
 export const allauthHttp = createOpenApiHttp<AllauthPaths>({ baseUrl: ANY_ORIGIN });
-export const provisionalHttp = createOpenApiHttp<ProvisionalPaths>({ baseUrl: ANY_ORIGIN });
 
 /** The request's JSON body, or undefined when it is missing or not JSON. */
 export async function readJson(request: { json(): Promise<unknown> }): Promise<unknown> {

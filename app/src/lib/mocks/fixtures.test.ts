@@ -230,8 +230,14 @@ describe('fixtures', () => {
 		}
 	});
 
-	it('labels ratings as demonstration ratings', () => {
-		for (const rating of Object.values(RATINGS)) expect(rating?.demonstration).toBe(true);
+	it('labels ratings as demonstration ratings, with reliability 0 to 100', () => {
+		for (const byFormat of Object.values(RATINGS)) {
+			for (const rating of Object.values(byFormat ?? {})) {
+				expect(rating.demonstration).toBe(true);
+				expect(rating.reliability).toBeGreaterThan(1);
+				expect(rating.reliability).toBeLessThanOrEqual(100);
+			}
+		}
 	});
 });
 
@@ -253,6 +259,13 @@ describe('the mock store snapshot', () => {
 		}));
 		expect(store.restore(JSON.stringify(old))).toBe(false);
 		expect(store.state.players[0]).toHaveProperty('city');
+	});
+
+	it('drops a snapshot whose ratings have the old mocked shape', () => {
+		const store = createMockStore();
+		const old = JSON.parse(store.snapshot()) as { ratings: Record<string, unknown> };
+		old.ratings = { [PLAYERS[0].code]: { ratings: {}, demonstration: true } };
+		expect(store.restore(JSON.stringify(old))).toBe(false);
 	});
 
 	it('restores a snapshot from before the signup hold', () => {

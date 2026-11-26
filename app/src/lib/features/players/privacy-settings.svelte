@@ -46,5 +46,36 @@
 				/>
 			</li>
 		{/each}
+		<!--
+			Current ratings have the backend's rules (ADR 0031): an adult's are always shown, and a
+			player who joined at 13 to 17 starts private and may show them from 18. Showing them
+			can't be undone. Only a private setting gets a switch, and the backend decides the age.
+		-->
+		{#if privacy.rating === 'private'}
+			<li class="flex items-center justify-between gap-4 py-3">
+				<Field class="gap-0.5">
+					<FieldLabel for="privacy-rating" class="font-semibold">Current ratings</FieldLabel>
+					<FieldDescription id="privacy-rating-state">Only me</FieldDescription>
+					<FieldDescription id="privacy-rating-note">
+						From age 18, you can show them to signed-in players. After that, they can't be hidden
+						again.
+					</FieldDescription>
+				</Field>
+				<Switch
+					id="privacy-rating"
+					checked={false}
+					aria-describedby="privacy-rating-state privacy-rating-note"
+					onCheckedChange={(on) => {
+						if (on) onchange('rating', 'signed_in');
+					}}
+				/>
+			</li>
+		{:else}
+			<li class="grid gap-0.5 py-3" data-testid="privacy-rating-fixed">
+				<span class="font-semibold text-secondary">Current ratings</span>
+				<span class="text-sm text-muted">Signed-in players</span>
+				<span class="text-sm text-muted">Always shown. They can't be hidden.</span>
+			</li>
+		{/if}
 	</ul>
 </div>

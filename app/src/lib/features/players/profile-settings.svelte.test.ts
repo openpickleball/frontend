@@ -13,7 +13,8 @@ const SAVED: MySettings = {
 		stats: 'signed_in',
 		rating_history: 'signed_in',
 		home_club: 'private',
-		city_region: 'signed_in'
+		city_region: 'signed_in',
+		rating: 'signed_in'
 	}
 };
 
@@ -129,6 +130,67 @@ describe('ProfileSettings', () => {
 		await stats.click();
 		await expect.element(screen.getByText(/We can't reach the server/)).toBeVisible();
 		await expect.element(stats).toBeChecked();
+	});
+
+	it('shows current ratings as always shown, with no switch, when they are shown', async () => {
+		const { screen } = await renderReady();
+		const row = screen.getByTestId('privacy-rating-fixed');
+		await expect.element(row).toBeVisible();
+		const text = row.element().textContent ?? '';
+		expect(text).toContain('Current ratings');
+		expect(text).toContain('Signed-in players');
+		expect(text).toContain("Always shown. They can't be hidden.");
+		await expect
+			.element(screen.getByRole('switch', { name: 'Current ratings' }))
+			.not.toBeInTheDocument();
+	});
+
+	describe('current ratings kept private (joined at 13 to 17)', () => {
+		const PRIVATE: MySettings = {
+			...SAVED,
+			privacy: { ...SAVED.privacy, rating: 'private' }
+		};
+
+		async function renderPrivate(updateMySettings: (c: MySettingsChange) => Promise<MySettings>) {
+			return render(ProfileSettings, {
+				deps: { fetchMySettings: async () => structuredClone(PRIVATE), updateMySettings }
+			});
+		}
+
+		it('offers a switch that only shows them, and says it cannot be undone', async () => {
+			const updateMySettings = vi.fn(async (change: MySettingsChange) => ({
+				...PRIVATE,
+				privacy: { ...PRIVATE.privacy, ...change.privacy }
+			}));
+			const screen = await renderPrivate(updateMySettings);
+			const ratings = screen.getByRole('switch', { name: 'Current ratings' });
+			await expect.element(ratings).not.toBeChecked();
+			await expect.element(ratings).toHaveAccessibleDescription(/Only me/);
+			await expect.element(ratings).toHaveAccessibleDescription(/can't be hidden again/);
+			await ratings.click();
+			expect(updateMySettings).toHaveBeenCalledWith({ privacy: { rating: 'signed_in' } });
+			await expect.element(screen.getByTestId('privacy-rating-fixed')).toBeVisible();
+		});
+
+		it("shows the backend's refusal and keeps them private", async () => {
+			const message = 'Current ratings can be shown to other players only from age 18.';
+			const screen = await renderPrivate(
+				vi.fn(async () => {
+					throw new AppError({
+						kind: 'validation',
+						status: 422,
+						code: 'validation_error',
+						message: 'Please check the highlighted fields.',
+						fields: { 'privacy.rating_visibility': [message] }
+					});
+				})
+			);
+			await screen.getByRole('switch', { name: 'Current ratings' }).click();
+			await expect.element(screen.getByText(message)).toBeVisible();
+			await expect
+				.element(screen.getByRole('switch', { name: 'Current ratings' }))
+				.not.toBeChecked();
+		});
 	});
 
 	it('says the settings are not available yet when me/player has no player to read', async () => {

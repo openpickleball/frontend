@@ -20,7 +20,6 @@
  * `sessionStorage` across a page reload in the browser.
  */
 import type { components } from '../api/generated/open';
-import type { PlayerRatingsOut } from '../api/provisional';
 import { ALPHABET, buildCode, normalizeCode, parsePlayerCode } from '../domain/codes';
 import { canonicalEmailSchema, emailError, normalizeEmail } from '../domain/schemas';
 import { validateMatch, type Issue } from '../domain/scores';
@@ -33,7 +32,8 @@ import {
 	RATINGS,
 	UNVERIFIED_EMAIL,
 	VERIFIED_EMAIL,
-	type PlayerKey
+	type PlayerKey,
+	type RatingsByFormat
 } from './fixtures';
 import {
 	AGE_REFUSAL,
@@ -56,6 +56,10 @@ type MatchCreateIn = Schemas['MatchCreateIn'];
 type MyPlayerOut = Schemas['MyPlayerOut'];
 type PlayerProfileOut = Schemas['PlayerProfileOut'];
 type PrivacyOut = Schemas['PrivacyOut'];
+type PlayerRatingsOut = Schemas['PlayerRatingsOut'];
+
+/** The backend's default `OPEN_PUBLIC_PROFILE_URL`: `profile_url` is this and the code. */
+const PUBLIC_PROFILE_URL = 'https://openpb.org/players/';
 
 export type MockAccount = { email: string; password: string; verified: boolean; active: boolean };
 
@@ -142,7 +146,8 @@ export type MockState = {
 	accounts: MockAccount[];
 	players: MockPlayer[];
 	matches: MockMatch[];
-	ratings: Record<string, PlayerRatingsOut>;
+	/** Current ratings by player code. A player left out has none yet. */
+	ratings: Record<string, RatingsByFormat>;
 	/** The signed-in account's email, and when it signed in (seconds since the epoch). */
 	session: { email: string; at: number } | null;
 	/** A sign-up or login waiting on email verification, in this browser session. */
@@ -211,7 +216,7 @@ export function passwordErrors(password: string, email: string): PasswordError[]
 function seed(): MockState {
 	const byKey = new Map(PLAYERS.map((p) => [p.key, p.code]));
 	const code = (key: PlayerKey): string => byKey.get(key) as string;
-	const ratings: Record<string, PlayerRatingsOut> = {};
+	const ratings: Record<string, RatingsByFormat> = {};
 	for (const [key, value] of Object.entries(RATINGS)) {
 		ratings[code(key as PlayerKey)] = structuredClone(value);
 	}
@@ -407,6 +412,9 @@ export function createMockStore() {
 				const fresh = seed();
 				if (!lists.every(Array.isArray) || typeof parsed.csrfToken !== 'string') return false;
 				if (typeof parsed.ratings !== 'object' || parsed.ratings === null) return false;
+				// Ratings saved in the older mocked shape (a `ratings` object per player, with
+				// reliability 0 to 1) would show nothing: drop the snapshot.
+				if (Object.values(parsed.ratings).some((entry) => 'ratings' in entry)) return false;
 				// Players saved before the profile fields (a home club, no city) would show
 				// undefined on the profile page: drop the snapshot.
 				if (!parsed.players.every(isMockPlayer)) return false;
@@ -666,10 +674,22 @@ export function createMockStore() {
 			return account?.active ?? false;
 		},
 
-		ratingsFor(code: string): PlayerRatingsOut | undefined {
+		/**
+		 * `get_player_ratings`: a player's current ratings as the viewer sees them, or undefined
+		 * (a 404) for an unknown or inactive player, and for another viewer when the player's
+		 * `rating_visibility` is private. The player always sees their own.
+		 */
+		ratingsFor(code: string, viewerEmail: string): PlayerRatingsOut | undefined {
 			const player = playerByCode(code);
 			if (!player || !this.isListed(player)) return undefined;
-			return state.ratings[code] ?? { ratings: {}, demonstration: true };
+			const own = player.accountEmail === viewerEmail;
+			if (!own && player.privacy.rating_visibility !== 'signed_in') return undefined;
+			return {
+				code: player.code,
+				profile_url: `${PUBLIC_PROFILE_URL}${player.code}`,
+				demonstration: true,
+				ratings: structuredClone(state.ratings[code] ?? {})
+			};
 		},
 
 		// Matches
