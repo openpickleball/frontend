@@ -4,9 +4,9 @@
  */
 
 /**
- * Paths that always go to the network and are never cached: they carry the session. Django
- * serves all three on the app's host (see "Hosting on App Platform" in README.md), so the worker
- * must never answer an `/oauth/` page load with the app shell.
+ * Paths that always go to the network and are never cached. `/api/` and `/_allauth/` carry the
+ * session. `/oauth/` is Django's partner token endpoint on the same host (see "Hosting on App
+ * Platform" in README.md). The app never calls it, and network-only keeps the worker out of it.
  */
 const NETWORK_ONLY_PREFIXES = ['/api/', '/_allauth/', '/oauth/'];
 

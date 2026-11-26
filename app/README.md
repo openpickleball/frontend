@@ -153,7 +153,7 @@ This section is a proposal. The app is not deployed yet (frontend#22), and nothi
 
 ### Why the app joins the backend's app
 
-App Platform routes paths only between components of one app. The app calls `/api/`, `/_allauth/` and `/oauth/` on its own origin, and the backend keeps `CORS_ALLOW_CREDENTIALS` off, so sign-in only works when the backend and the app share a host. The app is therefore a `static_sites` component in the backend's spec, `.do/production.yaml` in `openpickleball/backend` (app `open-backend-production`), next to its `web` service.
+App Platform routes paths only between components of one app. The app calls `/api/` and `/_allauth/` on its own origin, and the backend keeps `CORS_ALLOW_CREDENTIALS` off, so sign-in only works when the backend and the app share a host. `/oauth/` is Django's partner token endpoint (`token/` and `revoke_token/`), which the app never calls. It goes to Django on the same host too, and the service worker leaves it alone. The app is therefore a `static_sites` component in the backend's spec, `.do/production.yaml` in `openpickleball/backend` (app `open-backend-production`), next to its `web` service.
 
 ### The addition to `.do/production.yaml`
 

@@ -12,7 +12,7 @@ The built app carries a Content Security Policy that allows only what it uses, a
 
 ## Background (measured, not assumed)
 
-- App Platform path routing only works between components of one app, so the app must be a `static_sites` component in the backend's `.do/production.yaml` (backend#288) for `/api/`, `/_allauth/` and `/oauth/` to stay same-origin. The backend keeps `CORS_ALLOW_CREDENTIALS` off (backend ADR 0040), so a separate app would break sign-in.
+- App Platform path routing only works between components of one app, so the app must be a `static_sites` component in the backend's `.do/production.yaml` (backend#288) for `/api/` and `/_allauth/` to stay same-origin. `/oauth/` is Django's partner token endpoint (POST `token/` and `revoke_token/` only) on the same host. The app never calls it. The backend keeps `CORS_ALLOW_CREDENTIALS` off (backend ADR 0040), so a separate app would break sign-in.
 - App Platform's spec has no field for static site response headers (app-spec reference, `static_sites` and `ingress`). The policy must travel in the page as a `<meta http-equiv="content-security-policy">`.
 - A meta CSP ignores `frame-ancestors`, `report-uri` and `sandbox`. Framing protection (`frame-ancestors 'none'`, `X-Frame-Options: DENY`) cannot be set by this app on App Platform. That gap is documented, not solved, here.
 - Ingress rules strip the matched prefix by default. The API rules need `preserve_path_prefix: true`.
@@ -31,7 +31,7 @@ The built app carries a Content Security Policy that allows only what it uses, a
 8. `app/README.md` has a "Hosting on App Platform" section with: the `static_sites` block (source `openpickleball/frontend`, `source_dir: app`, build command, `output_dir: build`, `catchall_document: index.html`); the ingress rules for `app.openpb.org` (`/api/`, `/_allauth/`, `/oauth/` to the backend's `web` with `preserve_path_prefix: true`, everything else to the app); the framing gap; and first-deploy checks it could not verify here (Node and pnpm versions the buildpack picks, cache headers on `service-worker.js` and `index.html`). The block is marked as a proposal that the backend spec owns.
 9. `app/AGENTS.md` states the rule: new origins the browser talks to go into the CSP module, and `app.html` keeps no inline script.
 10. A backend issue asks to add the component and ingress rules to `.do/production.yaml`, linking the README section. #22 is not closed by this PR (`Closes #239`, `Refs #22`).
-11. `/oauth/` joins `/api/` and `/_allauth/` as network-only in `src/pwa/routing.ts`, so the worker never serves the app shell for a Django OAuth page.
+11. `/oauth/` joins `/api/` and `/_allauth/` as network-only in `src/pwa/routing.ts`. It is Django's partner token endpoint on the same host, and network-only keeps the worker out of it.
 
 ## Files that change
 
@@ -108,7 +108,7 @@ Live drive (Chrome DevTools MCP, a `securitypolicyviolation` listener added as a
 - The App Platform block lives in the app README as a proposal. The spec itself belongs to the backend repo, because path routing cannot span two apps. (2026-11-26)
 - Theme script as a static file, not a hash computed in `vite.config.ts`: no hand-kept or computed hash to drift, and the file is precached. (2026-11-26)
 - The theme script tag goes after `%sveltekit.head%`, not before it. SvelteKit writes the CSP meta tag at the start of `%sveltekit.head%` (measured in `build/index.html`), and a meta policy only covers what follows it, so a script before it would load outside the policy and break criterion 1. It is still a blocking script in the head, so it runs before first paint. (2026-11-26)
-- `/oauth/` is network-only in the service worker, like `/api/` and `/_allauth/`, because Django serves it on the same host. Approved in this run. (2026-11-26)
+- `/oauth/` is network-only in the service worker, like `/api/` and `/_allauth/`, because Django serves its partner token endpoint there. Approved in this run. (2026-11-26)
 - `style-src-attr 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='`, not `style-src 'unsafe-inline'`. The only style violation in the suites was SvelteKit's route announcer (measured above). Without the allowance its hiding style is dropped and the announcer text shows on the page. One hash for one attribute is narrower than `'unsafe-inline'`. `src/csp.test.ts` hashes every static style attribute in the installed SvelteKit's `root.svelte`, so an upgrade that changes it fails the unit tests, and the e2e fixture catches any other new one. (2026-11-26)
 - Zod runs jitless (`z.config({ jitless: true })`) instead of allowing `'unsafe-eval'`. Its eval probe was the only script violation. Zod's JIT only speeds up object parsing, which the forms here do not need. (2026-11-26)
 - `src/app.html` uses `class="contents"` instead of `style="display: contents"` on the body wrapper, so it needs no style hash. (2026-11-26)
