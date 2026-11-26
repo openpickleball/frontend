@@ -147,4 +147,18 @@ describe('ownerKey', () => {
 		email = 'a@example.com';
 		expect(cache.get(match.code)).toBeUndefined();
 	});
+
+	it('forgets which match a correction replaced when the player changes', () => {
+		const { cache, signInAs } = cacheFor(TAMSIN);
+		const old = sampleMatch();
+		const fresh = buildCode('match', 'FXD00000002') as MatchCode;
+		cache.markCorrected(fresh, old.code);
+		expect(cache.replacementOf(old.code)).toBe(fresh);
+		signInAs(BEA);
+		expect(cache.replacementOf(old.code)).toBeUndefined();
+		cache.remember(sampleMatch({ code: fresh }));
+		signInAs(TAMSIN);
+		cache.remember(sampleMatch({ code: fresh }));
+		expect(cache.replacementOf(old.code)).toBeUndefined();
+	});
 });

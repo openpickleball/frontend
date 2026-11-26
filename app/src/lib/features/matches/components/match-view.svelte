@@ -188,11 +188,18 @@
 	});
 
 	// The record page hands the match over, and this page says once that the player just recorded it.
+	// The correction page does the same for a correction.
 	let justRecorded = $state(false);
+	let justCorrected = $state(false);
 	$effect(() => {
 		const current = code;
-		untrack(() => (justRecorded = current ? matchCache.takeRecorded(current) : false));
+		untrack(() => {
+			justRecorded = current ? matchCache.takeRecorded(current) : false;
+			justCorrected = current ? matchCache.takeCorrected(current) : false;
+		});
 	});
+	// The correction the player saved in place of this match, in this visit.
+	const replacedBy = $derived(code ? matchCache.replacementOf(code) : undefined);
 
 	async function copyCode(text: string) {
 		try {
@@ -400,6 +407,9 @@
 			{busy}
 			{error}
 			recorded={justRecorded}
+			corrected={justCorrected}
+			correctHref={resolve('/matches/[code]/correct', { code: match.code })}
+			replacedByHref={replacedBy ? resolve('/matches/[code]', { code: replacedBy }) : undefined}
 			onconfirm={() => act('confirm')}
 			ondispute={() => openDialog('dispute')}
 			onwithdraw={() => openDialog('withdraw')}
