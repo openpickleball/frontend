@@ -15,10 +15,6 @@
 		return id ? (offlineQueue.refused.find((item) => item.id === id) ?? null) : null;
 	});
 
-	// The form needs the player's own code, which only the backend gives and the app doesn't keep
-	// on the device. With no connection, use the code this visit already has instead of asking.
-	const online = typeof navigator === 'undefined' || navigator.onLine !== false;
-
 	/** The fixed match is recorded or queued again, so its old copy goes. */
 	function doneFixing() {
 		if (fixing) void offlineQueue.remove(fixing.id);
@@ -52,7 +48,7 @@
 </div>
 
 <div class="mt-8 max-w-2xl">
-	<OwnCodeGate reloadOnOpen={online} signedOut="Sign in to record a match.">
+	<OwnCodeGate reloadOnOpen signedOut="Sign in to record a match.">
 		{#snippet children(own)}
 			{#key `${own}|${fixing?.id ?? ''}`}
 				<RecordMatchForm
