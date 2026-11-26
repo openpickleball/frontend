@@ -58,6 +58,19 @@ test('a match recorded offline waits on the device, then is sent when back onlin
 	await expect(page.getByRole('heading', { name: 'Waiting for the other team' })).toBeVisible();
 });
 
+test('opening Record with no connection keeps the code from this visit', async ({ page }) => {
+	await openRecord(page);
+	// Leave the page and come back with the connection gone. The page asks for the code again,
+	// gets no answer and keeps the one it has (frontend#249).
+	await page.getByRole('link', { name: 'Home', exact: true }).filter({ visible: true }).click();
+	await page.context().setOffline(true);
+	await page.getByRole('link', { name: 'Record', exact: true }).filter({ visible: true }).click();
+	await expect(page.getByTestId('chip')).toHaveText(codeOf('tamsin'));
+	await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+	await recordWhileOffline(page);
+	await expect(waiting(page)).toContainText('1 match waiting to send');
+});
+
 test('sign out warns before it deletes unsent matches', async ({ page }) => {
 	// The side nav has Sign out from 1024px, so no page has to load while offline. The mock build
 	// has no app shell worker to serve one.

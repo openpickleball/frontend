@@ -134,6 +134,78 @@ describe('myCode when me/player fails', () => {
 	});
 });
 
+describe('myCode keeps a known code through a failed reload (frontend#249)', () => {
+	async function loaded(fail: () => Error) {
+		let broken = false;
+		const mine = createMyCode({
+			fetchMyPlayer: async () => {
+				if (broken) throw fail();
+				return SERVER_PLAYER;
+			}
+		});
+		await mine.load();
+		broken = true;
+		return mine;
+	}
+
+	it('keeps the code and stays ready when the reload gets no answer', async () => {
+		const mine = await loaded(() => appError('network', null));
+		await mine.load();
+		expect(mine.status).toBe('ready');
+		expect(mine.code).toBe(CODE_A);
+		expect(mine.displayName).toBe('Sample Player');
+	});
+
+	it('stays ready while the reload is waiting', async () => {
+		let release: (player: MyPlayer) => void = () => {};
+		let calls = 0;
+		const mine = createMyCode({
+			fetchMyPlayer: () =>
+				++calls === 1 ? Promise.resolve(SERVER_PLAYER) : new Promise((r) => (release = r))
+		});
+		await mine.load();
+		const pending = mine.load();
+		expect(mine.status).toBe('ready');
+		expect(mine.code).toBe(CODE_A);
+		release(SERVER_PLAYER);
+		await pending;
+		expect(mine.status).toBe('ready');
+	});
+
+	it('clears the code on a 401', async () => {
+		const mine = await loaded(() => appError('unauthenticated', 401));
+		await mine.load();
+		expect(mine.status).toBe('signed-out');
+		expect(mine.code).toBeNull();
+	});
+
+	it('clears the code on a 5xx', async () => {
+		const mine = await loaded(() => appError('server', 500));
+		await mine.load();
+		expect(mine.status).toBe('error');
+		expect(mine.code).toBeNull();
+	});
+
+	it('clears the code on reset after a failed reload', async () => {
+		const mine = await loaded(() => appError('network', null));
+		await mine.load();
+		mine.reset();
+		expect(mine.status).toBe('idle');
+		expect(mine.code).toBeNull();
+	});
+
+	it('is still an error with no code when the first load gets no answer', async () => {
+		const mine = createMyCode({
+			fetchMyPlayer: async () => {
+				throw appError('network', null);
+			}
+		});
+		await mine.load();
+		expect(mine.status).toBe('error');
+		expect(mine.code).toBeNull();
+	});
+});
+
 describe('codes in these tests', () => {
 	it('are valid player codes', () => {
 		expect(parsePlayerCode(CODE_A).ok).toBe(true);
