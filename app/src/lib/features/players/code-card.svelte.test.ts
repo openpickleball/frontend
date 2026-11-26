@@ -38,6 +38,13 @@ describe('CodeCard', () => {
 		expect(toast).toHaveBeenCalledWith('Code copied');
 	});
 
+	it('puts the Copy icon on Copy code', async () => {
+		fakeNavigator({});
+		const screen = await render(CodeCard, { code: CODE });
+		const button = screen.getByRole('button', { name: 'Copy code' }).element();
+		expect(button.querySelector('svg.lucide-copy')).not.toBeNull();
+	});
+
 	it('shares through the share sheet when there is one', async () => {
 		const share = vi.fn(async () => {});
 		const writeText = vi.fn(async () => {});
