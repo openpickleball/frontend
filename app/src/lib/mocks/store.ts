@@ -92,6 +92,12 @@ export type MockMatch = {
 	/** When the match was submitted, as an ISO time. */
 	createdAt: string;
 	decisions: MockDecision[];
+	/**
+	 * The status a disputed match had when its dispute began, which a withdraw of the last open
+	 * dispute goes back to (the backend reads it from the `match.dispute` Audit Event). Pending
+	 * when not set.
+	 */
+	disputedFrom?: 'pending' | 'confirmed';
 };
 
 export type MockToken = { key: string; kind: 'verify_email' | 'reset_password'; email: string };
@@ -229,7 +235,8 @@ function seed(): MockState {
 			submittedBy: PLAYERS.find((p) => p.key === m.submittedBy)?.accountEmail ?? null,
 			seq: total - index,
 			createdAt: `${m.playedOn}T18:00:00Z`,
-			decisions: m.decisions.map((d) => ({ player: code(d.player), decision: d.decision }))
+			decisions: m.decisions.map((d) => ({ player: code(d.player), decision: d.decision })),
+			...(m.disputedFrom ? { disputedFrom: m.disputedFrom } : {})
 		})),
 		ratings,
 		session: null,
@@ -819,8 +826,45 @@ export function createMockStore() {
 				return { ok: true, match };
 			}
 			if (match.status === 'voided') return { ok: false, kind: 'conflict' };
+			// A player disputes a match once: a repeat, also after they withdrew, changes nothing.
 			const added = record('dispute');
-			if (added && match.status !== 'disputed') match.status = 'disputed';
+			if (added && match.status !== 'disputed') {
+				match.disputedFrom = match.status;
+				match.status = 'disputed';
+			}
+			return { ok: true, match };
+		},
+
+		/**
+		 * `workflow.withdraw_dispute` for a participant. Anyone who did not play gets the
+		 * unknown-code 404. A voided match is a 409 first, even after a withdraw. A repeat withdraw
+		 * changes nothing. A match that is not disputed, or has no open dispute of theirs, is a 409.
+		 * The match stays disputed while another player's dispute is open, and goes back to how it
+		 * was before the dispute once none is. The mock has no Event organizer, so a dispute is
+		 * never settled by one, and every dispute not withdrawn is open.
+		 */
+		withdrawDispute(email: string, code: string): ChangeResult {
+			const match = this.matchByCode(code);
+			const own = playerOfAccount(email);
+			if (!match || !own || ![...match.teamA, ...match.teamB].includes(own.code)) {
+				return { ok: false, kind: 'not_found' };
+			}
+			if (match.status === 'voided') return { ok: false, kind: 'conflict' };
+			const withdrew = (player: string) =>
+				match.decisions.some((d) => d.player === player && d.decision === 'withdraw');
+			if (withdrew(own.code)) return { ok: true, match };
+			if (match.status !== 'disputed') return { ok: false, kind: 'conflict' };
+			const open = new Set(
+				match.decisions
+					.filter((d) => d.decision === 'dispute' && !withdrew(d.player))
+					.map((d) => d.player)
+			);
+			if (!open.has(own.code)) return { ok: false, kind: 'conflict' };
+			match.decisions.push({ player: own.code, decision: 'withdraw' });
+			if (open.size === 1) {
+				match.status = match.disputedFrom ?? 'pending';
+				delete match.disputedFrom;
+			}
 			return { ok: true, match };
 		},
 
@@ -882,6 +926,23 @@ export function createMockStore() {
 						!m.decisions.some((d) => d.decision === 'confirm' && team.includes(d.player))
 					);
 				})
+				.sort(newestFirst);
+			return { items: all.slice(offset, offset + limit), count: all.length };
+		},
+
+		/**
+		 * `list_my_disputes`: the disputed matches the signed-in account's player played in,
+		 * whoever disputed them, newest first. An account with no player gets an empty page.
+		 */
+		listMyDisputes(
+			viewerEmail: string,
+			limit: number,
+			offset: number
+		): { items: MockMatch[]; count: number } {
+			const own = playerOfAccount(viewerEmail);
+			if (!own) return { items: [], count: 0 };
+			const all = state.matches
+				.filter((m) => m.status === 'disputed' && [...m.teamA, ...m.teamB].includes(own.code))
 				.sort(newestFirst);
 			return { items: all.slice(offset, offset + limit), count: all.length };
 		},

@@ -2,7 +2,7 @@ import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import type { Match, MatchCode, PlayerCode } from '#lib/domain/index.js';
 
 /** What a player can do to a match they played in. */
-export type MatchAction = 'confirm' | 'dispute';
+export type MatchAction = 'confirm' | 'dispute' | 'withdraw';
 
 /**
  * Who the cache belongs to: the account's email and the player's code together. Two accounts that

@@ -161,6 +161,8 @@ export type FixtureMatch = {
 	games: readonly (readonly [number, number])[];
 	submittedBy: PlayerKey;
 	decisions: readonly FixtureDecision[];
+	/** For a disputed match: its status before the dispute, which a withdraw goes back to. */
+	disputedFrom?: 'pending' | 'confirmed';
 };
 
 const dec = (
@@ -334,7 +336,8 @@ function fromShort(short: Short, index: number): FixtureMatch {
 		status === 'confirmed'
 			? [dec('tamsin'), dec(teamB[0])]
 			: status === 'disputed'
-				? [dec(teamB[0], 'dispute')]
+				? // Tamsin's own open dispute, so she can withdraw it. It was pending before.
+					[dec('tamsin', 'dispute')]
 				: [];
 	return {
 		random: fillerRandom(index + 1),

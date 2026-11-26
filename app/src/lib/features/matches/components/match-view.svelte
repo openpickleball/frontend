@@ -8,13 +8,7 @@
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import { resolve } from '$app/paths';
 	import { isAppError } from '#lib/api/index.js';
-	import {
-		ROUTES,
-		needsViewerConfirmation,
-		parseMatchCode,
-		type Match,
-		type MatchCode
-	} from '#lib/domain/index.js';
+	import { ROUTES, parseMatchCode, type Match, type MatchCode } from '#lib/domain/index.js';
 	import { myCode } from '#lib/features/players/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
@@ -37,11 +31,13 @@
 		scoringName,
 		viewpoint
 	} from '../format.js';
-	import { confirmMatch, disputeMatch, getMatch } from '../services.js';
+	import { confirmMatch, disputeMatch, getMatch, withdrawDispute } from '../services.js';
+	import { hasActions } from '../status.js';
 	import CodeGate from './code-gate.svelte';
 	import DisputeDialog from './dispute-dialog.svelte';
 	import Scoreboard from './scoreboard.svelte';
 	import StatusPanel from './status-panel.svelte';
+	import WithdrawDialog from './withdraw-dialog.svelte';
 
 	/** The match code from the address, as typed. */
 	let { code: raw }: { code: string } = $props();
@@ -172,33 +168,43 @@
 	let busy = $state<MatchAction | null>(null);
 	let error = $state<string | null>(null);
 	let disputeOpen = $state(false);
+	let withdrawOpen = $state(false);
+
+	const FAILED: Record<MatchAction, string> = {
+		confirm: "We couldn't confirm the score. Try again.",
+		dispute: "We couldn't dispute the score. Try again.",
+		withdraw: "We couldn't withdraw your dispute. Try again."
+	};
 
 	function problem(cause: unknown, action: MatchAction): string {
 		if (isAppError(cause)) {
 			if (cause.kind === 'conflict') {
-				return "This match can't be changed any more. Check where it stands, then try again.";
+				return action === 'withdraw'
+					? "There's no dispute of yours to withdraw on this match now. It may have been settled, or the match was voided. Check where it stands."
+					: "This match can't be changed any more. Check where it stands, then try again.";
 			}
 			if (cause.kind === 'not_found' || cause.kind === 'forbidden') {
-				return 'You can only confirm or dispute a match you played in.';
+				return action === 'withdraw'
+					? 'You can only withdraw a dispute on a match you played in.'
+					: 'You can only confirm or dispute a match you played in.';
 			}
 			return cause.message;
 		}
-		return action === 'confirm'
-			? "We couldn't confirm the score. Try again."
-			: "We couldn't dispute the score. Try again.";
+		return FAILED[action];
 	}
 
-	// Settles once the dispute dialog is gone. While it is open it traps focus, and it hands focus
+	// Settles once the open dialog is gone. While it is open it traps focus, and it hands focus
 	// back (the dialog's onCloseAutoFocus) after it unmounts, so the page waits for that, not a timer.
 	let dialogGone: Promise<void> = Promise.resolve();
 	let dialogDone: () => void = () => {};
 
-	function openDispute() {
+	function openDialog(which: 'dispute' | 'withdraw') {
 		dialogGone = new Promise((done) => (dialogDone = done));
-		disputeOpen = true;
+		if (which === 'dispute') disputeOpen = true;
+		else withdrawOpen = true;
 	}
 
-	/** Move focus to an element once the buttons are enabled again and the dispute dialog is gone. */
+	/** Move focus to an element once the buttons are enabled again and the open dialog is gone. */
 	async function focusAfterDialog(id: string) {
 		await tick();
 		await dialogGone;
@@ -242,15 +248,30 @@
 						? 'Confirmed. The match now counts.'
 						: 'Confirmed. Thanks for checking the score.'
 				);
-			} else {
+			} else if (action === 'dispute') {
 				adopt(await disputeMatch(code));
 				toast('Score disputed');
+			} else {
+				const updated = await withdrawDispute(code);
+				adopt(updated);
+				toast(
+					updated.status === 'disputed'
+						? 'Dispute withdrawn. Another player still disputes this score.'
+						: updated.status === 'confirmed'
+							? 'Dispute withdrawn. The match counts again.'
+							: 'Dispute withdrawn.'
+				);
 			}
 		} catch (cause) {
-			if (!(isAppError(cause) && cause.kind === 'conflict' && (await refresh()))) {
+			const conflict = isAppError(cause) && cause.kind === 'conflict';
+			const refreshed = conflict && (await refresh());
+			if (!refreshed) {
 				error = problem(cause, action);
 				// The button the player pressed is still here, so put focus back on it.
-				focusId = action === 'dispute' ? 'dispute-button' : 'confirm-button';
+				focusId = `${action}-button`;
+			} else if (action === 'withdraw') {
+				// The page now shows where the match stands. Say why the withdraw did nothing.
+				error = problem(cause, action);
 			}
 		} finally {
 			busy = null;
@@ -306,12 +327,13 @@
 			{error}
 			recorded={justRecorded}
 			onconfirm={() => act('confirm')}
-			ondispute={openDispute}
+			ondispute={() => openDialog('dispute')}
+			onwithdraw={() => openDialog('withdraw')}
 		/>
 	{/snippet}
 
 	<!-- When the player has something to do, the buttons come before the scoreboard. -->
-	{#if needsViewerConfirmation(match)}
+	{#if hasActions(match)}
 		{@render status()}
 		{@render score()}
 	{:else}
@@ -333,6 +355,11 @@
 	<DisputeDialog
 		bind:open={disputeOpen}
 		onconfirm={() => act('dispute')}
+		onclosed={() => dialogDone()}
+	/>
+	<WithdrawDialog
+		bind:open={withdrawOpen}
+		onconfirm={() => act('withdraw')}
 		onclosed={() => dialogDone()}
 	/>
 {:else if code && (lookup === 'loading' || lookup === 'done')}

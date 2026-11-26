@@ -15,7 +15,8 @@ vi.mock('../services.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('../services.js')>()),
 	confirmMatch: vi.fn(),
 	disputeMatch: vi.fn(),
-	getMatch: vi.fn()
+	getMatch: vi.fn(),
+	withdrawDispute: vi.fn()
 }));
 const mocked = vi.mocked(services);
 
@@ -476,5 +477,168 @@ describe('MatchView', () => {
 
 		await expect.element(page.getByRole('status').getByText(/needs a connection/)).toBeVisible();
 		await expect.element(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+	});
+});
+
+describe('MatchView withdraw', () => {
+	const disputedByMe = () => viewerMatch({ decision: 'dispute' }, { status: 'disputed' });
+
+	/** The page opens on a match the player disputed, and the first read still finds it so. */
+	function openDisputed() {
+		matchCache.remember(disputedByMe());
+		mocked.getMatch.mockImplementation(async () => {
+			const found = disputedByMe();
+			matchCache.remember(found);
+			return found;
+		});
+	}
+
+	async function withdraw() {
+		await page.getByRole('button', { name: 'Withdraw my dispute' }).click();
+		const dialog = page.getByRole('alertdialog', { name: 'Withdraw your dispute?' });
+		await expect.element(dialog.getByText(/can't dispute this match again/)).toBeVisible();
+		await dialog.getByRole('button', { name: 'Withdraw dispute' }).click();
+	}
+
+	it('puts the status panel before the score while the player can withdraw', async () => {
+		openDisputed();
+		const screen = await render(MatchView, { code: code() });
+		await expect.element(page.getByRole('button', { name: 'Withdraw my dispute' })).toBeVisible();
+		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
+		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
+	it('withdraws after the dialog, then offers Confirm but not Dispute', async () => {
+		openDisputed();
+		mocked.withdrawDispute.mockImplementation(async () => {
+			const pending = viewerMatch({ decision: 'withdraw' });
+			matchCache.remember(pending);
+			return pending;
+		});
+		await render(MatchView, { code: code() });
+
+		await withdraw();
+
+		expect(mocked.withdrawDispute).toHaveBeenCalledExactlyOnceWith(code());
+		await expect
+			.element(page.getByRole('heading', { name: 'Is this the right score?' }))
+			.toHaveFocus();
+		await expect.element(page.getByRole('button', { name: 'Confirm score' })).toBeVisible();
+		await expect
+			.element(page.getByRole('button', { name: 'Dispute', exact: true }))
+			.not.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('button', { name: 'Withdraw my dispute' }))
+			.not.toBeInTheDocument();
+	});
+
+	it('shows the match still disputed when another player keeps their dispute', async () => {
+		openDisputed();
+		mocked.withdrawDispute.mockImplementation(async () => {
+			const still = viewerMatch({ decision: 'withdraw' }, { status: 'disputed' });
+			matchCache.remember(still);
+			return still;
+		});
+		await render(MatchView, { code: code() });
+
+		await withdraw();
+
+		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toHaveFocus();
+		await expect
+			.element(page.getByText(/You withdrew your dispute\. Another player in this match/))
+			.toBeVisible();
+		await expect
+			.element(page.getByRole('button', { name: 'Withdraw my dispute' }))
+			.not.toBeInTheDocument();
+	});
+
+	it('Cancel withdraws nothing and puts focus back on the button', async () => {
+		openDisputed();
+		await render(MatchView, { code: code() });
+
+		await page.getByRole('button', { name: 'Withdraw my dispute' }).click();
+		await page.getByRole('button', { name: 'Cancel' }).click();
+
+		expect(mocked.withdrawDispute).not.toHaveBeenCalled();
+		await expect.element(page.getByRole('button', { name: 'Withdraw my dispute' })).toHaveFocus();
+	});
+
+	it('reads the match again after a 409 and says why nothing was withdrawn', async () => {
+		openDisputed();
+		mocked.withdrawDispute.mockRejectedValue(conflict);
+		let reads = 0;
+		mocked.getMatch.mockImplementation(async () => {
+			const found =
+				reads++ === 0 ? disputedByMe() : viewerMatch({ decision: 'dispute' }, { status: 'voided' });
+			matchCache.remember(found);
+			return found;
+		});
+		await render(MatchView, { code: code() });
+
+		await withdraw();
+
+		await expect.element(page.getByRole('heading', { name: 'Voided' })).toBeVisible();
+		expect(mocked.getMatch).toHaveBeenCalledTimes(2);
+		await expect
+			.element(page.getByRole('alert').getByText(/no dispute of yours to withdraw/))
+			.toBeVisible();
+		await expect
+			.element(page.getByRole('button', { name: 'Withdraw my dispute' }))
+			.not.toBeInTheDocument();
+	});
+
+	it('says so after a 409 when the match cannot be read again, and keeps focus on the button', async () => {
+		openDisputed();
+		mocked.withdrawDispute.mockRejectedValue(conflict);
+		let reads = 0;
+		mocked.getMatch.mockImplementation(async () => {
+			if (reads++ > 0) throw new Error('offline');
+			return disputedByMe();
+		});
+		await render(MatchView, { code: code() });
+
+		await withdraw();
+
+		await expect
+			.element(page.getByRole('alert').getByText(/no dispute of yours to withdraw/))
+			.toBeVisible();
+		await expect.element(page.getByRole('button', { name: 'Withdraw my dispute' })).toHaveFocus();
+	});
+
+	for (const [kind, status] of [
+		['not_found', 404],
+		['forbidden', 403]
+	] as const) {
+		it(`says only a player in the match can withdraw on a ${status}`, async () => {
+			openDisputed();
+			mocked.withdrawDispute.mockRejectedValue(
+				new AppError({ kind, status, code: kind, message: 'No.', fields: {} })
+			);
+			await render(MatchView, { code: code() });
+
+			await withdraw();
+
+			await expect
+				.element(
+					page
+						.getByRole('alert')
+						.getByText('You can only withdraw a dispute on a match you played in.')
+				)
+				.toBeVisible();
+			await expect.element(page.getByRole('button', { name: 'Withdraw my dispute' })).toHaveFocus();
+		});
+	}
+
+	it('asks to try again when the withdraw fails for another reason', async () => {
+		openDisputed();
+		mocked.withdrawDispute.mockRejectedValue(new Error('network'));
+		await render(MatchView, { code: code() });
+
+		await withdraw();
+
+		await expect
+			.element(page.getByRole('alert').getByText("We couldn't withdraw your dispute. Try again."))
+			.toBeVisible();
 	});
 });

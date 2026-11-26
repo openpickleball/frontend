@@ -4,11 +4,13 @@ import { page, userEvent } from 'vitest/browser';
 import DisputeDialog from './dispute-dialog.svelte';
 
 describe('DisputeDialog', () => {
-	it('asks for no reason, and says a dispute cannot be undone', async () => {
+	it('asks for no reason, and says a player disputes a match once', async () => {
 		await render(DisputeDialog, { open: true, onconfirm: vi.fn() });
 		const dialog = page.getByRole('alertdialog', { name: 'Dispute this score?' });
 		await expect.element(dialog).toBeVisible();
-		await expect.element(dialog.getByText(/undo a dispute/)).toBeVisible();
+		await expect.element(dialog.getByText(/withdraw your dispute later/)).toBeVisible();
+		await expect.element(dialog.getByText(/only dispute a match once/)).toBeVisible();
+		await expect.element(dialog.getByText(/undo/)).not.toBeInTheDocument();
 		await expect.element(dialog.getByRole('textbox')).not.toBeInTheDocument();
 	});
 

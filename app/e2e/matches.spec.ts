@@ -16,6 +16,13 @@ const WAITING_ON_ME = matchCode('7QK2H9WD3NF');
 const WAITING_ON_ME_TOO = matchCode('3FTB8ZRMK6P');
 const ALREADY_CONFIRMED_BY_ME = matchCode('X4NC2GHJ9VQ');
 
+// Disputed matches. Tamsin disputed the older one alone, so she can withdraw it. She withdrew
+// her dispute of the newer one, and Bea's dispute keeps it disputed.
+const MY_DISPUTE = matchCode(
+	MATCHES.find((m) => m.status === 'disputed' && m.random !== 'R5GK9WBD2XF')!.random
+);
+const STILL_DISPUTED = matchCode('R5GK9WBD2XF');
+
 // A confirmed match between Oren and Bea. Tamsin is not in it, so she cannot read it.
 const NOT_HERS = matchCode('C4VD8RME2TX');
 
@@ -306,6 +313,108 @@ test.describe('match detail', () => {
 			await page.goto(`/matches/${WAITING_ON_ME}`);
 			await expect(page.getByTestId('status-panel')).toBeVisible();
 			await expectNoAxeViolations(page);
+		}
+	});
+});
+
+test.describe('disputes', () => {
+	test('lists her disputed matches on home, after what needs her', async ({ page }) => {
+		const disputed = page.getByRole('heading', { level: 2, name: 'Disputed matches' });
+		const needs = page.getByRole('heading', { level: 2, name: 'Needs your confirmation' });
+		const waiting = page.getByRole('heading', { level: 2, name: 'Waiting for the other team' });
+		await expect(disputed).toBeVisible();
+		expect((await needs.boundingBox())!.y).toBeLessThan((await disputed.boundingBox())!.y);
+		expect((await disputed.boundingBox())!.y).toBeLessThan((await waiting.boundingBox())!.y);
+
+		const list = page.getByRole('list', { name: 'Disputed matches' });
+		await expect(list.getByTestId('match-row')).toHaveCount(2);
+		await expect(list.locator(`a[href$="/matches/${MY_DISPUTE}"]`)).toContainText(
+			'You disputed this score.'
+		);
+		await expect(list.locator(`a[href$="/matches/${STILL_DISPUTED}"]`)).toBeVisible();
+		// A disputed match is not listed again under recent matches.
+		await expect(
+			page
+				.getByRole('list', { name: 'Recent matches' })
+				.locator(`a[href$="/matches/${STILL_DISPUTED}"]`)
+		).toHaveCount(0);
+	});
+
+	test('withdraws her dispute, then offers Confirm and no second dispute', async ({ page }) => {
+		await page
+			.getByRole('list', { name: 'Disputed matches' })
+			.locator(`a[href$="/matches/${MY_DISPUTE}"]`)
+			.click();
+		await expect(page).toHaveURL(new RegExp(`/matches/${MY_DISPUTE}$`));
+		const panel = page.getByTestId('status-panel');
+		await expect(panel).toHaveAttribute('data-status', 'disputed');
+		await expect(panel.getByText(/You said this score is wrong/)).toBeVisible();
+		await expect(panel.getByText(/every player who disputed the score withdraws/)).toBeVisible();
+		await expect(page.getByText(/moderator/i)).toHaveCount(0);
+
+		await page.getByRole('button', { name: 'Withdraw my dispute' }).click();
+		const dialog = page.getByRole('alertdialog', { name: 'Withdraw your dispute?' });
+		await expect(dialog.getByText(/can't dispute this match again/)).toBeVisible();
+		await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+		await dialog.getByRole('button', { name: 'Withdraw dispute' }).click();
+
+		// No one else disputed it and it was pending before, so it waits for confirmation again.
+		await expect(page.getByText('Dispute withdrawn.', { exact: true })).toBeVisible();
+		await expect(panel).toHaveAttribute('data-status', 'pending');
+		await expect(page.getByRole('heading', { name: 'Is this the right score?' })).toBeFocused();
+		await expect(panel.getByText(/can't dispute this match again/)).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Confirm score' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Dispute', exact: true })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Withdraw my dispute' })).toHaveCount(0);
+
+		// Home: it left the disputed list and now needs her confirmation.
+		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
+		await expect(
+			page.getByRole('list', { name: 'Disputed matches' }).getByTestId('match-row')
+		).toHaveCount(1);
+		await expect(
+			page
+				.getByRole('list', { name: 'Needs your confirmation' })
+				.locator(`a[href$="/matches/${MY_DISPUTE}"]`)
+		).toBeVisible();
+	});
+
+	test('keeps Withdraw away when she already withdrew and another player still disputes', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${STILL_DISPUTED}`);
+		const panel = page.getByTestId('status-panel');
+		await expect(panel).toHaveAttribute('data-status', 'disputed');
+		await expect(
+			panel.getByText(/You withdrew your dispute\. Another player in this match still says/)
+		).toBeVisible();
+		await expect(panel.getByText(/the match is voided/)).toBeVisible();
+		await expect(panel.getByRole('button')).toHaveCount(0);
+	});
+
+	test('has no WCAG 2.1 AA violations on home, a disputed match and the dialog, in either theme', async ({
+		page
+	}) => {
+		for (const scheme of ['dark', 'light'] as const) {
+			await page.emulateMedia({ colorScheme: scheme });
+			await page.goto('/');
+			await expect(page.getByRole('heading', { name: 'Disputed matches' })).toBeVisible();
+			await expectNoAxeViolations(page);
+
+			await page.goto(`/matches/${MY_DISPUTE}`);
+			await expect(page.getByRole('button', { name: 'Withdraw my dispute' })).toBeVisible();
+			await expectNoAxeViolations(page);
+
+			await page.getByRole('button', { name: 'Withdraw my dispute' }).click();
+			const dialog = page.getByRole('alertdialog', { name: 'Withdraw your dispute?' });
+			await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+			// Axe reads colors mid fade-in otherwise.
+			await page.waitForFunction(() =>
+				document.getAnimations().every((animation) => animation.playState !== 'running')
+			);
+			await expectNoAxeViolations(page);
+			await page.keyboard.press('Escape');
+			await expect(page.getByRole('button', { name: 'Withdraw my dispute' })).toBeFocused();
 		}
 	});
 });

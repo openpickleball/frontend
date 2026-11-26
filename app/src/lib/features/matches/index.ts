@@ -1,5 +1,6 @@
 /**
- * Matches: the player's match history, one match's detail, and confirm and dispute.
+ * Matches: the player's match history, one match's detail, and confirm, dispute and withdraw a
+ * dispute.
  *
  * What the screens can and cannot know
  *
@@ -12,6 +13,12 @@
  *   no one on the player's team has confirmed yet. A confirmed match can show both teams false
  *   (an organizer confirmed it), so read `status` for whether a match is confirmed.
  * - Dispute takes no body and stores no reason, so the dialog asks for none.
+ * - `GET me/matches/disputes` lists the disputed matches the player played in, whoever disputed
+ *   them. A player withdraws their own open dispute with `POST matches/{code}/withdraw-dispute`.
+ *   The match stays disputed while another player's dispute is open. A withdrawn dispute still
+ *   counts as the player's one dispute, so the page offers no Dispute after it.
+ * - `status.ts` (`matchStatusCopy`) says how each status and decision reads and which buttons
+ *   the status panel offers. Add a new status or action there.
  *
  * How to use it
  *
@@ -24,8 +31,9 @@
  * - `matchCache`: matches by code, filled by every list page and every confirm or dispute
  *   response. `matchCache.get(code)` is reactive. It empties by itself when the signed-in player
  *   changes.
- * - `listMatches(player, offset)`, `countMatches(player)`, `listAwaitingConfirmation(offset)`, `getMatch(code)`,
- *   `confirmMatch(code)` and `disputeMatch(code)` are the services. They throw an `AppError` when a call fails.
+ * - `listMatches(player, offset)`, `countMatches(player)`, `listAwaitingConfirmation(offset)`,
+ *   `listMyDisputes(offset)`, `getMatch(code)`, `confirmMatch(code)`, `disputeMatch(code)` and
+ *   `withdrawDispute(code)` are the services. They throw an `AppError` when a call fails.
  * - `format.ts` helpers (`scoreLine`, `teamNames`, `formatDate`, ...) are exported for other
  *   screens that show a match.
  */
@@ -38,8 +46,17 @@ export {
 	getMatch,
 	listAwaitingConfirmation,
 	listMatches,
-	rememberMatch
+	listMyDisputes,
+	rememberMatch,
+	withdrawDispute
 } from './services.js';
+export {
+	DISPUTE_ENDS,
+	hasActions,
+	matchStatusCopy,
+	type MatchStatusCopy,
+	type PanelAction
+} from './status.js';
 export { MatchListView, type ListStatus, type PageFetcher } from './list-view.svelte.js';
 export {
 	STATUS_LABELS,
@@ -66,4 +83,5 @@ export { default as MatchRow } from './components/match-row.svelte';
 export { default as MatchList } from './components/match-list.svelte';
 export { default as StatusPanel } from './components/status-panel.svelte';
 export { default as DisputeDialog } from './components/dispute-dialog.svelte';
+export { default as WithdrawDialog } from './components/withdraw-dialog.svelte';
 export { default as Scoreboard } from './components/scoreboard.svelte';
