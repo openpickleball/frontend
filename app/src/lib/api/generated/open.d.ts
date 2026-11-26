@@ -130,6 +130,36 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/api/v1/matches/{code}/correction': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Correct Match
+		 * @description Correct a pending or disputed match you played in with no Event.
+		 *
+		 *     Give the corrected match as for a new one, with the same two teams in
+		 *     either order. The match is voided and the correction is created
+		 *     pending, submitted by you and with your confirmation, and returned. It
+		 *     counts once a player on the other team confirms it. A scoring type or game target left out
+		 *     is the corrected match's, and a missing best-of is inferred from the
+		 *     games. Its location, labels, and order come from the corrected match. A
+		 *     confirmed match gets 409: dispute it first. Anyone who did not play in
+		 *     the match, a match with an Event or Club, and a correction with other
+		 *     teams get 404, as for an unknown code.
+		 */
+		post: operations['correct_match'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/api/v1/matches/{code}/dispute': {
 		parameters: {
 			query?: never;
@@ -141,13 +171,140 @@ export interface paths {
 		put?: never;
 		/**
 		 * Dispute Match
-		 * @description Dispute a match you played in. A moderator then reviews it.
+		 * @description Dispute a match you played in.
 		 *
-		 *     Disputing again changes nothing. A voided match cannot be disputed
+		 *     A disputed match stops counting. For a match with an Event, the
+		 *     Event's organizer then settles it. You can withdraw your dispute
+		 *     (``/withdraw-dispute``), and for a match with no Event you can
+		 *     correct it yourself (``/correction``).
+		 *
+		 *     Disputing again changes nothing, also after you withdrew your dispute. A voided match cannot be disputed
 		 *     (409). Anyone who did not play in the match gets 404, as for an
 		 *     unknown code.
 		 */
 		post: operations['dispute_match'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/matches/{code}/dispute-correction': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Correct Disputed Match
+		 * @description Settle a dispute on your Event's match by correcting it.
+		 *
+		 *     For a member of the verified organizer that ran the match's Event, who
+		 *     plays neither in the match nor in the correction. The correction also
+		 *     needs the consent of every Club the match names to your organizer;
+		 *     without it you get 404 as well. The disputed match is voided and the
+		 *     correction, given as for a new match, is created confirmed and returned.
+		 *     A scoring type or game target left out is the disputed match's, and a
+		 *     missing best-of is inferred from the games. Its location, labels, and
+		 *     order come from the disputed match. The reason is required and is kept
+		 *     in the match's audit log, which cannot be erased, so do not name a
+		 *     player in it. A match that is not disputed gets 409. Anyone else gets
+		 *     404, as for an unknown code.
+		 */
+		post: operations['correct_disputed_match'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/matches/{code}/resolve-dispute': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Resolve Match Dispute
+		 * @description Settle a dispute on your Event's match as confirmed or voided.
+		 *
+		 *     For a member of the verified organizer that ran the match's Event,
+		 *     who did not play in the match. The reason is required and is kept in
+		 *     the match's audit log, which cannot be erased, so do not name a
+		 *     player in it. A confirmed match counts again. A match that is not
+		 *     disputed gets 409. Anyone else gets 404, as for an unknown code.
+		 */
+		post: operations['resolve_match_dispute'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/matches/{code}/vouch': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Vouch For Match
+		 * @description Vouch that a held match is not a duplicate of the other match.
+		 *
+		 *     A match recorded with the same teams and date as another, with other
+		 *     scores, is held from counting along with that match until each one is
+		 *     vouched for at its own level. A match with an Event is vouched for by
+		 *     a member of the verified organizer that ran it whose player is in no
+		 *     match of the match's correction chain. A match with no Event is
+		 *     vouched for by one player of each team. A match with a club and no
+		 *     Event has no level: nobody vouches for it, and a hold against it ends
+		 *     only when a match is voided or the hold period ends. Once both
+		 *     matches are vouched for, each counts again once it is confirmed and
+		 *     no other open hold keeps it. The response is this match only: the
+		 *     other match is never named. A vouch cannot be undone. Vouching again
+		 *     records nothing new unless another hold has opened on the match since.
+		 *     A voided match, and a match nothing holds (a released one included),
+		 *     get 409. Anyone else gets 404, as for an unknown code.
+		 */
+		post: operations['vouch_for_match'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/matches/{code}/withdraw-dispute': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Withdraw Match Dispute
+		 * @description Withdraw your dispute of a match you played in.
+		 *
+		 *     The match stays disputed while another player's dispute is open. Once
+		 *     no dispute is open, it is confirmed again when it was confirmed before
+		 *     the dispute, else pending, and a confirmed match counts again. Your
+		 *     dispute still counts as your one dispute, so disputing again changes
+		 *     nothing. Withdrawing again changes nothing unless the match was voided
+		 *     meanwhile. A voided match, and a match you have no open dispute on,
+		 *     get 409. Anyone who did not play in the match gets 404, as
+		 *     for an unknown code.
+		 */
+		post: operations['withdraw_match_dispute'];
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -171,6 +328,86 @@ export interface paths {
 		 *     listed, since submitting confirms it for your team.
 		 */
 		get: operations['list_matches_awaiting_confirmation'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/me/matches/disputes': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List My Disputes
+		 * @description The disputed matches you played in, newest first.
+		 *
+		 *     A match leaves the list once its dispute is withdrawn, settled, or
+		 *     ends. Matches held as possible duplicates are listed by
+		 *     list_my_holds.
+		 */
+		get: operations['list_my_disputes'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/me/matches/holds': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List My Holds
+		 * @description The held matches you may vouch for, newest first.
+		 *
+		 *     Lists each match that is not voided and that a possible duplicate
+		 *     hold keeps from counting, when you may vouch for it: a match with no
+		 *     Event you played in, or a match of an Event run by a verified
+		 *     organizer you are a member of, when your player is in no match of its
+		 *     correction chain. A match with a club and no Event is never listed:
+		 *     nobody vouches for it. ``vouched`` says
+		 *     whether your side has vouched for it already. The other match of the
+		 *     hold is never named. A match leaves the list once the hold ends.
+		 */
+		get: operations['list_my_holds'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/me/matches/organizer-disputes': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List Organizer Disputes
+		 * @description The disputed matches of your organizers' Events you can settle,
+		 *     newest first.
+		 *
+		 *     Lists every disputed match of an Event run by a verified organizer
+		 *     you are a member of, except a match your player plays in, or plays in
+		 *     an earlier or later version of (a corrected match): you cannot settle
+		 *     those. Anyone else gets an empty page. A match leaves the list once
+		 *     its dispute is settled or ends.
+		 */
+		get: operations['list_organizer_disputes'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -226,6 +463,146 @@ export interface paths {
 		 *     only). 404 when the Account has no Player.
 		 */
 		patch: operations['update_my_player'];
+		trace?: never;
+	};
+	'/api/v1/organizer/events': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List Organizer Events
+		 * @description The Events of every Organizer the signed-in Account is a member of.
+		 *
+		 *     Either role, verified or not. Newest start date first.
+		 */
+		get: operations['list_organizer_events'];
+		put?: never;
+		/**
+		 * Create Organizer Event
+		 * @description Create an Event for a verified Organizer the Account is a member of.
+		 *
+		 *     403 for any other Organizer, an unknown one included. A Club must have
+		 *     granted the Organizer a Club Organizer Grant (422 on ``club``).
+		 */
+		post: operations['create_organizer_event'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/organizer/events/{code}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/**
+		 * Delete Organizer Event
+		 * @description Delete an Event. 409 when a match or an upload names it.
+		 */
+		delete: operations['delete_organizer_event'];
+		options?: never;
+		head?: never;
+		/**
+		 * Update Organizer Event
+		 * @description Change an Event's name, kind, or dates. Only the fields sent change.
+		 *
+		 *     The kind may change at any time and reaches only matches recorded
+		 *     after it. The name and dates change only while no match names the
+		 *     Event (409 otherwise); sending the stored value is not a change.
+		 */
+		patch: operations['update_organizer_event'];
+		trace?: never;
+	};
+	'/api/v1/organizer/events/{code}/results-files': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Create Results File
+		 * @description Upload a CSV results file for an Event of your verified Organizer.
+		 *
+		 *     The file is in the CSV results format (``docs/csv-format.md``), at
+		 *     most 1 MiB and 1000 match rows. ``players_13_or_older`` must be true:
+		 *     it confirms that every player in the file is 13 or older (422
+		 *     otherwise, checked before anything else). ``game_target`` (11, 15, or
+		 *     21) and ``location`` apply to every row. Anyone who may not manage the
+		 *     Event's matches gets the same 404 as an unknown Event. A larger file
+		 *     gets 413. The file is processed in the background: the response is
+		 *     202 with the file pending, and ``get_results_file`` shows the report.
+		 *     Only the good rows are recorded. A row that repeats a match already
+		 *     recorded, a pending one included, is reported as a duplicate.
+		 */
+		post: operations['create_results_file'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/organizer/results-files/{code}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Results File
+		 * @description A results file you uploaded, with its report.
+		 *
+		 *     Each row shows its result (``recorded``, ``duplicate``, or
+		 *     ``failed``), the match's OPEN Code when there is one you may know,
+		 *     and issues and warnings as columns, a code, and a fixed message. The
+		 *     report never repeats a name, a player ID, or any other cell. Anyone
+		 *     but the uploader gets the same 404 as an unknown code.
+		 */
+		get: operations['get_results_file'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/organizers/{code}/reports': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Report Organizer Operation
+		 * @description Report a verified Organizer to OPEN Moderators.
+		 *
+		 *     For a signed-in Account with a Player. 404 for an Organizer that is
+		 *     unknown or not verified, and for an Account with no Player; 409 while
+		 *     the Account's earlier report on it is open. Limited per Account to a
+		 *     few reports a day; past that the answer is 429 with a Retry-After
+		 *     header. The Organizer never learns who reported it.
+		 */
+		post: operations['report_organizer'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
 		trace?: never;
 	};
 	'/api/v1/players/search': {
@@ -300,6 +677,64 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/api/v1/players/{code}/rating-history': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List Player Rating History
+		 * @description Every change to a player's ratings, in every rating format, newest
+		 *     first.
+		 *
+		 *     Each change comes with its reliability: the OPEN standard requires any
+		 *     app that shows an OPEN rating to show its reliability next to it.
+		 *     Every rating is a demonstration rating while the engine is a
+		 *     demonstration package. The player always sees their own history.
+		 *     Anyone else signed in sees it only when the player's rating history
+		 *     setting is signed-in players, and gets 404, as for an unknown code,
+		 *     when it is private or the player's Account is inactive.
+		 */
+		get: operations['list_player_rating_history'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/players/{code}/ratings': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Player Ratings
+		 * @description A player's current Ratings, one per rating format the player has.
+		 *
+		 *     The player always sees their own. Anyone else signed in sees them only
+		 *     when the player's rating visibility is signed-in players: always for
+		 *     an adult; a player who joined at 13 to 17 stays hidden, at 18 too,
+		 *     until they change it. Each rating comes with its reliability: the OPEN
+		 *     standard requires any app that shows an OPEN rating to show its
+		 *     reliability next to it. Every rating is a demonstration rating while
+		 *     the engine is a demonstration package. An unknown or malformed code, a
+		 *     hidden player, and a player whose Account is inactive get the same 404.
+		 */
+		get: operations['get_player_ratings'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -319,6 +754,52 @@ export interface components {
 			email: string;
 		};
 		/**
+		 * DisputeCorrectionIn
+		 * @description The Organizer's correction of a disputed match, and why.
+		 *
+		 *     The fields are ``create_match``'s, except that a scoring type or game
+		 *     target left out is the disputed match's; a missing best-of is inferred
+		 *     from the games. The reason is stored in the match's audit log, which
+		 *     cannot be erased, so it should not name a player.
+		 */
+		DisputeCorrectionIn: {
+			best_of?: components['schemas']['BestOf'] | null;
+			format: components['schemas']['MatchFormat'];
+			game_target?: components['schemas']['GameTarget'] | null;
+			/** Games */
+			games: components['schemas']['GameScoreIn'][];
+			/**
+			 * Played On
+			 * Format: date
+			 */
+			played_on: string;
+			/** Reason */
+			reason: string;
+			scoring_type?: components['schemas']['ScoringType'] | null;
+			/** Team A */
+			team_a: string[];
+			/** Team B */
+			team_b: string[];
+		};
+		/**
+		 * DisputeOutcome
+		 * @description How the Event's Organizer settles a dispute.
+		 * @enum {string}
+		 */
+		DisputeOutcome: 'confirmed' | 'voided';
+		/**
+		 * DisputeResolutionIn
+		 * @description The Organizer's decision on a disputed match, and why.
+		 *
+		 *     The reason is stored in the match's audit log, which cannot be
+		 *     erased, so it should not name a player.
+		 */
+		DisputeResolutionIn: {
+			outcome: components['schemas']['DisputeOutcome'];
+			/** Reason */
+			reason: string;
+		};
+		/**
 		 * ErrorResponse
 		 * @description The body of every error response.
 		 */
@@ -329,6 +810,97 @@ export interface components {
 			errors: components['schemas']['FieldError'][];
 			/** Message */
 			message: string;
+		};
+		/**
+		 * EventCreateIn
+		 * @description A new Event for a verified Organizer the signed-in Account is a
+		 *     member of.
+		 *
+		 *     ``organizer`` and ``club`` are OPEN Codes, in any case, with or
+		 *     without hyphens. The Club, when named, must have granted the
+		 *     Organizer a Club Organizer Grant (ADR 0021).
+		 */
+		EventCreateIn: {
+			/** Club */
+			club?: string | null;
+			/**
+			 * End Date
+			 * Format: date
+			 */
+			end_date: string;
+			kind: components['schemas']['EventKind'];
+			/** Name */
+			name: string;
+			/** Organizer */
+			organizer: string;
+			/**
+			 * Start Date
+			 * Format: date
+			 */
+			start_date: string;
+		};
+		/**
+		 * EventKind
+		 * @description The match type of matches recorded with an Event.
+		 *
+		 *     Each Match stores the kind it was recorded with, so a kind change
+		 *     reaches only matches recorded after it (ADR 0035).
+		 *
+		 *     The values are the engine's ``open_engine.MatchType`` values.
+		 *     ``self_reported`` is left out: self-reported matches have no Event
+		 *     (decision F1 in #1). Never add a value the engine lacks.
+		 * @enum {string}
+		 */
+		EventKind: 'tournament' | 'league' | 'rec_verified';
+		/**
+		 * EventOut
+		 * @description An Event, with its Organizer and Club named by OPEN Code.
+		 */
+		EventOut: {
+			/** Club */
+			club: string | null;
+			/** Code */
+			code: string;
+			/**
+			 * End Date
+			 * Format: date
+			 */
+			end_date: string;
+			kind: components['schemas']['EventKind'];
+			/** Name */
+			name: string;
+			/** Organizer */
+			organizer: string;
+			/**
+			 * Start Date
+			 * Format: date
+			 */
+			start_date: string;
+		};
+		/**
+		 * EventUpdateIn
+		 * @description Changes to an Event. Only the fields sent change; null is refused.
+		 *
+		 *     ``kind`` may change at any time and reaches only matches recorded
+		 *     after it (ADR 0035). ``name``, ``start_date``, and ``end_date`` change
+		 *     only while no match names the Event. The organizer and club cannot be
+		 *     changed here.
+		 */
+		EventUpdateIn: {
+			/**
+			 * End Date
+			 * Format: date
+			 */
+			end_date?: string;
+			/** Kind */
+			kind?: components['schemas']['EventKind'];
+			/** Name */
+			name?: string;
+			/**
+			 * Start Date
+			 * Format: date
+			 */
+			start_date?: string;
 		};
 		/**
 		 * FieldError
@@ -377,6 +949,21 @@ export interface components {
 		 * @enum {integer}
 		 */
 		GameTarget: 11 | 15 | 21;
+		/**
+		 * HoldOut
+		 * @description A held match the signed-in Account may vouch for (#270, ADR 0034).
+		 *
+		 *     ``match`` is the match as the Account sees it. The other match of each
+		 *     possible duplicate flag that holds it is never named. ``vouched`` is
+		 *     true when the Account's own level has vouched for this match on every
+		 *     open flag that holds it: for an Event match, its organizer; for a
+		 *     match with no Event, a player on the Account's team.
+		 */
+		HoldOut: {
+			match: components['schemas']['MatchOut'];
+			/** Vouched */
+			vouched: boolean;
+		};
 		/** Input */
 		Input: {
 			/**
@@ -397,6 +984,31 @@ export interface components {
 			 * @constant
 			 */
 			status: 'ok';
+		};
+		/**
+		 * MatchCorrectionIn
+		 * @description A player's correction of a self-reported match (#267).
+		 *
+		 *     The same fields as a submission. The teams must be the match's own two
+		 *     teams, in either order. A missing game target or scoring type is the
+		 *     corrected match's, and a missing best-of is inferred from the games.
+		 */
+		MatchCorrectionIn: {
+			best_of?: components['schemas']['BestOf'] | null;
+			format: components['schemas']['MatchFormat'];
+			game_target?: components['schemas']['GameTarget'] | null;
+			/** Games */
+			games: components['schemas']['GameScoreIn'][];
+			/**
+			 * Played On
+			 * Format: date
+			 */
+			played_on: string;
+			scoring_type?: components['schemas']['ScoringType'] | null;
+			/** Team A */
+			team_a: string[];
+			/** Team B */
+			team_b: string[];
 		};
 		/**
 		 * MatchCreateIn
@@ -441,21 +1053,22 @@ export interface components {
 		 * @description A match, its teams, and its games, as the signed-in Account sees it.
 		 *
 		 *     ``my_team`` is the viewer's own team, null when the viewer's Player did
-		 *     not play in the match. ``my_decision`` is the latest confirm or dispute
-		 *     this player recorded on the match, ``none`` when they recorded none or
-		 *     did not play. A repeated decision is not recorded again, so confirming
-		 *     again after a dispute that a moderator resolved still shows
-		 *     ``dispute``. An organizer's confirmation is not a player decision: a
-		 *     player who confirms as a member of the match's Event Organizer still
-		 *     shows ``none``. For a participant, ``confirmed_by_team`` says whether
-		 *     a player on each team recorded a confirmation (a dispute is not a
-		 *     confirmation); it is null for anyone else. A confirmation still shows
-		 *     in ``confirmed_by_team`` after the same player disputes, since a
-		 *     recorded decision is never withdrawn. It counts player confirmations
-		 *     only: a match confirmed by an organizer or a moderator, or a
-		 *     correction, can be confirmed with both false, so read ``status`` for
-		 *     whether the match is confirmed. ``created_at`` is when the match was
-		 *     submitted.
+		 *     not play in the match. ``my_decision`` is the latest confirm, dispute,
+		 *     or withdraw this player recorded on the match, ``none`` when they
+		 *     recorded none or did not play. A repeated decision is not recorded
+		 *     again, so confirming again after a dispute that the Event's verified
+		 *     organizer resolved still shows ``dispute``. An organizer's confirmation is not a player
+		 *     decision: a player who confirms as a member of the match's Event
+		 *     Organizer still shows ``none``. For a participant, ``confirmed_by_team``
+		 *     says whether a player on each team recorded a confirmation (a dispute is
+		 *     not a confirmation); it is null for anyone else. A confirmation still
+		 *     shows in ``confirmed_by_team`` after the same player disputes, and
+		 *     after they withdraw that dispute, since a recorded decision is never
+		 *     removed: a player who confirmed, disputed, then withdrew shows
+		 *     ``withdraw`` while their confirmation stays in ``confirmed_by_team``.
+		 *     It counts player confirmations only: a match confirmed by an organizer,
+		 *     or a correction, can be confirmed with both false, so
+		 *     read ``status`` for whether the match is confirmed. ``created_at`` is when the match was submitted.
 		 */
 		MatchOut: {
 			best_of: components['schemas']['BestOf'];
@@ -499,7 +1112,7 @@ export interface components {
 		 * @description The viewer's own latest decision on a match.
 		 * @enum {string}
 		 */
-		MyDecision: 'confirm' | 'dispute' | 'none';
+		MyDecision: 'confirm' | 'dispute' | 'withdraw' | 'none';
 		/**
 		 * MyPlayerOut
 		 * @description The signed-in Account's own Player, with every profile field.
@@ -527,12 +1140,67 @@ export interface components {
 			/** Region */
 			region: string;
 		};
+		/**
+		 * OrganizerReportIn
+		 * @description A report of a verified Organizer to OPEN Moderators.
+		 *
+		 *     ``reason`` is one of the listed reasons. There is no free text.
+		 */
+		OrganizerReportIn: {
+			reason: components['schemas']['OrganizerReportReason'];
+		};
+		/**
+		 * OrganizerReportOut
+		 * @description The report just made: the Organizer's OPEN Code, the reason, and
+		 *     when it was made. It never names the reporter.
+		 */
+		OrganizerReportOut: {
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/** Organizer */
+			organizer: string;
+			reason: components['schemas']['OrganizerReportReason'];
+		};
+		/**
+		 * OrganizerReportReason
+		 * @description Why an Account reports an Organizer to OPEN Moderators (#271).
+		 *
+		 *     No free text: a report holds one of these and nothing the reporter
+		 *     wrote.
+		 * @enum {string}
+		 */
+		OrganizerReportReason:
+			'wrong_results' | 'fake_matches' | 'ignores_disputes' | 'misuses_player_data' | 'other';
+		/** PagedEventOut */
+		PagedEventOut: {
+			/** Count */
+			count: number;
+			/** Items */
+			items: components['schemas']['EventOut'][];
+		};
+		/** PagedHoldOut */
+		PagedHoldOut: {
+			/** Count */
+			count: number;
+			/** Items */
+			items: components['schemas']['HoldOut'][];
+		};
 		/** PagedMatchOut */
 		PagedMatchOut: {
 			/** Count */
 			count: number;
 			/** Items */
 			items: components['schemas']['MatchOut'][];
+		};
+		/** PagedRatingHistoryItemOut */
+		PagedRatingHistoryItemOut: {
+			/** Count */
+			count: number;
+			/** Items */
+			items: components['schemas']['RatingHistoryItemOut'][];
 		};
 		/**
 		 * ParticipantOut
@@ -595,6 +1263,39 @@ export interface components {
 			display_name: string;
 			/** Region */
 			region: string | null;
+		};
+		/**
+		 * PlayerRatingsOut
+		 * @description A player's current ratings, one per rating format the player has.
+		 *
+		 *     The OPEN standard requires any app that shows an OPEN rating to show its
+		 *     reliability next to it. Every rating is a demonstration rating while
+		 *     the engine is a demonstration package.
+		 */
+		PlayerRatingsOut: {
+			/**
+			 * Code
+			 * @description The player's OPEN Code.
+			 */
+			code: string;
+			/**
+			 * Demonstration
+			 * @description Always true: every rating is a demonstration rating while the rating engine is a demonstration package.
+			 * @constant
+			 */
+			demonstration: true;
+			/**
+			 * Profile Url
+			 * @description The player's public profile page.
+			 */
+			profile_url: string;
+			/**
+			 * Ratings
+			 * @description The player's ratings keyed by rating format. Only the formats the player has a rating in appear; empty when none.
+			 */
+			ratings: {
+				[key: string]: components['schemas']['RatingOut'];
+			};
 		};
 		/**
 		 * PlayerSearchOut
@@ -660,6 +1361,8 @@ export interface components {
 			home_club_visibility?: components['schemas']['Visibility'] | null;
 			match_history_visibility?: components['schemas']['Visibility'] | null;
 			rating_history_visibility?: components['schemas']['Visibility'] | null;
+			/** @description Who may see the player's current ratings. A player who joined at 13 to 17 starts with private and keeps it at 18 until they change it; only the player can change it to signed_in, and only from age 18. An adult's is always signed_in: current ratings cannot be hidden. Sending the stored value is always accepted. */
+			rating_visibility?: components['schemas']['Visibility'] | null;
 			stats_visibility?: components['schemas']['Visibility'] | null;
 		};
 		/**
@@ -671,7 +1374,136 @@ export interface components {
 			home_club_visibility: components['schemas']['Visibility'];
 			match_history_visibility: components['schemas']['Visibility'];
 			rating_history_visibility: components['schemas']['Visibility'];
+			/** @description Who may see the player's current ratings. A player who joined at 13 to 17 starts with private and keeps it at 18 until they change it; only the player can change it to signed_in, and only from age 18. An adult's is always signed_in: current ratings cannot be hidden. Sending the stored value is always accepted. */
+			rating_visibility: components['schemas']['Visibility'];
 			stats_visibility: components['schemas']['Visibility'];
+		};
+		/**
+		 * RatingChangeKind
+		 * @description What caused a change to a player's rating.
+		 * @enum {string}
+		 */
+		RatingChangeKind: 'live_update' | 'replay' | 'removed';
+		/**
+		 * RatingFormat
+		 * @description The rating pool a Match counts in (ADR 0024).
+		 *
+		 *     The values are ``open_engine.RatingFormat``'s. ``record_match`` stores
+		 *     one per Match from the players' gender divisions when the match is
+		 *     recorded (``apps.matches.services.derive_rating_format``), and it never
+		 *     changes afterward. A singles match is ``singles``; a doubles match is
+		 *     one of the four doubles values.
+		 * @enum {string}
+		 */
+		RatingFormat: 'singles' | 'doubles' | 'mixed_doubles' | 'doubles_men' | 'doubles_women';
+		/**
+		 * RatingHistoryItemOut
+		 * @description One change to a player's rating in one rating format.
+		 *
+		 *     ``kind`` says what caused it: a live update from one match, a replay of
+		 *     the ledger, or its removal by a replay that no longer produces it (the
+		 *     values are then the ones removed). The OPEN standard requires any app
+		 *     that shows an OPEN rating to show its reliability next to it. Every
+		 *     rating is a demonstration rating while the engine is a demonstration
+		 *     package.
+		 */
+		RatingHistoryItemOut: {
+			/**
+			 * Demonstration
+			 * @description Always true: every rating is a demonstration rating while the rating engine is a demonstration package.
+			 * @constant
+			 */
+			demonstration: true;
+			/**
+			 * Established
+			 * @description True once the rating rests on enough matches to be established.
+			 */
+			established: boolean;
+			/**
+			 * Imported Reliability
+			 * @description The reliability carried from an external rating, 0 to 100, shown apart from the OPEN-earned reliability. Null when there is none.
+			 */
+			imported_reliability: number | null;
+			kind: components['schemas']['RatingChangeKind'];
+			/**
+			 * Provisional
+			 * @description True when the rating holds live updates not yet confirmed by a replay of the ledger, or was never replayed. A provisional rating can change at the next replay.
+			 */
+			provisional: boolean;
+			/**
+			 * Rating
+			 * @description The rating after the change.
+			 */
+			rating: number;
+			rating_format: components['schemas']['RatingFormat'];
+			/**
+			 * Recorded At
+			 * Format: date-time
+			 * @description When the change was recorded.
+			 */
+			recorded_at: string;
+			/**
+			 * Reliability
+			 * @description OPEN-earned reliability, 0 to 100. The OPEN standard requires any app that shows an OPEN rating to show its reliability next to it.
+			 */
+			reliability: number;
+			/**
+			 * Spec Version
+			 * @description The OPEN rating spec version the rating follows.
+			 */
+			spec_version: string;
+		};
+		/**
+		 * RatingOut
+		 * @description A player's current rating in one rating format, with its reliability.
+		 *
+		 *     The OPEN standard requires any app that shows an OPEN rating to show its
+		 *     reliability next to it. Every rating is a demonstration rating while
+		 *     the engine is a demonstration package.
+		 */
+		RatingOut: {
+			/**
+			 * Demonstration
+			 * @description Always true: every rating is a demonstration rating while the rating engine is a demonstration package.
+			 * @constant
+			 */
+			demonstration: true;
+			/**
+			 * Established
+			 * @description True once the rating rests on enough matches to be established.
+			 */
+			established: boolean;
+			/**
+			 * Imported Reliability
+			 * @description The reliability carried from an external rating, 0 to 100, shown apart from the OPEN-earned reliability. Null when there is none.
+			 */
+			imported_reliability: number | null;
+			/**
+			 * Provisional
+			 * @description True when the rating holds live updates not yet confirmed by a replay of the ledger, or was never replayed. A provisional rating can change at the next replay.
+			 */
+			provisional: boolean;
+			/**
+			 * Rating
+			 * @description The rating, as the engine gave it.
+			 */
+			rating: number;
+			/**
+			 * Reliability
+			 * @description OPEN-earned reliability, 0 to 100. The OPEN standard requires any app that shows an OPEN rating to show its reliability next to it.
+			 */
+			reliability: number;
+			/**
+			 * Spec Version
+			 * @description The OPEN rating spec version the rating follows.
+			 */
+			spec_version: string;
+			/**
+			 * Updated At
+			 * Format: date-time
+			 * @description When the rating last changed.
+			 */
+			updated_at: string;
 		};
 		/** ReadyChecks */
 		ReadyChecks: {
@@ -694,6 +1526,92 @@ export interface components {
 			 * @enum {string}
 			 */
 			status: 'ok' | 'unavailable';
+		};
+		/**
+		 * ResultRow
+		 * @description The values of ``RowResult.result``.
+		 * @enum {string}
+		 */
+		ResultRow: 'recorded' | 'duplicate' | 'failed';
+		/**
+		 * ResultsFileOut
+		 * @description An uploaded results file and its report.
+		 *
+		 *     ``status`` is ``pending``, ``done``, or ``failed``. ``error`` is the
+		 *     code of a file that failed as a whole (``not_utf8``, ``malformed``,
+		 *     ``bad_header``, ``no_rows``, ``too_many_rows``, ``expired``, or
+		 *     ``voided``: a moderator voided the upload's matches), else null.
+		 *     ``rows`` holds the rows processed so far: a file that failed partway
+		 *     keeps them.
+		 */
+		ResultsFileOut: {
+			/** Code */
+			code: string;
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/** Duplicates */
+			duplicates: number;
+			/** Error */
+			error: string | null;
+			/** Event */
+			event: string;
+			/** Failed */
+			failed: number;
+			/** Game Target */
+			game_target: number;
+			/** Location */
+			location: string;
+			/** Processed At */
+			processed_at: string | null;
+			/** Recorded */
+			recorded: number;
+			/** Rows */
+			rows: components['schemas']['ResultsRowOut'][];
+			status: components['schemas']['ResultsFileStatus'];
+		};
+		/**
+		 * ResultsFileStatus
+		 * @description Where a Results File is in its processing (#71).
+		 * @enum {string}
+		 */
+		ResultsFileStatus: 'pending' | 'done' | 'failed';
+		/**
+		 * ResultsIssueOut
+		 * @description One issue or warning on a row: the columns it concerns (canonical
+		 *     names such as ``playerB1Id``, empty for the whole row), a code, and a
+		 *     fixed message. Never a cell value.
+		 */
+		ResultsIssueOut: {
+			/** Code */
+			code: string;
+			/** Columns */
+			columns: string[];
+			/** Message */
+			message: string;
+		};
+		/**
+		 * ResultsRowOut
+		 * @description One match row's result. ``row`` is the CSV record number and
+		 *     ``sequence`` the row's place among the match rows. ``match`` is the
+		 *     Match's OPEN Code: the recorded match, the row's match that was voided
+		 *     later (issue code ``voided``), or, for a duplicate, the earlier match
+		 *     when the uploader may know it.
+		 */
+		ResultsRowOut: {
+			/** Issues */
+			issues: components['schemas']['ResultsIssueOut'][];
+			/** Match */
+			match: string | null;
+			result: components['schemas']['ResultRow'];
+			/** Row */
+			row: number;
+			/** Sequence */
+			sequence: number;
+			/** Warnings */
+			warnings: components['schemas']['ResultsIssueOut'][];
 		};
 		/**
 		 * ScoringType
@@ -753,6 +1671,17 @@ export interface operations {
 			/** @description The request is not authenticated. */
 			401: {
 				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
 					[name: string]: unknown;
 				};
 				content: {
@@ -868,6 +1797,17 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 		};
 	};
 	get_match: {
@@ -912,6 +1852,17 @@ export interface operations {
 			/** @description The request is not valid. */
 			422: {
 				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
 					[name: string]: unknown;
 				};
 				content: {
@@ -986,6 +1937,100 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	correct_match: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a match. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['MatchCorrectionIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MatchOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 		};
 	};
 	dispute_match: {
@@ -1054,6 +2099,341 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	correct_disputed_match: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a match. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['DisputeCorrectionIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MatchOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	resolve_match_dispute: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a match. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['DisputeResolutionIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MatchOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	vouch_for_match: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a match. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MatchOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	withdraw_match_dispute: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a match. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MatchOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 		};
 	};
 	list_matches_awaiting_confirmation: {
@@ -1095,6 +2475,173 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_my_disputes: {
+		parameters: {
+			query?: {
+				limit?: number;
+				offset?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PagedMatchOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_my_holds: {
+		parameters: {
+			query?: {
+				limit?: number;
+				offset?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PagedHoldOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_organizer_disputes: {
+		parameters: {
+			query?: {
+				limit?: number;
+				offset?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PagedMatchOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 		};
 	};
 	get_my_player: {
@@ -1127,6 +2674,17 @@ export interface operations {
 			/** @description Not Found */
 			404: {
 				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
 					[name: string]: unknown;
 				};
 				content: {
@@ -1193,6 +2751,17 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 		};
 	};
 	update_my_player: {
@@ -1244,6 +2813,506 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_organizer_events: {
+		parameters: {
+			query?: {
+				limit?: number;
+				offset?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PagedEventOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	create_organizer_event: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['EventCreateIn'];
+			};
+		};
+		responses: {
+			/** @description Created */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['EventOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	delete_organizer_event: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a event. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No Content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	update_organizer_event: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a event. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['EventUpdateIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['EventOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	create_results_file: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a event. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'multipart/form-data': {
+					/**
+					 * File
+					 * Format: binary
+					 */
+					file: string;
+					/** @default 11 */
+					game_target?: 11 | 15 | 21;
+					/**
+					 * Location
+					 * @default
+					 */
+					location?: string;
+					/** Players 13 Or Older */
+					players_13_or_older: boolean;
+				};
+			};
+		};
+		responses: {
+			/** @description Accepted */
+			202: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResultsFileOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Content Too Large */
+			413: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	get_results_file: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a results_file. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResultsFileOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	report_organizer: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a organizer. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['OrganizerReportIn'];
+			};
+		};
+		responses: {
+			/** @description Created */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerReportOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 		};
 	};
 	search_players: {
@@ -1286,9 +3355,11 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Too Many Requests */
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
 			429: {
 				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
 					[name: string]: unknown;
 				};
 				content: {
@@ -1345,6 +3416,17 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 		};
 	};
 	list_player_matches: {
@@ -1392,6 +3474,142 @@ export interface operations {
 			/** @description The request is not valid. */
 			422: {
 				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_player_rating_history: {
+		parameters: {
+			query?: {
+				limit?: number;
+				offset?: number;
+			};
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a player. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PagedRatingHistoryItemOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	get_player_ratings: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a player. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PlayerRatingsOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
 					[name: string]: unknown;
 				};
 				content: {

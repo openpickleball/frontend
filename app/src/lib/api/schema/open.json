@@ -19,6 +19,105 @@
 				"title": "CurrentAccount",
 				"type": "object"
 			},
+			"DisputeCorrectionIn": {
+				"description": "The Organizer's correction of a disputed match, and why.\n\nThe fields are ``create_match``'s, except that a scoring type or game\ntarget left out is the disputed match's; a missing best-of is inferred\nfrom the games. The reason is stored in the match's audit log, which\ncannot be erased, so it should not name a player.",
+				"properties": {
+					"best_of": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/BestOf"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"format": {
+						"$ref": "#/components/schemas/MatchFormat"
+					},
+					"game_target": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/GameTarget"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"games": {
+						"items": {
+							"$ref": "#/components/schemas/GameScoreIn"
+						},
+						"maxItems": 20,
+						"title": "Games",
+						"type": "array"
+					},
+					"played_on": {
+						"format": "date",
+						"title": "Played On",
+						"type": "string"
+					},
+					"reason": {
+						"maxLength": 1000,
+						"minLength": 1,
+						"title": "Reason",
+						"type": "string"
+					},
+					"scoring_type": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/ScoringType"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"team_a": {
+						"items": {
+							"type": "string"
+						},
+						"maxItems": 10,
+						"title": "Team A",
+						"type": "array"
+					},
+					"team_b": {
+						"items": {
+							"type": "string"
+						},
+						"maxItems": 10,
+						"title": "Team B",
+						"type": "array"
+					}
+				},
+				"required": ["format", "played_on", "team_a", "team_b", "games", "reason"],
+				"title": "DisputeCorrectionIn",
+				"type": "object"
+			},
+			"DisputeOutcome": {
+				"description": "How the Event's Organizer settles a dispute.",
+				"enum": ["confirmed", "voided"],
+				"title": "DisputeOutcome",
+				"type": "string"
+			},
+			"DisputeResolutionIn": {
+				"description": "The Organizer's decision on a disputed match, and why.\n\nThe reason is stored in the match's audit log, which cannot be\nerased, so it should not name a player.",
+				"properties": {
+					"outcome": {
+						"$ref": "#/components/schemas/DisputeOutcome"
+					},
+					"reason": {
+						"maxLength": 1000,
+						"minLength": 1,
+						"title": "Reason",
+						"type": "string"
+					}
+				},
+				"required": ["outcome", "reason"],
+				"title": "DisputeResolutionIn",
+				"type": "object"
+			},
 			"ErrorResponse": {
 				"description": "The body of every error response.",
 				"properties": {
@@ -40,6 +139,127 @@
 				},
 				"required": ["code", "message", "errors"],
 				"title": "ErrorResponse",
+				"type": "object"
+			},
+			"EventCreateIn": {
+				"additionalProperties": false,
+				"description": "A new Event for a verified Organizer the signed-in Account is a\nmember of.\n\n``organizer`` and ``club`` are OPEN Codes, in any case, with or\nwithout hyphens. The Club, when named, must have granted the\nOrganizer a Club Organizer Grant (ADR 0021).",
+				"properties": {
+					"club": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Club"
+					},
+					"end_date": {
+						"format": "date",
+						"title": "End Date",
+						"type": "string"
+					},
+					"kind": {
+						"$ref": "#/components/schemas/EventKind"
+					},
+					"name": {
+						"title": "Name",
+						"type": "string"
+					},
+					"organizer": {
+						"title": "Organizer",
+						"type": "string"
+					},
+					"start_date": {
+						"format": "date",
+						"title": "Start Date",
+						"type": "string"
+					}
+				},
+				"required": ["organizer", "name", "kind", "start_date", "end_date"],
+				"title": "EventCreateIn",
+				"type": "object"
+			},
+			"EventKind": {
+				"description": "The match type of matches recorded with an Event.\n\nEach Match stores the kind it was recorded with, so a kind change\nreaches only matches recorded after it (ADR 0035).\n\nThe values are the engine's ``open_engine.MatchType`` values.\n``self_reported`` is left out: self-reported matches have no Event\n(decision F1 in #1). Never add a value the engine lacks.",
+				"enum": ["tournament", "league", "rec_verified"],
+				"title": "EventKind",
+				"type": "string"
+			},
+			"EventOut": {
+				"description": "An Event, with its Organizer and Club named by OPEN Code.",
+				"properties": {
+					"club": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Club"
+					},
+					"code": {
+						"title": "Code",
+						"type": "string"
+					},
+					"end_date": {
+						"format": "date",
+						"title": "End Date",
+						"type": "string"
+					},
+					"kind": {
+						"$ref": "#/components/schemas/EventKind"
+					},
+					"name": {
+						"title": "Name",
+						"type": "string"
+					},
+					"organizer": {
+						"title": "Organizer",
+						"type": "string"
+					},
+					"start_date": {
+						"format": "date",
+						"title": "Start Date",
+						"type": "string"
+					}
+				},
+				"required": ["code", "name", "kind", "organizer", "club", "start_date", "end_date"],
+				"title": "EventOut",
+				"type": "object"
+			},
+			"EventUpdateIn": {
+				"additionalProperties": false,
+				"description": "Changes to an Event. Only the fields sent change; null is refused.\n\n``kind`` may change at any time and reaches only matches recorded\nafter it (ADR 0035). ``name``, ``start_date``, and ``end_date`` change\nonly while no match names the Event. The organizer and club cannot be\nchanged here.",
+				"properties": {
+					"end_date": {
+						"format": "date",
+						"title": "End Date",
+						"type": "string"
+					},
+					"kind": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/EventKind"
+							}
+						],
+						"title": "Kind"
+					},
+					"name": {
+						"title": "Name",
+						"type": "string"
+					},
+					"start_date": {
+						"format": "date",
+						"title": "Start Date",
+						"type": "string"
+					}
+				},
+				"title": "EventUpdateIn",
 				"type": "object"
 			},
 			"FieldError": {
@@ -115,6 +335,21 @@
 				"title": "GameTarget",
 				"type": "integer"
 			},
+			"HoldOut": {
+				"description": "A held match the signed-in Account may vouch for (#270, ADR 0034).\n\n``match`` is the match as the Account sees it. The other match of each\npossible duplicate flag that holds it is never named. ``vouched`` is\ntrue when the Account's own level has vouched for this match on every\nopen flag that holds it: for an Event match, its organizer; for a\nmatch with no Event, a player on the Account's team.",
+				"properties": {
+					"match": {
+						"$ref": "#/components/schemas/MatchOut"
+					},
+					"vouched": {
+						"title": "Vouched",
+						"type": "boolean"
+					}
+				},
+				"required": ["match", "vouched"],
+				"title": "HoldOut",
+				"type": "object"
+			},
 			"Input": {
 				"properties": {
 					"limit": {
@@ -145,6 +380,76 @@
 				},
 				"required": ["status"],
 				"title": "LiveOut",
+				"type": "object"
+			},
+			"MatchCorrectionIn": {
+				"description": "A player's correction of a self-reported match (#267).\n\nThe same fields as a submission. The teams must be the match's own two\nteams, in either order. A missing game target or scoring type is the\ncorrected match's, and a missing best-of is inferred from the games.",
+				"properties": {
+					"best_of": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/BestOf"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"format": {
+						"$ref": "#/components/schemas/MatchFormat"
+					},
+					"game_target": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/GameTarget"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"games": {
+						"items": {
+							"$ref": "#/components/schemas/GameScoreIn"
+						},
+						"maxItems": 20,
+						"title": "Games",
+						"type": "array"
+					},
+					"played_on": {
+						"format": "date",
+						"title": "Played On",
+						"type": "string"
+					},
+					"scoring_type": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/ScoringType"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"team_a": {
+						"items": {
+							"type": "string"
+						},
+						"maxItems": 10,
+						"title": "Team A",
+						"type": "array"
+					},
+					"team_b": {
+						"items": {
+							"type": "string"
+						},
+						"maxItems": 10,
+						"title": "Team B",
+						"type": "array"
+					}
+				},
+				"required": ["format", "played_on", "team_a", "team_b", "games"],
+				"title": "MatchCorrectionIn",
 				"type": "object"
 			},
 			"MatchCreateIn": {
@@ -224,7 +529,7 @@
 				"type": "string"
 			},
 			"MatchOut": {
-				"description": "A match, its teams, and its games, as the signed-in Account sees it.\n\n``my_team`` is the viewer's own team, null when the viewer's Player did\nnot play in the match. ``my_decision`` is the latest confirm or dispute\nthis player recorded on the match, ``none`` when they recorded none or\ndid not play. A repeated decision is not recorded again, so confirming\nagain after a dispute that a moderator resolved still shows\n``dispute``. An organizer's confirmation is not a player decision: a\nplayer who confirms as a member of the match's Event Organizer still\nshows ``none``. For a participant, ``confirmed_by_team`` says whether\na player on each team recorded a confirmation (a dispute is not a\nconfirmation); it is null for anyone else. A confirmation still shows\nin ``confirmed_by_team`` after the same player disputes, since a\nrecorded decision is never withdrawn. It counts player confirmations\nonly: a match confirmed by an organizer or a moderator, or a\ncorrection, can be confirmed with both false, so read ``status`` for\nwhether the match is confirmed. ``created_at`` is when the match was\nsubmitted.",
+				"description": "A match, its teams, and its games, as the signed-in Account sees it.\n\n``my_team`` is the viewer's own team, null when the viewer's Player did\nnot play in the match. ``my_decision`` is the latest confirm, dispute,\nor withdraw this player recorded on the match, ``none`` when they\nrecorded none or did not play. A repeated decision is not recorded\nagain, so confirming again after a dispute that the Event's verified\norganizer resolved still shows ``dispute``. An organizer's confirmation is not a player\ndecision: a player who confirms as a member of the match's Event\nOrganizer still shows ``none``. For a participant, ``confirmed_by_team``\nsays whether a player on each team recorded a confirmation (a dispute is\nnot a confirmation); it is null for anyone else. A confirmation still\nshows in ``confirmed_by_team`` after the same player disputes, and\nafter they withdraw that dispute, since a recorded decision is never\nremoved: a player who confirmed, disputed, then withdrew shows\n``withdraw`` while their confirmation stays in ``confirmed_by_team``.\nIt counts player confirmations only: a match confirmed by an organizer,\nor a correction, can be confirmed with both false, so\nread ``status`` for whether the match is confirmed. ``created_at`` is when the match was submitted.",
 				"properties": {
 					"best_of": {
 						"$ref": "#/components/schemas/BestOf"
@@ -327,7 +632,7 @@
 			},
 			"MyDecision": {
 				"description": "The viewer's own latest decision on a match.",
-				"enum": ["confirm", "dispute", "none"],
+				"enum": ["confirm", "dispute", "withdraw", "none"],
 				"title": "MyDecision",
 				"type": "string"
 			},
@@ -384,6 +689,86 @@
 				"title": "MyPlayerOut",
 				"type": "object"
 			},
+			"OrganizerReportIn": {
+				"additionalProperties": false,
+				"description": "A report of a verified Organizer to OPEN Moderators.\n\n``reason`` is one of the listed reasons. There is no free text.",
+				"properties": {
+					"reason": {
+						"$ref": "#/components/schemas/OrganizerReportReason"
+					}
+				},
+				"required": ["reason"],
+				"title": "OrganizerReportIn",
+				"type": "object"
+			},
+			"OrganizerReportOut": {
+				"description": "The report just made: the Organizer's OPEN Code, the reason, and\nwhen it was made. It never names the reporter.",
+				"properties": {
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"organizer": {
+						"title": "Organizer",
+						"type": "string"
+					},
+					"reason": {
+						"$ref": "#/components/schemas/OrganizerReportReason"
+					}
+				},
+				"required": ["organizer", "reason", "created_at"],
+				"title": "OrganizerReportOut",
+				"type": "object"
+			},
+			"OrganizerReportReason": {
+				"description": "Why an Account reports an Organizer to OPEN Moderators (#271).\n\nNo free text: a report holds one of these and nothing the reporter\nwrote.",
+				"enum": [
+					"wrong_results",
+					"fake_matches",
+					"ignores_disputes",
+					"misuses_player_data",
+					"other"
+				],
+				"title": "OrganizerReportReason",
+				"type": "string"
+			},
+			"PagedEventOut": {
+				"properties": {
+					"count": {
+						"title": "Count",
+						"type": "integer"
+					},
+					"items": {
+						"items": {
+							"$ref": "#/components/schemas/EventOut"
+						},
+						"title": "Items",
+						"type": "array"
+					}
+				},
+				"required": ["items", "count"],
+				"title": "PagedEventOut",
+				"type": "object"
+			},
+			"PagedHoldOut": {
+				"properties": {
+					"count": {
+						"title": "Count",
+						"type": "integer"
+					},
+					"items": {
+						"items": {
+							"$ref": "#/components/schemas/HoldOut"
+						},
+						"title": "Items",
+						"type": "array"
+					}
+				},
+				"required": ["items", "count"],
+				"title": "PagedHoldOut",
+				"type": "object"
+			},
 			"PagedMatchOut": {
 				"properties": {
 					"count": {
@@ -400,6 +785,24 @@
 				},
 				"required": ["items", "count"],
 				"title": "PagedMatchOut",
+				"type": "object"
+			},
+			"PagedRatingHistoryItemOut": {
+				"properties": {
+					"count": {
+						"title": "Count",
+						"type": "integer"
+					},
+					"items": {
+						"items": {
+							"$ref": "#/components/schemas/RatingHistoryItemOut"
+						},
+						"title": "Items",
+						"type": "array"
+					}
+				},
+				"required": ["items", "count"],
+				"title": "PagedRatingHistoryItemOut",
 				"type": "object"
 			},
 			"ParticipantOut": {
@@ -546,6 +949,41 @@
 				},
 				"required": ["code", "display_name", "city", "region"],
 				"title": "PlayerProfileOut",
+				"type": "object"
+			},
+			"PlayerRatingsOut": {
+				"description": "A player's current ratings, one per rating format the player has.\n\nThe OPEN standard requires any app that shows an OPEN rating to show its\nreliability next to it. Every rating is a demonstration rating while\nthe engine is a demonstration package.",
+				"properties": {
+					"code": {
+						"description": "The player's OPEN Code.",
+						"title": "Code",
+						"type": "string"
+					},
+					"demonstration": {
+						"const": true,
+						"description": "Always true: every rating is a demonstration rating while the rating engine is a demonstration package.",
+						"title": "Demonstration",
+						"type": "boolean"
+					},
+					"profile_url": {
+						"description": "The player's public profile page.",
+						"title": "Profile Url",
+						"type": "string"
+					},
+					"ratings": {
+						"additionalProperties": {
+							"$ref": "#/components/schemas/RatingOut"
+						},
+						"description": "The player's ratings keyed by rating format. Only the formats the player has a rating in appear; empty when none.",
+						"propertyNames": {
+							"$ref": "#/components/schemas/RatingFormat"
+						},
+						"title": "Ratings",
+						"type": "object"
+					}
+				},
+				"required": ["code", "profile_url", "demonstration", "ratings"],
+				"title": "PlayerRatingsOut",
 				"type": "object"
 			},
 			"PlayerSearchOut": {
@@ -707,6 +1145,17 @@
 							}
 						]
 					},
+					"rating_visibility": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/Visibility"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Who may see the player's current ratings. A player who joined at 13 to 17 starts with private and keeps it at 18 until they change it; only the player can change it to signed_in, and only from age 18. An adult's is always signed_in: current ratings cannot be hidden. Sending the stored value is always accepted."
+					},
 					"stats_visibility": {
 						"anyOf": [
 							{
@@ -736,6 +1185,10 @@
 					"rating_history_visibility": {
 						"$ref": "#/components/schemas/Visibility"
 					},
+					"rating_visibility": {
+						"$ref": "#/components/schemas/Visibility",
+						"description": "Who may see the player's current ratings. A player who joined at 13 to 17 starts with private and keeps it at 18 until they change it; only the player can change it to signed_in, and only from age 18. An adult's is always signed_in: current ratings cannot be hidden. Sending the stored value is always accepted."
+					},
 					"stats_visibility": {
 						"$ref": "#/components/schemas/Visibility"
 					}
@@ -745,9 +1198,162 @@
 					"match_history_visibility",
 					"rating_history_visibility",
 					"stats_visibility",
-					"home_club_visibility"
+					"home_club_visibility",
+					"rating_visibility"
 				],
 				"title": "PrivacyOut",
+				"type": "object"
+			},
+			"RatingChangeKind": {
+				"description": "What caused a change to a player's rating.",
+				"enum": ["live_update", "replay", "removed"],
+				"title": "RatingChangeKind",
+				"type": "string"
+			},
+			"RatingFormat": {
+				"description": "The rating pool a Match counts in (ADR 0024).\n\nThe values are ``open_engine.RatingFormat``'s. ``record_match`` stores\none per Match from the players' gender divisions when the match is\nrecorded (``apps.matches.services.derive_rating_format``), and it never\nchanges afterward. A singles match is ``singles``; a doubles match is\none of the four doubles values.",
+				"enum": ["singles", "doubles", "mixed_doubles", "doubles_men", "doubles_women"],
+				"title": "RatingFormat",
+				"type": "string"
+			},
+			"RatingHistoryItemOut": {
+				"description": "One change to a player's rating in one rating format.\n\n``kind`` says what caused it: a live update from one match, a replay of\nthe ledger, or its removal by a replay that no longer produces it (the\nvalues are then the ones removed). The OPEN standard requires any app\nthat shows an OPEN rating to show its reliability next to it. Every\nrating is a demonstration rating while the engine is a demonstration\npackage.",
+				"properties": {
+					"demonstration": {
+						"const": true,
+						"description": "Always true: every rating is a demonstration rating while the rating engine is a demonstration package.",
+						"title": "Demonstration",
+						"type": "boolean"
+					},
+					"established": {
+						"description": "True once the rating rests on enough matches to be established.",
+						"title": "Established",
+						"type": "boolean"
+					},
+					"imported_reliability": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The reliability carried from an external rating, 0 to 100, shown apart from the OPEN-earned reliability. Null when there is none.",
+						"title": "Imported Reliability"
+					},
+					"kind": {
+						"$ref": "#/components/schemas/RatingChangeKind"
+					},
+					"provisional": {
+						"description": "True when the rating holds live updates not yet confirmed by a replay of the ledger, or was never replayed. A provisional rating can change at the next replay.",
+						"title": "Provisional",
+						"type": "boolean"
+					},
+					"rating": {
+						"description": "The rating after the change.",
+						"title": "Rating",
+						"type": "number"
+					},
+					"rating_format": {
+						"$ref": "#/components/schemas/RatingFormat"
+					},
+					"recorded_at": {
+						"description": "When the change was recorded.",
+						"format": "date-time",
+						"title": "Recorded At",
+						"type": "string"
+					},
+					"reliability": {
+						"description": "OPEN-earned reliability, 0 to 100. The OPEN standard requires any app that shows an OPEN rating to show its reliability next to it.",
+						"title": "Reliability",
+						"type": "number"
+					},
+					"spec_version": {
+						"description": "The OPEN rating spec version the rating follows.",
+						"title": "Spec Version",
+						"type": "string"
+					}
+				},
+				"required": [
+					"rating_format",
+					"kind",
+					"rating",
+					"reliability",
+					"imported_reliability",
+					"provisional",
+					"established",
+					"spec_version",
+					"demonstration",
+					"recorded_at"
+				],
+				"title": "RatingHistoryItemOut",
+				"type": "object"
+			},
+			"RatingOut": {
+				"description": "A player's current rating in one rating format, with its reliability.\n\nThe OPEN standard requires any app that shows an OPEN rating to show its\nreliability next to it. Every rating is a demonstration rating while\nthe engine is a demonstration package.",
+				"properties": {
+					"demonstration": {
+						"const": true,
+						"description": "Always true: every rating is a demonstration rating while the rating engine is a demonstration package.",
+						"title": "Demonstration",
+						"type": "boolean"
+					},
+					"established": {
+						"description": "True once the rating rests on enough matches to be established.",
+						"title": "Established",
+						"type": "boolean"
+					},
+					"imported_reliability": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The reliability carried from an external rating, 0 to 100, shown apart from the OPEN-earned reliability. Null when there is none.",
+						"title": "Imported Reliability"
+					},
+					"provisional": {
+						"description": "True when the rating holds live updates not yet confirmed by a replay of the ledger, or was never replayed. A provisional rating can change at the next replay.",
+						"title": "Provisional",
+						"type": "boolean"
+					},
+					"rating": {
+						"description": "The rating, as the engine gave it.",
+						"title": "Rating",
+						"type": "number"
+					},
+					"reliability": {
+						"description": "OPEN-earned reliability, 0 to 100. The OPEN standard requires any app that shows an OPEN rating to show its reliability next to it.",
+						"title": "Reliability",
+						"type": "number"
+					},
+					"spec_version": {
+						"description": "The OPEN rating spec version the rating follows.",
+						"title": "Spec Version",
+						"type": "string"
+					},
+					"updated_at": {
+						"description": "When the rating last changed.",
+						"format": "date-time",
+						"title": "Updated At",
+						"type": "string"
+					}
+				},
+				"required": [
+					"rating",
+					"reliability",
+					"imported_reliability",
+					"provisional",
+					"established",
+					"spec_version",
+					"demonstration",
+					"updated_at"
+				],
+				"title": "RatingOut",
 				"type": "object"
 			},
 			"ReadyChecks": {
@@ -780,6 +1386,172 @@
 				},
 				"required": ["status", "checks"],
 				"title": "ReadyOut",
+				"type": "object"
+			},
+			"ResultRow": {
+				"description": "The values of ``RowResult.result``.",
+				"enum": ["recorded", "duplicate", "failed"],
+				"title": "ResultRow",
+				"type": "string"
+			},
+			"ResultsFileOut": {
+				"description": "An uploaded results file and its report.\n\n``status`` is ``pending``, ``done``, or ``failed``. ``error`` is the\ncode of a file that failed as a whole (``not_utf8``, ``malformed``,\n``bad_header``, ``no_rows``, ``too_many_rows``, ``expired``, or\n``voided``: a moderator voided the upload's matches), else null.\n``rows`` holds the rows processed so far: a file that failed partway\nkeeps them.",
+				"properties": {
+					"code": {
+						"title": "Code",
+						"type": "string"
+					},
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"duplicates": {
+						"title": "Duplicates",
+						"type": "integer"
+					},
+					"error": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Error"
+					},
+					"event": {
+						"title": "Event",
+						"type": "string"
+					},
+					"failed": {
+						"title": "Failed",
+						"type": "integer"
+					},
+					"game_target": {
+						"title": "Game Target",
+						"type": "integer"
+					},
+					"location": {
+						"title": "Location",
+						"type": "string"
+					},
+					"processed_at": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Processed At"
+					},
+					"recorded": {
+						"title": "Recorded",
+						"type": "integer"
+					},
+					"rows": {
+						"items": {
+							"$ref": "#/components/schemas/ResultsRowOut"
+						},
+						"title": "Rows",
+						"type": "array"
+					},
+					"status": {
+						"$ref": "#/components/schemas/ResultsFileStatus"
+					}
+				},
+				"required": [
+					"code",
+					"event",
+					"status",
+					"error",
+					"game_target",
+					"location",
+					"created_at",
+					"processed_at",
+					"recorded",
+					"duplicates",
+					"failed",
+					"rows"
+				],
+				"title": "ResultsFileOut",
+				"type": "object"
+			},
+			"ResultsFileStatus": {
+				"description": "Where a Results File is in its processing (#71).",
+				"enum": ["pending", "done", "failed"],
+				"title": "ResultsFileStatus",
+				"type": "string"
+			},
+			"ResultsIssueOut": {
+				"description": "One issue or warning on a row: the columns it concerns (canonical\nnames such as ``playerB1Id``, empty for the whole row), a code, and a\nfixed message. Never a cell value.",
+				"properties": {
+					"code": {
+						"title": "Code",
+						"type": "string"
+					},
+					"columns": {
+						"items": {
+							"type": "string"
+						},
+						"title": "Columns",
+						"type": "array"
+					},
+					"message": {
+						"title": "Message",
+						"type": "string"
+					}
+				},
+				"required": ["columns", "code", "message"],
+				"title": "ResultsIssueOut",
+				"type": "object"
+			},
+			"ResultsRowOut": {
+				"description": "One match row's result. ``row`` is the CSV record number and\n``sequence`` the row's place among the match rows. ``match`` is the\nMatch's OPEN Code: the recorded match, the row's match that was voided\nlater (issue code ``voided``), or, for a duplicate, the earlier match\nwhen the uploader may know it.",
+				"properties": {
+					"issues": {
+						"items": {
+							"$ref": "#/components/schemas/ResultsIssueOut"
+						},
+						"title": "Issues",
+						"type": "array"
+					},
+					"match": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Match"
+					},
+					"result": {
+						"$ref": "#/components/schemas/ResultRow"
+					},
+					"row": {
+						"title": "Row",
+						"type": "integer"
+					},
+					"sequence": {
+						"title": "Sequence",
+						"type": "integer"
+					},
+					"warnings": {
+						"items": {
+							"$ref": "#/components/schemas/ResultsIssueOut"
+						},
+						"title": "Warnings",
+						"type": "array"
+					}
+				},
+				"required": ["row", "sequence", "result", "match", "issues", "warnings"],
+				"title": "ResultsRowOut",
 				"type": "object"
 			},
 			"ScoringType": {
@@ -862,6 +1634,25 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -991,6 +1782,25 @@
 							}
 						},
 						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1068,6 +1878,25 @@
 							}
 						},
 						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1165,6 +1994,25 @@
 							}
 						},
 						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1179,9 +2027,135 @@
 				"tags": ["matches"]
 			}
 		},
+		"/api/v1/matches/{code}/correction": {
+			"post": {
+				"description": "Correct a pending or disputed match you played in with no Event.\n\nGive the corrected match as for a new one, with the same two teams in\neither order. The match is voided and the correction is created\npending, submitted by you and with your confirmation, and returned. It\ncounts once a player on the other team confirms it. A scoring type or game target left out\nis the corrected match's, and a missing best-of is inferred from the\ngames. Its location, labels, and order come from the corrected match. A\nconfirmed match gets 409: dispute it first. Anyone who did not play in\nthe match, a match with an Event or Club, and a correction with other\nteams get 404, as for an unknown code.",
+				"operationId": "correct_match",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "M-7K3M-QX9R-D2KR"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+							"examples": ["M-7K3M-QX9R-D2KR"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/MatchCorrectionIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MatchOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Correct Match",
+				"tags": ["matches"]
+			}
+		},
 		"/api/v1/matches/{code}/dispute": {
 			"post": {
-				"description": "Dispute a match you played in. A moderator then reviews it.\n\nDisputing again changes nothing. A voided match cannot be disputed\n(409). Anyone who did not play in the match gets 404, as for an\nunknown code.",
+				"description": "Dispute a match you played in.\n\nA disputed match stops counting. For a match with an Event, the\nEvent's organizer then settles it. You can withdraw your dispute\n(``/withdraw-dispute``), and for a match with no Event you can\ncorrect it yourself (``/correction``).\n\nDisputing again changes nothing, also after you withdrew your dispute. A voided match cannot be disputed\n(409). Anyone who did not play in the match gets 404, as for an\nunknown code.",
 				"operationId": "dispute_match",
 				"parameters": [
 					{
@@ -1262,6 +2236,25 @@
 							}
 						},
 						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1273,6 +2266,490 @@
 					}
 				],
 				"summary": "Dispute Match",
+				"tags": ["matches"]
+			}
+		},
+		"/api/v1/matches/{code}/dispute-correction": {
+			"post": {
+				"description": "Settle a dispute on your Event's match by correcting it.\n\nFor a member of the verified organizer that ran the match's Event, who\nplays neither in the match nor in the correction. The correction also\nneeds the consent of every Club the match names to your organizer;\nwithout it you get 404 as well. The disputed match is voided and the\ncorrection, given as for a new match, is created confirmed and returned.\nA scoring type or game target left out is the disputed match's, and a\nmissing best-of is inferred from the games. Its location, labels, and\norder come from the disputed match. The reason is required and is kept\nin the match's audit log, which cannot be erased, so do not name a\nplayer in it. A match that is not disputed gets 409. Anyone else gets\n404, as for an unknown code.",
+				"operationId": "correct_disputed_match",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "M-7K3M-QX9R-D2KR"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+							"examples": ["M-7K3M-QX9R-D2KR"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/DisputeCorrectionIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MatchOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Correct Disputed Match",
+				"tags": ["matches"]
+			}
+		},
+		"/api/v1/matches/{code}/resolve-dispute": {
+			"post": {
+				"description": "Settle a dispute on your Event's match as confirmed or voided.\n\nFor a member of the verified organizer that ran the match's Event,\nwho did not play in the match. The reason is required and is kept in\nthe match's audit log, which cannot be erased, so do not name a\nplayer in it. A confirmed match counts again. A match that is not\ndisputed gets 409. Anyone else gets 404, as for an unknown code.",
+				"operationId": "resolve_match_dispute",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "M-7K3M-QX9R-D2KR"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+							"examples": ["M-7K3M-QX9R-D2KR"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/DisputeResolutionIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MatchOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Resolve Match Dispute",
+				"tags": ["matches"]
+			}
+		},
+		"/api/v1/matches/{code}/vouch": {
+			"post": {
+				"description": "Vouch that a held match is not a duplicate of the other match.\n\nA match recorded with the same teams and date as another, with other\nscores, is held from counting along with that match until each one is\nvouched for at its own level. A match with an Event is vouched for by\na member of the verified organizer that ran it whose player is in no\nmatch of the match's correction chain. A match with no Event is\nvouched for by one player of each team. A match with a club and no\nEvent has no level: nobody vouches for it, and a hold against it ends\nonly when a match is voided or the hold period ends. Once both\nmatches are vouched for, each counts again once it is confirmed and\nno other open hold keeps it. The response is this match only: the\nother match is never named. A vouch cannot be undone. Vouching again\nrecords nothing new unless another hold has opened on the match since.\nA voided match, and a match nothing holds (a released one included),\nget 409. Anyone else gets 404, as for an unknown code.",
+				"operationId": "vouch_for_match",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "M-7K3M-QX9R-D2KR"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+							"examples": ["M-7K3M-QX9R-D2KR"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MatchOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Vouch For Match",
+				"tags": ["matches"]
+			}
+		},
+		"/api/v1/matches/{code}/withdraw-dispute": {
+			"post": {
+				"description": "Withdraw your dispute of a match you played in.\n\nThe match stays disputed while another player's dispute is open. Once\nno dispute is open, it is confirmed again when it was confirmed before\nthe dispute, else pending, and a confirmed match counts again. Your\ndispute still counts as your one dispute, so disputing again changes\nnothing. Withdrawing again changes nothing unless the match was voided\nmeanwhile. A voided match, and a match you have no open dispute on,\nget 409. Anyone who did not play in the match gets 404, as\nfor an unknown code.",
+				"operationId": "withdraw_match_dispute",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "M-7K3M-QX9R-D2KR"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a match. Any case, with or without hyphens and the prefix.",
+							"examples": ["M-7K3M-QX9R-D2KR"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MatchOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Withdraw Match Dispute",
 				"tags": ["matches"]
 			}
 		},
@@ -1336,6 +2813,25 @@
 							}
 						},
 						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1347,6 +2843,285 @@
 					}
 				],
 				"summary": "List Matches Awaiting Confirmation",
+				"tags": ["matches"]
+			}
+		},
+		"/api/v1/me/matches/disputes": {
+			"get": {
+				"description": "The disputed matches you played in, newest first.\n\nA match leaves the list once its dispute is withdrawn, settled, or\nends. Matches held as possible duplicates are listed by\nlist_my_holds.",
+				"operationId": "list_my_disputes",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"maximum": 100,
+							"minimum": 1,
+							"title": "Limit",
+							"type": "integer"
+						}
+					},
+					{
+						"in": "query",
+						"name": "offset",
+						"required": false,
+						"schema": {
+							"default": 0,
+							"maximum": 9223372036854775807,
+							"minimum": 0,
+							"title": "Offset",
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PagedMatchOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List My Disputes",
+				"tags": ["matches"]
+			}
+		},
+		"/api/v1/me/matches/holds": {
+			"get": {
+				"description": "The held matches you may vouch for, newest first.\n\nLists each match that is not voided and that a possible duplicate\nhold keeps from counting, when you may vouch for it: a match with no\nEvent you played in, or a match of an Event run by a verified\norganizer you are a member of, when your player is in no match of its\ncorrection chain. A match with a club and no Event is never listed:\nnobody vouches for it. ``vouched`` says\nwhether your side has vouched for it already. The other match of the\nhold is never named. A match leaves the list once the hold ends.",
+				"operationId": "list_my_holds",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"maximum": 100,
+							"minimum": 1,
+							"title": "Limit",
+							"type": "integer"
+						}
+					},
+					{
+						"in": "query",
+						"name": "offset",
+						"required": false,
+						"schema": {
+							"default": 0,
+							"maximum": 9223372036854775807,
+							"minimum": 0,
+							"title": "Offset",
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PagedHoldOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List My Holds",
+				"tags": ["matches"]
+			}
+		},
+		"/api/v1/me/matches/organizer-disputes": {
+			"get": {
+				"description": "The disputed matches of your organizers' Events you can settle,\nnewest first.\n\nLists every disputed match of an Event run by a verified organizer\nyou are a member of, except a match your player plays in, or plays in\nan earlier or later version of (a corrected match): you cannot settle\nthose. Anyone else gets an empty page. A match leaves the list once\nits dispute is settled or ends.",
+				"operationId": "list_organizer_disputes",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"maximum": 100,
+							"minimum": 1,
+							"title": "Limit",
+							"type": "integer"
+						}
+					},
+					{
+						"in": "query",
+						"name": "offset",
+						"required": false,
+						"schema": {
+							"default": 0,
+							"maximum": 9223372036854775807,
+							"minimum": 0,
+							"title": "Offset",
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PagedMatchOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List Organizer Disputes",
 				"tags": ["matches"]
 			}
 		},
@@ -1385,6 +3160,25 @@
 							}
 						},
 						"description": "Not Found"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1452,6 +3246,25 @@
 							}
 						},
 						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1529,6 +3342,25 @@
 							}
 						},
 						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1541,6 +3373,766 @@
 				],
 				"summary": "Create My Player",
 				"tags": ["players"]
+			}
+		},
+		"/api/v1/organizer/events": {
+			"get": {
+				"description": "The Events of every Organizer the signed-in Account is a member of.\n\nEither role, verified or not. Newest start date first.",
+				"operationId": "list_organizer_events",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"maximum": 100,
+							"minimum": 1,
+							"title": "Limit",
+							"type": "integer"
+						}
+					},
+					{
+						"in": "query",
+						"name": "offset",
+						"required": false,
+						"schema": {
+							"default": 0,
+							"maximum": 9223372036854775807,
+							"minimum": 0,
+							"title": "Offset",
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PagedEventOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List Organizer Events",
+				"tags": ["events"]
+			},
+			"post": {
+				"description": "Create an Event for a verified Organizer the Account is a member of.\n\n403 for any other Organizer, an unknown one included. A Club must have\ngranted the Organizer a Club Organizer Grant (422 on ``club``).",
+				"operationId": "create_organizer_event",
+				"parameters": [],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/EventCreateIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/EventOut"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Create Organizer Event",
+				"tags": ["events"]
+			}
+		},
+		"/api/v1/organizer/events/{code}": {
+			"delete": {
+				"description": "Delete an Event. 409 when a match or an upload names it.",
+				"operationId": "delete_organizer_event",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a event. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "E-7K3M-QX9S"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a event. Any case, with or without hyphens and the prefix.",
+							"examples": ["E-7K3M-QX9S"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Delete Organizer Event",
+				"tags": ["events"]
+			},
+			"patch": {
+				"description": "Change an Event's name, kind, or dates. Only the fields sent change.\n\nThe kind may change at any time and reaches only matches recorded\nafter it. The name and dates change only while no match names the\nEvent (409 otherwise); sending the stored value is not a change.",
+				"operationId": "update_organizer_event",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a event. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "E-7K3M-QX9S"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a event. Any case, with or without hyphens and the prefix.",
+							"examples": ["E-7K3M-QX9S"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/EventUpdateIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/EventOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Update Organizer Event",
+				"tags": ["events"]
+			}
+		},
+		"/api/v1/organizer/events/{code}/results-files": {
+			"post": {
+				"description": "Upload a CSV results file for an Event of your verified Organizer.\n\nThe file is in the CSV results format (``docs/csv-format.md``), at\nmost 1 MiB and 1000 match rows. ``players_13_or_older`` must be true:\nit confirms that every player in the file is 13 or older (422\notherwise, checked before anything else). ``game_target`` (11, 15, or\n21) and ``location`` apply to every row. Anyone who may not manage the\nEvent's matches gets the same 404 as an unknown Event. A larger file\ngets 413. The file is processed in the background: the response is\n202 with the file pending, and ``get_results_file`` shows the report.\nOnly the good rows are recorded. A row that repeats a match already\nrecorded, a pending one included, is reported as a duplicate.",
+				"operationId": "create_results_file",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a event. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "E-7K3M-QX9S"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a event. Any case, with or without hyphens and the prefix.",
+							"examples": ["E-7K3M-QX9S"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"properties": {
+									"file": {
+										"format": "binary",
+										"title": "File",
+										"type": "string"
+									},
+									"game_target": {
+										"allOf": [
+											{
+												"description": "The points a game is played to (decision F15 in #1).\n\nThe values are the points in the engine's ``ALL_GAME_FORMATS``.",
+												"enum": [11, 15, 21],
+												"title": "GameTarget",
+												"type": "integer"
+											}
+										],
+										"default": 11
+									},
+									"location": {
+										"default": "",
+										"maxLength": 200,
+										"title": "Location",
+										"type": "string"
+									},
+									"players_13_or_older": {
+										"title": "Players 13 Or Older",
+										"type": "boolean"
+									}
+								},
+								"required": ["file", "players_13_or_older"],
+								"title": "MultiPartBodyParams",
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"202": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResultsFileOut"
+								}
+							}
+						},
+						"description": "Accepted"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"413": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Content Too Large"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Create Results File",
+				"tags": ["matches"]
+			}
+		},
+		"/api/v1/organizer/results-files/{code}": {
+			"get": {
+				"description": "A results file you uploaded, with its report.\n\nEach row shows its result (``recorded``, ``duplicate``, or\n``failed``), the match's OPEN Code when there is one you may know,\nand issues and warnings as columns, a code, and a fixed message. The\nreport never repeats a name, a player ID, or any other cell. Anyone\nbut the uploader gets the same 404 as an unknown code.",
+				"operationId": "get_results_file",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a results_file. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "F-7K3M-QX9R"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a results_file. Any case, with or without hyphens and the prefix.",
+							"examples": ["F-7K3M-QX9R"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResultsFileOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Get Results File",
+				"tags": ["matches"]
+			}
+		},
+		"/api/v1/organizers/{code}/reports": {
+			"post": {
+				"description": "Report a verified Organizer to OPEN Moderators.\n\nFor a signed-in Account with a Player. 404 for an Organizer that is\nunknown or not verified, and for an Account with no Player; 409 while\nthe Account's earlier report on it is open. Limited per Account to a\nfew reports a day; past that the answer is 429 with a Retry-After\nheader. The Organizer never learns who reported it.",
+				"operationId": "report_organizer",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "G-7K3M-QX9Q"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+							"examples": ["G-7K3M-QX9Q"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OrganizerReportIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OrganizerReportOut"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Report Organizer Operation",
+				"tags": ["organizers"]
 			}
 		},
 		"/api/v1/players/search": {
@@ -1613,7 +4205,16 @@
 								}
 							}
 						},
-						"description": "Too Many Requests"
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1691,6 +4292,25 @@
 							}
 						},
 						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1792,6 +4412,25 @@
 							}
 						},
 						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -1804,6 +4443,222 @@
 				],
 				"summary": "List Player Matches",
 				"tags": ["players"]
+			}
+		},
+		"/api/v1/players/{code}/rating-history": {
+			"get": {
+				"description": "Every change to a player's ratings, in every rating format, newest\nfirst.\n\nEach change comes with its reliability: the OPEN standard requires any\napp that shows an OPEN rating to show its reliability next to it.\nEvery rating is a demonstration rating while the engine is a\ndemonstration package. The player always sees their own history.\nAnyone else signed in sees it only when the player's rating history\nsetting is signed-in players, and gets 404, as for an unknown code,\nwhen it is private or the player's Account is inactive.",
+				"operationId": "list_player_rating_history",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "P-7K3M-QX9H"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+							"examples": ["P-7K3M-QX9H"],
+							"title": "Code",
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"maximum": 100,
+							"minimum": 1,
+							"title": "Limit",
+							"type": "integer"
+						}
+					},
+					{
+						"in": "query",
+						"name": "offset",
+						"required": false,
+						"schema": {
+							"default": 0,
+							"maximum": 9223372036854775807,
+							"minimum": 0,
+							"title": "Offset",
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PagedRatingHistoryItemOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List Player Rating History",
+				"tags": ["ratings"]
+			}
+		},
+		"/api/v1/players/{code}/ratings": {
+			"get": {
+				"description": "A player's current Ratings, one per rating format the player has.\n\nThe player always sees their own. Anyone else signed in sees them only\nwhen the player's rating visibility is signed-in players: always for\nan adult; a player who joined at 13 to 17 stays hidden, at 18 too,\nuntil they change it. Each rating comes with its reliability: the OPEN\nstandard requires any app that shows an OPEN rating to show its\nreliability next to it. Every rating is a demonstration rating while\nthe engine is a demonstration package. An unknown or malformed code, a\nhidden player, and a player whose Account is inactive get the same 404.",
+				"operationId": "get_player_ratings",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "P-7K3M-QX9H"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+							"examples": ["P-7K3M-QX9H"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PlayerRatingsOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Get Player Ratings",
+				"tags": ["ratings"]
 			}
 		}
 	},

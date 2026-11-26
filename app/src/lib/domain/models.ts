@@ -64,11 +64,16 @@ export type Match = {
 	games: readonly Game[];
 	/** The signed-in player's side, or null when they did not play. */
 	viewerSide: Side | null;
-	/** The latest confirm or dispute the signed-in player recorded, `none` if there is none. */
-	viewerDecision: 'confirm' | 'dispute' | 'none';
 	/**
-	 * Whether any player on each side has confirmed. A dispute is not a confirmation. A match an
-	 * organizer or moderator confirmed can show both sides false, so read `status` for whether the
+	 * The latest confirm, dispute or withdraw the signed-in player recorded, `none` if there is
+	 * none. `withdraw` means they withdrew their dispute. The match can still be disputed by
+	 * another player.
+	 */
+	viewerDecision: 'confirm' | 'dispute' | 'withdraw' | 'none';
+	/**
+	 * Whether any player on each side has confirmed. A dispute is not a confirmation, and a
+	 * confirmation stays after the same player disputes or withdraws. A match an organizer
+	 * confirmed, or a corrected match, can show both sides false, so read `status` for whether the
 	 * match is confirmed. Null when the signed-in player did not play.
 	 */
 	confirmedBySide: { a: boolean; b: boolean } | null;

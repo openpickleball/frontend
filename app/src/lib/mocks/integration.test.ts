@@ -835,7 +835,8 @@ describe('player profile endpoints', () => {
 				match_history_visibility: 'signed_in',
 				rating_history_visibility: 'signed_in',
 				stats_visibility: 'signed_in',
-				home_club_visibility: 'signed_in'
+				home_club_visibility: 'signed_in',
+				rating_visibility: 'signed_in'
 			}
 		});
 		expect(made.data?.code).toMatch(/^P-/);
@@ -940,7 +941,8 @@ describe('player profile endpoints', () => {
 			match_history_visibility: 'private',
 			rating_history_visibility: 'private',
 			stats_visibility: 'private',
-			home_club_visibility: 'private'
+			home_club_visibility: 'private',
+			rating_visibility: 'private'
 		});
 
 		mockStore.logout();
@@ -977,6 +979,37 @@ describe('player profile endpoints', () => {
 		});
 	});
 
+	it("accepts the player's stored rating_visibility", async () => {
+		const api = await signedIn();
+		const before = await unwrap(api.open.GET('/api/v1/me/player'));
+		const patched = await unwrap(
+			api.open.PATCH('/api/v1/me/player', {
+				body: { privacy: { rating_visibility: before.privacy.rating_visibility } }
+			})
+		);
+		expect(patched).toEqual(before);
+	});
+
+	it('refuses to show the current ratings of a player aged 13 to 17', async () => {
+		const api = await freshAccount();
+		await unwrap(
+			api.open.POST('/api/v1/me/player', {
+				body: { ...adult, birth_year: new Date().getFullYear() - 15, birth_month: 1 }
+			})
+		);
+		const result = await api.open.PATCH('/api/v1/me/player', {
+			body: { privacy: { rating_visibility: 'signed_in' } }
+		});
+		expect(result.response.status).toBe(422);
+		expect(result.error?.errors).toEqual([
+			{
+				field: 'body.privacy.rating_visibility',
+				code: 'invalid',
+				message: 'Current ratings can be shown to other players only from age 18.'
+			}
+		]);
+	});
+
 	it('clears the city, region and legal name with null', async () => {
 		const api = await signedIn();
 		const patched = await unwrap(
@@ -1010,6 +1043,10 @@ describe('player profile endpoints', () => {
 		[
 			{ display_name: 'Fine Name', privacy: { stats_visibility: 'everyone' } },
 			[['body.privacy.stats_visibility', 'enum']]
+		],
+		[
+			{ privacy: { rating_visibility: 'private', stats_visibility: 'private' } },
+			[['body.privacy.rating_visibility', 'invalid']]
 		]
 	])('refuses %j with a 422 that changes nothing', async (body, expected) => {
 		const api = await signedIn();
@@ -1174,7 +1211,8 @@ describe('signup details held for the create (backend#124)', () => {
 		match_history_visibility: 'signed_in',
 		rating_history_visibility: 'signed_in',
 		stats_visibility: 'signed_in',
-		home_club_visibility: 'signed_in'
+		home_club_visibility: 'signed_in',
+		rating_visibility: 'signed_in'
 	};
 	const PRIVATE = Object.fromEntries(Object.keys(SIGNED_IN).map((key) => [key, 'private']));
 

@@ -64,7 +64,8 @@ const signedIn: PrivacyOut = {
 	match_history_visibility: 'signed_in',
 	rating_history_visibility: 'signed_in',
 	stats_visibility: 'signed_in',
-	home_club_visibility: 'signed_in'
+	home_club_visibility: 'signed_in',
+	rating_visibility: 'signed_in'
 };
 
 type Profile = {
@@ -145,7 +146,7 @@ export const ACCOUNTS: readonly FixtureAccount[] = [
 	{ email: UNVERIFIED_EMAIL, password: MOCK_PASSWORD, verified: false, active: true }
 ];
 
-export type FixtureDecision = { player: PlayerKey; decision: 'confirm' | 'dispute' };
+export type FixtureDecision = { player: PlayerKey; decision: 'confirm' | 'dispute' | 'withdraw' };
 
 export type FixtureMatch = {
 	/** The 11 random characters of the code. */
@@ -162,7 +163,10 @@ export type FixtureMatch = {
 	decisions: readonly FixtureDecision[];
 };
 
-const dec = (player: PlayerKey, decision: 'confirm' | 'dispute' = 'confirm'): FixtureDecision => ({
+const dec = (
+	player: PlayerKey,
+	decision: FixtureDecision['decision'] = 'confirm'
+): FixtureDecision => ({
 	player,
 	decision
 });
@@ -435,7 +439,8 @@ export const MATCHES: readonly FixtureMatch[] = [
 		decisions: [dec('oren'), dec('rosa')]
 	},
 	{
-		// Disputed, with the private player on the other side.
+		// Disputed, with the private player on the other side. Tamsin disputed and then withdrew,
+		// so her decision is withdraw while Bea's dispute keeps the match disputed.
 		random: 'R5GK9WBD2XF',
 		status: 'disputed',
 		format: 'doubles',
@@ -450,7 +455,12 @@ export const MATCHES: readonly FixtureMatch[] = [
 			[11, 13]
 		],
 		submittedBy: 'kit',
-		decisions: [dec('kit'), dec('bea', 'dispute')]
+		decisions: [
+			dec('kit'),
+			dec('tamsin', 'dispute'),
+			dec('tamsin', 'withdraw'),
+			dec('bea', 'dispute')
+		]
 	},
 	{
 		random: '6YEM3HNV8QT',

@@ -104,8 +104,14 @@ export const PRIVACY_SETTINGS: readonly (keyof PrivacyOut)[] = [
 	'match_history_visibility',
 	'rating_history_visibility',
 	'stats_visibility',
-	'home_club_visibility'
+	'home_club_visibility',
+	'rating_visibility'
 ];
+
+export const RATINGS_ALWAYS_SHOWN =
+	"Current ratings are always shown to signed-in players and can't be hidden.";
+export const RATINGS_SHOWN_FROM_18 =
+	'Current ratings can be shown to other players only from age 18.';
 
 const CREATE_KEYS = new Set([...STRING_FIELDS, ...BIRTH_FIELDS]);
 const UPDATE_KEYS = new Set([...Object.keys(TEXT_LIMITS), 'privacy']);
@@ -193,6 +199,25 @@ export function updateSchemaIssues(body: unknown): FieldIssue[] {
 	}
 	for (const key of Object.keys(rest)) if (!UPDATE_KEYS.has(key)) issues.push(extra(`body.${key}`));
 	return issues;
+}
+
+/**
+ * The backend's rule for `rating_visibility` (`_refuse_rating_visibility`), checked before the
+ * other privacy settings. The stored value is always accepted. Hiding current ratings is refused
+ * for everyone, and showing them is refused for a player aged 13 to 17.
+ */
+export function ratingVisibilityIssues(
+	stored: PrivacyOut['rating_visibility'],
+	minor: boolean,
+	privacy: unknown
+): FieldIssue[] {
+	if (!isObject(privacy) || !Object.hasOwn(privacy, 'rating_visibility')) return [];
+	const value = privacy.rating_visibility;
+	const field = 'body.privacy.rating_visibility';
+	if (value === stored) return [];
+	if (value === 'private') return [issue(field, 'invalid', RATINGS_ALWAYS_SHOWN)];
+	if (value === 'signed_in' && minor) return [issue(field, 'invalid', RATINGS_SHOWN_FROM_18)];
+	return [];
 }
 
 /** The privacy model's check: a setting sent as null is refused, like any non-null column. */
