@@ -1,0 +1,10 @@
+import { describe, expect, it } from 'vitest';
+import { z } from './zod';
+
+describe('zod config', () => {
+	// Zod probes for eval with `new Function('')` unless it is jitless. The content security
+	// policy (src/csp.ts) blocks eval, so the probe is a violation in every page.
+	it('is jitless', () => {
+		expect(z.config().jitless).toBe(true);
+	});
+});

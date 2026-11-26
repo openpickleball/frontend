@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('the theme choice persists across a reload', async ({ page }) => {
 	await page.emulateMedia({ colorScheme: 'dark' });

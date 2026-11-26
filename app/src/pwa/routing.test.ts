@@ -19,6 +19,12 @@ describe('isNetworkOnly', () => {
 		expect(isNetworkOnly('/api')).toBe(true);
 	});
 
+	it('covers the Django partner token endpoint, which shares the host', () => {
+		expect(isNetworkOnly('/oauth/token/')).toBe(true);
+		expect(isNetworkOnly('/oauth')).toBe(true);
+		expect(isNetworkOnly('/oauthx')).toBe(false);
+	});
+
 	it('leaves app paths alone', () => {
 		expect(isNetworkOnly('/matches')).toBe(false);
 		expect(isNetworkOnly('/apiary')).toBe(false);
@@ -40,6 +46,7 @@ describe('route', () => {
 		expect(decide('/api/v1/me')).toBe('ignore');
 		expect(decide('/_allauth/browser/v1/auth/login')).toBe('ignore');
 		expect(decide('/api/v1/me', { mode: 'navigate' })).toBe('ignore');
+		expect(decide('/oauth/token/', { mode: 'navigate' })).toBe('ignore');
 	});
 
 	it('ignores writes, other origins and files it did not precache', () => {

@@ -62,9 +62,9 @@
 }
 
 /*
-  Theme: the system setting by default. The toggle stores a choice and the script in app.html puts
-  it on <html data-theme> before first paint. `light:` targets the ivory theme either way. Mirrors
-  the variant in site/src/input.css.
+  Theme: the system setting by default. The toggle stores a choice and static/theme.js (loaded by
+  app.html) puts it on <html data-theme> before first paint. `light:` targets the ivory theme
+  either way. Mirrors the variant in site/src/input.css.
 */
 @custom-variant light {
 	&:where([data-theme='light'], [data-theme='light'] *) {

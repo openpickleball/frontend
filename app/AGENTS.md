@@ -16,9 +16,18 @@ The full frontend, built with SvelteKit and Tailwind. It is not deployed yet: `p
 - `pnpm e2e:live` runs one happy path against `pnpm dev` and the real local backend (`playwright.live.config.ts`, `e2e-live/`). Local only: CI never runs it, and it skips unless the backend and the `LIVE_*` values are set. See [README.md](README.md).
 - `pnpm e2e:pwa` runs `e2e-pwa/` against a build with `PUBLIC_API_MOCK=off` (port 4184, or `E2E_PWA_PORT`): manifest, service worker and the offline shell. It builds into `build/` too, so don't run it at the same time as `pnpm e2e`. `pnpm icons` re-renders `static/icons/` from the favicon.
 - `pnpm build` produces a production build.
-- `pnpm check:build` checks that the build in `build/` ships no API mocks: no msw code, no mock fixtures and no `mockServiceWorker.js`. Run it after a `PUBLIC_API_MOCK=off` build. A mock build fails it on purpose.
+- `pnpm check:build` checks that the build in `build/` ships no API mocks (no msw code, no mock fixtures and no `mockServiceWorker.js`) and that `index.html` carries one content security policy that the browser applies before any script, hashes every inline script, and allows no broad or unsafe script source (see `scripts/check-csp.mjs`). Run it after a `PUBLIC_API_MOCK=off` build. A mock build fails it on purpose.
 
 CI runs `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test:coverage`, `pnpm build` and `pnpm check:build` (job `app-checks`) and `pnpm e2e` (job `app-e2e`) on every PR, and on pushes to `main` that change `app/`. Both jobs install Chromium, from a cached Playwright browser directory.
+
+## Content security policy
+
+The app's policy is `src/csp.ts`. SvelteKit writes it into `build/index.html` as a meta tag, because App Platform cannot send headers for a static site (see "Hosting on App Platform" in [README.md](README.md)).
+
+- Every origin the browser talks to goes into `src/csp.ts`, taken from the constant the code uses (as `connect-src` takes `PHOTON_URL`), never a second copy of the string.
+- `src/app.html` keeps no inline script and no `style` attribute. Put script in a file under `static/`, and use a class for style.
+- Every e2e test fails on a policy violation (`e2e/fixtures.ts`). Every spec imports `test` and `expect` from there, not from `@playwright/test`.
+- Add an allowance only for a violation the platform or a dependency causes, and record the violation text under Decisions in `plans/app-csp-and-hosting/plan.md`.
 
 ## Pre-commit hook
 
@@ -45,5 +54,5 @@ A component or default that looks a little different from the mockups is accepta
 - The app is a single-page app (`adapter-static` with `fallback: 'index.html'`, `ssr = false`), so the build in `build/` is static.
 - Breakpoints and widths are Tailwind defaults only. There is one layout step, `lg` (1024px): the top and tab bars give way to the side nav (`w-64`). Dialogs switch from a bottom sheet to a centered dialog at `md` (768px). The page column is `max-w-2xl` plus the gutter, forms and dialogs are `max-w-md`, and every paragraph measure is `max-w-md`. There is no phone-to-tablet layout step. Don't add a custom breakpoint or a one-off width.
 - Vertical spacing uses a short set of Tailwind steps, and only these. `1` or `2`: between a label and its field, or lines in a group (`1` only for a tight pair such as a figure over its caption). `4`: between fields, and from a heading to its intro. `8`: between groups, including fieldsets, notices and the blocks inside a section. `12`: between page sections. Don't use `5`, `7`, `9`, `10` or `11` for a vertical margin or gap, and don't add off-grid values like `18px`. Small nudges that line an icon up with text (`mt-0.5`) are fine. Gaps inside a wrapping row of buttons or chips may use `3`.
-- The PWA shell is `static/manifest.webmanifest`, `src/service-worker/` (the worker, with its own tsconfig) and `src/pwa/` (routing rules and registration). SvelteKit's auto-registration is off: `hooks.client.ts` registers the worker only when `PUBLIC_API_MOCK` is `off` and not in dev, because MSW owns the worker in the mock modes. `/api/` and `/_allauth/` are never cached.
+- The PWA shell is `static/manifest.webmanifest`, `src/service-worker/` (the worker, with its own tsconfig) and `src/pwa/` (routing rules and registration). SvelteKit's auto-registration is off: `hooks.client.ts` registers the worker only when `PUBLIC_API_MOCK` is `off` and not in dev, because MSW owns the worker in the mock modes. `/api/`, `/_allauth/` and `/oauth/` are never cached.
 - The mocks stay out of `off` builds. The `apiMocks` plugin in `vite.config.ts` sets `__API_MOCKS__` to `false` there, so the mock import in `hooks.client.ts` is dead code and is dropped. It also serves `mockServiceWorker.js` from the msw package in dev and copies it into mock builds only, so there is no copy in `static/`. Never import `src/lib/mocks/` from app code outside that guard.

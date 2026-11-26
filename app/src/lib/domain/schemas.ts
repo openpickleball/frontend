@@ -8,7 +8,7 @@
  * A game's key can be `games.<i>` (a score rule) or `games.<i>.team_a` (the server's
  * schema check on one score), so a form groups game errors by the `games.<i>` prefix.
  */
-import { z } from 'zod';
+import { z } from './zod';
 import { type BestOf, type GameTarget, type MatchFormat, type ScoringType } from './models';
 import {
 	groupIssues,

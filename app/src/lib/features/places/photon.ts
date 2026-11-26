@@ -4,7 +4,10 @@
  * account, key or header, and the text is never logged here.
  */
 
-/** The Photon search endpoint. The mock handler and the PWA rules use it too. */
+/**
+ * The Photon search endpoint. The mock handler, the PWA rules and the content security policy
+ * (`src/csp.ts`, for `connect-src`) use it too.
+ */
 export const PHOTON_URL = 'https://photon.komoot.io/api/';
 
 const MESSAGE = "We couldn't load suggestions. Try again.";

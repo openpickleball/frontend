@@ -3,8 +3,12 @@
  * (`routing.test.ts`). The worker itself is `src/service-worker/index.ts`.
  */
 
-/** Paths that always go to the network and are never cached: they carry the session. */
-const NETWORK_ONLY_PREFIXES = ['/api/', '/_allauth/'];
+/**
+ * Paths that always go to the network and are never cached. `/api/` and `/_allauth/` carry the
+ * session. `/oauth/` is Django's partner token endpoint on the same host (see "Hosting on App
+ * Platform" in README.md). The app never calls it, and network-only keeps the worker out of it.
+ */
+const NETWORK_ONLY_PREFIXES = ['/api/', '/_allauth/', '/oauth/'];
 
 export type Route =
 	/** Not ours: leave it to the browser. */

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../e2e/fixtures';
 import { signIn } from '../e2e/helpers';
 
 // The live happy path: sign in, record a singles match, see it wait for the other team, and find

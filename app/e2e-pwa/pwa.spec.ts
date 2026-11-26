@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from '../e2e/fixtures';
 
 // Runs against a build with PUBLIC_API_MOCK=off (playwright.pwa.config.ts), the only build that
 // registers the service worker. There is no backend, so the app shows its signed-out or error

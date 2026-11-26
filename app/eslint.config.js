@@ -6,6 +6,9 @@ import prettier from 'eslint-config-prettier';
 import svelte from 'eslint-plugin-svelte';
 import ts from 'typescript-eslint';
 
+const ZOD_MESSAGE =
+	"Import z from src/lib/domain/zod.ts, which turns off Zod's eval probe that the CSP blocks.";
+
 export default ts.config(
 	{
 		ignores: [
@@ -41,6 +44,33 @@ export default ts.config(
 		ignores: ['src/**/*.test.ts', 'src/lib/mocks/**'],
 		plugins: { local },
 		rules: { 'local/no-arbitrary-tailwind-values': 'error' }
+	},
+	{
+		// Zod must run jitless, or its eval probe breaks the content security policy (src/csp.ts).
+		// src/lib/domain/zod.ts sets that, so it is the only module that may import 'zod' for values.
+		// no-restricted-imports covers static imports; no-restricted-syntax covers import('zod').
+		files: ['**/*.{js,mjs,cjs,ts,mts,cts,svelte}'],
+		ignores: ['src/lib/domain/zod.ts'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					paths: [{ name: 'zod', allowTypeImports: true, message: ZOD_MESSAGE }],
+					patterns: [{ group: ['zod/*'], allowTypeImports: true, message: ZOD_MESSAGE }]
+				}
+			],
+			'no-restricted-syntax': [
+				'error',
+				{
+					selector: 'ImportExpression[source.value=/^zod(\\/|$)/]',
+					message: ZOD_MESSAGE
+				},
+				{
+					selector: 'ImportExpression[source.quasis.0.value.cooked=/^zod(\\/|$)/]',
+					message: ZOD_MESSAGE
+				}
+			]
+		}
 	},
 	{
 		// Layering from plans/frontend-v1/proposal.md section 3. Empty folders are fine.

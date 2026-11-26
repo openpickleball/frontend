@@ -1,6 +1,6 @@
 // The app shell worker (plans/frontend-v1/proposal.md section 8). It precaches the build and the
 // static files, falls back to the cached index.html when a page load fails, and never touches
-// /api/ or /_allauth/. The routing decision is in pwa/routing.ts.
+// /api/, /_allauth/ or /oauth/. The routing decision is in pwa/routing.ts.
 import { self as sw } from '$app/service-worker';
 import { version } from '$app/env';
 import { assets as staticFiles, immutable } from '$app/manifest';

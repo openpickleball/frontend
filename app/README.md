@@ -147,16 +147,128 @@ print(Player.objects.get(account__email='your.email@example.com').public_code)
 "
 ```
 
+## Hosting on App Platform
+
+This section is a proposal. The app is not deployed yet (frontend#22), and nothing here has been checked against a real deploy. The spec it changes belongs to the backend repository, which owns it and checks it with its `config/tests/test_app_spec.py` and `doctl apps spec validate`.
+
+### Why the app joins the backend's app
+
+App Platform routes paths only between components of one app. The app calls `/api/` and `/_allauth/` on its own origin, and the backend keeps `CORS_ALLOW_CREDENTIALS` off, so sign-in only works when the backend and the app share a host. `/oauth/` is Django's partner token endpoint (`token/` and `revoke_token/`), which the app never calls. It goes to Django on the same host too, and the service worker leaves it alone. The app is therefore a `static_sites` component in the backend's spec, `.do/production.yaml` in `openpickleball/backend` (app `open-backend-production`), next to its `web` service.
+
+### The addition to `.do/production.yaml`
+
+```yaml
+# The web app (openpickleball/frontend, app/). A static build: the shell, its
+# files and the service worker.
+static_sites:
+  - name: app
+    github:
+      repo: openpickleball/frontend
+      branch: main
+      # Off on purpose. A deployment may be app-wide (not checked in DigitalOcean's
+      # docs), so a frontend push could redeploy web, worker and beat from the
+      # GHCR main tag and run the PRE_DEPLOY migrate job. Frontend changes go
+      # live with a deliberate deploy of the production app. Revisit once
+      # backend#63 deploys by digest.
+      deploy_on_push: false
+    source_dir: app
+    environment_slug: node-js
+    # Builds with the mocks off, then fails the deploy if the build ships mock
+    # code or a broken content security policy.
+    build_command: pnpm build && pnpm check:build
+    envs:
+      - key: PUBLIC_API_MOCK
+        value: 'off'
+        scope: BUILD_TIME
+    output_dir: build
+    # Every path the app does not have a file for gets the SPA shell.
+    catchall_document: index.html
+
+domains:
+  - domain: app.openpb.org
+    type: ALIAS
+
+ingress:
+  rules:
+    # Django on the app's host. preserve_path_prefix keeps /api/ and the
+    # others in the path; by default App Platform strips the matched prefix.
+    - match:
+        authority:
+          exact: app.openpb.org
+        path:
+          prefix: /api/
+      component:
+        name: web
+        preserve_path_prefix: true
+    - match:
+        authority:
+          exact: app.openpb.org
+        path:
+          prefix: /_allauth/
+      component:
+        name: web
+        preserve_path_prefix: true
+    - match:
+        authority:
+          exact: app.openpb.org
+        path:
+          prefix: /oauth/
+      component:
+        name: web
+        preserve_path_prefix: true
+    # Everything else on app.openpb.org is the app.
+    - match:
+        authority:
+          exact: app.openpb.org
+        path:
+          prefix: /
+      component:
+        name: app
+    # Any other host keeps going to Django, as it does today.
+    - match:
+        path:
+          prefix: /
+      component:
+        name: web
+```
+
+### Backend steps (in the backend repository, not here)
+
+- `DJANGO_ALLOWED_HOSTS` is `${APP_DOMAIN}` only today. `app.openpb.org` must be allowed too (backend#183 sets the hosts).
+- Adding `static_sites`, `domains` and `ingress`, and changing `DJANGO_ALLOWED_HOSTS`, must also update the backend's `config/tests/test_app_spec.py`. `test_spec_has_exactly_the_components` limits the top-level keys, `BINDINGS` pins `DJANGO_ALLOWED_HOSTS` to `${APP_DOMAIN}`, and `test_env_values_are_exactly_the_planned_ones` checks every env value. The backend's gate for the spec is that test plus `doctl apps spec validate`.
+- Keep `SECURE_CONTENT_TYPE_NOSNIFF` on. `script-src 'self'` trusts every same-origin path, Django's included, so a response must never be run as a script because of a guessed type.
+- Not checked: adding a custom domain may change what `${APP_DOMAIN}` resolves to. Check it before relying on it for the allowed hosts.
+
+CSRF needs no extra trusted origin. The app and Django share the origin, so the `Origin` header matches the request host (with `SECURE_PROXY_SSL_HEADER` behind the platform's proxy).
+
+### What App Platform cannot do
+
+- **Response headers.** A static site component has no field for them. The content security policy (`src/csp.ts`) travels in the page instead, as the `<meta http-equiv="content-security-policy">` that SvelteKit writes into `build/index.html`.
+- **Framing protection.** A meta policy ignores `frame-ancestors` (and `report-uri` and `sandbox`), and `X-Frame-Options` is a header. So any site can put the app in a frame. That gap stays open until the app is served by something that sends headers.
+- **The service worker.** The meta policy covers the page, not `service-worker.js`. A worker gets its policy only from its own response headers, and the platform sends none.
+
+`pnpm dev` and `pnpm preview` render pages on the fly, so they send the same policy as a response header, not the meta tag. In dev SvelteKit adds `'unsafe-inline'` to `style-src` and `style-src-attr` for Vite's injected styles. The built `index.html` is what App Platform serves.
+
+### Check on the first deploy
+
+These could not be checked here:
+
+- The Node and pnpm versions the buildpack picks. The app needs Node 26 and the pnpm in `packageManager`. The `.nvmrc` sits at the repository root, outside `source_dir`, and `package.json` has no `engines`, so the buildpack may not see the Node version.
+- Cache headers on `service-worker.js`, `index.html` and `/theme.js`. All three keep the same name across builds, so they must be revalidated on every load, or players keep an old shell, an old policy or an old theme script until the cache expires. Files under `/_app/immutable/` can be cached for a long time.
+- `catchall_document` answers every missing path with `index.html` and status 200, including an old `/_app/immutable/` chunk that a new build removed. A page from the old build then gets HTML where it expected a script.
+- That `/api/`, `/_allauth/` and `/oauth/` reach Django with their prefix, and that the session cookie and CSRF work on `app.openpb.org`.
+- That the page shows no content security policy errors in the browser console.
+
 ## Tests
 
-| Command            | What it runs                                                                                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm test`        | Unit and component tests.                                                                                                                                    |
-| `pnpm e2e`         | Playwright tests against a production build with `PUBLIC_API_MOCK=all`. No backend.                                                                          |
-| `pnpm e2e:webkit`  | The same tests in WebKit (iPhone 15). Needs `pnpm exec playwright install webkit`.                                                                           |
-| `pnpm e2e:pwa`     | Manifest, service worker and offline shell, against a build with the mocks off (port 4184, or `E2E_PWA_PORT`). Do not run it at the same time as `pnpm e2e`. |
-| `pnpm e2e:live`    | One happy path against the real local backend. Local only, never run in CI.                                                                                  |
-| `pnpm check:build` | After `pnpm build` with the mocks off: checks that `build/` has no msw code, no mock fixtures and no `mockServiceWorker.js`.                                 |
+| Command            | What it runs                                                                                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm test`        | Unit and component tests.                                                                                                                                                                                           |
+| `pnpm e2e`         | Playwright tests against a production build with `PUBLIC_API_MOCK=all`. No backend.                                                                                                                                 |
+| `pnpm e2e:webkit`  | The same tests in WebKit (iPhone 15). Needs `pnpm exec playwright install webkit`.                                                                                                                                  |
+| `pnpm e2e:pwa`     | Manifest, service worker and offline shell, against a build with the mocks off (port 4184, or `E2E_PWA_PORT`). Do not run it at the same time as `pnpm e2e`.                                                        |
+| `pnpm e2e:live`    | One happy path against the real local backend. Local only, never run in CI.                                                                                                                                         |
+| `pnpm check:build` | After `pnpm build` with the mocks off: checks that `build/` has no msw code, no mock fixtures and no `mockServiceWorker.js`, and that `index.html` has one content security policy that hashes every inline script. |
 
 `pnpm e2e` serves the build on port 4183. Set `E2E_PORT` to use another port, for example when two checkouts run at the same time:
 

@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+import { directives } from './src/csp.ts';
 
 /**
  * Keeps the API mocks out of builds with `PUBLIC_API_MOCK=off` (frontend#57).
@@ -66,7 +67,13 @@ export default defineConfig(({ command, mode }) => ({
 			// but `vite preview` renders the shell per route with relative ones (./_app on /, ../_app
 			// on /account/login), and the worker caches one shell for all routes. The offline e2e
 			// check fails without this.
-			paths: { relative: false }
+			paths: { relative: false },
+
+			// The Content Security Policy (src/csp.ts). In hash mode SvelteKit writes it into the
+			// static shell as a meta tag, with a hash for its own inline script. A meta policy ignores
+			// frame-ancestors, report-uri and sandbox, and App Platform cannot send headers for a
+			// static site. See "Hosting on App Platform" in README.md.
+			csp: { mode: 'hash', directives }
 		})
 	],
 	server: {
