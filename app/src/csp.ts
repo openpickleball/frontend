@@ -37,5 +37,10 @@ export const directives = {
 	'worker-src': ['self'],
 	'object-src': ['none'],
 	'base-uri': ['none'],
-	'form-action': ['self']
+	'form-action': ['self'],
+	// SvelteKit's route announcer (`#svelte-announcer` in its root.svelte) has a static style
+	// attribute, which Svelte builds from an HTML template, so the browser checks it against the
+	// policy. Only its hash is allowed, not every inline style. csp.test.ts checks the hash against
+	// the installed SvelteKit, so an upgrade that changes the attribute fails the tests.
+	'style-src-attr': ['unsafe-hashes', 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo=']
 } satisfies CspDirectives;

@@ -75,6 +75,23 @@ The built app carries a Content Security Policy that allows only what it uses, a
 
 Measured on `main` (7ef77af), with `vite.config.ts` restored afterwards: adding `csp: { mode: 'hash', directives: { 'script-src': ['self'], 'object-src': ['none'], 'base-uri': ['none'], 'frame-ancestors': ['none'] } }` and running `PUBLIC_API_MOCK=off pnpm build` gave `build/index.html` two inline scripts, hashes `sha256-+XGGSQ0alBg0QYVyMUpB62IitRUzU5Y5q18wZd61DWk=` (the theme script from `app.html`) and `sha256-cdP/6g02mcIkciOXpIF/HUGDavY9RhWFCFJD/YT06dM=` (SvelteKit's bootstrap), and the meta `object-src 'none'; script-src 'self' 'sha256-cdP/...'; base-uri 'none'`. So the theme script is not hashed, and `frame-ancestors` is dropped without a warning.
 
+Fixture probe (step 4), run once with a temporary `e2e/zz-csp-probe.spec.ts` that loaded `/` and ran `fetch('https://example.org')`, then deleted. The fixture failed the test with:
+
+```
+"Connecting to 'https://example.org/' violates the following Content Security Policy directive: \"connect-src 'self' https://photon.komoot.io\". The action has been blocked.",
+"Fetch API cannot load https://example.org/. Refused to connect because it violates the document's Content Security Policy.",
+"Content Security Policy violation: connect-src blocked https://example.org/",
+```
+
+The same run also caught a real violation: `style-src-attr blocked inline`, hash `sha256-tcbDxjMo+xKqM21aCGYbs/QAJqB7yUXC06oPWDapBgc=`, which is `display: contents` from `<div style="display: contents">` in `src/app.html`. That div now uses the Tailwind `contents` class.
+
+The first full `pnpm e2e` with the fixture (111 tests, all failed) found two more, and nothing else:
+
+- `Content Security Policy violation: script-src blocked eval at .../_app/immutable/chunks/S4AP6qqW.js:1:9560`. That is Zod's `allowsEval` probe, `try { return Function(''), !0 } catch { return !1 }`. Fixed in the app: `z.config({ jitless: true })` in `src/lib/domain/schemas.ts`, tested in `src/lib/domain/zod-config.test.ts`. No `'unsafe-eval'`.
+- `Applying inline style violates the following Content Security Policy directive 'default-src 'self''. Either the 'unsafe-inline' keyword, a hash ('sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='), or a nonce ('nonce-...') is required ...`, reported as `style-src-attr blocked inline at .../chunks/D8Ln_-J-.js:1:34278` (Svelte's `innerHTML` template clone). The hash is the style attribute of SvelteKit's route announcer, `#svelte-announcer` in `@sveltejs/kit/src/runtime/components/root.svelte`. See Decisions.
+
+After both, `pnpm e2e` passed 111 of 111 and `pnpm e2e:pwa` 4 of 4, with no violation. No e2e test covers the service worker update toast, so criterion 5's toast part rests on the unchanged toast code and the live drive, not on a suite.
+
 ## Decisions
 
 - Serve the app as an App Platform static site in the backend's app, with a meta CSP, and document the framing gap (rather than a container that sends headers). Chosen by the maintainer in this run. (2026-11-26)
@@ -82,3 +99,6 @@ Measured on `main` (7ef77af), with `vite.config.ts` restored afterwards: adding 
 - Theme script as a static file, not a hash computed in `vite.config.ts`: no hand-kept or computed hash to drift, and the file is precached. (2026-11-26)
 - The theme script tag goes after `%sveltekit.head%`, not before it. SvelteKit writes the CSP meta tag at the start of `%sveltekit.head%` (measured in `build/index.html`), and a meta policy only covers what follows it, so a script before it would load outside the policy and break criterion 1. It is still a blocking script in the head, so it runs before first paint. (2026-11-26)
 - `/oauth/` is network-only in the service worker, like `/api/` and `/_allauth/`, because Django serves it on the same host. Approved in this run. (2026-11-26)
+- `style-src-attr 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='`, not `style-src 'unsafe-inline'`. The only style violation in the suites was SvelteKit's route announcer (measured above). Without the allowance its hiding style is dropped and the announcer text shows on the page. One hash for one attribute is narrower than `'unsafe-inline'`. `src/csp.test.ts` hashes every static style attribute in the installed SvelteKit's `root.svelte`, so an upgrade that changes it fails the unit tests, and the e2e fixture catches any other new one. (2026-11-26)
+- Zod runs jitless (`z.config({ jitless: true })`) instead of allowing `'unsafe-eval'`. Its eval probe was the only script violation. Zod's JIT only speeds up object parsing, which the forms here do not need. (2026-11-26)
+- `src/app.html` uses `class="contents"` instead of `style="display: contents"` on the body wrapper, so it needs no style hash. (2026-11-26)

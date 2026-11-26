@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { directives, originOf } from './csp';
 
@@ -41,12 +43,37 @@ describe('directives', () => {
 			'worker-src',
 			'object-src',
 			'base-uri',
-			'form-action'
+			'form-action',
+			'style-src-attr'
 		]);
 		for (const [name, sources] of Object.entries(directives)) {
 			if (checked.has(name)) continue;
 			expect(sources, name).toEqual(PLATFORM_FALLBACK);
 		}
+	});
+});
+
+// SvelteKit's root component has a route announcer with a static style attribute. Svelte builds
+// it from an HTML template, so the browser checks the attribute against the policy.
+const kitRoot = readFileSync(
+	new URL('../node_modules/@sveltejs/kit/src/runtime/components/root.svelte', import.meta.url),
+	'utf8'
+);
+
+describe('style attributes', () => {
+	it("allows the hash of every static style attribute in SvelteKit's root component", () => {
+		const styles = [...kitRoot.matchAll(/\sstyle="([^"{]*)"/g)].map((match) => match[1]);
+		expect(styles.length).toBeGreaterThan(0);
+		for (const style of styles) {
+			const hash = `sha256-${createHash('sha256').update(style).digest('base64')}`;
+			expect(directives['style-src-attr'], style).toContain(hash);
+		}
+	});
+
+	it('allows those hashes only, not every inline style', () => {
+		expect(directives['style-src-attr']?.[0]).toBe('unsafe-hashes');
+		expect(directives['style-src-attr']).not.toContain('unsafe-inline');
+		expect(directives).not.toHaveProperty('style-src');
 	});
 });
 
