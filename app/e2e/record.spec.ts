@@ -131,18 +131,20 @@ test('a bad score shows the error inline and in the summary', async ({ page }) =
 	await fillDoublesMatch(page);
 	await page.getByLabel("Game 2, your team's points").fill('11');
 	await page.getByLabel("Game 2, opponents' points").fill('10');
-	await page.getByLabel("Game 2, opponents' points").blur();
 	const message = 'Game 2: the winner must win by 2 points.';
-	await expect(page.getByText(message)).toBeVisible();
-	await expect(page.getByLabel("Game 2, your team's points")).toHaveAttribute(
-		'aria-invalid',
-		'true'
-	);
+	// The error waits for submit, so leaving the row moves nothing.
+	await page.getByLabel("Game 2, opponents' points").blur();
+	await expect(page.getByText(message)).toHaveCount(0);
 
 	await page.getByRole('button', { name: 'Record and confirm score' }).click();
 	await expect(page).toHaveURL(/\/record$/);
 	const summary = page.getByRole('alert').filter({ hasText: 'Fix 1 thing to record this match' });
 	await expect(summary).toBeFocused();
+	await expect(page.getByText(message).first()).toBeVisible();
+	await expect(page.getByLabel("Game 2, your team's points")).toHaveAttribute(
+		'aria-invalid',
+		'true'
+	);
 	await summary.getByRole('link', { name: message }).click();
 	await expect(page.getByLabel("Game 2, your team's points")).toBeFocused();
 
@@ -150,6 +152,18 @@ test('a bad score shows the error inline and in the summary', async ({ page }) =
 	await page.getByLabel("Game 2, opponents' points").fill('8');
 	await page.getByRole('button', { name: 'Record and confirm score' }).click();
 	await expect(page).toHaveURL(MATCH_URL);
+});
+
+test('the first click on Record works straight after editing a game score', async ({ page }) => {
+	await openRecord(page);
+	await fillDoublesMatch(page);
+	// A score the rules refuse. The click is the first thing after the edit, not Enter or a tab.
+	await page.getByLabel("Game 2, opponents' points").fill('10');
+	await page.getByRole('button', { name: 'Record and confirm score' }).click();
+	await expect(
+		page.getByRole('alert').filter({ hasText: 'Fix 1 thing to record this match' })
+	).toBeFocused();
+	await expect(page.getByText('Game 2: the winner must win by 2 points.').first()).toBeVisible();
 });
 
 test('recording the same match twice says it was already recorded', async ({ page }) => {
