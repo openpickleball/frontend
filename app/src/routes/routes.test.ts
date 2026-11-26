@@ -3,6 +3,7 @@ import { render } from 'svelte/server';
 import type { Component } from 'svelte';
 import { ROUTES, buildCode } from '#lib/domain/index.js';
 import appHtml from '../app.html?raw';
+import themeScript from '../../static/theme.js?raw';
 
 // Every route page, keyed by its path under src/routes.
 const pages = import.meta.glob<{ default: Component }>('./**/+page.svelte', { eager: true });
@@ -87,14 +88,25 @@ describe('app.html', () => {
 		expect(appHtml).toContain('class="bg-primary font-body text-secondary antialiased"');
 	});
 
-	describe('no-flash theme script', () => {
-		// Runs the inline script against stand-ins for the document and localStorage.
+	// The content security policy (src/csp.ts) hashes only SvelteKit's own inline script, so
+	// app.html must not add one.
+	it('has no inline script', () => {
+		expect(appHtml).not.toMatch(/<script(?![^>]*\ssrc=)[^>]*>/);
+	});
+
+	// After %sveltekit.head%, which holds the CSP meta tag, so the policy covers it. Still a
+	// blocking script in the head, so it runs before first paint.
+	it('loads the theme script as a blocking file in the head, after the SvelteKit head', () => {
+		const tag = '<script src="/theme.js"></script>';
+		expect(appHtml).toContain(tag);
+		expect(appHtml.indexOf(tag)).toBeGreaterThan(appHtml.indexOf('%sveltekit.head%'));
+		expect(appHtml.indexOf(tag)).toBeLessThan(appHtml.indexOf('</head>'));
+	});
+
+	describe('no-flash theme script (static/theme.js)', () => {
+		// Runs the script against stand-ins for the document and localStorage.
 		function run(stored: string | null | 'throws') {
-			// app.html is our own file, so a plain search for its one inline script is enough.
-			const start = appHtml.indexOf('<script>') + '<script>'.length;
-			const end = appHtml.indexOf('</script>', start);
-			expect(start, 'inline script in app.html').toBeGreaterThan('<script>'.length - 1);
-			const script = appHtml.slice(start, end);
+			const script = themeScript;
 			const metas = [{ content: '#000000' }, { content: '#f7f3e8' }];
 			const documentElement = { dataset: {} as { theme?: string } };
 			const document = { documentElement, querySelectorAll: () => metas };

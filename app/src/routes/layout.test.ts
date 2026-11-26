@@ -4,6 +4,7 @@ import layoutCss from './layout.css?raw';
 import tailwindIndexCss from 'tailwindcss/index.css?raw';
 import { THEME_COLORS } from '#lib/ui/theme-toggle/theme.js';
 import appHtml from '../app.html?raw';
+import themeScript from '../../static/theme.js?raw';
 
 // Vite lists the files that exist, so the test needs no file system access.
 // Glob keys are relative to this file and url() values to layout.css, so both must share a folder.
@@ -183,7 +184,8 @@ describe('layout.css', () => {
 	});
 });
 
-// The browser chrome color is written in the tokens, in THEME_COLORS and in app.html. Each must
+// The browser chrome color is written in the tokens, in THEME_COLORS, in app.html and in
+// static/theme.js. Each must
 // follow `--color-primary`, so a change to the token cannot leave the chrome on the old color.
 describe('theme colors', () => {
 	it('THEME_COLORS follow --color-primary', () => {
@@ -192,12 +194,12 @@ describe('theme colors', () => {
 		expect(THEME_COLORS).toEqual({ light: token?.[1], dark: token?.[2] });
 	});
 
-	it('app.html writes the same colors in both meta tags and the inline script', () => {
+	it('app.html and static/theme.js write the same colors', () => {
 		const tag =
 			/<meta name="theme-color" content="(#\w+)" media="\(prefers-color-scheme: (\w+)\)"/g;
 		const metas = Object.fromEntries([...appHtml.matchAll(tag)].map((m) => [m[2], m[1]]));
 		expect(metas).toEqual(THEME_COLORS);
-		const script = /theme === 'light' \? '(#\w+)' : '(#\w+)'/.exec(appHtml);
+		const script = /theme === 'light' \? '(#\w+)' : '(#\w+)'/.exec(themeScript);
 		expect(script?.slice(1)).toEqual([THEME_COLORS.light, THEME_COLORS.dark]);
 	});
 });

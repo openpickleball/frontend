@@ -38,7 +38,7 @@ The built app carries a Content Security Policy that allows only what it uses, a
 - `app/src/csp.ts` (new): the directives, as a plain object typed for `kit.csp.directives`, importing `PHOTON_URL`. Pure, so it is unit tested. If the boundaries lint rejects an import from `src/lib/features/` here, move `PHOTON_URL` to a module both can import and say so in the plan.
 - `app/src/csp.test.ts` (new): node test of the directives (criteria 2 and 7).
 - `app/vite.config.ts`: `kit.csp: { mode: 'hash', directives }`, with a comment pointing to the README section and naming the meta tag limits.
-- `app/src/app.html`: replace the inline theme script with `<script src="/theme.js"></script>` (blocking, in the head, before `%sveltekit.head%`).
+- `app/src/app.html`: replace the inline theme script with `<script src="/theme.js"></script>` (blocking, in the head, right after `%sveltekit.head%`, so the CSP meta tag that SvelteKit writes there comes before it, as criterion 1 needs).
 - `app/static/theme.js` (new): the same code, unchanged in behavior. It is a static file, so the worker precaches it.
 - `app/scripts/check-build.mjs`: add the CSP check (criterion 4), or a sibling `scripts/check-csp.mjs` called by `check:build`. A node test with a fixture HTML string proves it fails on a bad page.
 - `app/e2e/fixtures.ts` (new) or `app/e2e/helpers.ts`: a `test` extended with an auto fixture that collects CSP violations and fails the test. Every spec in `e2e/` and `e2e-pwa/` imports `test` and `expect` from it.
@@ -80,4 +80,5 @@ Measured on `main` (7ef77af), with `vite.config.ts` restored afterwards: adding 
 - Serve the app as an App Platform static site in the backend's app, with a meta CSP, and document the framing gap (rather than a container that sends headers). Chosen by the maintainer in this run. (2026-11-26)
 - The App Platform block lives in the app README as a proposal. The spec itself belongs to the backend repo, because path routing cannot span two apps. (2026-11-26)
 - Theme script as a static file, not a hash computed in `vite.config.ts`: no hand-kept or computed hash to drift, and the file is precached. (2026-11-26)
+- The theme script tag goes after `%sveltekit.head%`, not before it. SvelteKit writes the CSP meta tag at the start of `%sveltekit.head%` (measured in `build/index.html`), and a meta policy only covers what follows it, so a script before it would load outside the policy and break criterion 1. It is still a blocking script in the head, so it runs before first paint. (2026-11-26)
 - `/oauth/` is network-only in the service worker, like `/api/` and `/_allauth/`, because Django serves it on the same host. Approved in this run. (2026-11-26)
