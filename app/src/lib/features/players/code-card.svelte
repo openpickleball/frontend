@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CopyIcon from '@lucide/svelte/icons/copy';
 	import { toast } from 'svelte-sonner';
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
@@ -46,7 +47,10 @@
 		Share it with the people you play. They need it to add you to a match.
 	</p>
 	<div class="flex flex-wrap items-center gap-3">
-		<Button variant="outline" size="sm" onclick={onCopy}>Copy code</Button>
+		<Button variant="outline" size="sm" onclick={onCopy}>
+			<CopyIcon aria-hidden="true" />
+			Copy code
+		</Button>
 		{#if canShare}
 			<Button variant="outline" size="sm" onclick={onShare}>Share</Button>
 		{/if}

@@ -99,6 +99,12 @@
 		outline: 2px solid var(--color-secondary);
 		outline-offset: 2px;
 	}
+	/* Tailwind v4 preflight sets buttons to cursor: default. Links show a pointer, so enabled
+	   buttons do too. Disabled ones keep the arrow. */
+	button:not(:disabled),
+	[role='button']:not(:disabled) {
+		cursor: pointer;
+	}
 	[hidden] {
 		display: none !important;
 	}
