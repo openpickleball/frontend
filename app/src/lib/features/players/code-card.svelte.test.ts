@@ -49,13 +49,21 @@ describe('CodeCard', () => {
 		expect(writeText).not.toHaveBeenCalled();
 	});
 
-	it('copies instead when there is no share sheet', async () => {
+	it('hides Share when there is no share sheet', async () => {
+		fakeNavigator({ share: undefined });
+		const screen = await render(CodeCard, { code: CODE });
+		await expect.element(screen.getByRole('button', { name: 'Copy code' })).toBeVisible();
+		await expect.element(screen.getByRole('button', { name: 'Share' })).not.toBeInTheDocument();
+	});
+
+	it('says so, without copying, when sharing fails for another reason', async () => {
 		const writeText = vi.fn(async () => {});
-		fakeNavigator({ share: undefined, writeText });
+		const share = vi.fn(async () => Promise.reject(new DOMException('no', 'NotAllowedError')));
+		fakeNavigator({ share, writeText });
 		const screen = await render(CodeCard, { code: CODE });
 		await screen.getByRole('button', { name: 'Share' }).click();
-		expect(writeText).toHaveBeenCalledWith(CODE);
-		expect(toast).toHaveBeenCalledWith('Code copied');
+		expect(toast).toHaveBeenCalledWith(expect.stringMatching(/Couldn't share/));
+		expect(writeText).not.toHaveBeenCalled();
 	});
 
 	it('does not copy, or complain, when the player closes the share sheet', async () => {

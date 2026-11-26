@@ -377,6 +377,8 @@ test('the seeded reset key from the mocks works for a deep link', async ({ page 
 
 // Axe on the states the route list can't reach by URL. Zero violations, in both themes.
 async function expectNoViolations(page: Page) {
+	// The app renders after load, so wait for the page's title before axe reads the document.
+	await expect(page).toHaveTitle(/OPEN Pickleball$/);
 	const results = await new AxeBuilder({ page })
 		.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
 		.analyze();
