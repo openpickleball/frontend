@@ -9,6 +9,17 @@ export type QueueStore = {
 	remove(id: string): Promise<void>;
 	/** Delete every match of one account. */
 	removeAccount(account: string): Promise<void>;
+	/** Every account's matches, for the age cleanup. */
+	listAll(): Promise<QueuedMatch[]>;
+	/**
+	 * Delete these matches and, in the same step, add to each account's count of deleted matches.
+	 * The count is a number only: no match data and no email.
+	 */
+	expire(items: { id: string; account: string }[]): Promise<void>;
+	/** How many of this account's matches were deleted for age and not yet reported. */
+	expiredCount(account: string): Promise<number>;
+	/** Forget that count, once the player has been told. */
+	clearExpired(account: string): Promise<void>;
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -47,9 +58,28 @@ const byAge = (a: QueuedMatch, b: QueuedMatch) => a.queuedAt.localeCompare(b.que
 const plain = (item: QueuedMatch): QueuedMatch => JSON.parse(JSON.stringify(item));
 
 /** A store in memory. For tests. */
-export function memoryStore(): QueueStore & { all(): QueuedMatch[] } {
+export function memoryStore(): QueueStore & {
+	all(): QueuedMatch[];
+	counts(): Record<string, number>;
+} {
 	const items = new Map<string, QueuedMatch>();
+	const expired = new Map<string, number>();
 	return {
+		async listAll() {
+			return [...items.values()].map(plain).sort(byAge);
+		},
+		async expire(list) {
+			for (const { id, account } of list) {
+				if (items.delete(id)) expired.set(account, (expired.get(account) ?? 0) + 1);
+			}
+		},
+		async expiredCount(account) {
+			return expired.get(account) ?? 0;
+		},
+		async clearExpired(account) {
+			expired.delete(account);
+		},
+		counts: () => Object.fromEntries(expired),
 		async list(account) {
 			return [...items.values()]
 				.filter((i) => i.account === account)
@@ -64,15 +94,18 @@ export function memoryStore(): QueueStore & { all(): QueuedMatch[] } {
 		},
 		async removeAccount(account) {
 			for (const [id, item] of items) if (item.account === account) items.delete(id);
+			expired.delete(account);
 		},
 		all: () => [...items.values()].map(plain)
 	};
 }
 
 export const DB_NAME = 'open-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = 'matches';
 const BY_ACCOUNT = 'account';
+/** One record per account: `{ account, count }`. A number, never match data. */
+const EXPIRED = 'expired';
 
 function request<T>(req: IDBRequest<T>): Promise<T> {
 	return new Promise((resolve, reject) => {
@@ -108,8 +141,14 @@ export function indexedDbStore(
 			}
 			const req = idb.open(DB_NAME, DB_VERSION);
 			req.onupgradeneeded = () => {
-				const store = req.result.createObjectStore(STORE, { keyPath: 'id' });
-				store.createIndex(BY_ACCOUNT, 'account');
+				const db = req.result;
+				if (!db.objectStoreNames.contains(STORE)) {
+					const store = db.createObjectStore(STORE, { keyPath: 'id' });
+					store.createIndex(BY_ACCOUNT, 'account');
+				}
+				if (!db.objectStoreNames.contains(EXPIRED)) {
+					db.createObjectStore(EXPIRED, { keyPath: 'account' });
+				}
 			};
 			req.onsuccess = () => {
 				const db = req.result;
@@ -137,6 +176,43 @@ export function indexedDbStore(
 	}
 
 	return {
+		async listAll() {
+			const tx = (await open()).transaction(STORE, 'readonly');
+			const rows = await request(tx.objectStore(STORE).getAll());
+			return rows.flatMap((row) => parseQueued(row) ?? []).sort(byAge);
+		},
+		async expire(list) {
+			if (list.length === 0) return;
+			const tx = (await open()).transaction([STORE, EXPIRED], 'readwrite');
+			const done = finished(tx);
+			const matches = tx.objectStore(STORE);
+			const counts = tx.objectStore(EXPIRED);
+			const added = new Map<string, number>();
+			for (const { id, account } of list) {
+				matches.delete(id);
+				added.set(account, (added.get(account) ?? 0) + 1);
+			}
+			for (const [account, n] of added) {
+				const read = counts.get(account);
+				read.onsuccess = () => {
+					const before = isObject(read.result) ? Number(read.result.count) : 0;
+					counts.put({ account, count: (Number.isFinite(before) ? before : 0) + n });
+				};
+			}
+			await done;
+		},
+		async expiredCount(account) {
+			const tx = (await open()).transaction(EXPIRED, 'readonly');
+			const row = await request(tx.objectStore(EXPIRED).get(account));
+			const count = isObject(row) ? Number(row.count) : 0;
+			return Number.isFinite(count) && count > 0 ? count : 0;
+		},
+		async clearExpired(account) {
+			const tx = (await open()).transaction(EXPIRED, 'readwrite');
+			const done = finished(tx);
+			tx.objectStore(EXPIRED).delete(account);
+			await done;
+		},
 		async list(account) {
 			const tx = (await open()).transaction(STORE, 'readonly');
 			const rows = await request(tx.objectStore(STORE).index(BY_ACCOUNT).getAll(account));
@@ -144,13 +220,16 @@ export function indexedDbStore(
 		},
 		put: (item) => write((store) => store.put(plain(item))),
 		remove: (id) => write((store) => store.delete(id)),
-		removeAccount: (account) =>
-			write((store) => {
-				// Delete in the callback, while the transaction is still active.
-				const keys = store.index(BY_ACCOUNT).getAllKeys(account);
-				keys.onsuccess = () => {
-					for (const key of keys.result) store.delete(key);
-				};
-			})
+		async removeAccount(account) {
+			const tx = (await open()).transaction([STORE, EXPIRED], 'readwrite');
+			const done = finished(tx);
+			// Delete in the callback, while the transaction is still active.
+			const keys = tx.objectStore(STORE).index(BY_ACCOUNT).getAllKeys(account);
+			keys.onsuccess = () => {
+				for (const key of keys.result) tx.objectStore(STORE).delete(key);
+			};
+			tx.objectStore(EXPIRED).delete(account);
+			await done;
+		}
 	};
 }

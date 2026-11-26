@@ -4,7 +4,7 @@ import { accountKey } from './account.js';
 import { createOfflineQueue, type QueueDeps, type SentMatch } from './queue.svelte.js';
 import type { SendOutcome } from './send.js';
 import { memoryStore, type QueueStore } from './store.js';
-import type { MatchBody } from './types.js';
+import type { MatchBody, QueuedMatch } from './types.js';
 
 // Made-up players and accounts.
 const AVERY = 'avery.nightjar@example.test';
@@ -269,7 +269,11 @@ describe('OfflineQueue: nothing is dropped silently', () => {
 			list: async () => [],
 			put: async () => Promise.reject(new Error('QuotaExceededError')),
 			remove: async () => {},
-			removeAccount: async () => {}
+			removeAccount: async () => {},
+			listAll: async () => [],
+			expire: async () => {},
+			expiredCount: async () => 0,
+			clearExpired: async () => {}
 		};
 		const { queue } = setup({ store: broken });
 		await queue.setAccount(AVERY);
@@ -299,5 +303,83 @@ describe('OfflineQueue: nothing is dropped silently', () => {
 			expect(kept + announced, outcome.kind).toBe(1);
 			expect(queue.unsent, outcome.kind).toBe(kept);
 		}
+	});
+});
+
+describe('OfflineQueue: age limit', () => {
+	const DAY = 24 * 60 * 60 * 1000;
+	const NOW = Date.UTC(2026, 11, 20, 12, 0, 0);
+	const item = (id: string, account: string, ageDays: number): QueuedMatch => ({
+		id,
+		account,
+		own: OWN,
+		body: body(),
+		form,
+		queuedAt: new Date(NOW - ageDays * DAY).toISOString(),
+		problem: null
+	});
+	async function setupAged() {
+		const store = memoryStore();
+		const keyA = await accountKey(AVERY);
+		const keyR = await accountKey(ROWAN);
+		await store.put(item('a-old', keyA, 31));
+		await store.put(item('a-new', keyA, 29));
+		await store.put(item('r-old1', keyR, 45));
+		await store.put(item('r-old2', keyR, 40));
+		await store.put(item('r-new', keyR, 1));
+		const ctx = setup({ store, now: () => new Date(NOW), online: () => false });
+		return { ...ctx, keyA, keyR };
+	}
+
+	it('deletes old matches and keeps recent ones, for every account', async () => {
+		const { queue, store } = await setupAged();
+		await queue.purgeExpired();
+		expect(
+			store
+				.all()
+				.map((i) => i.id)
+				.sort()
+		).toEqual(['a-new', 'r-new']);
+	});
+
+	it('keeps a per-account count with no match data until that player signs in', async () => {
+		const { queue, store, keyA, keyR } = await setupAged();
+		await queue.purgeExpired();
+		expect(store.counts()).toEqual({ [keyA]: 1, [keyR]: 2 });
+		expect(JSON.stringify(store.counts())).not.toContain('example.test');
+		expect(queue.expired).toBe(0);
+
+		await queue.setAccount(ROWAN);
+		expect(queue.expired).toBe(2);
+		expect(queue.items.map((i) => i.id)).toEqual(['r-new']);
+		await queue.dismissExpired();
+		expect(queue.expired).toBe(0);
+		// Avery's count is still waiting.
+		expect(store.counts()).toEqual({ [keyA]: 1 });
+	});
+
+	it('tells the player once', async () => {
+		const { queue, store } = await setupAged();
+		await queue.setAccount(AVERY);
+		expect(queue.expired).toBe(1);
+		await queue.dismissExpired();
+		await queue.setAccount(null);
+		await queue.setAccount(AVERY);
+		expect(queue.expired).toBe(0);
+		expect(store.counts()).not.toHaveProperty(await accountKey(AVERY));
+	});
+
+	it('does not count a match twice when the cleanup runs again', async () => {
+		const { queue, store, keyR } = await setupAged();
+		await queue.purgeExpired();
+		await queue.purgeExpired();
+		expect(store.counts()[keyR]).toBe(2);
+	});
+
+	it('forget deletes the count too', async () => {
+		const { queue, store } = await setupAged();
+		await queue.setAccount(AVERY);
+		await queue.forget();
+		expect(store.counts()).not.toHaveProperty(await accountKey(AVERY));
 	});
 });

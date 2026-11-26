@@ -4,8 +4,8 @@
 	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
-	import { matchSummary, problemLines, waitingText, waitingTitle } from '../copy.js';
-	import { offlineQueue, type OfflineQueue } from '../queue.svelte.js';
+	import { expiredText, matchSummary, problemLines, waitingText, waitingTitle } from '../copy.js';
+	import { MAX_QUEUE_AGE_DAYS, offlineQueue, type OfflineQueue } from '../queue.svelte.js';
 	import type { QueuedMatch } from '../types.js';
 
 	let {
@@ -18,12 +18,35 @@
 		onfix: (item: QueuedMatch) => void;
 	} = $props();
 
+	const expired = $derived(expiredText(queue.expired, MAX_QUEUE_AGE_DAYS));
 	const waiting = $derived(queue.waiting.length);
 	// "Send now" when sending again could help: online, not already sending, not waiting on sign-in.
 	const canSend = $derived(
 		queue.online && !queue.sending && (queue.reason === 'retry' || queue.reason === 'idle')
 	);
 </script>
+
+{#if expired}
+	<section aria-label="Matches deleted" class="grid gap-4 pt-4">
+		<Alert data-testid="queue-expired">
+			<CircleAlertIcon aria-hidden="true" />
+			<AlertTitle>Matches deleted</AlertTitle>
+			<AlertDescription class="grid gap-2">
+				<p>{expired}</p>
+				<div>
+					<Button
+						variant="outline"
+						size="sm"
+						class="min-h-11"
+						onclick={() => void queue.dismissExpired()}
+					>
+						OK
+					</Button>
+				</div>
+			</AlertDescription>
+		</Alert>
+	</section>
+{/if}
 
 {#if queue.unsent > 0}
 	<section aria-label="Matches not sent yet" class="grid gap-4 pt-4 pb-4">

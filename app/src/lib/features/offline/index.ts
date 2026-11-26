@@ -19,6 +19,9 @@
  * - `QueueNotice` shows "2 matches waiting to send" and each refused match. Its `onfix` opens the
  *   record form with the match: pass `item.form` and `item.problem.fields` to the form, and
  *   `remove(item.id)` once the match is recorded or queued again.
+ * - `purgeExpired()` runs on app open and deletes every account's matches queued over
+ *   `MAX_QUEUE_AGE_DAYS` ago, keeping a count per account. `QueueNotice` tells that player at their
+ *   next sign in (`expired`, `dismissExpired()`).
  * - `signOutWarning(offlineQueue.unsent)` is the text to show before a sign out deletes them.
  *
  * The service worker never caches `/api/`, so every send goes to the network.
@@ -27,12 +30,13 @@ export {
 	OfflineQueue,
 	createOfflineQueue,
 	offlineQueue,
+	MAX_QUEUE_AGE_DAYS,
 	type NewQueuedMatch,
 	type QueueDeps,
 	type SentMatch,
 	type WaitReason
 } from './queue.svelte.js';
-export { signOutWarning, waitingText, waitingTitle } from './copy.js';
+export { expiredText, signOutWarning, waitingText, waitingTitle } from './copy.js';
 export { memoryStore, type QueueStore } from './store.js';
 export type { MatchBody, Problem, QueuedMatch } from './types.js';
 export { default as QueueNotice } from './components/queue-notice.svelte';
