@@ -55,6 +55,8 @@
 		untrack(() => void offlineQueue.setAccount(email));
 	});
 	onDestroy(offlineQueue.start());
+	// On app open, delete matches that waited too long, for every account on this device.
+	void offlineQueue.purgeExpired();
 
 	// Signing out on purpose clears the code and name at once, before the backend answers. It also
 	// deletes this account's unsent matches from the device, after the Sign out button warned.
