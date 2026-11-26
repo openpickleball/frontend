@@ -1,5 +1,5 @@
 import createClient, { type Client } from 'openapi-fetch';
-import { CSRF_BOOTSTRAP_PATH, CSRF_COOKIE_NAME, createCsrfMiddleware, readCookie } from './csrf';
+import { CSRF_BOOTSTRAP_PATH, createCsrfMiddleware, readCsrfToken } from './csrf';
 import { isAbortError, networkError, timeoutError } from './errors';
 import type { paths as OpenPaths } from './generated/open';
 import type { paths as AllauthPaths } from './generated/allauth';
@@ -80,7 +80,7 @@ export function createApi(options: CreateApiOptions = {}): Api {
 	const getCookies =
 		options.getCookies ?? (() => (typeof document === 'undefined' ? '' : document.cookie));
 
-	const getToken = () => readCookie(getCookies(), CSRF_COOKIE_NAME);
+	const getToken = () => readCsrfToken(getCookies());
 	const refresh = async () => {
 		try {
 			await doFetch(`${baseUrl}${CSRF_BOOTSTRAP_PATH}`, { credentials: 'same-origin' });

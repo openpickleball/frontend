@@ -2,11 +2,15 @@ import type { Middleware } from 'openapi-fetch';
 import { isCsrfFailure } from './errors';
 
 /**
- * Django's CSRF cookie. Keep the name here: backend#102 may add a `__Host-` prefix.
- * Django's defaults (checked in backend `config/settings.py`, which sets neither
- * `CSRF_COOKIE_NAME` nor `CSRF_HEADER_NAME`) are `csrftoken` and `X-CSRFToken`.
+ * Django's CSRF cookie has two names, set by the backend (backend#102, ADR 0040):
+ * - `csrftoken` when the backend runs with DEBUG on, as in local development.
+ * - `__Host-csrftoken` when DEBUG is off, as in production.
+ * The app reads both, so one build works in both modes. The `__Host-` cookie wins
+ * when both are set. The session cookie is HttpOnly and the app never reads it.
+ * The header name is the same in both modes.
  */
 export const CSRF_COOKIE_NAME = 'csrftoken';
+export const CSRF_HOST_COOKIE_NAME = '__Host-csrftoken';
 export const CSRF_HEADER_NAME = 'X-CSRFToken';
 
 /** allauth's `GET config` sets the CSRF cookie (checked against the backend). */
@@ -29,6 +33,13 @@ export function readCookie(cookieString: string, name: string): string | null {
 		}
 	}
 	return null;
+}
+
+/** The CSRF token from a `document.cookie` style string, under either cookie name. */
+export function readCsrfToken(cookieString: string): string | null {
+	return (
+		readCookie(cookieString, CSRF_HOST_COOKIE_NAME) ?? readCookie(cookieString, CSRF_COOKIE_NAME)
+	);
 }
 
 export type CsrfOptions = {

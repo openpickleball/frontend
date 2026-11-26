@@ -55,6 +55,7 @@ export function duplicateMatch(existingCode: string): Response {
 
 /** Django sets the CSRF cookie on every browser view (`get_token`). */
 function csrfCookie(store: MockStore): string {
+	// The mocks stand in for a local backend (DEBUG on), so the cookie keeps the local name.
 	return `${CSRF_COOKIE_NAME}=${store.state.csrfToken}; Path=/; SameSite=Lax`;
 }
 

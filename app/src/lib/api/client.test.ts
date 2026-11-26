@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { allauthParams, createApi, REQUEST_TIMEOUT_MS } from './client';
-import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, readCookie } from './csrf';
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, CSRF_HOST_COOKIE_NAME, readCookie } from './csrf';
 import { AppError, isAppError } from './errors';
 import { unwrap } from './unwrap';
 import type { components as OpenComponents } from './generated/open';
@@ -45,6 +45,36 @@ describe('readCookie', () => {
 		expect(readCookie('a=1; csrftoken=abc%20d; b=2', 'csrftoken')).toBe('abc d');
 		expect(readCookie('a=1', 'csrftoken')).toBeNull();
 		expect(readCookie('xcsrftoken=1', 'csrftoken')).toBeNull();
+	});
+});
+
+describe('CSRF cookie names', () => {
+	async function sentToken(cookies: string): Promise<string | null> {
+		const fetchStub = vi.fn(async () => Response.json({}));
+		const api = createApi({
+			baseUrl: BASE,
+			fetch: fetchStub as unknown as typeof fetch,
+			getCookies: () => cookies
+		});
+		await api.open.POST('/api/v1/matches/{code}/confirm', {
+			params: { path: { code: 'M-AAAA-AAAA-AAAA' } }
+		});
+		const request = fetchStub.mock.calls[0] as unknown as [Request];
+		return request[0].headers.get(CSRF_HEADER_NAME);
+	}
+
+	it('reads the token from __Host-csrftoken', async () => {
+		expect(await sentToken(`other=1; ${CSRF_HOST_COOKIE_NAME}=host-token`)).toBe('host-token');
+	});
+
+	it('reads the token from csrftoken', async () => {
+		expect(await sentToken(`other=1; ${CSRF_COOKIE_NAME}=local-token`)).toBe('local-token');
+	});
+
+	it('prefers __Host-csrftoken when both are set', async () => {
+		expect(
+			await sentToken(`${CSRF_COOKIE_NAME}=local-token; ${CSRF_HOST_COOKIE_NAME}=host-token`)
+		).toBe('host-token');
 	});
 });
 

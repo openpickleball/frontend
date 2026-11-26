@@ -1,5 +1,5 @@
 import { createOpenApiHttp } from 'openapi-msw';
-import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '../api/csrf';
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, CSRF_HOST_COOKIE_NAME } from '../api/csrf';
 import type { paths as AllauthPaths } from '../api/generated/allauth';
 import type { paths as OpenPaths } from '../api/generated/open';
 import type { paths as ProvisionalPaths } from '../api/provisional';
@@ -34,8 +34,8 @@ export function readObject(body: unknown): Record<string, unknown> {
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 
 /**
- * Django's CSRF check: an unsafe request needs `X-CSRFToken` equal to the `csrftoken`
- * cookie. In the browser the cookie is `document.cookie`, set by an earlier response.
+ * Django's CSRF check: an unsafe request needs `X-CSRFToken` equal to the CSRF
+ * cookie (`__Host-csrftoken`, else `csrftoken`). In the browser the cookie is `document.cookie`, set by an earlier response.
  * Under Node there is no cookie jar, so the token the store issued stands in for it.
  */
 export function csrfValid(
@@ -45,6 +45,7 @@ export function csrfValid(
 ): boolean {
 	if (SAFE_METHODS.has(request.method.toUpperCase())) return true;
 	const header = request.headers.get(CSRF_HEADER_NAME);
-	const expected = cookies[CSRF_COOKIE_NAME] ?? store.state.csrfToken;
+	const expected =
+		cookies[CSRF_HOST_COOKIE_NAME] ?? cookies[CSRF_COOKIE_NAME] ?? store.state.csrfToken;
 	return Boolean(header) && header === expected;
 }
