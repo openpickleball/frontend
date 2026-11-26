@@ -205,14 +205,20 @@ describe('RecordForm', () => {
 		await vi.waitFor(() => expect(document.activeElement?.id).toBe('game-0-a'));
 	});
 
-	it('shows a score error under its game when the player leaves it', async () => {
+	it('holds a score error back until submit, so leaving the row moves nothing', async () => {
 		const { screen } = await setup();
 		await screen.getByLabelText("Game 1, your team's points").fill('11');
 		await screen.getByLabelText("Game 1, opponents' points").fill('10');
 		await screen.getByLabelText("Game 1, opponents' points").element().blur();
+		expect(screen.getByText('Game 1: the winner must win by 2 points.').elements()).toHaveLength(0);
+		await expect
+			.element(screen.getByLabelText("Game 1, your team's points"))
+			.not.toHaveAttribute('aria-invalid', 'true');
+
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 
 		await expect
-			.element(screen.getByText('Game 1: the winner must win by 2 points.'))
+			.element(screen.getByText('Game 1: the winner must win by 2 points.').last())
 			.toBeVisible();
 		await expect
 			.element(screen.getByLabelText("Game 1, your team's points"))
@@ -270,15 +276,15 @@ describe('RecordForm', () => {
 		expect(onrecorded).not.toHaveBeenCalled();
 	});
 
-	it('announces a field error as an alert when focus leaves the field', async () => {
+	it('announces a game error as an alert linked to its fields once submitted', async () => {
 		const { screen } = await setup(vi.fn());
 		const points = screen.getByLabelText("Game 1, your team's points");
 		await points.fill('x');
-		await points.element().blur();
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 
-		const alert = screen.getByRole('alert');
+		const alert = screen.getByRole('alert').filter({ hasText: '! Game 1: enter both scores.' });
 		await expect.element(alert).toBeVisible();
-		await expect.element(alert).toHaveTextContent('! Game 1: enter both scores.');
+		await expect.element(points).toHaveAttribute('aria-describedby', 'game-0-error');
 	});
 
 	it('shows the offline message, keeps the form filled and queues nothing', async () => {

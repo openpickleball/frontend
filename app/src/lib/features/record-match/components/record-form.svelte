@@ -111,16 +111,6 @@
 		document.getElementById(id)?.focus();
 	}
 
-	/** Show a game's errors once focus has left its whole row, not on the way from one score to the next. */
-	function leaveRow(event: FocusEvent, index: number) {
-		const row = event.currentTarget as HTMLElement;
-		if (row.contains(event.relatedTarget as Node | null)) return;
-		// A row left empty says nothing until the player submits. Otherwise the message would push
-		// the "Add a game" button away as it is pressed.
-		const game = form.games[index];
-		if (game && (game.a.trim() !== '' || game.b.trim() !== '')) form.touch(`games.${index}`);
-	}
-
 	async function addGame() {
 		if (!form.addGame()) return;
 		await tick();
@@ -400,11 +390,12 @@
 			{#each form.games as game, index (index)}
 				{@const gameError = errors[`games.${index}`]?.[0] ?? ''}
 				{@const a11y = gameA11y(index)}
+				<!-- A row's error waits for submit. Shown on blur, it would push the submit button down
+				     before the click lands, and the first click would miss. -->
 				<div
 					class="grid gap-1.5 border-t border-line py-2.5"
 					role="group"
 					aria-label="Game {index + 1}"
-					onfocusout={(event) => leaveRow(event, index)}
 				>
 					<div class="flex items-center gap-x-2">
 						<span class="w-20 text-base font-semibold text-secondary">Game {index + 1}</span>

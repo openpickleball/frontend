@@ -600,13 +600,22 @@ test.describe('corrections', () => {
 		await page.goto(`/matches/${WAITING_ON_ME_TOO}/correct`);
 		await page.getByLabel("Game 1, your team's points").fill('11');
 		await page.getByLabel("Game 1, opponents' points").fill('11');
-		// Enter sends the form, as the button does, without the row's error moving the button.
-		await page.getByLabel("Game 1, opponents' points").press('Enter');
+		await page.getByRole('button', { name: 'Save the correction' }).click();
 		await expect(page.getByText(/to save this correction/)).toBeVisible();
 		await expect(page.getByLabel("Game 1, your team's points")).toHaveAttribute(
 			'aria-invalid',
 			'true'
 		);
+	});
+
+	test('the first click on Save works straight after editing a game score', async ({ page }) => {
+		await page.goto(`/matches/${WAITING_ON_ME_TOO}/correct`);
+		await page.getByLabel("Game 1, your team's points").fill('11');
+		await page.getByLabel("Game 1, opponents' points").fill('11');
+		await page.getByRole('button', { name: 'Save the correction' }).click();
+		await expect(
+			page.getByRole('alert').filter({ hasText: 'to save this correction' })
+		).toBeFocused();
 	});
 
 	test('offers no correction on a confirmed match, or one with a private player', async ({
@@ -634,7 +643,7 @@ test.describe('corrections', () => {
 			await expectNoAxeViolations(page);
 
 			await page.getByLabel("Game 1, opponents' points").fill('');
-			await page.getByLabel("Game 1, opponents' points").press('Enter');
+			await page.getByRole('button', { name: 'Save the correction' }).click();
 			await expect(page.getByText(/to save this correction/)).toBeVisible();
 			await page.waitForFunction(() =>
 				document.getAnimations().every((animation) => animation.playState !== 'running')
