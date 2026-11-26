@@ -4,6 +4,7 @@
  * team only.
  */
 import { AppError, api, unwrap, type ApiOption } from '#lib/api/index.js';
+import { offlineQueue } from '#lib/features/offline/index.js';
 import {
 	groupIssues,
 	parseMatchCode,
@@ -52,6 +53,22 @@ export async function submitMatch(
 	const body = checkedBody(draft, myCode);
 	const created = await unwrap(client.open.POST('/api/v1/matches/', { body }));
 	return { match: toMatch(created) };
+}
+
+/**
+ * Keep the match on this device and send it when the connection is back (frontend#33). `form` is
+ * the form as the player filled it, so a match the backend refuses can be put back to fix. The
+ * same checks as `submitMatch` run first, so only a match the backend could take is queued.
+ * Rejects when the device can't store it: the match was not saved then.
+ */
+export async function queueMatch(
+	draft: MatchInput,
+	myCode: PlayerCode,
+	form: unknown,
+	queue: Pick<typeof offlineQueue, 'add'> = offlineQueue
+): Promise<void> {
+	const body = checkedBody(draft, myCode);
+	await queue.add({ own: myCode, body, form });
 }
 
 /**

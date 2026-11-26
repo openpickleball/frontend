@@ -5,8 +5,10 @@
  * - `RecordMatchForm`: the whole form. Give it the player's own code (`myCode.code`, which comes
  *   from the backend) and an `onrecorded` callback. This feature never imports players, so the
  *   page wires it. It validates inline, maps the server's 422 errors onto its fields, and shows the
- *   offline and duplicate notices itself. It never queues a match (Decision Q1). It keeps what the
- *   player entered in `sessionStorage` (per own code) until the match is recorded, so a reload or a
+ *   duplicate notices itself. With no connection it keeps the match on the device instead
+ *   (`queueMatch`, `features/offline`, frontend#33) and calls `onqueued`. A correction is never
+ *   queued: it shows the offline notice. Pass `fixing` to start from a queued match the backend
+ *   refused, with its field errors shown. It keeps what the player entered in `sessionStorage` (per own code) until the match is recorded, so a reload or a
  *   stray tap does not lose it. See `draft.ts`.
  * - Pass `correcting={{ code, draft }}` to correct a pending or disputed match instead
  *   (backend#267). `correctionDraft(match, own)` gives the starting values, or null when the
@@ -22,7 +24,7 @@
  * - `duplicateMatchCode(error)`: the earlier match a 409 points at, if the backend named it.
  */
 export { default as RecordMatchForm } from './components/record-form.svelte';
-export { correctMatch, submitMatch, duplicateMatchCode } from './service.js';
+export { correctMatch, queueMatch, submitMatch, duplicateMatchCode } from './service.js';
 export type { SubmitResult, SubmitOptions } from './service.js';
 export { RecordForm } from './form.svelte.js';
 export { correctionDraft, type Draft } from './draft.js';
