@@ -185,8 +185,8 @@ describe('layout.css', () => {
 });
 
 // The browser chrome color is written in the tokens, in THEME_COLORS, in app.html and in
-// static/theme.js. Each must
-// follow `--color-primary`, so a change to the token cannot leave the chrome on the old color.
+// static/theme.js. Each must follow `--color-primary`, so a change to the token cannot leave the
+// chrome on the old color.
 describe('theme colors', () => {
 	it('THEME_COLORS follow --color-primary', () => {
 		const token = /--color-primary:\s*light-dark\(\s*(#\w+)\s*,\s*(#\w+)\s*\)/.exec(layoutCss);

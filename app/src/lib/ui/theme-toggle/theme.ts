@@ -1,7 +1,7 @@
 // Theme logic shared by the toggle. It matches site/public/index.html: the toggle flips whichever
 // theme is showing, stores the choice in localStorage under "theme", and updates the theme-color
-// metas. With no stored choice, the system setting decides. static/theme.js, loaded by app.html, applies
-// a stored choice before first paint.
+// metas. With no stored choice, the system setting decides. static/theme.js, loaded by app.html,
+// applies a stored choice before first paint.
 
 export type Theme = 'light' | 'dark';
 

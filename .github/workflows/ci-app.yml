@@ -61,7 +61,8 @@ jobs:
       # Both Vitest projects (node and browser), then a coverage summary with no threshold.
       - run: pnpm test:coverage
       - run: pnpm build
-      # The build above has PUBLIC_API_MOCK unset (off): it must ship no mock code (frontend#57).
+      # The build above has PUBLIC_API_MOCK unset (off): it must ship no mock code (frontend#57),
+      # and its index.html must carry one CSP meta tag that hashes every inline script.
       - run: pnpm check:build
 
   app-e2e:

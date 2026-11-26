@@ -30,7 +30,7 @@ The built app carries a Content Security Policy that allows only what it uses, a
 7. The connect-src Photon origin comes from `PHOTON_URL`, not a second copy of the string.
 8. `app/README.md` has a "Hosting on App Platform" section with: the `static_sites` block (source `openpickleball/frontend`, `source_dir: app`, build command, `output_dir: build`, `catchall_document: index.html`); the ingress rules for `app.openpb.org` (`/api/`, `/_allauth/`, `/oauth/` to the backend's `web` with `preserve_path_prefix: true`, everything else to the app); the framing gap; and first-deploy checks it could not verify here (Node and pnpm versions the buildpack picks, cache headers on `service-worker.js` and `index.html`). The block is marked as a proposal that the backend spec owns.
 9. `app/AGENTS.md` states the rule: new origins the browser talks to go into the CSP module, and `app.html` keeps no inline script.
-10. A backend issue asks to add the component and ingress rules to `.do/production.yaml`, linking the README section. #22 is not closed by this PR (`Closes #239`, `Refs #22`).
+10. A comment on backend#304 links the README section and adds what #304 lacks (the component, domain and ingress rules, the `test_app_spec.py` changes, the hosts). No new backend issue. Maintainer decision (2026-11-26). The coordinator posts the comment. #22 is not closed by this PR (`Closes #239`, `Refs #22`).
 11. `/oauth/` joins `/api/` and `/_allauth/` as network-only in `src/pwa/routing.ts`. It is Django's partner token endpoint on the same host, and network-only keeps the worker out of it.
 
 ## Files that change
@@ -39,11 +39,16 @@ The built app carries a Content Security Policy that allows only what it uses, a
 - `app/src/csp.test.ts` (new): node test of the directives (criteria 2 and 7).
 - `app/vite.config.ts`: `kit.csp: { mode: 'hash', directives }`, with a comment pointing to the README section and naming the meta tag limits.
 - `app/src/app.html`: replace the inline theme script with `<script src="/theme.js"></script>` (blocking, in the head, right after `%sveltekit.head%`, so the CSP meta tag that SvelteKit writes there comes before it, as criterion 1 needs).
-- `app/static/theme.js` (new): the same code, unchanged in behavior. It is a static file, so the worker precaches it.
+- `app/static/theme.js` (new): equivalent code, not a copy (`const` instead of `var`, `catch {}` with a comment instead of `catch (e) {}`, so it passes lint). It is a static file, so the worker precaches it.
 - `app/scripts/check-build.mjs`: add the CSP check (criterion 4), or a sibling `scripts/check-csp.mjs` called by `check:build`. A node test with a fixture HTML string proves it fails on a bad page.
 - `app/e2e/fixtures.ts` (new) or `app/e2e/helpers.ts`: a `test` extended with an auto fixture that collects CSP violations and fails the test. Every spec in `e2e/` and `e2e-pwa/` imports `test` and `expect` from it.
 - `app/src/pwa/routing.ts` and `routing.test.ts`: `/oauth/` network-only.
 - `app/README.md`, `app/AGENTS.md`: criteria 8 and 9.
+- `app/src/check-csp.test.ts` (new) and `app/src/check-build.test.ts` (new): the build check's fixtures and how it reads `index.html`.
+- `app/src/lib/domain/zod.ts` (new), `app/src/lib/domain/schemas.ts`, `app/src/lib/domain/zod-config.test.ts` (new), `app/src/zod-import.test.ts` (new), `app/eslint.config.js`: Zod runs jitless, from one module (see Decisions).
+- `app/src/routes/routes.test.ts`, `app/src/routes/layout.test.ts`: the theme tests read `static/theme.js`, and app.html has no inline script.
+- `app/src/routes/layout.css`, `app/src/lib/ui/theme-toggle/theme.ts`, `app/src/service-worker/index.ts`, `app/src/lib/features/places/photon.ts`, `.github/workflows/ci-app.yml`: comments only.
+- `app/e2e/*.spec.ts`, `app/e2e/*.test.ts`, `app/e2e-pwa/pwa.spec.ts`, `app/e2e-live/happy-path.spec.ts`: import `test` and `expect` from `e2e/fixtures.ts`.
 - `plans/app-csp-and-hosting/plan.md`: this file.
 
 ## Order of work
@@ -114,3 +119,5 @@ Live drive (Chrome DevTools MCP, a `securitypolicyviolation` listener added as a
 - `style-src-attr 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='`, not `style-src 'unsafe-inline'`. The only style violation in the suites was SvelteKit's route announcer (measured above). Without the allowance its hiding style is dropped and the announcer text shows on the page. One hash for one attribute is narrower than `'unsafe-inline'`. `src/csp.test.ts` hashes every static style attribute in the installed SvelteKit's `root.svelte`, so an upgrade that changes it fails the unit tests, and the e2e fixture catches any other new one. (2026-11-26)
 - Zod runs jitless (`z.config({ jitless: true })`, in `src/lib/domain/zod.ts`, the one module allowed to import `'zod'`) instead of allowing `'unsafe-eval'`. Its eval probe was the only script violation. Zod's JIT only speeds up object parsing, which the forms here do not need. (2026-11-26)
 - `src/app.html` uses `class="contents"` instead of `style="display: contents"` on the body wrapper, so it needs no style hash. (2026-11-26)
+- The README block sets `deploy_on_push: false`. Deployments may be app-wide (not checked in DigitalOcean's docs), so a frontend push could redeploy `web`, `worker` and `beat` from the GHCR `main` tag and run the PRE_DEPLOY `migrate` job. Frontend changes go live with a deliberate deploy of the production app. Revisit once backend#63 deploys by digest. Maintainer decision. (2026-11-26)
+- The backend work is a comment on backend#304, not a new backend issue (criterion 10). Maintainer decision. (2026-11-26)

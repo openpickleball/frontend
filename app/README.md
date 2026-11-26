@@ -165,7 +165,12 @@ static_sites:
     github:
       repo: openpickleball/frontend
       branch: main
-      deploy_on_push: true
+      # Off on purpose. A deployment may be app-wide (not checked in DigitalOcean's
+      # docs), so a frontend push could redeploy web, worker and beat from the
+      # GHCR main tag and run the PRE_DEPLOY migrate job. Frontend changes go
+      # live with a deliberate deploy of the production app. Revisit once
+      # backend#63 deploys by digest.
+      deploy_on_push: false
     source_dir: app
     environment_slug: node-js
     # Builds with the mocks off, then fails the deploy if the build ships mock
@@ -230,22 +235,27 @@ ingress:
 ### Backend steps (in the backend repository, not here)
 
 - `DJANGO_ALLOWED_HOSTS` is `${APP_DOMAIN}` only today. `app.openpb.org` must be allowed too (backend#183 sets the hosts).
-- If `app.openpb.org` is not the app's primary domain, Django's CSRF trusted origins must include `https://app.openpb.org`.
-- Add the block above and validate it with `doctl apps spec validate`.
+- Adding `static_sites`, `domains` and `ingress`, and changing `DJANGO_ALLOWED_HOSTS`, must also update the backend's `config/tests/test_app_spec.py`. `test_spec_has_exactly_the_components` limits the top-level keys, `BINDINGS` pins `DJANGO_ALLOWED_HOSTS` to `${APP_DOMAIN}`, and `test_env_values_are_exactly_the_planned_ones` checks every env value. The backend's gate for the spec is that test plus `doctl apps spec validate`.
+- Keep `SECURE_CONTENT_TYPE_NOSNIFF` on. `script-src 'self'` trusts every same-origin path, Django's included, so a response must never be run as a script because of a guessed type.
+- Not checked: adding a custom domain may change what `${APP_DOMAIN}` resolves to. Check it before relying on it for the allowed hosts.
+
+CSRF needs no extra trusted origin. The app and Django share the origin, so the `Origin` header matches the request host (with `SECURE_PROXY_SSL_HEADER` behind the platform's proxy).
 
 ### What App Platform cannot do
 
 - **Response headers.** A static site component has no field for them. The content security policy (`src/csp.ts`) travels in the page instead, as the `<meta http-equiv="content-security-policy">` that SvelteKit writes into `build/index.html`.
 - **Framing protection.** A meta policy ignores `frame-ancestors` (and `report-uri` and `sandbox`), and `X-Frame-Options` is a header. So any site can put the app in a frame. That gap stays open until the app is served by something that sends headers.
+- **The service worker.** The meta policy covers the page, not `service-worker.js`. A worker gets its policy only from its own response headers, and the platform sends none.
 
-`pnpm dev` and `pnpm preview` render pages on the fly, so they send the same policy as a response header, not the meta tag. In dev SvelteKit adds `'unsafe-inline'` to `style-src` for Vite's injected styles. The built `index.html` is what App Platform serves.
+`pnpm dev` and `pnpm preview` render pages on the fly, so they send the same policy as a response header, not the meta tag. In dev SvelteKit adds `'unsafe-inline'` to `style-src` and `style-src-attr` for Vite's injected styles. The built `index.html` is what App Platform serves.
 
 ### Check on the first deploy
 
 These could not be checked here:
 
 - The Node and pnpm versions the buildpack picks. The app needs Node 26 and the pnpm in `packageManager`. The `.nvmrc` sits at the repository root, outside `source_dir`, and `package.json` has no `engines`, so the buildpack may not see the Node version.
-- Cache headers on `service-worker.js` and `index.html`. Both must be revalidated on every load, or players keep an old shell and an old policy until the cache expires. Files under `/_app/immutable/` can be cached for a long time.
+- Cache headers on `service-worker.js`, `index.html` and `/theme.js`. All three keep the same name across builds, so they must be revalidated on every load, or players keep an old shell, an old policy or an old theme script until the cache expires. Files under `/_app/immutable/` can be cached for a long time.
+- `catchall_document` answers every missing path with `index.html` and status 200, including an old `/_app/immutable/` chunk that a new build removed. A page from the old build then gets HTML where it expected a script.
 - That `/api/`, `/_allauth/` and `/oauth/` reach Django with their prefix, and that the session cookie and CSRF work on `app.openpb.org`.
 - That the page shows no content security policy errors in the browser console.
 
