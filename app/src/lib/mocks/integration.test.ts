@@ -1137,15 +1137,53 @@ describe('player profile endpoints', () => {
 	});
 });
 
-describe('ratings (provisional)', () => {
-	it('serves sample ratings, and a 404 for hidden or unknown players', async () => {
-		const ratings = await fetch(`${BASE}/api/v1/players/${tamsin}/ratings`);
-		expect(await ratings.json()).toMatchObject({
+describe('get_player_ratings', () => {
+	const ratingsOf = (api: Api, player: string) =>
+		api.open.GET('/api/v1/players/{code}/ratings', { params: { path: { code: player } } });
+
+	async function signedIn(email = VERIFIED_EMAIL) {
+		const { api } = browser();
+		await api.initCsrf();
+		expect((await login(api, email)).response.status).toBe(200);
+		return api;
+	}
+
+	it('needs sign-in', async () => {
+		const { api } = browser();
+		expect((await ratingsOf(api, tamsin)).response.status).toBe(401);
+	});
+
+	it('serves demonstration ratings by format, with reliability 0 to 100', async () => {
+		const api = await signedIn('kit@example.com');
+		const body = await unwrap(ratingsOf(api, tamsin.toLowerCase()));
+		expect(body).toMatchObject({
+			code: tamsin,
+			profile_url: `https://openpb.org/players/${tamsin}`,
 			demonstration: true,
-			ratings: { doubles: { rating: 3.42, reliability: 0.65, provisional: true } }
+			ratings: {
+				mixed_doubles: { rating: 3.42, reliability: 65, provisional: true, demonstration: true },
+				doubles_women: { rating: 3.31, reliability: 40, imported_reliability: 30 }
+			}
 		});
-		expect((await fetch(`${BASE}/api/v1/players/${code('saul')}/ratings`)).status).toBe(404);
-		expect((await fetch(`${BASE}/api/v1/players/P-AAAA-AAAA/ratings`)).status).toBe(404);
+		expect(Object.keys(body.ratings)).toHaveLength(2);
+		expect(await unwrap(ratingsOf(api, code('kit')))).toMatchObject({ ratings: {} });
+	});
+
+	it('gives the same 404 for an unknown or malformed code and an inactive account', async () => {
+		const api = await signedIn();
+		for (const player of [code('saul'), 'P-AAAA-AAAA', 'nonsense']) {
+			expect((await ratingsOf(api, player)).response.status).toBe(404);
+		}
+	});
+
+	it('hides private current ratings from everyone but the player', async () => {
+		const bea = mockStore.playerByCode(code('bea'));
+		if (bea) bea.privacy.rating_visibility = 'private';
+		const other = await signedIn();
+		expect((await ratingsOf(other, code('bea'))).response.status).toBe(404);
+		mockStore.logout();
+		const own = await signedIn('bea@example.com');
+		expect((await ratingsOf(own, code('bea'))).response.status).toBe(200);
 	});
 });
 

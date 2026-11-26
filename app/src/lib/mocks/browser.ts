@@ -46,7 +46,7 @@ export async function startMocks(
 ): Promise<void> {
 	load();
 	const worker = setupWorker(
-		...(mode === 'all' ? createHandlers(mockStore) : createMissingHandlers(mockStore))
+		...(mode === 'all' ? createHandlers(mockStore) : createMissingHandlers())
 	);
 	worker.events.on('response:mocked', save);
 	window.__openMock = {

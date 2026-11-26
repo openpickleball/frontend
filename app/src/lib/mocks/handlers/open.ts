@@ -206,6 +206,18 @@ export function createOpenHandlers(store: MockStore) {
 			const profile = store.publicProfile(code.value, email);
 			if (!profile) return response.untyped(notFound());
 			return response(200).json(profile);
+		}),
+
+		// `get_player_ratings`: an unknown or malformed code, an inactive account and ratings the
+		// player keeps private all get the same 404.
+		http.get('/api/v1/players/{code}/ratings', ({ request, cookies, params, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const code = normalizeCode(params.code, 'player');
+			if (!code.ok) return response.untyped(notFound());
+			const ratings = store.ratingsFor(code.value, email);
+			if (!ratings) return response.untyped(notFound());
+			return response(200).json(ratings);
 		})
 	];
 }

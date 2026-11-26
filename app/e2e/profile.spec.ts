@@ -54,15 +54,24 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await page.goto('/profile');
 	});
 
-	test('shows the code, the match count and the labelled sample rating', async ({ page }) => {
+	test('shows the code, the match count and the demonstration ratings', async ({ page }) => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Profile' })).toBeVisible();
 		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 		await expect(page.getByTestId('match-count')).toHaveText(/^\d+$/);
 
-		// Mock mode: a sample card that says it is sample data.
-		await expect(page.getByText('Sample data', { exact: true })).toBeVisible();
-		await expect(page.getByText(/This is not your rating/)).toBeVisible();
-		await expect(page.getByText("Ratings aren't live yet")).toHaveCount(0);
+		// Each rating the API sends, with its reliability and a Demonstration label.
+		const ratings = page.getByRole('region', { name: 'Ratings' });
+		await expect(ratings.getByTestId('headline-rating')).toContainText('Mixed doubles');
+		await expect(ratings.getByTestId('headline-rating')).toContainText('3.42');
+		await expect(ratings.getByText('Reliability: 65 out of 100')).toBeVisible();
+		await expect(ratings.getByText('Reliability: 40 out of 100')).toBeVisible();
+		await expect(ratings.getByText('Demonstration', { exact: true })).toHaveCount(2);
+		await expect(ratings.getByText(/demonstration numbers while the rating method/)).toBeVisible();
+		await expect(ratings).not.toContainText(/OPEN rating/i);
+
+		// An adult's current ratings are always shown, so there is no switch for them.
+		await expect(page.getByTestId('privacy-rating-fixed')).toBeVisible();
+		await expect(page.getByRole('switch', { name: 'Current ratings' })).toHaveCount(0);
 	});
 
 	test('reads me/player once for the code and once for the settings', async ({ page }) => {
@@ -162,7 +171,7 @@ test.describe('an account that has a player (me/player exists)', () => {
 			await expect(page.getByRole('switch', { name: 'Match history' })).toBeVisible();
 			await expect(page.getByTestId('my-code')).toBeVisible();
 			await expect(page.getByTestId('match-count')).toHaveText(/^\d+$/);
-			await expect(page.getByText('Sample data', { exact: true })).toBeVisible();
+			await expect(page.getByTestId('headline-rating')).toBeVisible();
 			await expectNoAxeViolations(page);
 		});
 	}
@@ -207,6 +216,26 @@ test.describe('an account with no player and no signup details held', () => {
 			await expectNoAxeViolations(page);
 		});
 	}
+
+	test('a player aged 13 to 17 keeps current ratings private until 18', async ({ page }) => {
+		await page.getByLabel('Month').selectOption('1');
+		await page.getByLabel('Year').fill(String(new Date().getFullYear() - 15));
+		await page.getByRole('radio', { name: 'Woman' }).click();
+		await page.getByLabel('Display name').fill('Wren Mock');
+		await page.getByRole('button', { name: 'Save and show my code' }).click();
+		await expect(page.getByTestId('my-code')).toHaveText(/^P-/);
+		await expect(page.getByText(/You don't have a rating yet/)).toBeVisible();
+
+		const ratings = page.getByRole('switch', { name: 'Current ratings' });
+		await expect(ratings).not.toBeChecked();
+		await ratings.click();
+		// The backend's own refusal, and the switch goes back.
+		await expect(
+			page.getByText('Current ratings can be shown to other players only from age 18.')
+		).toBeVisible();
+		await expect(page.getByRole('switch', { name: 'Current ratings' })).not.toBeChecked();
+		await expectNoAxeViolations(page);
+	});
 
 	test('an under-13 birth year is refused, and stays refused after a reload', async ({ page }) => {
 		await page.getByLabel('Month').selectOption('6');

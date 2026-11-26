@@ -21,26 +21,28 @@
  *   Matches, record and profile all use it, so loading, error and retry behavior lives in one
  *   place.
  * - `ProfileView` is the profile page under its title. The route passes `countMatches` (from
- *   `features/matches`, which this feature does not import) and `sample`, and can add
- *   sections at the end as children. `ProfileStats` loads the match count and the sample
- *   ratings for one code at a time, and drops late answers for an earlier code.
+ *   `features/matches`, which this feature does not import), and can add sections at the end
+ *   as children. `ProfileStats` loads the match count and the current ratings for one code at a
+ *   time, and drops late answers for an earlier code.
  * - `myCode.status === 'signed-out'` means nobody is signed in. The route guard owns that.
- * - Ratings: `RatingsCard` is for display. Pass `sample={isSampleMode(PUBLIC_API_MOCK)}` and, in
- *   sample mode, the result of `fetchRatings(code)`. The real backend has no ratings, so
- *   `sample={false}` shows "Ratings aren't live yet".
+ * - Ratings: `fetchRatings(code)` reads `GET players/{code}/ratings` (backend#53) and returns
+ *   `null` on its 404. `RatingsCard` shows what the backend sent: every rating with its
+ *   reliability and a Demonstration label, the most reliable one first. It computes nothing
+ *   about a rating, and never calls a number an OPEN rating.
  *
  * - `ProfileSettings` is the "Name and privacy" and "Your data" sections. It reads
  *   `GET me/player` and saves with `PATCH me/player` (backend#124). It reads them once
  *   `myCode` is ready, and shows no "Name and privacy" section before that. If `me/player`
  *   answers a 404 or 405, it says the player can't change these in the app yet. The backend
- *   checks every change and decides who may make it. Saving a name updates `myCode.displayName`. "Your data"
+ *   checks every change and decides who may make it. Saving a name updates `myCode.displayName`.
+ *   Current ratings (`rating_visibility`) are shown as fixed when they are shown to signed-in
+ *   players, which can't be undone. When they are private (a player who joined at 13 to 17),
+ *   a switch offers to show them, and the backend's refusal before 18 is shown. "Your data"
  *   says how to ask for a copy, until a data export endpoint exists (backend#39).
  *
- * `services.ts` calls `me/player` (GET, POST and PATCH) with the generated types. Only `fetchRatings` reads
- * `provisionalApi`, until ratings ship (backend#53, frontend#35).
+ * `services.ts` calls `me/player` (GET, POST and PATCH) and the ratings with the generated types.
  */
 export { myCode } from './my-code.svelte.js';
-export { isSampleMode } from './ratings.js';
 export { default as OwnCodeGate } from './own-code-gate.svelte';
 export { default as ProfileView } from './profile-view.svelte';
 export { default as ProfileSettings } from './profile-settings.svelte';

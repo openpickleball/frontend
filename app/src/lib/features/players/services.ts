@@ -1,7 +1,6 @@
 import {
 	api as appApi,
 	isAppError,
-	provisionalApi,
 	toAppError,
 	unwrap,
 	type ApiOption,
@@ -121,7 +120,8 @@ function toMySettings(dto: MyPlayerOut): MySettings {
 			stats: p.stats_visibility,
 			rating_history: p.rating_history_visibility,
 			home_club: p.home_club_visibility,
-			city_region: p.city_region_visibility
+			city_region: p.city_region_visibility,
+			rating: p.rating_visibility
 		}
 	};
 }
@@ -167,18 +167,21 @@ export async function updateMySettings(
 }
 
 /**
- * A player's ratings. Only mock modes call this (Decision Q2): the real backend has no
- * ratings yet, so this one still reads `provisionalApi` (frontend#35). `null` when the player
- * has none to show.
+ * A player's current ratings, from `GET players/{code}/ratings` (backend#53). `null` on a 404,
+ * which the backend sends alike for an unknown code, a hidden player and an inactive account.
+ * Throws an `AppError` for anything else.
  */
-export async function fetchRatings(code: string): Promise<PlayerRatings | null> {
+export async function fetchRatings(
+	code: string,
+	{ api = appApi }: ApiOption = {}
+): Promise<PlayerRatings | null> {
 	try {
 		const dto = await unwrap(
-			provisionalApi.GET('/api/v1/players/{code}/ratings', { params: { path: { code } } })
+			api.open.GET('/api/v1/players/{code}/ratings', { params: { path: { code } } })
 		);
 		return toPlayerRatings(dto);
 	} catch (error) {
-		if (isMissing(error)) return null;
+		if (isAppError(error) && error.status === 404) return null;
 		throw error;
 	}
 }

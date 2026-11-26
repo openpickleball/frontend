@@ -111,7 +111,9 @@ export class SettingsStore {
 			return true;
 		} catch (error) {
 			if (run !== this.#run) return false;
-			if (this.#latest[key] === call) this.privacyError = messageOf(error);
+			if (this.#latest[key] === call) {
+				this.privacyError = messageOf(error, `privacy.${key}_visibility`);
+			}
 			return false;
 		} finally {
 			if (this.#latest[key] === call) delete this.#latest[key];

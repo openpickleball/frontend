@@ -1,11 +1,14 @@
 import { birthYearSchema } from '#lib/domain/index.js';
-import type { PrivacyKey } from './types.js';
+import type { SwitchKey } from './types.js';
 
 /** The backend's `Player.display_name` max_length, counted after trimming. */
 export const DISPLAY_NAME_MAX = 64;
 
-/** The privacy settings in the order the profile lists them, with their labels. */
-export const PRIVACY_ROWS: readonly { key: PrivacyKey; label: string }[] = [
+/**
+ * The privacy settings a player can switch either way, in the order the profile lists them,
+ * with their labels. Current ratings (`rating`) have their own row, because of their rules.
+ */
+export const PRIVACY_ROWS: readonly { key: SwitchKey; label: string }[] = [
 	{ key: 'match_history', label: 'Match history' },
 	{ key: 'stats', label: 'Stats' },
 	{ key: 'rating_history', label: 'Rating history' },

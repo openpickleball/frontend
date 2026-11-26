@@ -8,7 +8,8 @@ const OPEN: Privacy = {
 	stats: 'signed_in',
 	rating_history: 'signed_in',
 	home_club: 'signed_in',
-	city_region: 'signed_in'
+	city_region: 'signed_in',
+	rating: 'signed_in'
 };
 
 const SAVED: MySettings = { displayName: 'Fern Mock', privacy: OPEN };
