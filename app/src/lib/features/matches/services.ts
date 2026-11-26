@@ -126,16 +126,24 @@ export async function listMyHolds(
 const HOLDS_PAGE = 100;
 
 /**
+ * The most pages `findHold` reads. The loop trusts the list's `count`, so a wrong count must not
+ * keep it asking forever. 1,000 holds is far more than any player or organizer has.
+ */
+const HOLDS_MAX_PAGES = 10;
+
+/**
  * Whether a match is held, from the holds list. `MatchOut` has no hold field, so this is the only
  * way to tell. Resolves to the hold, or null when the list doesn't have the match (it is not held,
  * or the account may not vouch for it). Reads the list page by page until it finds the match, and
- * puts what it learns in the cache. Throws an `AppError` when a page fails.
+ * puts what it learns in the cache. Reads at most 10 pages of 100. Throws an `AppError` when a
+ * page fails.
  */
 export async function findHold(
 	code: MatchCode,
 	{ cache = matchCache, api = appApi }: { cache?: MatchCache } & ApiOption = {}
 ): Promise<Hold | null> {
-	for (let offset = 0; ; offset += HOLDS_PAGE) {
+	for (let pages = 0; pages < HOLDS_MAX_PAGES; pages++) {
+		const offset = pages * HOLDS_PAGE;
 		const page = await listMyHolds(offset, { limit: HOLDS_PAGE, cache, api });
 		const found = page.items.find((hold) => hold.match.code === code);
 		if (found) return found;
@@ -144,6 +152,8 @@ export async function findHold(
 			return null;
 		}
 	}
+	// Past the cap. The match may still be held further on, so the cache keeps what it knew.
+	return null;
 }
 
 /**

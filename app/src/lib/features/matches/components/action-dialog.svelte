@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ButtonVariant } from '#lib/ui/button/index.js';
 	import {
 		AlertDialog,
 		AlertDialogAction,
@@ -15,6 +16,7 @@
 		title,
 		description,
 		action,
+		tone = 'destructive',
 		onconfirm,
 		onclosed
 	}: {
@@ -23,6 +25,11 @@
 		description: string;
 		/** The label of the button that acts. */
 		action: string;
+		/**
+		 * How the action button looks. `destructive` (red) for an action that takes something
+		 * away, such as a dispute or a withdraw. `primary` for one that doesn't, such as a vouch.
+		 */
+		tone?: 'destructive' | 'primary';
 		/** Called when the player presses the action button, as the dialog closes. */
 		onconfirm: () => void;
 		/** Called once the dialog is gone and has handed focus back, however it closed. */
@@ -32,6 +39,11 @@
 	// After the action the button that opened the dialog is gone, so the dialog must not send focus
 	// back to it. The page moves focus to the new status instead. After Cancel, focus goes back as usual.
 	let acting = false;
+
+	const VARIANTS: Record<'destructive' | 'primary', ButtonVariant> = {
+		destructive: 'destructive-solid',
+		primary: 'default'
+	};
 
 	function afterClose(event: Event) {
 		if (acting) {
@@ -56,6 +68,7 @@
 		<AlertDialogFooter>
 			<AlertDialogCancel>Cancel</AlertDialogCancel>
 			<AlertDialogAction
+				variant={VARIANTS[tone]}
 				onclick={() => {
 					acting = true;
 					open = false;

@@ -14,9 +14,10 @@
 	} = $props();
 </script>
 
-<!-- A vouch can't be undone, so the dialog says so first. -->
+<!-- A vouch can't be undone, so the dialog says so first. It takes nothing away, so it isn't red. -->
 <ActionDialog
 	bind:open
+	tone="primary"
 	title="Vouch for this match?"
 	description="Vouch only if this is a separate match, not a repeat of the other one. You can't undo a vouch."
 	action="Vouch for match"

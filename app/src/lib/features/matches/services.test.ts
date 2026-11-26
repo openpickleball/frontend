@@ -402,6 +402,19 @@ describe('findHold', () => {
 		expect(page).toBe(2);
 	});
 
+	it('stops after 10 pages when the count is wrong', async () => {
+		let pages = 0;
+		server.use(
+			http.get('*/api/v1/me/matches/holds', () => {
+				pages += 1;
+				const match = mockStore.matchOut(mockStore.matchByCode(CONFIRMED)!, VERIFIED_EMAIL);
+				return HttpResponse.json({ items: [{ match, vouched: false }], count: 1_000_000 });
+			})
+		);
+		expect(await findHold(HELD, { cache, api })).toBeNull();
+		expect(pages).toBe(10);
+	});
+
 	it('throws an AppError when the list fails', async () => {
 		server.use(http.get('*/api/v1/me/matches/holds', () => HttpResponse.error()));
 		expect((await failure(findHold(HELD, { cache, api }))).kind).toBe('network');

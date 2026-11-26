@@ -48,7 +48,7 @@
 		}
 		if (hold) {
 			return hold.vouched
-				? "On hold. It doesn't count yet. Your side has vouched for it."
+				? "On hold. It doesn't count yet. Your team has vouched for it."
 				: "On hold. It doesn't count yet. Open it to vouch for it.";
 		}
 		if (needsViewerConfirmation(match)) return 'Needs your confirmation.';

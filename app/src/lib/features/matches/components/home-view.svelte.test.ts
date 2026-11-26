@@ -347,7 +347,7 @@ describe('HomeView matches on hold', () => {
 			.element(list.getByText("On hold. It doesn't count yet. Open it to vouch for it."))
 			.toBeVisible();
 		await expect
-			.element(list.getByText("On hold. It doesn't count yet. Your side has vouched for it."))
+			.element(list.getByText("On hold. It doesn't count yet. Your team has vouched for it."))
 			.toBeVisible();
 
 		// heldToo waits on the other team too, but it is listed once, under Matches on hold.
@@ -381,7 +381,7 @@ describe('HomeView matches on hold', () => {
 
 		matchCache.markVouched(HELD_TOO);
 		await expect
-			.element(list.getByText("On hold. It doesn't count yet. Your side has vouched for it."))
+			.element(list.getByText("On hold. It doesn't count yet. Your team has vouched for it."))
 			.toBeVisible();
 		matchCache.endHold(HELD);
 		await expect.poll(() => list.getByTestId('match-row').elements()).toHaveLength(1);

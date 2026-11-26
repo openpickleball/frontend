@@ -441,7 +441,7 @@ test.describe('holds', () => {
 			"On hold. It doesn't count yet. Open it to vouch for it."
 		);
 		await expect(list.locator(`a[href$="/matches/${HELD_VOUCHED}"]`)).toContainText(
-			'Your side has vouched for it.'
+			'Your team has vouched for it.'
 		);
 		await expect(
 			page.getByRole('list', { name: 'Recent matches' }).locator(`a[href$="/matches/${HELD}"]`)

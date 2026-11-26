@@ -36,6 +36,13 @@ describe('VouchDialog', () => {
 		expect(onconfirm).not.toHaveBeenCalled();
 	});
 
+	it('shows "Vouch for match" as the main button, not in the danger color', async () => {
+		await render(VouchDialog, { open: true, onconfirm: vi.fn() });
+		const button = page.getByRole('button', { name: 'Vouch for match' }).element();
+		expect(button.className).toContain('bg-secondary');
+		expect(button.className).not.toContain('bg-danger');
+	});
+
 	it('"Vouch for match" vouches once and closes the dialog', async () => {
 		const onconfirm = vi.fn();
 		await render(VouchDialog, { open: true, onconfirm });
