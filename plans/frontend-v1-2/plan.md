@@ -78,10 +78,10 @@ These block app work. The app can't do them yet.
 ## Steps
 
 - [x] S0 Read the CSRF token from `__Host-csrftoken` when it is set, else `csrftoken`, with tests (#222). Independent of the rest. It must land before the app is hosted (frontend#22).
-- [ ] S1 Sync the API schema with backend `f4090e5` or later (#213). Include `rating_visibility` and `MyDecision.withdraw`, so `pnpm check` and the tests pass. Leave the new operations unused.
-- [ ] C1 Remove the typed-in own code fallback for backends older than #124 (#223), after S1 and before S3
+- [x] S1 Sync the API schema with backend `f4090e5` or later (#213). Include `rating_visibility` and `MyDecision.withdraw`, so `pnpm check` and the tests pass. Leave the new operations unused.
+- [x] C1 Remove the typed-in own code fallback for backends older than #124 (#223), after S1 and before S3
 - [ ] S2 Swap the mocked ratings for the real endpoints, and add the `rating_visibility` control (#35, and the privacy part of #109), after S1
-- [ ] S3 Show disputed matches and let players withdraw a dispute (#214), after S1
+- [x] S3 Show disputed matches and let players withdraw a dispute (#214), after S1
 - [ ] S4 Show held matches and let players vouch for them (#216), after S3
 - [ ] S5 Let players correct a pending or disputed match with no Event (#215), after S3
 - [x] B1 Open backend issues for organizer memberships (backend#301) and for the Event on `MatchOut` (backend#302)
@@ -112,6 +112,9 @@ These block app work. The app can't do them yet.
 - **Reuse the existing feature issues.** #213 to #220 and #35 already describe S1 to S9 well. This plan orders them and adds S0, B1 and C1. It doesn't restate them. The missing details went on the issues as comments: `MyDecision.withdraw` on #213, and the app's own security headers on #22.
 - **Don't file frontend issues for backend work that hasn't shipped.** Account deletion, passkeys and MFA, and re-accepting legal agreements wait until the backend issues close.
 - **Ratings still need a copy decision before S2.** Every rating the API returns is a demonstration rating (`demonstration: true`). Decide in S2 whether players see demonstration numbers, with a visible label, or keep the "Ratings aren't live yet" card. Check against `plans/site-content-v2/plan.md`, and never call a number an OPEN rating (rule 3).
+- **How a match's status reads (S3).** `features/matches/status.ts` (`matchStatusCopy`) holds the title, text, notes and actions for every status. S4 and S5 add their action there and in `status-panel.svelte`, not in the views.
+- **One dispute per player (S3).** The backend treats a withdrawn dispute as the player's one dispute, so after a withdraw the app offers Confirm only, never Dispute. A player with no open dispute on a disputed match gets no button.
+- **No end date for disputes (S3).** The API gives none, and doesn't say whether a match has an Event, so the copy says a dispute ends when every player who disputed withdraws, when an Event's organizer settles it, or after a set time when the match is voided. No copy mentions a moderator.
 - **The backend enforces who may act.** The organizer area and the vouch, correct and resolve controls only hide what the backend would refuse anyway (rule 6). Each step handles the 403, 404 and 409 answers in plain words.
 
 ## Open questions
