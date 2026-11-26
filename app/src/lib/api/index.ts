@@ -3,7 +3,7 @@ import { createApi, type Api } from './client';
 import type { paths as ProvisionalPaths } from './provisional';
 
 export { createApi, allauthParams, ALLAUTH_CLIENT, type Api } from './client';
-export { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from './csrf';
+export { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, CSRF_HOST_COOKIE_NAME, readCsrfToken } from './csrf';
 export { AppError, toAppError, isAppError, isCsrfFailure } from './errors';
 export type { AppErrorFields, AppErrorKind, AllauthFlow } from './errors';
 export { unwrap } from './unwrap';
