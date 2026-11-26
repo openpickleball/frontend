@@ -62,3 +62,30 @@ export type PlayerRatings = {
 	/** The backend says every number is a demonstration. */
 	demonstration: boolean;
 };
+
+/** What caused a change to a rating. The backend's `RatingChangeKind`. */
+export type RatingChangeKind = OpenComponents['schemas']['RatingChangeKind'];
+
+/** One change to a player's rating in one format, as the backend sent it. */
+export type RatingChange = {
+	format: RatingFormat;
+	kind: RatingChangeKind;
+	/** The rating after the change. For a `removed` change, the rating that was removed. */
+	value: number;
+	/** 0 to 100: the reliability earned in OPEN. */
+	reliability: number;
+	/** 0 to 100: the reliability carried from an external rating, or `null` when there is none. */
+	importedReliability: number | null;
+	established: boolean;
+	provisional: boolean;
+	demonstration: boolean;
+	/** ISO 8601 timestamp: when the change was recorded. */
+	recordedAt: string;
+};
+
+/** One page of a player's rating history, newest first. */
+export type RatingHistoryPage = {
+	items: RatingChange[];
+	/** How many changes there are in all. */
+	count: number;
+};

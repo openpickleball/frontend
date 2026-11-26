@@ -29,6 +29,14 @@
  *   `null` on its 404. `RatingsCard` shows what the backend sent: every rating with its
  *   reliability and a Demonstration label, the most reliable one first. It computes nothing
  *   about a rating, and never calls a number an OPEN rating.
+ * - Rating history: `fetchRatingHistory(code, offset)` reads one page of 5 from
+ *   `GET players/{code}/rating-history` (`list_player_rating_history`), newest first, and returns
+ *   `null` on its 404 (an unknown code, an inactive account, or history kept private by
+ *   `rating_history_visibility`; the player always sees their own). `RatingHistoryView` holds the
+ *   page and drops late answers, and `RatingHistory` lists it under the ratings card with Newer
+ *   and Older. Each change shows its format, the value, its reliability, the day and what caused
+ *   it (`CHANGE_KINDS`: after a match, a recount, or removed by a recount). The API gives no
+ *   change amount, and the app works none out.
  *
  * - `ProfileSettings` is the "Name and privacy" and "Your data" sections. It reads
  *   `GET me/player` and saves with `PATCH me/player` (backend#124). It reads them once
@@ -40,7 +48,8 @@
  *   a switch offers to show them, and the backend's refusal before 18 is shown. "Your data"
  *   says how to ask for a copy, until a data export endpoint exists (backend#39).
  *
- * `services.ts` calls `me/player` (GET, POST and PATCH) and the ratings with the generated types.
+ * `services.ts` calls `me/player` (GET, POST and PATCH), the ratings and the rating history with
+ * the generated types.
  */
 export { myCode } from './my-code.svelte.js';
 export { default as OwnCodeGate } from './own-code-gate.svelte';

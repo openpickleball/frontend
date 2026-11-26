@@ -7,8 +7,15 @@ import {
 	type OpenComponents
 } from '#lib/api/index.js';
 import { parsePlayerCode } from '#lib/domain/index.js';
-import { toPlayerRatings } from './ratings.js';
-import type { MyPlayer, MySettings, MySettingsChange, PlayerRatings, PrivacyKey } from './types.js';
+import { HISTORY_PAGE_SIZE, toPlayerRatings, toRatingHistoryPage } from './ratings.js';
+import type {
+	MyPlayer,
+	MySettings,
+	MySettingsChange,
+	PlayerRatings,
+	PrivacyKey,
+	RatingHistoryPage
+} from './types.js';
 
 type MyPlayerOut = OpenComponents['schemas']['MyPlayerOut'];
 type FieldError = OpenComponents['schemas']['FieldError'];
@@ -180,6 +187,30 @@ export async function fetchRatings(
 			api.open.GET('/api/v1/players/{code}/ratings', { params: { path: { code } } })
 		);
 		return toPlayerRatings(dto);
+	} catch (error) {
+		if (isAppError(error) && error.status === 404) return null;
+		throw error;
+	}
+}
+
+/**
+ * One page of a player's rating history, newest first, from `GET players/{code}/rating-history`
+ * (`list_player_rating_history`, backend#53). `null` on a 404, which the backend sends alike for
+ * an unknown code, an inactive account and history kept private by `rating_history_visibility`.
+ * The player always sees their own. Throws an `AppError` for anything else.
+ */
+export async function fetchRatingHistory(
+	code: string,
+	offset = 0,
+	{ api = appApi, limit = HISTORY_PAGE_SIZE }: ApiOption & { limit?: number } = {}
+): Promise<RatingHistoryPage | null> {
+	try {
+		const dto = await unwrap(
+			api.open.GET('/api/v1/players/{code}/rating-history', {
+				params: { path: { code }, query: { limit, offset } }
+			})
+		);
+		return toRatingHistoryPage(dto);
 	} catch (error) {
 		if (isAppError(error) && error.status === 404) return null;
 		throw error;
