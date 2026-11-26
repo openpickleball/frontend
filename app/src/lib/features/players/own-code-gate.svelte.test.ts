@@ -32,21 +32,24 @@ describe('OwnCodeGate', () => {
 	});
 
 	it('shows the code to its children, without asking again', async () => {
-		myCode.save(CODE);
+		myCode.code = CODE;
+		myCode.status = 'ready';
 		await render(OwnCodeGate, { children, signedOut: 'x' });
 		await expect.element(page.getByTestId('own')).toHaveTextContent(CODE);
 		expect(load).not.toHaveBeenCalled();
 	});
 
 	it('asks again on open with reloadOnOpen, even when the code is known', async () => {
-		myCode.save(CODE);
+		myCode.code = CODE;
+		myCode.status = 'ready';
 		await render(OwnCodeGate, { children, signedOut: 'x', reloadOnOpen: true });
 		await expect.element(page.getByTestId('own')).toBeVisible();
 		expect(load).toHaveBeenCalledTimes(1);
 	});
 
 	it('loads again after the store is reset, unless reloadOnOpen', async () => {
-		myCode.save(CODE);
+		myCode.code = CODE;
+		myCode.status = 'ready';
 		await render(OwnCodeGate, { children, signedOut: 'x' });
 		myCode.reset();
 		await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
@@ -77,44 +80,12 @@ describe('OwnCodeGate', () => {
 		await expect.element(page.getByRole('alert')).not.toBeInTheDocument();
 	});
 
-	it('prompts for a first code with the given heading', async () => {
-		myCode.status = 'needs-entry';
-		await render(OwnCodeGate, { children, signedOut: 'x', entryHeading: 'Enter it here' });
-		await expect.element(page.getByRole('heading', { name: 'Enter it here' })).toBeVisible();
-	});
-
-	describe('while the player changes a code from this device', () => {
-		beforeEach(() => {
-			myCode.save(CODE);
-			myCode.change();
-		});
-
-		it('keeps showing the children by default', async () => {
-			await render(OwnCodeGate, { children, signedOut: 'x' });
-			await expect.element(page.getByTestId('own')).toBeVisible();
-		});
-
-		it('shows the plain prompt, with no Cancel, with showChange', async () => {
-			await render(OwnCodeGate, { children, signedOut: 'x', showChange: true });
-			await expect
-				.element(page.getByRole('heading', { name: 'Enter your OPEN code' }))
-				.toBeVisible();
-			await expect.element(page.getByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
-		});
-
-		it('shows the change heading and a Cancel that goes back, with changeHeading', async () => {
-			await render(OwnCodeGate, {
-				children,
-				signedOut: 'x',
-				showChange: true,
-				changeHeading: 'Change your OPEN code'
-			});
-			await expect
-				.element(page.getByRole('heading', { name: 'Change your OPEN code' }))
-				.toBeVisible();
-			await page.getByRole('button', { name: 'Cancel' }).click();
-			await expect.element(page.getByTestId('own')).toHaveTextContent(CODE);
-		});
+	it('never asks the player to type in a code, offline included', async () => {
+		myCode.status = 'error';
+		await render(OwnCodeGate, { children, signedOut: 'x' });
+		await expect.element(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+		await expect.element(page.getByRole('textbox')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('own')).not.toBeInTheDocument();
 	});
 
 	describe('when the backend needs the details', () => {
@@ -122,7 +93,7 @@ describe('OwnCodeGate', () => {
 			myCode.status = 'needs-details';
 		});
 
-		it('shows the details form, with no code prompt', async () => {
+		it('shows the details form', async () => {
 			await render(OwnCodeGate, { children, signedOut: 'x' });
 			await expect
 				.element(page.getByRole('heading', { name: 'Finish your player profile' }))
@@ -135,7 +106,6 @@ describe('OwnCodeGate', () => {
 				)
 				.toBeVisible();
 			await expect.element(page.getByLabelText('Display name')).toBeVisible();
-			await expect.element(page.getByLabelText('Your OPEN code')).not.toBeInTheDocument();
 		});
 
 		it('sends the details through myCode', async () => {

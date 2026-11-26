@@ -6,7 +6,6 @@
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { cn } from '#lib/ui/utils.js';
-	import CodeEntry from './code-entry.svelte';
 	import { myCode } from './my-code.svelte.js';
 	import PlayerDetailsForm from './player-details-form.svelte';
 
@@ -16,9 +15,6 @@
 		loading = 'Loading…',
 		errorText = "We can't reach the server. Check your connection and try again.",
 		error,
-		entryHeading,
-		showChange = false,
-		changeHeading,
 		reloadOnOpen = false,
 		fallbackClass
 	}: {
@@ -32,19 +28,13 @@
 		errorText?: string;
 		/** Replaces the default error message. Call `retry` to look for the code again. */
 		error?: Snippet<[retry: () => void]>;
-		/** Heading of the first-time prompt. `CodeEntry` has its own default. */
-		entryHeading?: string;
-		/** Show the prompt, not `children`, while the player is changing a code from this device. */
-		showChange?: boolean;
-		/** With `showChange`: the prompt's heading while changing, plus a Cancel button. */
-		changeHeading?: string;
 		/**
 		 * Ask the backend again each time the gate opens, even when the code is already known.
 		 * Without it, the gate asks only when nothing has asked yet, and again after the layout
 		 * resets the store on a sign-out or sign-in.
 		 */
 		reloadOnOpen?: boolean;
-		/** Classes for every fallback (loading, signed out, prompt, default error), not `children`. */
+		/** Classes for every fallback (loading, signed out, default error), not `children`. */
 		fallbackClass?: string;
 	} = $props();
 
@@ -57,7 +47,6 @@
 	});
 
 	const retry = () => void myCode.load();
-	const changing = $derived(myCode.status === 'ready' && myCode.editing);
 </script>
 
 {#if myCode.status === 'idle' || myCode.status === 'loading'}
@@ -116,18 +105,6 @@
 		</p>
 		<Button variant="outline" onclick={retry}>Try again</Button>
 	</section>
-{:else if myCode.status === 'needs-entry' || !myCode.code || (showChange && changing)}
-	<div class={fallbackClass}>
-		{#if changing && changeHeading}
-			<CodeEntry
-				onsave={(code) => myCode.save(code)}
-				oncancel={() => myCode.cancel()}
-				heading={changeHeading}
-			/>
-		{:else}
-			<CodeEntry onsave={(code) => myCode.save(code)} heading={entryHeading} />
-		{/if}
-	</div>
-{:else}
+{:else if myCode.code}
 	{@render children(myCode.code)}
 {/if}

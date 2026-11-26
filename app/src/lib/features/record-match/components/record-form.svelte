@@ -11,7 +11,7 @@
 		type ScoringType
 	} from '#lib/domain/index.js';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
-	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
+	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { FieldError, FieldLegend, FieldSet, fieldA11y } from '#lib/ui/field/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
@@ -27,7 +27,6 @@
 	let {
 		own,
 		onrecorded,
-		onchangecode,
 		submit = submitMatch,
 		search = searchPlayers,
 		drafts = createDraftStore()
@@ -39,11 +38,6 @@
 		 * the match, so `result.match` waits on the other team only.
 		 */
 		onrecorded: (result: SubmitResult) => void;
-		/**
-		 * Lets the player replace the OPEN code saved on this device. The page supplies it, because
-		 * this feature does not import players. Without it, the refusal notice has no button.
-		 */
-		onchangecode?: () => void;
 		/** The service that sends the match. Tests pass a stand-in. */
 		submit?: typeof submitMatch;
 		/** The name search. Tests pass a stand-in. */
@@ -206,13 +200,6 @@
 						<p>{form.failure.message}</p>
 					{/if}
 				</AlertDescription>
-				{#if form.failure.kind === 'forbidden' && onchangecode}
-					<AlertAction>
-						<Button type="button" variant="outline" size="sm" onclick={onchangecode}>
-							Change my code
-						</Button>
-					</AlertAction>
-				{/if}
 			</Alert>
 		</div>
 	{/if}

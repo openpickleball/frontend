@@ -1,12 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import {
-	MOCK_KEYS,
-	MOCK_PASSWORD,
-	PLAYERS,
-	UNVERIFIED_EMAIL,
-	VERIFIED_EMAIL
-} from '../src/lib/mocks/fixtures';
+import { MOCK_KEYS, MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
 import {
 	fillSignup,
 	fillSignupAccount,
@@ -26,13 +20,6 @@ type Mail = { kind: string; to: string; key: string | null };
 async function mail(page: Page): Promise<Mail[]> {
 	return page.evaluate(
 		() => (window as unknown as { __openMock: { mail: () => Mail[] } }).__openMock.mail() as Mail[]
-	);
-}
-
-/** Act as a backend older than backend#124, which has no POST me/player. */
-async function olderBackend(page: Page): Promise<void> {
-	await page.evaluate(() =>
-		(window as unknown as { __openMock: { olderBackend: () => void } }).__openMock.olderBackend()
 	);
 }
 
@@ -70,10 +57,9 @@ test('sign up, verify the email from the link, sign in, then sign out', async ({
 	await expect(page).toHaveURL(/\/$/);
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
-	// The app made the player from the signup details: /record has the code, with no prompt.
+	// The app made the player from the signup details: /record has the code.
 	await page.goto('/record');
 	await expect(page.getByTestId('chip')).toHaveText(/^P-/);
-	await expect(page.getByRole('heading', { name: /Enter your OPEN code/ })).toHaveCount(0);
 
 	await signOut(page);
 	// Signed out for real: a signed-in page sends us back to sign in.
@@ -189,30 +175,32 @@ test('sign in stays usable while a sign-up is waiting for its link', async ({ pa
 	await expect(page).toHaveURL(/\/$/);
 });
 
-test('sign out removes the saved code and email from this browser', async ({ page }) => {
-	const rosa = PLAYERS.find((p) => p.key === 'rosa')!;
-	// This account has no player yet, and the backend is too old to create one, so the code is
-	// typed in and kept on the device.
-	await page.goto(`/account/verify-email/${MOCK_KEYS.verifyEmail}`);
-	await expect(page.getByRole('heading', { level: 1, name: 'Email verified' })).toBeVisible();
-	await olderBackend(page);
-	await signIn(page, UNVERIFIED_EMAIL, MOCK_PASSWORD);
+test('the code comes from the backend, and nothing about it stays in this browser', async ({
+	page
+}) => {
+	const tamsin = PLAYERS.find((p) => p.key === 'tamsin')!;
+	await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
 	await page.goto('/profile');
-	await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(rosa.code);
-	await page.getByRole('button', { name: 'Save code' }).click();
-	await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
-	const saved = () =>
-		page.evaluate(() =>
-			Object.keys(localStorage).filter((key) => key.startsWith('open:v1:my-player-code:'))
+	await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
+	const kept = () =>
+		page.evaluate(
+			({ code, email }) =>
+				Object.entries(localStorage).filter(
+					([key, value]) => `${key} ${value}`.includes(code) || key.includes(email)
+				),
+			{ code: tamsin.code, email: VERIFIED_EMAIL }
 		);
-	expect(await saved()).toHaveLength(1);
+	expect(await kept()).toEqual([]);
 
 	await page
 		.getByRole('region', { name: 'Account' })
 		.getByRole('button', { name: 'Sign out' })
 		.click();
 	await expect(page).toHaveURL(/\/account\/login/);
-	expect(await saved()).toEqual([]);
+	expect(await kept()).toEqual([]);
+	await page.goto('/profile');
+	await expect(page).toHaveURL(/\/account\/login\?next=%2Fprofile$/);
+	await expect(page.getByTestId('my-code')).toHaveCount(0);
 });
 
 test('a wrong password shows an error and stays on sign in', async ({ page }) => {

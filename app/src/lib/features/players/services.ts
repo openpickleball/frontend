@@ -36,18 +36,14 @@ function toMyPlayer(dto: MyPlayerOut): MyPlayer {
 }
 
 /**
- * The signed-in account's own player. `'none'` when the account has no player yet (a 404,
- * which an older backend without `me/player` also answers), `'unavailable'` for a 405. Throws an
- * `AppError` for anything else, including a 401 when nobody is signed in.
+ * The signed-in account's own player. `'none'` when the account has no player yet (a 404).
+ * Throws an `AppError` for anything else, including a 401 when nobody is signed in.
  */
-export async function fetchMyPlayer({ api = appApi }: ApiOption = {}): Promise<
-	MyPlayer | 'none' | 'unavailable'
-> {
+export async function fetchMyPlayer({ api = appApi }: ApiOption = {}): Promise<MyPlayer | 'none'> {
 	try {
 		return toMyPlayer(await unwrap(api.open.GET('/api/v1/me/player')));
 	} catch (error) {
 		if (isAppError(error) && error.status === 404) return 'none';
-		if (isAppError(error) && error.status === 405) return 'unavailable';
 		throw error;
 	}
 }
@@ -67,9 +63,7 @@ export type CreateMyPlayerResult =
 	 */
 	| { kind: 'invalid'; fields: Record<string, string> }
 	/** The age refusal. It holds for the rest of the session. */
-	| { kind: 'refused' }
-	/** No such endpoint (a 404 or 405): a backend older than backend#124. */
-	| { kind: 'unavailable' };
+	| { kind: 'refused' };
 
 function isAgeRefusal(items: FieldError[]): boolean {
 	return (
@@ -84,7 +78,8 @@ function isAgeRefusal(items: FieldError[]): boolean {
  * Create the signed-in account's player with `POST me/player` (backend#124). The backend uses
  * the details held from sign-up when it has them and ignores the body; otherwise the body must
  * carry the display name, birth year and month and gender division. Throws an `AppError` for
- * anything not in the result: a 401, a 403 (email not verified), a 5xx or no answer.
+ * anything not in the result: a 401, a 403 (email not verified), a 404 or 405, a 5xx or no
+ * answer.
  */
 export async function createMyPlayer(
 	body: PlayerCreateIn = {},
@@ -102,9 +97,6 @@ export async function createMyPlayer(
 	switch (response.status) {
 		case 409:
 			return { kind: 'conflict' };
-		case 404:
-		case 405:
-			return { kind: 'unavailable' };
 		case 422: {
 			// `AppError.fields` drops each item's code, so read the items here.
 			const items = (error as { errors?: FieldError[] } | undefined)?.errors ?? [];
@@ -148,9 +140,8 @@ function toUpdateIn(change: MySettingsChange): PlayerUpdateIn {
 }
 
 /**
- * The player's display name and privacy settings, or `null` when the backend has no
- * `me/player` endpoint (a 404 or 405, an older backend) or the account has no player. Throws
- * an `AppError` for anything else.
+ * The player's display name and privacy settings, or `null` when `me/player` answers a 404 or
+ * 405 (no player to read). Throws an `AppError` for anything else.
  */
 export async function fetchMySettings({
 	api = appApi

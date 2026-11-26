@@ -4,7 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { RecordMatchForm, type SubmitResult } from '#lib/features/record-match/index.js';
 	import { rememberMatch } from '#lib/features/matches/index.js';
-	import { OwnCodeGate, myCode } from '#lib/features/players/index.js';
+	import { OwnCodeGate } from '#lib/features/players/index.js';
 
 	async function recorded(result: SubmitResult) {
 		toast('Match recorded');
@@ -27,10 +27,10 @@
 </div>
 
 <div class="mt-8 max-w-2xl">
-	<OwnCodeGate reloadOnOpen showChange signedOut="Sign in to record a match.">
+	<OwnCodeGate reloadOnOpen signedOut="Sign in to record a match.">
 		{#snippet children(own)}
 			{#key own}
-				<RecordMatchForm {own} onrecorded={recorded} onchangecode={() => myCode.change()} />
+				<RecordMatchForm {own} onrecorded={recorded} />
 			{/key}
 		{/snippet}
 	</OwnCodeGate>

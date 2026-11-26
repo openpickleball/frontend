@@ -49,13 +49,13 @@ export type SummaryEntry = { key: string; message: string; target: string | null
 export type Failure =
 	| { kind: 'offline'; message: string }
 	| { kind: 'duplicate'; message: string; matchCode: string | null }
-	/** The backend refused this player as the submitter: the code saved on the device may be someone else's. */
+	/** The backend refused this player as the submitter. */
 	| { kind: 'forbidden'; message: string }
 	| { kind: 'other'; message: string };
 
 export const OFFLINE_MESSAGE = 'We lost the connection. Your match may not have been saved.';
 export const FORBIDDEN_MESSAGE =
-	"We couldn't record this match. The OPEN code saved on this device may not be yours.";
+	"We couldn't record this match. You can only record a match you played in.";
 export const DUPLICATE_MESSAGE = 'This match was already recorded';
 
 const emptySlot = (): Slot => ({ code: null, name: '', text: '', error: '' });

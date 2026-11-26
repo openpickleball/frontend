@@ -49,7 +49,7 @@ Hosting, Capacitor and app-store builds are out of scope.
 - Development runs against a local backend. Hosting is out of scope.
 - Q1 Offline match queue: deferred to frontend#33. v1 shows an offline error instead. (2026-11-17)
 - Q2 Ratings against the real backend: "Coming soon" card. Mock mode shows a labelled sample card. (2026-11-17)
-- Q3 Until backend#124: players enter their own OPEN code once, stored on the device. (2026-11-17)
+- Q3 Until backend#124: players enter their own OPEN code once, stored on the device. (2026-11-17) Ended: the app reads and creates the player with `me/player` (frontend#207, #221), so the typed-in code, its storage and the "Change code" button were removed in frontend#223. A failed or unreachable `me/player` shows an error with Try again. (2026-11-25)
 - Q4 Submitting a match confirms for the submitter's team; the submit button says so. Raise it with the backend team too. (2026-11-17) The backend now does this itself (backend#197), so the app's extra confirm call after recording was removed in frontend#208. (2026-11-24)
 - Q5 Merge ruleset: yes. Once the `app-e2e` job exists on `main`, the owner turns on "require branches to be up to date" and makes `app-e2e` required. (2026-11-17)
 - Engineering decisions in `proposal.md` §2–§11 approved, except the offline queue (Q1, deferred to frontend#33). (2026-11-17)

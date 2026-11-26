@@ -54,7 +54,8 @@ beforeEach(() => {
 	myCode.reset();
 	matchCache.setOwnerSource(() => myCode.code);
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
-	myCode.save(TAMSIN);
+	myCode.code = TAMSIN;
+	myCode.status = 'ready';
 });
 
 afterEach(() => {

@@ -19,7 +19,8 @@ beforeEach(() => {
 	matchCache.reset();
 	myCode.reset();
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
-	myCode.save(TAMSIN);
+	myCode.code = TAMSIN;
+	myCode.status = 'ready';
 });
 
 afterEach(() => {
