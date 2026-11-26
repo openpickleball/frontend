@@ -76,6 +76,12 @@ test.describe('an account that has a player (me/player exists)', () => {
 	});
 
 	test('reads me/player once for the code and once for the settings', async ({ page }) => {
+		// `goto` in beforeEach returns at the load event, often before that page sends its own
+		// reads. Wait until it shows the code and the settings, so both of its reads are done
+		// and none of them is counted below.
+		await expect(page.getByRole('switch', { name: 'Match history' })).toBeVisible();
+		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
+
 		const reads: string[] = [];
 		page.on('request', (request) => {
 			if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/v1/me/player') {
