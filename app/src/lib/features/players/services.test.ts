@@ -4,6 +4,7 @@ import { AppError, allauthParams, createApi, type Api } from '#lib/api/index.js'
 import { MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
 import { mockStore } from '#lib/mocks/store.js';
+import { createMyCode } from './my-code.svelte.js';
 import {
 	AGE_REFUSAL_MESSAGE,
 	createMyPlayer,
@@ -87,14 +88,14 @@ describe('fetchMyPlayer', () => {
 		expect(await fetchMyPlayer({ api })).toBe('none');
 	});
 
-	it("is 'unavailable' when the backend has no me/player (405)", async () => {
+	it('throws a 405, so the app shows its error state', async () => {
 		await signIn(VERIFIED_EMAIL);
 		server.use(
 			http.get('*/api/v1/me/player', () => new HttpResponse(null, { status: 405 }), {
 				once: true
 			})
 		);
-		expect(await fetchMyPlayer({ api })).toBe('unavailable');
+		await expect(fetchMyPlayer({ api })).rejects.toMatchObject({ status: 405 });
 	});
 
 	it('throws a server error for a code that does not parse', async () => {
@@ -292,12 +293,12 @@ describe('createMyPlayer', () => {
 		});
 	});
 
-	it.each([404, 405])("is 'unavailable' for a %i (an older backend)", async (status) => {
+	it.each([404, 405])('throws a %i, so the app shows its error state', async (status) => {
 		await signInFresh();
 		server.use(
 			http.post('*/api/v1/me/player', () => new HttpResponse(null, { status }), { once: true })
 		);
-		expect(await createMyPlayer(undefined, { api })).toEqual({ kind: 'unavailable' });
+		await expect(createMyPlayer(undefined, { api })).rejects.toMatchObject({ status });
 	});
 
 	it('throws a 401 when nobody is signed in', async () => {
@@ -341,5 +342,38 @@ describe('createMyPlayer', () => {
 			)
 		);
 		await expect(createMyPlayer(undefined, { api })).rejects.toMatchObject({ kind: 'server' });
+	});
+});
+
+describe('myCode over these services', () => {
+	const myCodeOver = () =>
+		createMyCode({
+			fetchMyPlayer: () => fetchMyPlayer({ api }),
+			createMyPlayer: (body) => createMyPlayer(body, { api })
+		});
+
+	it('shows the error state when GET me/player answers 405, and does not post', async () => {
+		await signIn(VERIFIED_EMAIL);
+		server.use(
+			http.get('*/api/v1/me/player', () => new HttpResponse(null, { status: 405 }), {
+				once: true
+			})
+		);
+		const mine = myCodeOver();
+		await mine.load();
+		expect(mine.status).toBe('error');
+		expect(mine.code).toBeNull();
+		expect(calls.map((c) => c.call)).toEqual(['GET /api/v1/me/player']);
+	});
+
+	it.each([404, 405])('shows the error state when the create answers %i', async (status) => {
+		await signInFresh();
+		server.use(
+			http.post('*/api/v1/me/player', () => new HttpResponse(null, { status }), { once: true })
+		);
+		const mine = myCodeOver();
+		await mine.load();
+		expect(mine.status).toBe('error');
+		expect(mine.code).toBeNull();
 	});
 });

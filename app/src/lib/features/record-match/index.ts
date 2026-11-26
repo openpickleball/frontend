@@ -2,10 +2,9 @@
  * Record a match: the form and the service behind it.
  *
  * For pages:
- * - `RecordMatchForm`: the whole form. Give it the player's own code (`myCode.code`) and an
- *   `onrecorded` callback, and optionally `onchangecode`, which the "Change my code" button calls
- *   when the backend refuses the saved code. This feature never imports players, so the page
- *   wires it. It validates inline, maps the server's 422 errors onto its fields, and shows the
+ * - `RecordMatchForm`: the whole form. Give it the player's own code (`myCode.code`, which comes
+ *   from the backend) and an `onrecorded` callback. This feature never imports players, so the
+ *   page wires it. It validates inline, maps the server's 422 errors onto its fields, and shows the
  *   offline and duplicate notices itself. It never queues a match (Decision Q1). It keeps what the
  *   player entered in `sessionStorage` (per own code) until the match is recorded, so a reload or a
  *   stray tap does not lose it. See `draft.ts`.

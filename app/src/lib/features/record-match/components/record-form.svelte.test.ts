@@ -368,7 +368,7 @@ describe('RecordForm', () => {
 		await expect.element(screen.getByText('No player has this OPEN Code.')).not.toBeInTheDocument();
 	});
 
-	it('offers to change the saved code when the backend refuses the submitter', async () => {
+	it('says why when the backend refuses the submitter, and keeps what was entered', async () => {
 		const submit = vi.fn().mockRejectedValue(
 			appError({
 				kind: 'forbidden',
@@ -377,34 +377,30 @@ describe('RecordForm', () => {
 				message: 'You are not allowed to submit this match.'
 			})
 		);
-		const onchangecode = vi.fn();
 		const onrecorded = vi.fn();
-		const screen = await render(RecordForm, { own: tamsin, onrecorded, onchangecode, submit });
+		const screen = await render(RecordForm, { own: tamsin, onrecorded, submit });
 		await fillDoubles(screen);
 		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 
-		await expect.element(screen.getByText(/saved on this device may not be yours/)).toBeVisible();
-		await screen.getByRole('button', { name: 'Change my code' }).click();
-		expect(onchangecode).toHaveBeenCalledOnce();
+		await expect
+			.element(screen.getByText(/You can only record a match you played in/))
+			.toBeVisible();
+		await expect.element(screen.getByText('Everything you entered is still here.')).toBeVisible();
+		expect(onrecorded).not.toHaveBeenCalled();
 	});
 
-	it('does not offer a code change for a CSRF refusal', async () => {
+	it('shows the backend message for a CSRF refusal', async () => {
 		const submit = vi
 			.fn()
 			.mockRejectedValue(
 				appError({ kind: 'csrf', status: 403, code: 'forbidden', message: 'Please reload.' })
 			);
-		const screen = await render(RecordForm, {
-			own: tamsin,
-			onrecorded: vi.fn(),
-			onchangecode: vi.fn(),
-			submit
-		});
+		const screen = await render(RecordForm, { own: tamsin, onrecorded: vi.fn(), submit });
 		await fillDoubles(screen);
 		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
 		await expect.element(screen.getByText("We couldn't record this match")).toBeVisible();
 		await expect
-			.element(screen.getByRole('button', { name: 'Change my code' }))
+			.element(screen.getByText(/You can only record a match you played in/))
 			.not.toBeInTheDocument();
 	});
 

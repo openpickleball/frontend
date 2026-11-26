@@ -8,7 +8,7 @@ import { myCode } from '#lib/features/players/index.js';
 import './layout.css';
 import Profile from './profile/+page.svelte';
 
-// A name or email with no spaces must break inside the column, so the page never scrolls sideways
+// A name with no spaces must break inside the column, so the page never scrolls sideways
 // (frontend#87). The data calls fail here: only the name line is under test.
 vi.mock('$app/env/public', () => ({ PUBLIC_API_MOCK: 'off' }));
 vi.stubGlobal(
@@ -18,12 +18,12 @@ vi.stubGlobal(
 
 const PHONE = 320;
 const NAME = 'W'.repeat(300);
-const EMAIL = `${'w'.repeat(200)}@example.com`;
 
 beforeEach(() => {
 	myCode.reset();
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
-	myCode.save(buildCode('player', '4RWN8TQ') as PlayerCode);
+	myCode.code = buildCode('player', '4RWN8TQ') as PlayerCode;
+	myCode.status = 'ready';
 });
 
 afterEach(() => {
@@ -50,18 +50,14 @@ describe('long names', () => {
 		expectInsideColumn(column, heading);
 	});
 
-	it.each([
-		['display name', NAME, null],
-		['email', null, EMAIL]
-	])('break inside the column in the profile %s', async (_label, name, email) => {
-		myCode.displayName = name;
-		myCode.email = email;
+	it('break inside the column in the profile display name', async () => {
+		myCode.displayName = NAME;
 		const { container } = await render(Profile);
 		const column = container as HTMLElement;
 		column.style.width = `${PHONE}px`;
 		await expect.element(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
 		const line = column.querySelector('h1 + p') as HTMLElement;
-		expect(line.textContent).toBe(name ?? email);
+		expect(line.textContent).toBe(NAME);
 		expectInsideColumn(column, line);
 	});
 });

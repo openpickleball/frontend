@@ -52,7 +52,8 @@ beforeEach(() => {
 	myCode.reset();
 	matchCache.setOwnerSource(() => myCode.code);
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
-	myCode.save(TAMSIN);
+	myCode.code = TAMSIN;
+	myCode.status = 'ready';
 	matchCache.remember(viewerMatch());
 	freshRead();
 });
@@ -377,7 +378,8 @@ describe('MatchView', () => {
 	it('says it is loading when there is no cached match yet', async () => {
 		matchCache.reset();
 		mocked.getMatch.mockImplementation(() => new Promise(() => {}));
-		myCode.save(TAMSIN);
+		myCode.code = TAMSIN;
+		myCode.status = 'ready';
 		await render(MatchView, { code: code() });
 		const status = page.getByRole('status');
 		await expect.element(status).toHaveTextContent('Loading the match…');
@@ -386,7 +388,8 @@ describe('MatchView', () => {
 
 	it('shows a match opened with no cached copy once it is read', async () => {
 		matchCache.reset();
-		myCode.save(TAMSIN);
+		myCode.code = TAMSIN;
+		myCode.status = 'ready';
 		await render(MatchView, { code: code() });
 		await expect.element(page.getByTestId('status-panel')).toBeVisible();
 		expect(mocked.getMatch).toHaveBeenCalledWith(code(), { remember: false });

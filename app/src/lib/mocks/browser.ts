@@ -3,9 +3,7 @@
  * is not `off` (see `hooks.client.ts`), so the worker never registers otherwise.
  *
  * `window.__openMock` helps with manual testing and e2e: `mail()` lists the messages the
- * backend would have emailed (with their keys), `reset()` returns to the seed data, and
- * `olderBackend()` makes every `me/player` call a 404, as a backend older than backend#124
- * answers, until the next `reset()`.
+ * backend would have emailed (with their keys), and `reset()` returns to the seed data.
  */
 import { setupWorker } from 'msw/browser';
 import { createHandlers, createMissingHandlers } from './handlers';
@@ -20,7 +18,6 @@ declare global {
 		__openMock?: {
 			mail: () => typeof mockStore.state.outbox;
 			reset: () => void;
-			olderBackend: () => void;
 		};
 	}
 }
@@ -56,10 +53,6 @@ export async function startMocks(
 		mail: () => mockStore.state.outbox,
 		reset: () => {
 			mockStore.reset();
-			save();
-		},
-		olderBackend: () => {
-			mockStore.olderBackend();
 			save();
 		}
 	};

@@ -7,7 +7,7 @@ import type { MySettings, MySettingsChange, Privacy, PrivacyKey, Visibility } fr
  * - `idle`: `load()` has not run.
  * - `loading`: asking the backend.
  * - `ready`: `displayName` and `privacy` are set.
- * - `unavailable`: the account has no player yet (a 404), or an older backend has no `me/player`.
+ * - `unavailable`: `me/player` answered a 404 or 405, so there is no player to read.
  * - `error`: the backend could not be reached.
  */
 export type SettingsStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error';

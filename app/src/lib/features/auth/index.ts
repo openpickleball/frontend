@@ -12,11 +12,9 @@
  *   to the account's email, or redirects to sign in and back to `url` afterwards.
  *   Layout and page loads run in parallel, so call it first in a page load that calls
  *   the API: the layout's own guard may not have redirected yet.
- * - `sessionEmail()`: the account email as a promise that waits for the session. Hand it to
- *   `setAccountEmailSource` (the root layout does).
  * - `SignOutButton`: a sign out button. The root layout shows it in the top bar and the side nav, and the profile page too.
- * - `onSignOut(listener)`: the root layout calls it once, so what the app keeps on this device
- *   (the saved player code) is deleted when the player signs out on purpose.
+ * - `onSignOut(listener)`: the root layout calls it once, so the player's code is cleared as soon
+ *   as the player signs out on purpose.
  * - `goAfterSignIn(searchParams)`: go to `next`, or home, once signed in. The sign-in and
  *   sign-up pages call it.
  * - `watchSessionExpiry(onExpired)`: the root layout calls it once. The first 401 from the API
@@ -51,20 +49,6 @@ export async function enforceGuard(url: Pick<URL, 'pathname' | 'search'>): Promi
 	await bootstrap();
 	const to = redirectFor(url, session.isSignedIn);
 	if (to) redirect(307, to);
-}
-
-/**
- * The signed-in account's email, for code that wants to scope data to the account (such as
- * `setAccountEmailSource` in features/players). Waits for the session to be read. `null` means
- * signed out. If the session could not be read at all (the backend is unreachable) it throws,
- * so callers show an error instead of treating the player as signed out.
- */
-export async function sessionEmail(): Promise<string | null> {
-	await bootstrap();
-	if (session.status === 'unknown') {
-		throw new Error('The session could not be read.');
-	}
-	return session.isSignedIn ? session.email : null;
 }
 
 /**

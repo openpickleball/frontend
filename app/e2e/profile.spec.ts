@@ -13,7 +13,6 @@ import {
 // calls reach it. The service worker answers those fetches, not Playwright's request context.
 
 const tamsin = PLAYERS.find((p) => p.key === 'tamsin')!;
-const rosa = PLAYERS.find((p) => p.key === 'rosa')!;
 
 async function signIn(page: Page, email: string, verifyKey?: string) {
 	await page.goto('/');
@@ -55,9 +54,7 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await page.goto('/profile');
 	});
 
-	test('shows the code, the match count and the labelled sample rating, with no prompt', async ({
-		page
-	}) => {
+	test('shows the code, the match count and the labelled sample rating', async ({ page }) => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Profile' })).toBeVisible();
 		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 		await expect(page.getByTestId('match-count')).toHaveText(/^\d+$/);
@@ -66,10 +63,6 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(page.getByText('Sample data', { exact: true })).toBeVisible();
 		await expect(page.getByText(/This is not your rating/)).toBeVisible();
 		await expect(page.getByText("Ratings aren't live yet")).toHaveCount(0);
-
-		// The code came from the server, so there is nothing to enter or change.
-		await expect(page.getByRole('heading', { name: 'Enter your OPEN code' })).toHaveCount(0);
-		await expect(page.getByRole('button', { name: 'Change code' })).toHaveCount(0);
 	});
 
 	test('reads me/player once for the code and once for the settings', async ({ page }) => {
@@ -184,7 +177,6 @@ test.describe('an account with no player and no signup details held', () => {
 
 	test('asks for the details, names each missing one, then shows the code', async ({ page }) => {
 		await expect(page.getByRole('heading', { name: 'Finish your player profile' })).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Enter your OPEN code' })).toHaveCount(0);
 		await expect(page.getByRole('heading', { name: 'Name and privacy' })).toHaveCount(0);
 		await expect(page.getByText(/can't change your display name/)).toHaveCount(0);
 
@@ -226,73 +218,8 @@ test.describe('an account with no player and no signup details held', () => {
 		const refusal = page.getByText("We can't create a player profile with these details.");
 		await expect(refusal).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Save and show my code' })).toHaveCount(0);
-		await expect(page.getByRole('heading', { name: 'Enter your OPEN code' })).toHaveCount(0);
 		await page.reload();
 		await expect(refusal).toBeVisible();
-	});
-});
-
-test.describe('an account with no player, against an older backend (me/player answers 404)', () => {
-	test.beforeEach(async ({ page }) => {
-		await signIn(page, UNVERIFIED_EMAIL, MOCK_KEYS.verifyEmail);
-		await page.evaluate(() =>
-			(window as unknown as { __openMock: { olderBackend: () => void } }).__openMock.olderBackend()
-		);
-		await page.goto('/profile');
-	});
-	test('asks for the code once, fixes its format, and remembers it', async ({ page }) => {
-		await expect(page.getByRole('heading', { name: 'Enter your OPEN code' })).toBeVisible();
-		await expect(page.getByTestId('my-code')).toHaveCount(0);
-
-		const field = page.getByRole('textbox', { name: 'Your OPEN code' });
-		await field.fill(rosa.code.toLowerCase().replaceAll('-', ''));
-		await expect(page.getByText(`We will save it as`)).toContainText(rosa.code);
-
-		await field.fill('P-AAAA-AAAA');
-		await expect(page.getByRole('alert')).toContainText('does not look right');
-		await expectNoAxeViolations(page);
-
-		await field.fill(rosa.code.toLowerCase().replaceAll('-', ''));
-		await page.getByRole('button', { name: 'Save code' }).click();
-		await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
-		await expect(page.getByText("Ratings aren't live yet")).toHaveCount(0);
-
-		// A fresh visit finds it on the device and does not ask again.
-		await page.reload();
-		await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
-		await expect(page.getByRole('heading', { name: 'Enter your OPEN code' })).toHaveCount(0);
-	});
-
-	test('says name and privacy settings are not available yet, and still offers the data copy', async ({
-		page
-	}) => {
-		// Nothing is said about the settings until the code is known.
-		await expect(page.getByRole('heading', { name: 'Name and privacy' })).toHaveCount(0);
-		await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(rosa.code);
-		await page.getByRole('button', { name: 'Save code' }).click();
-		await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
-		await expect(
-			page.getByText("You can't change your display name or privacy settings in the app yet.")
-		).toBeVisible();
-		await expect(page.getByRole('switch')).toHaveCount(0);
-		await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveCount(0);
-		await expect(page.getByRole('link', { name: 'info@openpb.org' })).toBeVisible();
-	});
-
-	test('changes a code that was entered on this device', async ({ page }) => {
-		await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(rosa.code);
-		await page.getByRole('button', { name: 'Save code' }).click();
-		await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
-
-		await page.getByRole('button', { name: 'Change code' }).click();
-		await expect(page.getByRole('heading', { name: 'Change your OPEN code' })).toBeVisible();
-		await page.getByRole('button', { name: 'Cancel' }).click();
-		await expect(page.getByTestId('my-code')).toHaveText(rosa.code);
-
-		await page.getByRole('button', { name: 'Change code' }).click();
-		await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(tamsin.code);
-		await page.getByRole('button', { name: 'Save code' }).click();
-		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 	});
 });
 

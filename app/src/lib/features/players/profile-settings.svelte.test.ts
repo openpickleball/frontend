@@ -39,9 +39,8 @@ async function renderReady(updateMySettings = backend()) {
 const CODE = buildCode('player', '4RWN8TQ') as PlayerCode;
 
 /** myCode as the gate leaves it for a player whose code is known. */
-function readyCode(source: 'server' | 'device' = 'server') {
+function readyCode() {
 	myCode.code = CODE;
-	myCode.source = source;
 	myCode.status = 'ready';
 }
 
@@ -132,9 +131,7 @@ describe('ProfileSettings', () => {
 		await expect.element(stats).toBeChecked();
 	});
 
-	it('says the settings are not available yet when the backend has no me/player', async () => {
-		// An older backend: the code came from this device.
-		readyCode('device');
+	it('says the settings are not available yet when me/player has no player to read', async () => {
 		const screen = await render(ProfileSettings, { deps: { fetchMySettings: async () => null } });
 		await expect
 			.element(

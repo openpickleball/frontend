@@ -1403,19 +1403,3 @@ describe('signup details held for the create (backend#124)', () => {
 		expect(mockStore.state.signupHold?.email).toBe(UNVERIFIED_EMAIL);
 	});
 });
-
-describe('an older backend (no me/player create)', () => {
-	it('answers every me/player call with a 404 once the switch is on', async () => {
-		mockStore.olderBackend();
-		const { api } = browser();
-		await api.initCsrf();
-		await login(api);
-		const results = await Promise.all([
-			api.open.GET('/api/v1/me/player'),
-			api.open.POST('/api/v1/me/player', { body: {} }),
-			api.open.PATCH('/api/v1/me/player', { body: { display_name: 'Tam' } })
-		]);
-		expect(results.map((r) => r.response.status)).toEqual([404, 404, 404]);
-		expect(mockStore.state.olderBackend).toBe(true);
-	});
-});

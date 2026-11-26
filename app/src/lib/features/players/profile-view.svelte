@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
 	import type { PlayerCode } from '#lib/domain/index.js';
-	import { Alert, AlertDescription } from '#lib/ui/alert/index.js';
-	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import CodeCard from './code-card.svelte';
 	import { myCode } from './my-code.svelte.js';
@@ -37,31 +35,18 @@
 	<h1 class="page-title">Profile</h1>
 	{#if myCode.displayName}
 		<p class="mt-2 wrap-anywhere text-muted">{myCode.displayName}</p>
-	{:else if myCode.email}
-		<p class="mt-2 wrap-anywhere text-muted">{myCode.email}</p>
 	{/if}
 </div>
 
 <div class="mt-8 grid gap-8">
 	<OwnCodeGate
 		reloadOnOpen
-		showChange
 		loading="Loading your profile…"
 		signedOut="Sign in to see your OPEN code and your matches."
 		errorText="We can't reach the server, so we can't load your profile. Check your connection and try again."
-		changeHeading="Change your OPEN code"
 	>
 		{#snippet children(code)}
 			<CodeCard {code} />
-
-			{#if myCode.storageFailed}
-				<!-- A warning, not an interruption: announced politely, like the text it replaces. -->
-				<Alert variant="destructive" role="status" class="max-w-md">
-					<AlertDescription>
-						We couldn't save your code on this device, so you may need to enter it again next time.
-					</AlertDescription>
-				</Alert>
-			{/if}
 
 			<dl class="flex gap-8 border-t border-line pt-6">
 				<div>
@@ -82,17 +67,6 @@
 			</dl>
 
 			<RatingsCard {sample} ratings={stats.ratings} loading={stats.ratingsLoading} />
-
-			{#if myCode.canChange}
-				<div class="border-t border-line pt-6">
-					<p class="max-w-md text-base text-muted">
-						This code was entered on this device. Entered the wrong one?
-					</p>
-					<Button variant="outline" size="sm" class="mt-4" onclick={() => myCode.change()}>
-						Change code
-					</Button>
-				</div>
-			{/if}
 		{/snippet}
 	</OwnCodeGate>
 

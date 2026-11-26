@@ -13,8 +13,6 @@ const MATCH_URL = /\/matches\/(M-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4})$/;
 const email = process.env.LIVE_EMAIL;
 const password = process.env.LIVE_PASSWORD;
 const opponent = process.env.LIVE_OPPONENT_CODE;
-// Only needed with a backend older than backend#124.
-const ownCode = process.env.LIVE_OWN_CODE;
 
 // The list reporter does not print a skip reason, so say it on the console too.
 function skip(reason: string): never {
@@ -43,17 +41,8 @@ test('signs in, records a singles match and sees it in the list', async ({ page 
 	await signIn(page, email!, password!);
 	await page.goto('/record');
 
-	// The app creates a missing player itself (frontend#205). Only a backend older than #124 asks
-	// for the player's own code, once.
-	const chip = page.getByTestId('chip');
-	const prompt = page.getByRole('heading', { name: 'Enter your OPEN code' });
-	await expect(chip.or(prompt)).toBeVisible();
-	if (await prompt.isVisible()) {
-		expect(ownCode, 'The app asks for your own code. Set LIVE_OWN_CODE.').toBeTruthy();
-		await page.getByRole('textbox', { name: 'Your OPEN code' }).fill(ownCode!);
-		await page.getByRole('button', { name: 'Save code' }).click();
-	}
-	await expect(chip).toBeVisible();
+	// The player's own code comes from the backend, which creates a missing player (frontend#205).
+	await expect(page.getByTestId('chip')).toBeVisible();
 
 	await page.getByText('Singles', { exact: true }).click();
 	const field = page.getByLabel("Your opponent's OPEN code");
