@@ -16,9 +16,18 @@ The full frontend, built with SvelteKit and Tailwind. It is not deployed yet: `p
 - `pnpm e2e:live` runs one happy path against `pnpm dev` and the real local backend (`playwright.live.config.ts`, `e2e-live/`). Local only: CI never runs it, and it skips unless the backend and the `LIVE_*` values are set. See [README.md](README.md).
 - `pnpm e2e:pwa` runs `e2e-pwa/` against a build with `PUBLIC_API_MOCK=off` (port 4184, or `E2E_PWA_PORT`): manifest, service worker and the offline shell. It builds into `build/` too, so don't run it at the same time as `pnpm e2e`. `pnpm icons` re-renders `static/icons/` from the favicon.
 - `pnpm build` produces a production build.
-- `pnpm check:build` checks that the build in `build/` ships no API mocks: no msw code, no mock fixtures and no `mockServiceWorker.js`. Run it after a `PUBLIC_API_MOCK=off` build. A mock build fails it on purpose.
+- `pnpm check:build` checks that the build in `build/` ships no API mocks (no msw code, no mock fixtures and no `mockServiceWorker.js`) and that `index.html` has one content security policy meta tag, before any script, that hashes every inline script. Run it after a `PUBLIC_API_MOCK=off` build. A mock build fails it on purpose.
 
 CI runs `pnpm format:check`, `pnpm lint`, `pnpm check`, `pnpm test:coverage`, `pnpm build` and `pnpm check:build` (job `app-checks`) and `pnpm e2e` (job `app-e2e`) on every PR, and on pushes to `main` that change `app/`. Both jobs install Chromium, from a cached Playwright browser directory.
+
+## Content security policy
+
+The app's policy is `src/csp.ts`. SvelteKit writes it into `build/index.html` as a meta tag, because App Platform cannot send headers for a static site (see "Hosting on App Platform" in [README.md](README.md)).
+
+- Every origin the browser talks to goes into `src/csp.ts`, taken from the constant the code uses (as `connect-src` takes `PHOTON_URL`), never a second copy of the string.
+- `src/app.html` keeps no inline script and no `style` attribute. Put script in a file under `static/`, and use a class for style.
+- Every e2e test fails on a policy violation (`e2e/fixtures.ts`). Import `test` and `expect` from there, not from `@playwright/test`.
+- Add an allowance only for a violation the platform or a dependency causes, and record the violation text under Decisions in `plans/app-csp-and-hosting/plan.md`.
 
 ## Pre-commit hook
 

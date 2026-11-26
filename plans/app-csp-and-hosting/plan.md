@@ -64,6 +64,7 @@ The built app carries a Content Security Policy that allows only what it uses, a
 - The mock e2e build runs MSW in a service worker, so `worker-src 'self'` must allow `/mockServiceWorker.js`, and mocked Photon requests are still checked against `connect-src` before the worker sees them.
 - A stale cached shell. The worker caches `index.html`, meta included, so an old policy lives until the next build's worker activates. That is the existing update path, not a new risk.
 - The README block is unverified against a real deploy. It says so, and the backend issue owns validating it with `doctl apps spec validate`.
+- The README block is written as an addition to the backend's real `.do/production.yaml` (backend#288, merged as b801f48): app `open-backend-production`, Django service `web`. It adds a `static_sites` entry `app`, `domains` for `app.openpb.org`, and `ingress.rules`, plus a final rule that keeps every other host on `web`. Backend-side steps it lists: allow `app.openpb.org` in `DJANGO_ALLOWED_HOSTS` (backend#183) and in CSRF trusted origins if it is not the primary domain.
 
 ## Proof
 
@@ -91,6 +92,15 @@ The first full `pnpm e2e` with the fixture (111 tests, all failed) found two mor
 - `Applying inline style violates the following Content Security Policy directive 'default-src 'self''. Either the 'unsafe-inline' keyword, a hash ('sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='), or a nonce ('nonce-...') is required ...`, reported as `style-src-attr blocked inline at .../chunks/D8Ln_-J-.js:1:34278` (Svelte's `innerHTML` template clone). The hash is the style attribute of SvelteKit's route announcer, `#svelte-announcer` in `@sveltejs/kit/src/runtime/components/root.svelte`. See Decisions.
 
 After both, `pnpm e2e` passed 111 of 111 and `pnpm e2e:pwa` 4 of 4, with no violation. No e2e test covers the service worker update toast, so criterion 5's toast part rests on the unchanged toast code and the live drive, not on a suite.
+
+Live drive (Chrome DevTools MCP, a `securitypolicyviolation` listener added as an init script on each load):
+
+- `PUBLIC_API_MOCK=off pnpm build && pnpm preview --port 4291`: `/` (redirects to sign-in), the deep route `/account/password/reset`, reload, the theme toggle to ivory and reload (the first animation frame already had `data-theme="light"` and the ivory background, so no flash; `/theme.js` loaded), then offline and `/matches` (shell served by the worker from `shell-...`). No violation in any. `vite preview` renders each page on the fly, so there the policy arrives as a response header, with no meta tag. The cached shell keeps that header.
+- The same `off` build served as plain files with an `index.html` fallback (a throwaway node server on 4292, like App Platform's `catchall_document`): the deep route carries the meta tag with the full policy, the announcer keeps its hiding style, reload with a stored theme starts ivory, offline reload serves the shell with the meta tag. No violation.
+- Negative check on 4291: `fetch('https://example.org')` failed with `Connecting to 'https://example.org/' violates the following Content Security Policy directive: "connect-src 'self' https://photon.komoot.io". The action has been blocked.`
+- `PUBLIC_API_MOCK=all` build, `pnpm preview --port 4293`: sign-up, both screens, typed "River" in City. MSW answered `GET https://photon.komoot.io/api/` with 200 and "Riverbend" showed in the suggestions. No violation.
+- `PUBLIC_API_MOCK=all pnpm dev --port 5291` (criterion 6): the policy is on in dev, as a header. SvelteKit adds `style-src 'self' 'unsafe-inline'` and `style-src-attr 'unsafe-inline'` in dev for Vite's injected styles. The page is styled, `[vite] connected.` (HMR websocket), MSW serves the API, a same-origin `/_allauth/browser/v1/config` fetch returns 200, and `fetch('https://example.org')` is blocked by `connect-src`. No other violation.
+- The only console errors besides these were a 404 for `/favicon.ico` and the expected API failures with no backend (502 from the proxy, 401 from the mocks).
 
 ## Decisions
 
