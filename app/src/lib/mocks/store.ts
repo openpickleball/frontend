@@ -30,6 +30,7 @@ import {
 	MOCK_KEYS,
 	PLAYERS,
 	RATINGS,
+	RATING_HISTORY,
 	UNVERIFIED_EMAIL,
 	VERIFIED_EMAIL,
 	type PlayerKey,
@@ -57,6 +58,7 @@ type MyPlayerOut = Schemas['MyPlayerOut'];
 type PlayerProfileOut = Schemas['PlayerProfileOut'];
 type PrivacyOut = Schemas['PrivacyOut'];
 type PlayerRatingsOut = Schemas['PlayerRatingsOut'];
+type PagedRatingHistoryItemOut = Schemas['PagedRatingHistoryItemOut'];
 
 /** The backend's default `OPEN_PUBLIC_PROFILE_URL`: `profile_url` is this and the code. */
 const PUBLIC_PROFILE_URL = 'https://openpb.org/players/';
@@ -690,6 +692,32 @@ export function createMockStore() {
 				demonstration: true,
 				ratings: structuredClone(state.ratings[code] ?? {})
 			};
+		},
+
+		/**
+		 * `list_player_rating_history`: one page of a player's rating history, newest first, or
+		 * undefined (a 404) for an unknown code, and for another viewer when the player's account
+		 * is inactive or `rating_history_visibility` is private. The player always sees their own.
+		 * The history is fixed fixture data: recording a match here adds no change.
+		 */
+		ratingHistoryFor(
+			code: string,
+			viewerEmail: string,
+			limit: number,
+			offset: number
+		): PagedRatingHistoryItemOut | undefined {
+			const player = playerByCode(code);
+			if (!player) return undefined;
+			const own = player.accountEmail === viewerEmail;
+			if (
+				!own &&
+				(!this.isListed(player) || player.privacy.rating_history_visibility !== 'signed_in')
+			) {
+				return undefined;
+			}
+			const key = PLAYERS.find((p) => p.code === code)?.key;
+			const all = (key && RATING_HISTORY[key]) || [];
+			return { items: structuredClone(all.slice(offset, offset + limit)), count: all.length };
 		},
 
 		// Matches

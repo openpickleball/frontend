@@ -173,9 +173,43 @@ test.describe('an account that has a player (me/player exists)', () => {
 			await expect(page.getByTestId('my-code')).toBeVisible();
 			await expect(page.getByTestId('match-count')).toHaveText(/^\d+$/);
 			await expect(page.getByTestId('headline-rating')).toBeVisible();
+			await expect(page.getByTestId('rating-history')).toBeVisible();
 			await expectNoAxeViolations(page);
 		});
 	}
+
+	test('shows the rating history, five changes at a time, newest first', async ({ page }) => {
+		const history = page.getByRole('region', { name: 'Rating history' });
+		const list = history.getByTestId('rating-history');
+		await expect(list.getByRole('listitem')).toHaveCount(5);
+		const first = list.getByRole('listitem').first();
+		await expect(first).toContainText('Mixed doubles');
+		await expect(first).toContainText('3.42');
+		await expect(first).toContainText('Reliability: 65 out of 100');
+		await expect(first).toContainText('After a match');
+		await expect(first).toContainText('Demonstration');
+		// A recount, and a rating a recount took away, each in plain words.
+		await expect(list.getByText('Recounted', { exact: true }).first()).toBeVisible();
+		await expect(list.getByText('Removed', { exact: true })).toBeVisible();
+		await expect(list.getByText(/These are the numbers that were removed/)).toBeVisible();
+		await expect(history).not.toContainText(/OPEN rating|replay|engine/i);
+
+		await expect(history.getByTestId('rating-history-range')).toHaveText('1–5 of 8');
+		await expect(history.getByRole('button', { name: 'Newer' })).toBeDisabled();
+		await history.getByRole('button', { name: 'Older' }).click();
+		await expect(history.getByTestId('rating-history-range')).toHaveText('6–8 of 8');
+		await expect(list.getByRole('listitem')).toHaveCount(3);
+		await expect(history.getByRole('button', { name: 'Older' })).toBeDisabled();
+		await history.getByRole('button', { name: 'Newer' }).click();
+		await expect(history.getByTestId('rating-history-range')).toHaveText('1–5 of 8');
+	});
+});
+
+test('a player with no rating history yet reads so', async ({ page }) => {
+	await signIn(page, 'kit@example.com');
+	await page.goto('/profile');
+	const history = page.getByRole('region', { name: 'Rating history' });
+	await expect(history.getByText(/Nothing has changed your ratings yet/)).toBeVisible();
 });
 
 test.describe('an account with no player and no signup details held', () => {

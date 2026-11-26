@@ -1187,6 +1187,68 @@ describe('get_player_ratings', () => {
 	});
 });
 
+describe('list_player_rating_history', () => {
+	const historyOf = (api: Api, player: string, query: { limit?: number; offset?: number } = {}) =>
+		api.open.GET('/api/v1/players/{code}/rating-history', {
+			params: { path: { code: player }, query }
+		});
+
+	async function signedIn(email = VERIFIED_EMAIL) {
+		const { api } = browser();
+		await api.initCsrf();
+		expect((await login(api, email)).response.status).toBe(200);
+		return api;
+	}
+
+	it('needs sign-in', async () => {
+		const { api } = browser();
+		expect((await historyOf(api, tamsin)).response.status).toBe(401);
+	});
+
+	it('pages the changes newest first, each a demonstration with its reliability', async () => {
+		const api = await signedIn();
+		const first = await unwrap(historyOf(api, tamsin, { limit: 5 }));
+		expect(first.count).toBe(8);
+		expect(first.items).toHaveLength(5);
+		expect(first.items[0]).toMatchObject({
+			rating_format: 'mixed_doubles',
+			kind: 'live_update',
+			rating: 3.42,
+			reliability: 65,
+			demonstration: true
+		});
+		expect(first.items.map((item) => item.kind)).toContain('removed');
+		const times = first.items.map((item) => item.recorded_at);
+		expect([...times].sort().reverse()).toEqual(times);
+		const second = await unwrap(historyOf(api, tamsin, { limit: 5, offset: 5 }));
+		expect(second).toMatchObject({ count: 8 });
+		expect(second.items).toHaveLength(3);
+		expect(await unwrap(historyOf(api, code('kit')))).toEqual({ items: [], count: 0 });
+	});
+
+	it('refuses a limit out of range', async () => {
+		const api = await signedIn();
+		expect((await historyOf(api, tamsin, { limit: 101 })).response.status).toBe(422);
+	});
+
+	it('gives the same 404 for an unknown or malformed code and an inactive account', async () => {
+		const api = await signedIn();
+		for (const player of [code('saul'), 'P-AAAA-AAAA', 'nonsense']) {
+			expect((await historyOf(api, player)).response.status).toBe(404);
+		}
+	});
+
+	it('hides private rating history from everyone but the player', async () => {
+		const bea = mockStore.playerByCode(code('bea'));
+		if (bea) bea.privacy.rating_history_visibility = 'private';
+		const other = await signedIn();
+		expect((await historyOf(other, code('bea'))).response.status).toBe(404);
+		mockStore.logout();
+		const own = await signedIn('bea@example.com');
+		expect((await historyOf(own, code('bea'))).response.status).toBe(200);
+	});
+});
+
 describe('a submission counts as the submitter confirming (backend #197)', () => {
 	const awaiting = async (api: Api) =>
 		(await unwrap(api.open.GET('/api/v1/me/matches/awaiting-confirmation'))).items.map(
