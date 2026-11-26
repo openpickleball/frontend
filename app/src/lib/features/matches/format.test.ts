@@ -147,6 +147,12 @@ describe('matchHeadline', () => {
 		);
 	});
 
+	it('reads a held match as On hold', () => {
+		const match = sampleMatch({ status: 'confirmed' });
+		expect(rowLabel(match, TAMSIN)).toMatch(/ Confirmed\.$/);
+		expect(rowLabel(match, TAMSIN, true)).toMatch(/ On hold\.$/);
+	});
+
 	it('says "played" while there is no winner', () => {
 		const match = sampleMatch({ games: games([11, 7]), viewerSide: 'a' });
 		expect(matchHeadline(match, TAMSIN)).toBe(

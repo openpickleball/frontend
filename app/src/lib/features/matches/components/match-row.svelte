@@ -10,6 +10,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import {
+		ON_HOLD_LABEL,
 		STATUS_LABELS,
 		formatName,
 		formatShortDate,
@@ -40,6 +41,9 @@
 	);
 	// Known from the holds list only: `MatchOut` has no hold field.
 	const hold = $derived(match.status === 'voided' ? undefined : matchCache.holdOf(match.code));
+	// A held pending or confirmed match reads On hold in place of its status. A disputed one keeps
+	// Disputed, which says more.
+	const showHold = $derived(hold !== undefined && match.status !== 'disputed');
 	const games = $derived(match.games.length === 1 ? '1 game' : `${match.games.length} games`);
 	// What the player can do about a pending match, from what the API says about their team, and
 	// whose dispute a disputed match waits on.
@@ -69,15 +73,21 @@
 	data-status={match.status}
 >
 	<!-- The link's name is this sentence. The drawn row below repeats it for the eye. -->
-	<span class="sr-only">{rowLabel(match, you)}</span>
+	<span class="sr-only">{rowLabel(match, you, showHold)}</span>
 	<div class="min-w-0 flex-1">
 		<div
 			class="mb-3 flex items-center justify-between gap-3 text-base text-muted"
 			aria-hidden="true"
 		>
 			<span>{formatShortDate(match.playedOn)} · {formatName(match.format)}, {games}</span>
-			<!-- One badge: a second one wraps the date on a phone. The note below says it is on hold. -->
-			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
+			<!-- One badge: a second one wraps the date on a phone. A held pending or confirmed match
+			     shows On hold in place of its status, as the match page does (S4), so the badge never
+			     says Confirmed while the note says it doesn't count. A disputed one keeps Disputed. -->
+			{#if showHold}
+				<Badge>{ON_HOLD_LABEL}</Badge>
+			{:else}
+				<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
+			{/if}
 		</div>
 		<!-- eslint-disable local/no-arbitrary-tailwind-values -- label and score columns, no default grid template -->
 		<div

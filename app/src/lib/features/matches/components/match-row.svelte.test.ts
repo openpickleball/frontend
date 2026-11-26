@@ -6,7 +6,10 @@ import { rowLabel } from '../format.js';
 import { TAMSIN, viewerMatch } from '../testing.js';
 import MatchRow from './match-row.svelte';
 
-beforeEach(() => matchCache.reset());
+beforeEach(() => {
+	matchCache.reset();
+	matchCache.setOwnerSource(() => TAMSIN);
+});
 afterEach(() => matchCache.reset());
 
 describe('MatchRow', () => {
@@ -29,5 +32,33 @@ describe('MatchRow', () => {
 				page.getByRole('link', { name: new RegExp(`^${RegExp.escape(rowLabel(match, TAMSIN))}`) })
 			)
 			.toBeVisible();
+	});
+
+	it('shows On hold in place of Confirmed for a held confirmed match', async () => {
+		const match = viewerMatch({}, { status: 'confirmed' });
+		matchCache.rememberHolds([{ match, vouched: false }]);
+		await render(MatchRow, { match, you: TAMSIN });
+
+		const row = page.getByTestId('match-row');
+		await expect.element(row.getByText('On hold', { exact: true })).toBeVisible();
+		// Neither the badge nor the spoken sentence says Confirmed.
+		expect(row.element().textContent).not.toContain('Confirmed');
+	});
+
+	it('shows only Confirmed for a confirmed match that is not held', async () => {
+		const match = viewerMatch({}, { status: 'confirmed' });
+		await render(MatchRow, { match, you: TAMSIN });
+
+		const row = page.getByTestId('match-row');
+		await expect.element(row.getByText('Confirmed', { exact: true })).toBeVisible();
+		expect(row.element().textContent).not.toContain('On hold');
+	});
+
+	it('keeps Disputed on a held disputed match', async () => {
+		const match = viewerMatch({}, { status: 'disputed' });
+		matchCache.rememberHolds([{ match, vouched: false }]);
+		await render(MatchRow, { match, you: TAMSIN });
+
+		await expect.element(page.getByText('Disputed', { exact: true })).toBeVisible();
 	});
 });
