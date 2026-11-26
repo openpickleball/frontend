@@ -18,6 +18,10 @@ import {
 	type ValidatedMatch
 } from './scores';
 
+// No JIT: Zod otherwise probes for eval with `new Function('')`, which the content security
+// policy (src/csp.ts) blocks and reports as a violation on every page.
+z.config({ jitless: true });
+
 /** The names of the form's fields mapped to the backend's. Keys of any other shape pass through. */
 const BACKEND_FIELD: Record<string, string> = {
 	teamA: 'team_a',
