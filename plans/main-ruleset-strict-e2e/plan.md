@@ -14,7 +14,7 @@ Decision Q5 in `plans/frontend-v1/plan.md`: the "Protect main" ruleset requires 
 
 1. Ruleset 26885653 ("Protect main") has `strict_required_status_checks_policy: true` and requires `app-e2e` from GitHub Actions (integration 15368). Its other rules, conditions, enforcement and bypass actors are unchanged.
 2. The comment above `jobs:` in `.github/workflows/ci-app.yml` says that `app-checks` and `app-e2e` are both required status checks on `main`, so renaming either job must also update the ruleset. It no longer says `app-e2e` is not required yet.
-3. No other doc or comment states, as the current state, that `app-e2e` is not required or that the ruleset does not require up-to-date branches. Dated research notes and plan history in `plans/frontend-v1/` stay as they are.
+3. No other doc or comment states, as the current state, that `app-e2e` is not required or that the ruleset does not require up-to-date branches. Dated research notes and plan history in `plans/frontend-v1/` stay as they are, except its "Still open" list, which marks frontend#64 done.
 4. This PR's checks include `app-e2e`, and it passes.
 
 ## Steps
@@ -26,6 +26,7 @@ Decision Q5 in `plans/frontend-v1/plan.md`: the "Protect main" ruleset requires 
 ## Files that change
 
 - `.github/workflows/ci-app.yml`: the comment above `jobs:` only.
+- `plans/frontend-v1/plan.md`: the frontend#64 line under "Still open" says it is done.
 - `plans/main-ruleset-strict-e2e/plan.md`: this plan.
 
 ## Risks

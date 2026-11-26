@@ -64,7 +64,7 @@ All tasks T0 to T11 merged (frontend#32, #50, #51, #53, #55, #56, #60, #61, #62,
 
 Still open:
 
-- Owner action: require up-to-date branches and make `app-e2e` required (frontend#64).
+- Owner action: require up-to-date branches and make `app-e2e` required (frontend#64). Done on 2026-11-26: see `plans/main-ruleset-strict-e2e/`.
 - Frontend follow-ups: frontend#33 (offline queue), #34 (SSR for public pages), #35 (swap mocks for real endpoints), #36 (Tailwind in Dependabot), #57 (strip mocks from non-mock builds), #22 (hosting).
 - Backend gaps that limit v1: backend#124 (players can't see their own code, so the app asks once), #193 (which teams confirmed; until then home says "Pending matches"), #195 (seed logins), #196 (local dev defaults), #199 (structured duplicate match code).
 
