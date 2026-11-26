@@ -18,18 +18,28 @@
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { Input } from '#lib/ui/input/index.js';
 	import { Label } from '#lib/ui/label/index.js';
-	import { createDraftStore, isBlank, noDrafts, type Draft, type DraftStore } from '../draft.js';
-	import { RecordForm } from '../form.svelte.js';
+	import {
+		createDraftStore,
+		isBlank,
+		noDrafts,
+		parseDraft,
+		type Draft,
+		type DraftStore
+	} from '../draft.js';
+	import { RecordForm, type QueueFn } from '../form.svelte.js';
 	import { searchPlayers, type SearchFn } from '../search.js';
-	import { correctMatch, submitMatch, type SubmitResult } from '../service.js';
+	import { correctMatch, queueMatch, submitMatch, type SubmitResult } from '../service.js';
 	import PlayerSlot from './player-slot.svelte';
 	import Segmented from './segmented.svelte';
 
 	let {
 		own,
 		onrecorded,
+		onqueued,
+		fixing,
 		correcting,
 		submit,
+		queue,
 		search = searchPlayers,
 		drafts: keptDrafts
 	}: {
@@ -42,6 +52,16 @@
 		 */
 		onrecorded: (result: SubmitResult) => void;
 		/**
+		 * Called when there was no connection and the match was kept on this device instead, to be
+		 * sent later (frontend#33). Never for a correction.
+		 */
+		onqueued?: () => void;
+		/**
+		 * Start from a queued match the backend refused: `form` as it was kept, and the backend's
+		 * field errors, shown on their fields.
+		 */
+		fixing?: { form: unknown; fields: Record<string, string[]> };
+		/**
 		 * Correct this match instead of recording a new one. `draft` is where the form starts
 		 * (`correctionDraft`). The players and the format stay fixed, and nothing is kept between
 		 * visits.
@@ -49,6 +69,8 @@
 		correcting?: { code: MatchCode; draft: Draft };
 		/** The service that sends the match. Tests pass a stand-in. */
 		submit?: typeof submitMatch;
+		/** What keeps a match on the device when there is no connection. Tests pass a stand-in. */
+		queue?: QueueFn;
 		/** The name search. Tests pass a stand-in. */
 		search?: SearchFn;
 		/** Where the draft is kept between visits. Tests pass a stand-in. */
@@ -75,6 +97,15 @@
 	const kept = drafts.read(own);
 	if (kept) form.restore(kept);
 
+	// A refused queued match replaces any kept draft: the player chose to fix it.
+	// svelte-ignore state_referenced_locally
+	const fix = target ? undefined : fixing;
+	const fixDraft = fix ? parseDraft(fix.form) : null;
+	if (fix && fixDraft) form.restore(fixDraft);
+	if (fix) form.showServerErrors(fix.fields);
+	// svelte-ignore state_referenced_locally
+	const keep: QueueFn | undefined = target ? undefined : (queue ?? queueMatch);
+
 	$effect(() => {
 		const draft = form.draft;
 		if (isBlank(draft, todayLocal())) drafts.clear(own);
@@ -94,7 +125,13 @@
 		// The button is aria-disabled while sending, so Enter in a field can still land here.
 		if (form.sending) return;
 		maxDate = todayLocal();
-		const result = await form.send(send);
+		const result = await form.send(send, keep);
+		if (result === 'queued') {
+			// The queue has the match now, so the draft is done.
+			drafts.clear(own);
+			onqueued?.();
+			return;
+		}
 		if (result) {
 			// The match is saved, so the draft is done.
 			drafts.clear(own);

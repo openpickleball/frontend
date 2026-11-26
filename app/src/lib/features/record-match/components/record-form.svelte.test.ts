@@ -701,3 +701,116 @@ describe('RecordForm correcting a match', () => {
 			.toHaveAccessibleDescription(/cannot be in the future/);
 	});
 });
+
+describe('RecordForm with no connection (frontend#33)', () => {
+	const offline = () =>
+		vi.fn().mockRejectedValue(appError({ kind: 'network', status: null, code: 'network_error' }));
+
+	async function renderForm(props: Record<string, unknown>) {
+		const onrecorded = vi.fn();
+		const onqueued = vi.fn();
+		const drafts = memoryDrafts();
+		const screen = await render(RecordForm, {
+			own: tamsin,
+			onrecorded,
+			onqueued,
+			drafts,
+			...props
+		});
+		return { screen, onrecorded, onqueued, drafts };
+	}
+
+	it('keeps the match on the device instead of showing the network error', async () => {
+		const queue = vi.fn().mockResolvedValue(undefined);
+		const { screen, onrecorded, onqueued, drafts } = await renderForm({ submit: offline(), queue });
+		await fillDoubles(screen);
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+
+		await vi.waitFor(() => expect(onqueued).toHaveBeenCalledOnce());
+		expect(onrecorded).not.toHaveBeenCalled();
+		const [input, own, form] = queue.mock.calls[0];
+		expect(own).toBe(tamsin);
+		expect(input.teamA).toEqual([tamsin, code('oren')]);
+		expect(form.games).toEqual([{ a: '11', b: '7' }]);
+		expect(drafts.read(tamsin)).toBeNull();
+		await expect
+			.element(screen.getByText('We lost the connection. Your match may not have been saved.'))
+			.not.toBeInTheDocument();
+	});
+
+	it('shows the network error when the device cannot keep it', async () => {
+		const queue = vi.fn().mockRejectedValue(new Error('QuotaExceededError'));
+		const { screen, onqueued } = await renderForm({ submit: offline(), queue });
+		await fillDoubles(screen);
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+
+		await expect
+			.element(screen.getByText('We lost the connection. Your match may not have been saved.'))
+			.toBeVisible();
+		expect(onqueued).not.toHaveBeenCalled();
+	});
+
+	it('queues only for no connection, not for other failures', async () => {
+		const queue = vi.fn().mockResolvedValue(undefined);
+		const submit = vi
+			.fn()
+			.mockRejectedValue(appError({ kind: 'server', status: 500, code: 'non_json_response' }));
+		const { screen, onqueued } = await renderForm({ submit, queue });
+		await fillDoubles(screen);
+		await screen.getByRole('button', { name: 'Record and confirm score' }).click();
+		await expect.element(screen.getByText("We couldn't record this match")).toBeVisible();
+		expect(queue).not.toHaveBeenCalled();
+		expect(onqueued).not.toHaveBeenCalled();
+	});
+
+	it('never queues a correction', async () => {
+		const queue = vi.fn().mockResolvedValue(undefined);
+		const draft: Draft = {
+			format: 'singles',
+			playedOn: '2024-06-01',
+			gameTarget: 11,
+			scoringType: 'side_out',
+			partner: { code: null, name: '' },
+			opponents: [
+				{ code: code('bea'), name: 'Bea Marlowe' },
+				{ code: null, name: '' }
+			],
+			games: [{ a: '11', b: '9' }]
+		};
+		const { screen, onqueued } = await renderForm({
+			submit: offline(),
+			queue,
+			correcting: { code: matchCode!, draft }
+		});
+		await screen.getByRole('button', { name: 'Save the correction' }).click();
+		await expect
+			.element(screen.getByText('We lost the connection. Your match may not have been saved.'))
+			.toBeVisible();
+		expect(queue).not.toHaveBeenCalled();
+		expect(onqueued).not.toHaveBeenCalled();
+	});
+
+	it('starts from a refused queued match with the backend errors on their fields', async () => {
+		const form: Draft = {
+			format: 'singles',
+			playedOn: '2026-11-14',
+			gameTarget: 11,
+			scoringType: 'side_out',
+			partner: { code: null, name: '' },
+			opponents: [
+				{ code: code('bea'), name: 'Bea Marlowe' },
+				{ code: null, name: '' }
+			],
+			games: [{ a: '11', b: '6' }]
+		};
+		const { screen } = await renderForm({
+			fixing: { form, fields: { 'team_b.0': ['This player can not be recorded.'] } }
+		});
+		await expect.element(screen.getByText('Bea Marlowe')).toBeVisible();
+		await expect.element(screen.getByLabelText("Game 1, your team's points")).toHaveValue('11');
+		await expect.element(screen.getByText('Fix 1 thing to record this match')).toBeVisible();
+		await expect
+			.element(screen.getByRole('link', { name: 'This player can not be recorded.' }))
+			.toBeVisible();
+	});
+});

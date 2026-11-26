@@ -24,6 +24,9 @@ import type { Draft } from './draft.js';
 import { looksLikeCode } from './search.js';
 import { duplicateMatchCode, submitMatch, type SubmitResult } from './service.js';
 
+/** Keeps a match on the device to send later. Rejects when it can't. */
+export type QueueFn = (input: MatchInput, own: PlayerCode, form: Draft) => Promise<void>;
+
 /** One place for a player's OPEN code: a chip once it checks out, a text box until then. */
 export type Slot = { code: PlayerCode | null; name: string; text: string; error: string };
 /** One game's scores as typed. */
@@ -428,10 +431,27 @@ export class RecordForm {
 	// Sending
 
 	/**
-	 * Check, then send. Returns the result when the match was recorded. Otherwise the reason is on
-	 * the form: `errors` for fields, `failure` for the rest. The form stays filled either way.
+	 * Show the backend's field errors for a match it refused earlier, as if it had just answered.
+	 * For a queued match the player opens to fix.
 	 */
-	async send(submit: typeof submitMatch = submitMatch): Promise<SubmitResult | null> {
+	showServerErrors(fields: FieldErrors): void {
+		this.submitted = true;
+		const view = this.#view();
+		this.#server = {
+			fields,
+			values: Object.fromEntries(Object.keys(fields).map((k) => [k, this.#valueOf(k, view)]))
+		};
+	}
+
+	/**
+	 * Check, then send. Returns the result when the match was recorded, or `'queued'` when there
+	 * was no connection and `queue` kept it on the device (never for a correction). Otherwise the
+	 * reason is on the form: `errors` for fields, `failure` for the rest. The form stays filled.
+	 */
+	async send(
+		submit: typeof submitMatch = submitMatch,
+		queue?: QueueFn
+	): Promise<SubmitResult | 'queued' | null> {
 		if (this.sending) return null;
 		this.submitted = true;
 		this.failure = null;
@@ -441,9 +461,19 @@ export class RecordForm {
 		this.sending = true;
 		// What was sent. A 422 belongs to these values, not to edits made while it was in flight.
 		const sent = this.#view();
+		const input = this.input;
+		const draft = this.draft;
 		try {
-			return await submit(this.input, this.own);
+			return await submit(input, this.own);
 		} catch (cause) {
+			if (queue && !this.correcting && isAppError(cause) && cause.kind === 'network') {
+				try {
+					await queue(input, this.own, draft);
+					return 'queued';
+				} catch {
+					// Not kept on the device: say the connection was lost, as without a queue.
+				}
+			}
 			this.#fail(cause, sent);
 			return null;
 		} finally {

@@ -15,6 +15,8 @@
  * - `SignOutButton`: a sign out button. The root layout shows it in the top bar and the side nav, and the profile page too.
  * - `onSignOut(listener)`: the root layout calls it once, so the player's code is cleared as soon
  *   as the player signs out on purpose.
+ * - `setSignOutWarning(source)`: what a sign out would delete from this device, such as unsent
+ *   matches. Every `SignOutButton` asks first when `source` returns a warning.
  * - `goAfterSignIn(searchParams)`: go to `next`, or home, once signed in. The sign-in and
  *   sign-up pages call it.
  * - `watchSessionExpiry(onExpired)`: the root layout calls it once. The first 401 from the API
@@ -29,7 +31,7 @@ import { session } from './session.svelte.js';
 import { bootstrap } from './services.js';
 
 export { session, type SessionStatus } from './session.svelte.js';
-export { watchSessionExpiry, onSignOut } from './services.js';
+export { watchSessionExpiry, onSignOut, setSignOutWarning } from './services.js';
 export { isAccountPath, safeNext } from './guard.js';
 export { goAfterSignIn } from './navigation.js';
 export { default as SignOutButton } from './components/sign-out-button.svelte';

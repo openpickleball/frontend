@@ -5,6 +5,7 @@
  * `window.__openMock` helps with manual testing and e2e: `mail()` lists the messages the
  * backend would have emailed (with their keys), and `reset()` returns to the seed data.
  */
+import { HttpResponse, http } from 'msw';
 import { setupWorker } from 'msw/browser';
 import { createHandlers, createMissingHandlers } from './handlers';
 import type { MockMode } from './mode';
@@ -40,12 +41,22 @@ function save(): void {
 	}
 }
 
+/**
+ * The mocks answer from the page, so a browser that is offline would still get answers. When the
+ * browser says it is offline (for example Playwright's `context.setOffline(true)`), every API call
+ * fails as a lost connection does, so the offline queue can be tried with the mocks.
+ */
+const offline = http.all(/\/(api|_allauth)\//, () =>
+	navigator.onLine ? undefined : HttpResponse.error()
+);
+
 export async function startMocks(
 	mode: Exclude<MockMode, 'off'>,
 	options: { workerUrl?: string } = {}
 ): Promise<void> {
 	load();
 	const worker = setupWorker(
+		offline,
 		...(mode === 'all' ? createHandlers(mockStore) : createMissingHandlers())
 	);
 	worker.events.on('response:mocked', save);

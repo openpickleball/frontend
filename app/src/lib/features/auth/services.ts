@@ -205,6 +205,29 @@ export function onSignOut(listener: (email: string | null) => void): () => void 
 	return () => void signOutListeners.delete(listener);
 }
 
+let signOutWarningSource: () => string | null = () => null;
+
+/**
+ * Say what signing out would delete, so every Sign out button can ask first. `source` returns the
+ * warning, or null when there is nothing to warn about. The root layout sets it once (the offline
+ * queue's unsent matches). Returns a function that removes it.
+ */
+export function setSignOutWarning(source: () => string | null): () => void {
+	signOutWarningSource = source;
+	return () => {
+		if (signOutWarningSource === source) signOutWarningSource = () => null;
+	};
+}
+
+/** The warning to show before signing out, or null to sign out at once. */
+export function signOutWarning(): string | null {
+	try {
+		return signOutWarningSource();
+	} catch {
+		return null;
+	}
+}
+
 /** Sign out. The backend answers 401, which is the signed-out session. */
 export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
 	const email = session.email;
