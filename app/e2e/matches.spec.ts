@@ -464,6 +464,10 @@ test.describe('holds', () => {
 		await expect(list.locator(`a[href$="/matches/${HELD_VOUCHED}"]`)).toContainText(
 			'Your team has vouched for it.'
 		);
+		// A held confirmed match reads On hold, not Confirmed, beside its note.
+		const heldRow = list.locator(`a[href$="/matches/${HELD}"]`);
+		await expect(heldRow.getByText('On hold', { exact: true })).toBeVisible();
+		await expect(heldRow.getByText('Confirmed', { exact: true })).toHaveCount(0);
 		await expect(
 			page.getByRole('list', { name: 'Recent matches' }).locator(`a[href$="/matches/${HELD}"]`)
 		).toHaveCount(0);

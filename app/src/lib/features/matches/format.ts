@@ -131,6 +131,9 @@ export const STATUS_LABELS: Record<MatchStatus, string> = {
 	voided: 'Voided'
 };
 
+/** The badge and spoken status of a held match, the same on the match page and in its row. */
+export const ON_HOLD_LABEL = 'On hold';
+
 /**
  * The side to read the match from: the signed-in player's own, as the API says (`viewerSide`).
  * Team A for someone who did not play.
@@ -155,14 +158,17 @@ export function matchHeadline(match: Match, you: PlayerCode | null): string {
 	return `${names(mine)} ${verb} ${names(theirs)}`;
 }
 
-/** One sentence for a screen reader: who played, the score and the status. */
-export function rowLabel(match: Match, you: PlayerCode | null): string {
+/**
+ * One sentence for a screen reader: who played, the score and the status. A held match passes
+ * `held`, so it reads "On hold" like the row's badge, not its plain status.
+ */
+export function rowLabel(match: Match, you: PlayerCode | null, held = false): string {
 	const from = viewpoint(match);
 	const mine = from === 'a' ? match.teamA : match.teamB;
 	const theirs = from === 'a' ? match.teamB : match.teamA;
 	const won = winner(match);
 	const verb = won === null ? 'played' : won === from ? 'beat' : 'lost to';
-	return `${formatDate(match.playedOn)}, ${matchTitle(match)}. ${teamNames(mine, you)} ${verb} ${teamNames(theirs, you)}, ${scoreLine(match, from)}. ${STATUS_LABELS[match.status]}.`;
+	return `${formatDate(match.playedOn)}, ${matchTitle(match)}. ${teamNames(mine, you)} ${verb} ${teamNames(theirs, you)}, ${scoreLine(match, from)}. ${held ? ON_HOLD_LABEL : STATUS_LABELS[match.status]}.`;
 }
 
 /** "1–20 of 47" for the page that starts at `offset` and shows `shown` matches. */
