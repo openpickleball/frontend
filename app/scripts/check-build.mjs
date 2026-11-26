@@ -1,11 +1,14 @@
 // Checks that a PUBLIC_API_MOCK=off build ships no API mocks (frontend#57): no mockServiceWorker.js
-// and no msw or mock fixture code in any file.
+// and no msw or mock fixture code in any file. It also checks the content security policy in
+// index.html (scripts/check-csp.mjs): one meta tag before any script, and a hash in script-src for
+// every inline script.
 // Run: pnpm build && pnpm check:build   (or pass another build folder: node scripts/check-build.mjs out)
 //
 // A mock build (`missing` or `all`) fails this check on purpose. `pnpm e2e` covers those.
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkCsp } from './check-csp.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dir = join(root, process.argv[2] ?? 'build');
@@ -45,9 +48,21 @@ for (const file of files) {
 	}
 }
 
+let csp;
+try {
+	csp = checkCsp(await readFile(join(dir, 'index.html'), 'utf8'));
+} catch {
+	csp = ['index.html is missing'];
+}
+
 if (problems.length) {
 	console.error('This build ships API mock code. Was it built with PUBLIC_API_MOCK=off?');
 	for (const problem of problems) console.error(`  ${problem}`);
-	process.exit(1);
 }
+if (csp.length) {
+	console.error('The content security policy in index.html is wrong (src/csp.ts):');
+	for (const problem of csp) console.error(`  ${problem}`);
+}
+if (problems.length || csp.length) process.exit(1);
 console.log(`No API mock code in ${relative(root, dir)} (${checked} files checked).`);
+console.log('index.html has one content security policy, and it hashes every inline script.');
