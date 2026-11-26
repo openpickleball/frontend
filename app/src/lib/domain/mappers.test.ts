@@ -115,6 +115,10 @@ describe('toMatch', () => {
 		expect(toMatch(dto()).viewerSide).toBeNull();
 	});
 
+	it('carries a withdrawn dispute through as withdraw', () => {
+		expect(toMatch(dto({ my_team: 'A', my_decision: 'withdraw' })).viewerDecision).toBe('withdraw');
+	});
+
 	it('renames every field and parses the codes', () => {
 		const match = toMatch(dto());
 		expect(match.code).toBe(matchCode);

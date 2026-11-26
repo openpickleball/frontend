@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMatchCode, parsePlayerCode } from '../domain/codes';
+import { buildCode, parseMatchCode, parsePlayerCode } from '../domain/codes';
 import { validateMatch } from '../domain/scores';
 import { ACCOUNTS, MATCHES, PLAYERS, RATINGS, VERIFIED_EMAIL } from './fixtures';
 import { createMockStore } from './store';
@@ -74,6 +74,21 @@ describe('fixtures', () => {
 			confirmed_by_team: { a: true, b: true },
 			status: 'disputed'
 		});
+	});
+
+	it('reports a withdrawn dispute as withdraw, and disputing again changes nothing', () => {
+		const store = createMockStore();
+		const disputed = store.matchByCode(buildCode('match', 'R5GK9WBD2XF'));
+		if (!disputed) throw new Error('fixture match is missing');
+		// Tamsin withdrew her dispute. Bea's dispute keeps the match disputed.
+		expect(store.matchOut(disputed, VERIFIED_EMAIL)).toMatchObject({
+			status: 'disputed',
+			my_decision: 'withdraw'
+		});
+		const before = disputed.decisions.length;
+		expect(store.changeMatch(VERIFIED_EMAIL, disputed.code, 'dispute').ok).toBe(true);
+		expect(disputed.decisions).toHaveLength(before);
+		expect(store.matchOut(disputed, VERIFIED_EMAIL).my_decision).toBe('withdraw');
 	});
 
 	it("lists a pending match as awaiting until the player's team confirms or disputes", () => {

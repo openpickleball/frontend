@@ -49,7 +49,9 @@
 					text:
 						decision === 'dispute'
 							? 'You said this score is wrong. No one can confirm it while it is disputed.'
-							: 'A player in this match said the score is wrong. No one can confirm it while it is disputed.',
+							: decision === 'withdraw'
+								? 'You withdrew your dispute. Another player in this match still says the score is wrong. No one can confirm it while it is disputed.'
+								: 'A player in this match said the score is wrong. No one can confirm it while it is disputed.',
 					actions: false
 				};
 			case 'voided':

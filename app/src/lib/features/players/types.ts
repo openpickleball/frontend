@@ -23,7 +23,9 @@ export type Visibility = OpenComponents['schemas']['Visibility'];
 
 /**
  * The profile details that have a privacy setting. The display name has none. `home_club` stays
- * while `PrivacyOut` still has `home_club_visibility`.
+ * while `PrivacyOut` still has `home_club_visibility`. `PrivacyOut` also has `rating_visibility`,
+ * which is left out: an adult's current ratings are always shown, and the app has no ratings
+ * screen yet.
  */
 export type PrivacyKey = 'match_history' | 'stats' | 'rating_history' | 'home_club' | 'city_region';
 

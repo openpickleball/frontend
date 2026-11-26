@@ -44,6 +44,7 @@ import {
 	missingIssues,
 	privacyNullIssues,
 	profileIssues,
+	ratingVisibilityIssues,
 	type PlayerCreateIn,
 	type PlayerUpdateIn,
 	type ProfileValues
@@ -72,7 +73,7 @@ export type MockPlayer = {
 	privacy: PrivacyOut;
 };
 
-export type MockDecision = { player: string; decision: 'confirm' | 'dispute' };
+export type MockDecision = { player: string; decision: 'confirm' | 'dispute' | 'withdraw' };
 
 export type MockMatch = {
 	code: string;
@@ -282,7 +283,8 @@ function startingPrivacy(visibility: PrivacyOut['stats_visibility']): PrivacyOut
 		match_history_visibility: visibility,
 		rating_history_visibility: visibility,
 		stats_visibility: visibility,
-		home_club_visibility: visibility
+		home_club_visibility: visibility,
+		rating_visibility: visibility
 	};
 }
 
@@ -301,6 +303,7 @@ function isMockPlayer(value: unknown): boolean {
 		typeof player.region === 'string' &&
 		typeof player.privacy === 'object' &&
 		player.privacy !== null &&
+		'rating_visibility' in player.privacy &&
 		!('homeClub' in player)
 	);
 }
@@ -606,6 +609,12 @@ export function createMockStore() {
 			const { privacy, ...profile } = body;
 			const { issues, clean } = profileIssues(profile);
 			if (issues.length > 0) return issues;
+			const ratingIssues = ratingVisibilityIssues(
+				player.privacy.rating_visibility,
+				isMinor(player.birthYear, player.birthMonth),
+				privacy
+			);
+			if (ratingIssues.length > 0) return ratingIssues;
 			const privacyIssues = privacyNullIssues(privacy);
 			if (privacyIssues.length > 0) return privacyIssues;
 			if (clean.display_name != null) player.displayName = clean.display_name;
@@ -695,8 +704,8 @@ export function createMockStore() {
 
 		/**
 		 * `get_match`: a match in any status, for a player who played in it. Everyone else, with
-		 * an unknown code or not, gets undefined (a 404 in the API). Organizers and moderators
-		 * get no more than other accounts.
+		 * an unknown code or not, gets undefined (a 404 in the API). Organizers get no more than
+		 * other accounts.
 		 */
 		matchForParticipant(email: string, code: string): MockMatch | undefined {
 			const match = this.matchByCode(code);

@@ -191,12 +191,55 @@ describe('StatusPanel', () => {
 		await expect.element(disputed.getByText(/You said this score is wrong/)).toBeVisible();
 	});
 
+	describe('a player who withdrew their dispute', () => {
+		it('says so while another player keeps the match disputed', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ decision: 'withdraw' }, { status: 'disputed' }),
+				...handlers()
+			});
+			await expect.element(screen.getByRole('heading', { name: 'Disputed' })).toBeVisible();
+			await expect
+				.element(screen.getByText(/You withdrew your dispute\. Another player in this match/))
+				.toBeVisible();
+			await expect
+				.element(screen.getByText(/You said this score is wrong/))
+				.not.toBeInTheDocument();
+			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+		});
+
+		it('reads a confirmed match as confirmed, not as their confirmation or dispute', async () => {
+			// They confirmed, disputed, then withdrew: the confirmation still shows for their team.
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ a: true, b: true, decision: 'withdraw' }, { status: 'confirmed' }),
+				...handlers()
+			});
+			await expect.element(screen.getByText(/This score is confirmed/)).toBeVisible();
+			await expect.element(screen.getByText(/You confirmed/)).not.toBeInTheDocument();
+			await expect.element(screen.getByText(/wrong/)).not.toBeInTheDocument();
+		});
+
+		it('reads a pending match from the teams, not from the withdrawn dispute', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ a: true, decision: 'withdraw' }),
+				...handlers()
+			});
+			await expect
+				.element(screen.getByRole('heading', { name: 'Waiting for the other team' }))
+				.toBeVisible();
+			await expect
+				.element(screen.getByText(/A player on your team confirmed this score/))
+				.toBeVisible();
+			await expect.element(screen.getByText(/wrong/)).not.toBeInTheDocument();
+		});
+	});
+
 	it('uses no em dashes in any of its copy', async () => {
 		for (const status of ['pending', 'confirmed', 'disputed', 'voided'] as const) {
 			for (const match of [
 				sampleMatch({ status }),
 				viewerMatch({}, { status }),
-				viewerMatch({ a: true, decision: 'confirm' }, { status })
+				viewerMatch({ a: true, decision: 'confirm' }, { status }),
+				viewerMatch({ decision: 'withdraw' }, { status })
 			]) {
 				const screen = await render(StatusPanel, { match, ...handlers() });
 				expect(screen.container.textContent).not.toContain('—');
