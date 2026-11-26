@@ -9,8 +9,9 @@
 			variant: {
 				// The site call to action: solid text color on the page color.
 				default: 'bg-secondary text-primary hover:bg-muted',
-				// border-field, not border-line: the faint line color is hard to see on ivory.
-				outline: 'border-field text-secondary hover:border-muted',
+				// border-field, not border-line: the faint line color is hard to see on ivory. On hover the
+				// border takes the text color: a surface background is nearly invisible in black.
+				outline: 'border-field text-secondary hover:border-secondary',
 				// Outline in the danger color. Use destructive-solid only inside a confirm dialog.
 				destructive: 'border-current text-danger hover:bg-danger-wash',
 				'destructive-solid': 'bg-danger text-primary hover:bg-danger/90',
