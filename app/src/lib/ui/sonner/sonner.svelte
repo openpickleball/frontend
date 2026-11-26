@@ -34,7 +34,10 @@
 	style="--normal-bg: var(--color-secondary); --normal-text: var(--color-primary); --normal-border: var(--color-secondary); --border-radius: 999px;"
 	toastOptions={{
 		classes: {
-			toast: 'font-body! text-base! font-medium!'
+			toast: 'font-body! text-base! font-medium!',
+			// Sonner paints the description a fixed gray (#3f3f3f), which is 1.7:1 on the dark
+			// toast in the ivory theme. Inherit the toast's text token instead.
+			description: 'text-inherit!'
 		}
 	}}
 	{...restProps}
