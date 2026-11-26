@@ -26,7 +26,7 @@ The app's policy is `src/csp.ts`. SvelteKit writes it into `build/index.html` as
 
 - Every origin the browser talks to goes into `src/csp.ts`, taken from the constant the code uses (as `connect-src` takes `PHOTON_URL`), never a second copy of the string.
 - `src/app.html` keeps no inline script and no `style` attribute. Put script in a file under `static/`, and use a class for style.
-- Every e2e test fails on a policy violation (`e2e/fixtures.ts`). Import `test` and `expect` from there, not from `@playwright/test`.
+- Every e2e test fails on a policy violation (`e2e/fixtures.ts`). Every spec imports `test` and `expect` from there, not from `@playwright/test`.
 - Add an allowance only for a violation the platform or a dependency causes, and record the violation text under Decisions in `plans/app-csp-and-hosting/plan.md`.
 
 ## Pre-commit hook

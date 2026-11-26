@@ -149,7 +149,7 @@ print(Player.objects.get(account__email='your.email@example.com').public_code)
 
 ## Hosting on App Platform
 
-This section is a proposal. The app is not deployed yet (frontend#22), and nothing here has been checked against a real deploy. The spec it changes belongs to the backend repository, which owns it and validates it with `doctl apps spec validate`.
+This section is a proposal. The app is not deployed yet (frontend#22), and nothing here has been checked against a real deploy. The spec it changes belongs to the backend repository, which owns it and checks it with its `config/tests/test_app_spec.py` and `doctl apps spec validate`.
 
 ### Why the app joins the backend's app
 

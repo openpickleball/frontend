@@ -1,6 +1,6 @@
 # Plan: Add a content security policy to the app and document its App Platform hosting (issue #239, part of #22)
 
-**Status:** active
+**Status:** done
 
 Risk tier: High. It sets the app's security policy (forced High). A wrong policy breaks the app in the browser in ways unit tests cannot see, and it touches the service worker's shell and every page.
 
@@ -25,12 +25,12 @@ The built app carries a Content Security Policy that allows only what it uses, a
 2. The policy contains: `default-src 'self'`; `script-src 'self'` plus a `'sha256-...'` hash for every inline `<script>` in `build/index.html`, and no `'unsafe-inline'` or `'unsafe-eval'` in `script-src`; `connect-src 'self'` plus the origin of `PHOTON_URL` and nothing else; `worker-src 'self'`; `object-src 'none'`; `base-uri 'none'`; `form-action 'self'`. Every other fetch directive is either absent (falls back to `default-src 'self'`) or `'self'`, except an allowance recorded under Decisions with the measured violation that needs it.
 3. `src/app.html` has no inline script. The theme is still applied before first paint (no flash) from a same-origin script file, and the existing theme e2e tests pass.
 4. `pnpm check:build` fails on a build whose `index.html` has no CSP meta, or has an inline script whose hash is not in `script-src`, and passes on the real `off` build.
-5. Every `pnpm e2e` and `pnpm e2e:pwa` test fails if the page reports a CSP violation (console error naming Content Security Policy, or a `securitypolicyviolation` event). The full suites pass, including sign-up with city suggestions (mocked Photon), the offline shell, and the service worker update toast.
+5. Every `pnpm e2e` and `pnpm e2e:pwa` test fails if the page reports a CSP violation (console error naming Content Security Policy, or a `securitypolicyviolation` event). The full suites pass, including sign-up with city suggestions (mocked Photon) and the offline shell. The service worker update toast has no e2e test; it is proven by the recorded live drive under Proof (criterion reworded by the maintainer, 2026-11-26).
 6. `pnpm dev` still works with the policy on (Vite client, HMR, the `/api` proxy, MSW in the mock modes), or the policy is off in dev with the reason in a comment. The live drive shows which.
 7. The connect-src Photon origin comes from `PHOTON_URL`, not a second copy of the string.
 8. `app/README.md` has a "Hosting on App Platform" section with: the `static_sites` block (source `openpickleball/frontend`, `source_dir: app`, build command, `output_dir: build`, `catchall_document: index.html`); the ingress rules for `app.openpb.org` (`/api/`, `/_allauth/`, `/oauth/` to the backend's `web` with `preserve_path_prefix: true`, everything else to the app); the framing gap; and first-deploy checks it could not verify here (Node and pnpm versions the buildpack picks, cache headers on `service-worker.js` and `index.html`). The block is marked as a proposal that the backend spec owns.
 9. `app/AGENTS.md` states the rule: new origins the browser talks to go into the CSP module, and `app.html` keeps no inline script.
-10. A comment on backend#304 links the README section and adds what #304 lacks (the component, domain and ingress rules, the `test_app_spec.py` changes, the hosts). No new backend issue. Maintainer decision (2026-11-26). The coordinator posts the comment. #22 is not closed by this PR (`Closes #239`, `Refs #22`).
+10. A comment on backend#304 links the README section and adds what #304 lacks (the component, domain and ingress rules, the `test_app_spec.py` changes, the hosts). No new backend issue. Maintainer decision (2026-11-26). Posted: https://github.com/openpickleball/backend/issues/304#issuecomment-7193196490. #22 is not closed by this PR (`Closes #239`, `Refs #22`).
 11. `/oauth/` joins `/api/` and `/_allauth/` as network-only in `src/pwa/routing.ts`. It is Django's partner token endpoint on the same host, and network-only keeps the worker out of it.
 
 ## Files that change
@@ -93,7 +93,7 @@ The same run also caught a real violation: `style-src-attr blocked inline`, hash
 
 The first full `pnpm e2e` with the fixture (111 tests, all failed) found two more, and nothing else:
 
-- `Content Security Policy violation: script-src blocked eval at .../_app/immutable/chunks/S4AP6qqW.js:1:9560`. That is Zod's `allowsEval` probe, `try { return Function(''), !0 } catch { return !1 }`. Fixed in the app: `z.config({ jitless: true })` in `src/lib/domain/zod.ts`, the only module that may import `'zod'` for values (an ESLint `no-restricted-imports` rule, tested in `src/zod-import.test.ts`). `schemas.ts` imports `z` from it, and `src/lib/domain/zod-config.test.ts` checks the setting. No `'unsafe-eval'`.
+- `Content Security Policy violation: script-src blocked eval at .../_app/immutable/chunks/S4AP6qqW.js:1:9560`. That is Zod's `allowsEval` probe, `try { return Function(''), !0 } catch { return !1 }`. Fixed in the app: `z.config({ jitless: true })` in `src/lib/domain/zod.ts`, the only module that may import `'zod'` for values (ESLint `no-restricted-imports` for static imports and `no-restricted-syntax` for `import('zod')`, tested in `src/zod-import.test.ts` and `src/zod-import-dynamic.test.ts`). `schemas.ts` imports `z` from it, and `src/lib/domain/zod-config.test.ts` checks the setting. No `'unsafe-eval'`.
 - `Applying inline style violates the following Content Security Policy directive 'default-src 'self''. Either the 'unsafe-inline' keyword, a hash ('sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='), or a nonce ('nonce-...') is required ...`, reported as `style-src-attr blocked inline at .../chunks/D8Ln_-J-.js:1:34278` (Svelte's `innerHTML` template clone). The hash is the style attribute of SvelteKit's route announcer, `#svelte-announcer` in `@sveltejs/kit/src/runtime/components/root.svelte`. See Decisions.
 
 `e2e-live/happy-path.spec.ts` uses the same fixture. It runs against `pnpm dev`, whose policy is looser for styles (SvelteKit adds `'unsafe-inline'` to `style-src` and `style-src-attr` in dev), so it cannot catch a style violation. It cannot run here without the backend; it loads and skips. Before the check, the fixture waits one frame in each open page, so late console messages and violation events are counted.
@@ -123,3 +123,4 @@ Live drive (Chrome DevTools MCP, a `securitypolicyviolation` listener added as a
 - `src/app.html` uses `class="contents"` instead of `style="display: contents"` on the body wrapper, so it needs no style hash. (2026-11-26)
 - The README block sets `deploy_on_push: false`. Deployments may be app-wide (not checked in DigitalOcean's docs), so a frontend push could redeploy `web`, `worker` and `beat` from the GHCR `main` tag and run the PRE_DEPLOY `migrate` job. Frontend changes go live with a deliberate deploy of the production app. Revisit once backend#63 deploys by digest. Maintainer decision. (2026-11-26)
 - The backend work is a comment on backend#304, not a new backend issue (criterion 10). Maintainer decision. (2026-11-26)
+- Criterion 5 no longer claims a suite covers the service worker update toast. The recorded live drive proves it, and an e2e test for it is a follow-up. Maintainer decision. (2026-11-26)
