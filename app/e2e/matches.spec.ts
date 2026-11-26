@@ -108,6 +108,26 @@ test.describe('home', () => {
 });
 
 test.describe('match history', () => {
+	test('says who sees the matches, following the Match history setting', async ({ page }) => {
+		await page.goto('/matches');
+		await expect(
+			page.getByText('Other signed-in players see your confirmed matches.')
+		).toBeVisible();
+
+		await page.goto('/profile');
+		const setting = page.getByRole('switch', { name: 'Match history' });
+		await expect(setting).toBeChecked();
+		await setting.click();
+		await expect(setting).not.toBeChecked();
+		await expect(page.locator('#privacy-match_history-state')).toHaveText('Only me');
+
+		await page.goto('/matches');
+		await expect(page.getByText('Only you can see your matches.')).toBeVisible();
+		await expect(page.getByText(/Other signed-in players see/)).toHaveCount(0);
+		await page.getByRole('link', { name: 'Change who sees them' }).click();
+		await expect(page).toHaveURL(/\/profile#settings-heading$/);
+	});
+
 	test('pages forward and back', async ({ page }) => {
 		await page.goto('/matches');
 		await expect(page.getByRole('heading', { level: 1, name: 'Matches' })).toBeVisible();

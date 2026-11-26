@@ -55,3 +55,5 @@ export { myCode } from './my-code.svelte.js';
 export { default as OwnCodeGate } from './own-code-gate.svelte';
 export { default as ProfileView } from './profile-view.svelte';
 export { default as ProfileSettings } from './profile-settings.svelte';
+export { SettingsStore, type SettingsDeps } from './settings-store.svelte.js';
+export type { MySettings, Visibility } from './types.js';
