@@ -55,9 +55,11 @@ const SUBMIT_FAILED = 'Something went wrong on our side. Wait a moment, then try
  * again. At most one create is in flight at a time, and a late answer never overwrites a newer
  * load.
  *
- * Any other failure is `error`, with Try again: a 5xx, no answer (offline), a 405 from the GET,
- * or a 404 or 405 from the create. Nothing is kept in the browser, so a code is only shown when
- * the backend sent it.
+ * Any other failure is `error`, with Try again: a 5xx, a 405 from the GET, or a 404 or 405 from
+ * the create. So is no answer (offline) when no code is known yet. When a code is known from this
+ * visit, a load that gets no answer keeps it and the status stays `ready` (frontend#249), so a
+ * match can still be queued. A 401, 403 or any other failure clears it. Nothing is kept in the
+ * browser, so a code is only shown when the backend sent it.
  *
  * It is a singleton, so call `reset()` on sign-in and sign-out: it must never hold the previous
  * account's code or details.
@@ -83,7 +85,9 @@ export class MyCode {
 	/** Find the code, creating the player when the account has none. Safe to call again. */
 	async load(): Promise<void> {
 		const run = ++this.#run;
-		this.status = 'loading';
+		// A code from this visit stays on screen while it is asked for again, so the record form
+		// stays usable on a weak connection.
+		if (this.code === null) this.status = 'loading';
 		this.detailErrors = {};
 		this.detailProblem = null;
 
@@ -99,6 +103,12 @@ export class MyCode {
 			}
 		} catch (error) {
 			if (run !== this.#run) return;
+			// No answer (offline, or too weak to reply) is not a sign the code is wrong, so a code
+			// from this visit stays. It is only in memory, never on the device.
+			if (this.code !== null && isAppError(error) && error.kind === 'network') {
+				this.status = 'ready';
+				return;
+			}
 			this.#clear(failureStatus(error));
 		}
 	}
