@@ -8,7 +8,7 @@
  * A game's key can be `games.<i>` (a score rule) or `games.<i>.team_a` (the server's
  * schema check on one score), so a form groups game errors by the `games.<i>` prefix.
  */
-import { z } from 'zod';
+import { z } from './zod';
 import { type BestOf, type GameTarget, type MatchFormat, type ScoringType } from './models';
 import {
 	groupIssues,
@@ -17,10 +17,6 @@ import {
 	type GameScore,
 	type ValidatedMatch
 } from './scores';
-
-// No JIT: Zod otherwise probes for eval with `new Function('')`, which the content security
-// policy (src/csp.ts) blocks and reports as a violation on every page.
-z.config({ jitless: true });
 
 /** The names of the form's fields mapped to the backend's. Keys of any other shape pass through. */
 const BACKEND_FIELD: Record<string, string> = {

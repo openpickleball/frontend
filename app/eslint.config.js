@@ -43,6 +43,35 @@ export default ts.config(
 		rules: { 'local/no-arbitrary-tailwind-values': 'error' }
 	},
 	{
+		// Zod must run jitless, or its eval probe breaks the content security policy (src/csp.ts).
+		// src/lib/domain/zod.ts sets that, so it is the only module that may import 'zod' for values.
+		files: ['**/*.{js,ts,svelte}'],
+		ignores: ['src/lib/domain/zod.ts'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					paths: [
+						{
+							name: 'zod',
+							allowTypeImports: true,
+							message:
+								"Import z from src/lib/domain/zod.ts, which turns off Zod's eval probe that the CSP blocks."
+						}
+					],
+					patterns: [
+						{
+							group: ['zod/*'],
+							allowTypeImports: true,
+							message:
+								"Import z from src/lib/domain/zod.ts, which turns off Zod's eval probe that the CSP blocks."
+						}
+					]
+				}
+			]
+		}
+	},
+	{
 		// Layering from plans/frontend-v1/proposal.md section 3. Empty folders are fine.
 		files: ['src/**/*.{js,ts,svelte}'],
 		plugins: { boundaries },
