@@ -226,6 +226,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 5.1.1
         version: 5.1.1(@vitest/browser@5.1.1)(vitest@5.1.1)
+      axe-core:
+        specifier: 4.14.1
+        version: 4.14.1
       eslint:
         specifier: ^10.15.0
         version: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
