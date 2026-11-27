@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { buildCode, parseMatchCode, parsePlayerCode } from '../domain/codes';
 import { validateMatch } from '../domain/scores';
-import { ACCOUNTS, MATCHES, PLAYERS, RATING_HISTORY, RATINGS, VERIFIED_EMAIL } from './fixtures';
+import {
+	ACCOUNTS,
+	CLUB_MATCH,
+	EVENT_MATCH,
+	GRANTED_CLUB,
+	LARKSPUR,
+	MATCHES,
+	PLAYERS,
+	RATING_HISTORY,
+	RATINGS,
+	UNGRANTED_CLUB,
+	VERIFIED_EMAIL
+} from './fixtures';
 import { createMockStore } from './store';
 
 describe('fixtures', () => {
@@ -56,12 +68,40 @@ describe('fixtures', () => {
 		expect(store.matchOut(waiting, null).my_team).toBeNull();
 	});
 
-	// MatchOut requires event and club. The mock has no Event or Club to show, so both are null,
-	// even for a match with the event flag.
-	it('sends every match with no event and no club', () => {
+	it('sends the Event and Club of the Event match, and the Club of the Club-only match', () => {
 		const store = createMockStore();
-		const flagged = { ...store.state.matches[0], event: true };
-		for (const match of [...store.state.matches, flagged]) {
+		const eventMatch = store.matchByCode(buildCode('match', EVENT_MATCH));
+		const clubMatch = store.matchByCode(buildCode('match', CLUB_MATCH));
+		if (!eventMatch || !clubMatch) throw new Error('fixture match is missing');
+		expect(store.matchOut(eventMatch, VERIFIED_EMAIL)).toMatchObject({
+			event: { code: 'E-SEED-0001', name: 'Larkspur Winter League', organizer: LARKSPUR },
+			club: { code: GRANTED_CLUB, name: 'Juniper Court Club' }
+		});
+		expect(store.matchOut(clubMatch, VERIFIED_EMAIL)).toMatchObject({
+			event: null,
+			club: { code: UNGRANTED_CLUB, name: 'Marshwalk Racquet Club' }
+		});
+	});
+
+	it('has the signed-in player in both, pending or disputed, and sends no organizer name', () => {
+		const store = createMockStore();
+		const own = PLAYERS[0].code;
+		for (const random of [EVENT_MATCH, CLUB_MATCH]) {
+			const match = store.matchByCode(buildCode('match', random));
+			if (!match) throw new Error('fixture match is missing');
+			expect([...match.teamA, ...match.teamB]).toContain(own);
+			expect(['pending', 'disputed']).toContain(match.status);
+			const out = JSON.stringify(store.matchOut(match, VERIFIED_EMAIL));
+			expect(out).not.toContain('Larkspur Paddle League');
+		}
+	});
+
+	it('sends every other match with no event and no club', () => {
+		const store = createMockStore();
+		const named = [EVENT_MATCH, CLUB_MATCH].map((random) => buildCode('match', random));
+		const others = store.state.matches.filter((m) => !named.includes(m.code));
+		expect(others).toHaveLength(store.state.matches.length - 2);
+		for (const match of others) {
 			const out = store.matchOut(match, VERIFIED_EMAIL);
 			expect(out).toHaveProperty('event', null);
 			expect(out).toHaveProperty('club', null);
@@ -137,7 +177,9 @@ describe('fixtures', () => {
 			my_decision: 'withdraw'
 		});
 		expect(store.listMyDisputes(VERIFIED_EMAIL, 20, 0).items.map((m) => m.code)).toEqual([
-			shared.code
+			buildCode('match', EVENT_MATCH),
+			shared.code,
+			buildCode('match', CLUB_MATCH)
 		]);
 
 		// A confirmed match she disputes goes back to confirmed once Oren's dispute is withdrawn too.

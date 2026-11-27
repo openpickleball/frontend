@@ -73,6 +73,8 @@ type EventOut = Schemas['EventOut'];
 type EventCreateIn = Schemas['EventCreateIn'];
 type EventUpdateIn = Schemas['EventUpdateIn'];
 type OrganizerClubGrantOut = Schemas['OrganizerClubGrantOut'];
+type MatchEventOut = Schemas['MatchEventOut'];
+type MatchClubOut = Schemas['MatchClubOut'];
 
 /** An Event in the store: the fixture's shape, with its creation order for the tie-break. */
 export type MockEvent = FixtureEvent & { seq: number };
@@ -165,11 +167,12 @@ export type MockMatch = {
 	/** Set while a possible duplicate hold keeps the match from counting. */
 	hold?: MockHold;
 	/**
-	 * True for a match with an Event (or a Club). Players can't correct it: `correct_match`
-	 * answers 404. No fixture has one; tests set it. `matchOut` always sends `event` and `club`
-	 * as `null`, even with this flag. Showing them is its own issue.
+	 * The Event the match was recorded under, as `MatchOut` sends it. Players can't correct a
+	 * match with an Event or a Club: `correct_match` answers 404. `matchOut` sends null when unset.
 	 */
-	event?: boolean;
+	event?: MatchEventOut;
+	/** The Club the match names, as `MatchOut` sends it. Null in `matchOut` when unset. */
+	club?: MatchClubOut;
 	/** The code of the match this one corrects, as `corrects` links them in the backend. */
 	corrects?: string;
 };
@@ -342,7 +345,8 @@ function seed(): MockState {
 			...(m.disputedFrom ? { disputedFrom: m.disputedFrom } : {}),
 			...(m.hold
 				? { hold: { vouched: [...m.hold.vouched], otherVouched: m.hold.otherVouched } }
-				: {})
+				: {}),
+			...matchPlace(m.event, m.club)
 		})),
 		ratings,
 		session: null,
@@ -390,6 +394,31 @@ export type ListResult =
 	{ ok: true; items: MockMatch[]; count: number } | { ok: false; kind: 'not_found' };
 
 export type LoginResult = 'ok' | 'mismatch' | 'unverified' | 'mfa';
+
+function clubOut(code: string): MatchClubOut {
+	const club = CLUBS.find((c) => c.code === code);
+	if (!club) throw new Error(`fixture club ${code} is missing`);
+	return { code: club.code, name: club.name };
+}
+
+/**
+ * A fixture match's Event and Club, as `MatchOut` sends them. An Event brings its own Club, and
+ * only its organizer's code: never the organizer's name.
+ */
+function matchPlace(
+	eventCode: string | undefined,
+	clubCode: string | undefined
+): { event?: MatchEventOut; club?: MatchClubOut } {
+	if (eventCode) {
+		const event = EVENTS.find((e) => e.code === eventCode);
+		if (!event) throw new Error(`fixture event ${eventCode} is missing`);
+		return {
+			event: { code: event.code, name: event.name, organizer: event.organizer },
+			...(event.club ? { club: clubOut(event.club) } : {})
+		};
+	}
+	return clubCode ? { club: clubOut(clubCode) } : {};
+}
 
 /** Results of the Event operations. `forbidden` is the create's 403; change and delete use 404. */
 export type EventResult =
@@ -1028,8 +1057,8 @@ export function createMockStore() {
 				team_a: match.teamA.map(participant),
 				team_b: match.teamB.map(participant),
 				games: match.games.map((g, i) => ({ number: i + 1, team_a: g.a, team_b: g.b })),
-				event: null,
-				club: null
+				event: match.event ? { ...match.event } : null,
+				club: match.club ? { ...match.club } : null
 			};
 		},
 
@@ -1143,7 +1172,13 @@ export function createMockStore() {
 		correctMatch(email: string, code: string, body: MatchCreateIn): CorrectResult {
 			const old = this.matchByCode(code);
 			const own = playerOfAccount(email);
-			if (!old || !own || old.event || ![...old.teamA, ...old.teamB].includes(own.code)) {
+			if (
+				!old ||
+				!own ||
+				old.event ||
+				old.club ||
+				![...old.teamA, ...old.teamB].includes(own.code)
+			) {
 				return { ok: false, kind: 'not_found' };
 			}
 			if (old.status !== 'pending' && old.status !== 'disputed') {

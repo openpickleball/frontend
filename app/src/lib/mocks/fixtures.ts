@@ -344,6 +344,10 @@ export type FixtureMatch = {
 	disputedFrom?: 'pending' | 'confirmed';
 	/** For a held match: who has vouched for it so far (see `MockHold`). */
 	hold?: FixtureHold;
+	/** The code of the Event (in `EVENTS`) the match was recorded under. Its Club comes with it. */
+	event?: string;
+	/** The code of the Club (in `CLUBS`) of a match with no Event, a legacy Club-only match. */
+	club?: string;
 };
 
 /**
@@ -542,6 +546,11 @@ function fromShort(short: Short, index: number): FixtureMatch {
 	};
 }
 
+/** The made-up Event match: Larkspur Winter League, at Juniper Court Club. Disputed. */
+export const EVENT_MATCH = 'W6RT3MXC8KH';
+/** The made-up Club-only match: Marshwalk Racquet Club, with no Event. Disputed. */
+export const CLUB_MATCH = 'J8VB2NQF5TD';
+
 /**
  * Tamsin's matches, newest first: three waiting on someone, then a mix of the other
  * statuses, then the older ones. Plus three matches between other players.
@@ -632,6 +641,25 @@ export const MATCHES: readonly FixtureMatch[] = [
 		hold: { vouched: ['B'], otherVouched: true }
 	},
 	{
+		// An Event match, recorded under Larkspur Winter League. Nell disputed it, so Tamsin
+		// can't correct it: only the event's organizer can change it.
+		random: EVENT_MATCH,
+		status: 'disputed',
+		format: 'doubles',
+		playedOn: '2026-11-04',
+		gameTarget: 11,
+		scoringType: 'side_out',
+		teamA: ['tamsin', 'rosa'],
+		teamB: ['oren', 'nell'],
+		games: [
+			[11, 5],
+			[11, 8]
+		],
+		submittedBy: 'oren',
+		decisions: [dec('oren'), dec('nell', 'dispute')],
+		event: 'E-SEED-0001'
+	},
+	{
 		// Disputed, with the private player on the other side. Tamsin disputed and then withdrew,
 		// so her decision is withdraw while Bea's dispute keeps the match disputed.
 		random: 'R5GK9WBD2XF',
@@ -654,6 +682,25 @@ export const MATCHES: readonly FixtureMatch[] = [
 			dec('tamsin', 'withdraw'),
 			dec('bea', 'dispute')
 		]
+	},
+	{
+		// A legacy Club-only match at Marshwalk Racquet Club, with no Event. Idris disputed it.
+		// Its players settle the dispute, but they can't correct it.
+		random: CLUB_MATCH,
+		status: 'disputed',
+		format: 'singles',
+		playedOn: '2026-11-02',
+		gameTarget: 11,
+		scoringType: 'side_out',
+		teamA: ['tamsin'],
+		teamB: ['idris'],
+		games: [
+			[11, 9],
+			[11, 7]
+		],
+		submittedBy: 'tamsin',
+		decisions: [dec('tamsin'), dec('idris', 'dispute')],
+		club: UNGRANTED_CLUB
 	},
 	{
 		random: '6YEM3HNV8QT',

@@ -2,7 +2,14 @@ import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { allauthParams, createApi, isAppError, type Api, type AppError } from '#lib/api/index.js';
 import { buildCode, type MatchCode, type PlayerCode } from '#lib/domain/index.js';
-import { MATCHES, MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
+import {
+	CLUB_MATCH,
+	EVENT_MATCH,
+	MATCHES,
+	MOCK_PASSWORD,
+	PLAYERS,
+	VERIFIED_EMAIL
+} from '#lib/mocks/fixtures.js';
 import { mockStore } from '#lib/mocks/store.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
 import { MatchCache } from './cache.svelte.js';
@@ -41,8 +48,15 @@ const HELD = code('H2ZA6TQN4CJ');
 const HELD_VOUCHED = code('6YEM3HNV8QT');
 // An older match only Tamsin disputed. It was pending before her dispute.
 const MY_DISPUTE = code(
-	MATCHES.find((m) => m.status === 'disputed' && m.random !== 'R5GK9WBD2XF')!.random
+	MATCHES.find(
+		(m) =>
+			m.status === 'disputed' &&
+			m.decisions.every((d) => d.player === 'tamsin' && d.decision === 'dispute')
+	)!.random
 );
+// The Event match and the Club-only match, each disputed by another player.
+const EVENT_DISPUTE = code(EVENT_MATCH);
+const CLUB_DISPUTE = code(CLUB_MATCH);
 const oldest = MATCHES.filter((m) => [...m.teamA, ...m.teamB].includes('tamsin')).reduce((a, b) =>
 	a.playedOn <= b.playedOn ? a : b
 );
@@ -96,7 +110,7 @@ async function failure(promise: Promise<unknown>): Promise<AppError> {
 describe('listMatches', () => {
 	it('returns a page of 20 and the total, newest first, and caches them', async () => {
 		const page = await listMatches(TAMSIN, 0, { cache, api });
-		expect(page.count).toBe(26);
+		expect(page.count).toBe(28);
 		expect(page.items).toHaveLength(PAGE_SIZE);
 		expect(page.items[0].code).toBe(WAITING_ON_ME);
 		expect(calls).toEqual([`GET /api/v1/players/${TAMSIN}/matches?limit=20&offset=0`]);
@@ -105,8 +119,8 @@ describe('listMatches', () => {
 
 	it('returns the rest on the next page', async () => {
 		const page = await listMatches(TAMSIN, 20, { cache, api });
-		expect(page.items).toHaveLength(6);
-		expect(page.count).toBe(26);
+		expect(page.items).toHaveLength(8);
+		expect(page.count).toBe(28);
 	});
 
 	it('shows every status to the owner', async () => {
@@ -123,7 +137,7 @@ describe('listMatches', () => {
 
 describe('countMatches', () => {
 	it('reads the total from a one-match page', async () => {
-		expect(await countMatches(TAMSIN, { api })).toBe(26);
+		expect(await countMatches(TAMSIN, { api })).toBe(28);
 		expect(calls).toEqual([`GET /api/v1/players/${TAMSIN}/matches?limit=1`]);
 	});
 
@@ -276,10 +290,20 @@ describe('listMyDisputes', () => {
 	it('lists the disputed matches the player is in, whoever disputed them, newest first', async () => {
 		const page = await listMyDisputes(0, { cache, api });
 		expect(calls).toEqual([`GET /api/v1/me/matches/disputes?limit=${PAGE_SIZE}&offset=0`]);
-		expect(page.items.map((m) => m.code)).toEqual([DISPUTED, MY_DISPUTE]);
-		expect(page.count).toBe(2);
-		expect(page.items.map((m) => m.viewerDecision)).toEqual(['withdraw', 'dispute']);
-		expect(cache.get(DISPUTED)).toBe(page.items[0]);
+		expect(page.items.map((m) => m.code)).toEqual([
+			EVENT_DISPUTE,
+			DISPUTED,
+			CLUB_DISPUTE,
+			MY_DISPUTE
+		]);
+		expect(page.count).toBe(4);
+		expect(page.items.map((m) => m.viewerDecision)).toEqual([
+			'none',
+			'withdraw',
+			'confirm',
+			'dispute'
+		]);
+		expect(cache.get(DISPUTED)).toBe(page.items[1]);
 	});
 
 	it('picks up a match once the player disputes it', async () => {
@@ -291,13 +315,13 @@ describe('listMyDisputes', () => {
 	it('drops a match once its last open dispute is withdrawn', async () => {
 		await withdrawDispute(MY_DISPUTE, { cache, api });
 		const page = await listMyDisputes(0, { cache, api });
-		expect(page.items.map((m) => m.code)).toEqual([DISPUTED]);
+		expect(page.items.map((m) => m.code)).toEqual([EVENT_DISPUTE, DISPUTED, CLUB_DISPUTE]);
 	});
 
 	it('pages with limit and offset', async () => {
-		const page = await listMyDisputes(1, { limit: 1, cache, api });
+		const page = await listMyDisputes(3, { limit: 1, cache, api });
 		expect(page.items.map((m) => m.code)).toEqual([MY_DISPUTE]);
-		expect(page.count).toBe(2);
+		expect(page.count).toBe(4);
 	});
 });
 

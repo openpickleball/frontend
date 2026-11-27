@@ -2,11 +2,18 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { buildCode } from '../src/lib/domain/codes';
-import { MATCHES, MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
+import {
+	CLUB_MATCH,
+	EVENT_MATCH,
+	MATCHES,
+	MOCK_PASSWORD,
+	PLAYERS,
+	VERIFIED_EMAIL
+} from '../src/lib/mocks/fixtures';
 import { signIn } from './helpers';
 
 // Runs against PUBLIC_API_MOCK=all (see playwright.config.ts), signed in as player@example.com
-// (Tamsin Vale), who has 26 matches: 20 on the first page, 6 on the second. Every test gets a new
+// (Tamsin Vale), who has 28 matches: 20 on the first page, 8 on the second. Every test gets a new
 // browser context, so the mock backend starts from its seed data each time.
 
 const tamsin = PLAYERS.find((p) => p.key === 'tamsin')!;
@@ -17,12 +24,19 @@ const WAITING_ON_ME = matchCode('7QK2H9WD3NF');
 const WAITING_ON_ME_TOO = matchCode('3FTB8ZRMK6P');
 const ALREADY_CONFIRMED_BY_ME = matchCode('X4NC2GHJ9VQ');
 
-// Disputed matches. Tamsin disputed the older one alone, so she can withdraw it. She withdrew
-// her dispute of the newer one, and Bea's dispute keeps it disputed.
+// Disputed matches. Tamsin disputed the oldest one alone, so she can withdraw it. She withdrew
+// her dispute of R5GK9WBD2XF, and Bea's dispute keeps it disputed. Two more are disputed by
+// another player: the Event match and the Club-only match.
 const MY_DISPUTE = matchCode(
-	MATCHES.find((m) => m.status === 'disputed' && m.random !== 'R5GK9WBD2XF')!.random
+	MATCHES.find(
+		(m) =>
+			m.status === 'disputed' &&
+			m.decisions.every((d) => d.player === 'tamsin' && d.decision === 'dispute')
+	)!.random
 );
 const STILL_DISPUTED = matchCode('R5GK9WBD2XF');
+const EVENT_DISPUTE = matchCode(EVENT_MATCH);
+const CLUB_DISPUTE = matchCode(CLUB_MATCH);
 
 // Held matches, both confirmed. Rosa's team and the other match vouched for the first, so
 // Tamsin's vouch ends its hold. Tamsin vouched for the second already.
@@ -93,8 +107,8 @@ test.describe('home', () => {
 		// All three fit, so there is no See all.
 		await expect(page.getByTestId('see-all-needs')).toHaveCount(0);
 
-		// Both disputes, the one she can withdraw too, and both holds. No waiting count.
-		await expect(page.getByTestId('in-progress')).toHaveText('2 disputed · 2 on hold');
+		// Every dispute, the one she can withdraw too, and both holds. No waiting count.
+		await expect(page.getByTestId('in-progress')).toHaveText('4 disputed · 2 on hold');
 
 		const recent = page.getByRole('list', { name: 'Recent matches' });
 		await expect(recent.getByTestId('match-row')).toHaveCount(3);
@@ -186,10 +200,10 @@ test.describe('home needs you count', () => {
 		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
 
 		await page.goBack();
-		await line.getByRole('link', { name: '2 disputed' }).click();
+		await line.getByRole('link', { name: '4 disputed' }).click();
 		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
 		await expect(pill(page, 'Disputed')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(page.getByTestId('range')).toHaveText('1–4 of 4');
 		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
 	});
 });
@@ -211,7 +225,7 @@ test.describe('match history', () => {
 	test('pages forward and back', async ({ page }) => {
 		await page.goto('/matches');
 		await expect(page.getByRole('heading', { level: 1, name: 'Matches' })).toBeVisible();
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 		await expect(page.getByTestId('match-row')).toHaveCount(20);
 		await expect(page.getByRole('link', { name: 'Newer' })).toHaveAttribute(
 			'aria-disabled',
@@ -220,8 +234,8 @@ test.describe('match history', () => {
 
 		await page.getByRole('link', { name: 'Older' }).click();
 		await expect(page).toHaveURL(/\/matches\?page=2$/);
-		await expect(page.getByTestId('range')).toHaveText('21–26 of 26');
-		await expect(page.getByTestId('match-row')).toHaveCount(6);
+		await expect(page.getByTestId('range')).toHaveText('21–28 of 28');
+		await expect(page.getByTestId('match-row')).toHaveCount(8);
 		await expect(page.getByRole('link', { name: 'Older' })).toHaveAttribute(
 			'aria-disabled',
 			'true'
@@ -229,7 +243,7 @@ test.describe('match history', () => {
 
 		await page.getByRole('link', { name: 'Newer' }).click();
 		await expect(page).toHaveURL(/\/matches$/);
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 	});
 
 	test('shows a page past the end as empty, with a way back', async ({ page }) => {
@@ -238,7 +252,7 @@ test.describe('match history', () => {
 			page.getByRole('heading', { name: 'There are no matches on this page' })
 		).toBeVisible();
 		await page.getByRole('link', { name: 'Back to the newest' }).click();
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 	});
 
 	test('has no WCAG 2.1 AA violations', async ({ page }) => {
@@ -252,19 +266,21 @@ test.describe('matches filter', () => {
 	test('opens a filter from a link, and a reload keeps it', async ({ page }) => {
 		await page.goto('/matches?show=disputed');
 		await expect(pill(page, 'Disputed')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(page.getByTestId('range')).toHaveText('1–4 of 4');
 		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
 		await expect(rowFor(page, STILL_DISPUTED)).toBeVisible();
+		await expect(rowFor(page, EVENT_DISPUTE)).toBeVisible();
+		await expect(rowFor(page, CLUB_DISPUTE)).toBeVisible();
 		await expect(page).toHaveTitle('Matches, Disputed, page 1 of 1 · OPEN Pickleball');
 
 		await page.reload();
 		await expect(pill(page, 'Disputed')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(page.getByTestId('range')).toHaveText('1–4 of 4');
 	});
 
 	test('switches filters with the pills and keeps each in the address', async ({ page }) => {
 		await page.goto('/matches?page=2');
-		await expect(page.getByTestId('range')).toHaveText('21–26 of 26');
+		await expect(page.getByTestId('range')).toHaveText('21–28 of 28');
 
 		await pill(page, 'Needs you').click();
 		await expect(page).toHaveURL(/\/matches\?show=needs-you$/);
@@ -290,13 +306,13 @@ test.describe('matches filter', () => {
 
 		await pill(page, 'All').click();
 		await expect(page).toHaveURL(/\/matches$/);
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 	});
 
 	test('shows every match for an unknown filter', async ({ page }) => {
 		await page.goto('/matches?show=waiting');
 		await expect(pill(page, 'All')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 	});
 
 	test('has no WCAG 2.1 AA violations with a filter, in either theme', async ({ page }) => {
@@ -491,10 +507,10 @@ test.describe('disputes', () => {
 	test('counts her disputed matches under In progress on home, the one she can withdraw too', async ({
 		page
 	}) => {
-		await expect(page.getByTestId('in-progress')).toContainText('2 disputed');
-		await page.getByTestId('in-progress').getByRole('link', { name: '2 disputed' }).click();
+		await expect(page.getByTestId('in-progress')).toContainText('4 disputed');
+		await page.getByTestId('in-progress').getByRole('link', { name: '4 disputed' }).click();
 		const list = page.getByRole('list', { name: 'Your matches, Disputed' });
-		await expect(list.getByTestId('match-row')).toHaveCount(2);
+		await expect(list.getByTestId('match-row')).toHaveCount(4);
 		await expect(list.locator(`a[href$="/matches/${MY_DISPUTE}"]`)).toContainText(
 			'You disputed this score.'
 		);
@@ -525,7 +541,7 @@ test.describe('disputes', () => {
 
 		// Home: it left the disputed count and now needs her confirmation.
 		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
-		await expect(page.getByTestId('in-progress')).toContainText('1 disputed');
+		await expect(page.getByTestId('in-progress')).toContainText('3 disputed');
 		await expect(
 			page.getByRole('list', { name: 'Needs you' }).locator(`a[href$="/matches/${MY_DISPUTE}"]`)
 		).toBeVisible();
@@ -715,7 +731,7 @@ test.describe('corrections', () => {
 
 		// Home: the old match left the disputed count.
 		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
-		await expect(page.getByTestId('in-progress')).toContainText('1 disputed');
+		await expect(page.getByTestId('in-progress')).toContainText('3 disputed');
 	});
 
 	test('says the old match is voided when its correction page is opened again', async ({
