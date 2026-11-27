@@ -45,6 +45,10 @@
 	let problem = $state<string | null>(null);
 	let busy = $state(false);
 	let confirmOff = $state(false);
+	/** Set when TOTP turned on but its recovery codes could not be read to show them. */
+	let codesProblem = $state<string | null>(null);
+	const CODES_UNREAD =
+		"We couldn't show your recovery codes. Two-factor is on: make new recovery codes to see a new set.";
 
 	const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'long' });
 
@@ -105,7 +109,14 @@
 			async () => {
 				await withReauth(() => activateTotp(parsed.data.code));
 				code = '';
-				shownCodes = (await getRecoveryCodes())?.codes ?? null;
+				codesProblem = null;
+				// TOTP is on now, whatever happens to the codes: always show the page as it is.
+				try {
+					shownCodes = (await withReauth(() => getRecoveryCodes()))?.codes ?? null;
+				} catch {
+					shownCodes = null;
+					codesProblem = CODES_UNREAD;
+				}
 				await load();
 			},
 			(message) => {
@@ -119,6 +130,7 @@
 	function newCodes() {
 		return act(async () => {
 			const made = await withReauth(() => regenerateRecoveryCodes());
+			codesProblem = null;
 			shownCodes = made.codes;
 			await load();
 		});
@@ -128,6 +140,7 @@
 		return act(async () => {
 			await withReauth(() => deactivateTotp());
 			shownCodes = null;
+			codesProblem = null;
 			await load();
 		});
 	}
@@ -186,6 +199,12 @@
 				</Button>
 			</div>
 		</div>
+	{/if}
+	{#if codesProblem}
+		<Alert>
+			<CircleAlertIcon aria-hidden="true" />
+			<AlertTitle>{codesProblem}</AlertTitle>
+		</Alert>
 	{/if}
 	{#if shownCodes && shownCodes.length > 0}
 		<RecoveryCodes codes={shownCodes} />

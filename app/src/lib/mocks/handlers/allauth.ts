@@ -514,6 +514,9 @@ export function createAllauthHandlers(store: MockStore) {
 			if (!guard.ok) return response.untyped(refused(guard));
 			const codes = guard.account.recoveryCodes;
 			if (!codes) return response.untyped(allauthStatus(store, 404));
+			// allauth's `view_recovery_codes` asks for a recent reauthentication before it lists them.
+			const recent = store.guardMfaChange(true);
+			if (!recent.ok) return response.untyped(refused(recent));
 			const { unused, ...out } = recoveryCodesOut(guard.account);
 			// Shown once: after that allauth leaves `unused_codes` out, though the count stays.
 			const shown = codes.viewed ? {} : { unused_codes: unused };
