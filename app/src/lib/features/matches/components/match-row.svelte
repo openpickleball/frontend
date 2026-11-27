@@ -20,6 +20,7 @@
 		viewpoint
 	} from '../format.js';
 	import { matchCache } from '../cache.svelte.js';
+	import { needsYouActions } from '../needs-you.svelte.js';
 	import type { RowList } from './row-list.js';
 
 	let {
@@ -56,6 +57,14 @@
 	// whose dispute a disputed match waits on. In a list whose title says it already, the note
 	// keeps only what the title doesn't say.
 	const note = $derived.by(() => {
+		// Under Needs you, the note is what the player can do.
+		if (listOf === 'needs-you') {
+			const actions = needsYouActions(match, hold);
+			if (actions.length === 2)
+				return "Confirm or dispute the score, and vouch for it. It's on hold.";
+			if (actions[0] === 'confirm') return 'Confirm or dispute the score.';
+			if (actions[0] === 'vouch') return "Vouch for it. It's on hold.";
+		}
 		if (match.status === 'disputed' && match.viewerDecision === 'dispute') {
 			return 'You disputed this score.';
 		}
@@ -65,15 +74,13 @@
 				? "On hold. It doesn't count yet. Your team has vouched for it."
 				: "On hold. It doesn't count yet. Open it to vouch for it.";
 		}
-		if (needsViewerConfirmation(match)) {
-			return listOf === 'needs-you' ? null : 'Needs your confirmation.';
-		}
+		if (needsViewerConfirmation(match)) return 'Needs your confirmation.';
 		if (waitingOnOtherTeam(match)) {
 			const who =
 				match.viewerDecision === 'confirm'
 					? 'You confirmed this score.'
 					: 'Your team confirmed this score.';
-			return listOf === 'waiting' ? who : `${who} Waiting for the other team.`;
+			return `${who} Waiting for the other team.`;
 		}
 		return null;
 	});

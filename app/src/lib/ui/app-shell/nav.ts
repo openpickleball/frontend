@@ -21,3 +21,14 @@ export function isCurrent(item: NavItem, pathname: string): boolean {
 	if (item.href === '/') return pathname === '/';
 	return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
+
+/**
+ * The Home link's name while matches need the player, such as "Home, 2 need you". The link
+ * shows its label to the eye and this to screen readers, in place of the label. An `aria-label`
+ * would do the same, but then the badge's digits count as visible text that the name must
+ * contain. Null for any other item, or when nothing needs the player.
+ */
+export function needsYouName(item: NavItem, label: string, count: number): string | null {
+	if (item.href !== '/' || count <= 0) return null;
+	return count === 1 ? `${label}, 1 needs you` : `${label}, ${count} need you`;
+}
