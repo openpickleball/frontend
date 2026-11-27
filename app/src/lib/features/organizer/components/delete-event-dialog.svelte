@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+	import { isAppError } from '#lib/api/index.js';
 	import type { OrganizerEvent } from '#lib/domain/index.js';
 	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import {
@@ -42,30 +43,35 @@
 
 	async function confirm() {
 		if (!event || busy) return;
+		// The Event this delete is for. The dialog may show another one by the time it answers.
+		const code = event.code;
+		const stillShowing = () => open && event?.code === code;
 		busy = true;
 		problem = null;
 		try {
-			await deleteOrganizerEvent(event.code);
-			open = false;
-			ondeleted(event.code);
+			await deleteOrganizerEvent(code);
+			ondeleted(code);
+			if (stillShowing()) open = false;
 		} catch (error) {
-			problem = eventErrorCopy(error, 'delete').message;
-			if (
-				typeof error === 'object' &&
-				error !== null &&
-				'status' in error &&
-				error.status === 404
-			) {
-				ongone();
-			}
+			if (stillShowing()) problem = eventErrorCopy(error, 'delete').message;
+			if (isAppError(error) && error.status === 404) ongone();
 		} finally {
 			busy = false;
 		}
 	}
+
+	/** No way out while the delete is in flight: its answer belongs to this dialog. */
+	function setOpen(next: boolean) {
+		if (next || !busy) open = next;
+	}
+
+	function holdWhileBusy(blocked: Event) {
+		if (busy) blocked.preventDefault();
+	}
 </script>
 
-<AlertDialog bind:open>
-	<AlertDialogContent>
+<AlertDialog bind:open={() => open, setOpen}>
+	<AlertDialogContent onEscapeKeydown={holdWhileBusy} onInteractOutside={holdWhileBusy}>
 		<AlertDialogHeader>
 			<AlertDialogTitle>{deleteTitle(event?.name ?? '')}</AlertDialogTitle>
 			<AlertDialogDescription>{DELETE_TEXT}</AlertDialogDescription>
@@ -77,7 +83,7 @@
 			</Alert>
 		{/if}
 		<AlertDialogFooter>
-			<AlertDialogCancel>Cancel</AlertDialogCancel>
+			<AlertDialogCancel aria-disabled={busy}>Cancel</AlertDialogCancel>
 			<AlertDialogAction aria-disabled={busy} aria-busy={busy} onclick={confirm}>
 				{#if busy}<Spinner />{/if}
 				Delete
