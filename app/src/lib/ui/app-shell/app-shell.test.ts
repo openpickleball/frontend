@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import AppShell from './app-shell.svelte';
-import { NAV_ITEMS, isCurrent, needsYouName } from './nav.js';
+import { NAV_ITEMS, isCurrent, navItems, needsYouName } from './nav.js';
 
 const children = createRawSnippet(() => ({ render: () => '<h1>Stub</h1>' }));
 
-function shell(pathname: string) {
-	return render(AppShell, { props: { pathname, children } }).body;
+function shell(pathname: string, organizer?: boolean) {
+	return render(AppShell, { props: { pathname, children, organizer } }).body;
 }
 
 /** The markup of the nav landmark that starts at the nth `<nav`. */
@@ -224,5 +224,50 @@ describe('needsYouName', () => {
 	it('leaves the name to the label for no count, or any other item', () => {
 		expect(needsYouName(home, 'Home', 0)).toBeNull();
 		expect(needsYouName(record, 'Record', 3)).toBeNull();
+	});
+});
+
+describe('the Events entry, for organizer members only', () => {
+	const hrefsOf = (nav: string) => [...nav.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
+
+	it('is in neither nav by default or for a non-member', () => {
+		for (const body of [shell('/'), shell('/', false)]) {
+			for (const nav of navs(body)) expect(hrefsOf(nav)).not.toContain('/organizer');
+			expect(body).not.toContain('Events');
+		}
+	});
+
+	it('is in both navs for a member, before Profile', () => {
+		const [side, tabs] = navs(shell('/', true));
+		for (const nav of [side, tabs]) {
+			expect(hrefsOf(nav)).toEqual(['/', '/record', '/matches', '/organizer', '/profile']);
+		}
+		expect(tabs).toMatch(/>Events(<!--[^>]*-->)*<\/a>/);
+	});
+
+	it('lays the tab bar out in as many columns as it has entries', () => {
+		const [, four] = navs(shell('/'));
+		const [, five] = navs(shell('/', true));
+		expect(four).toContain('grid-cols-4');
+		expect(four).not.toContain('grid-cols-5');
+		expect(five).toContain('grid-cols-5');
+		expect(five).not.toContain('grid-cols-4');
+	});
+
+	it('marks Events current on the organizer page', () => {
+		for (const nav of navs(shell('/organizer', true))) {
+			expect(nav).toMatch(/href="\/organizer"[^>]*aria-current="page"/);
+		}
+	});
+
+	it('navItems adds Events only for a member', () => {
+		expect(navItems(false)).toEqual(NAV_ITEMS);
+		expect(navItems(true).map((item) => item.href)).toEqual([
+			'/',
+			'/record',
+			'/matches',
+			'/organizer',
+			'/profile'
+		]);
 	});
 });

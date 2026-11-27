@@ -2,17 +2,29 @@
 	import { resolve } from '$app/paths';
 	import NavBadge from './nav-badge.svelte';
 	import NavIcon from './nav-icon.svelte';
-	import { NAV_ITEMS, isCurrent, needsYouName } from './nav.js';
+	import { isCurrent, navItems, needsYouName } from './nav.js';
 
-	let { pathname, needsYou = 0 }: { pathname: string; needsYou?: number } = $props();
+	let {
+		pathname,
+		needsYou = 0,
+		organizer = false
+	}: { pathname: string; needsYou?: number; organizer?: boolean } = $props();
+
+	const items = $derived(navItems(organizer));
+	// Two literal classes, so Tailwind sees both.
+	const columns = $derived(items.length === 5 ? 'grid-cols-5' : 'grid-cols-4');
 </script>
 
 <!-- Mobile only: from 1024px the side nav takes over. -->
 <nav
 	aria-label="Main"
-	class="fixed inset-x-0 bottom-0 z-20 grid h-[calc(var(--tabbar-height)+env(safe-area-inset-bottom))] grid-cols-4 border-t border-line bg-primary/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+	class={[
+		'fixed inset-x-0 bottom-0 z-20 grid h-[calc(var(--tabbar-height)+env(safe-area-inset-bottom))] border-t',
+		columns,
+		'border-line bg-primary/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden'
+	]}
 >
-	{#each NAV_ITEMS as item (item.href)}
+	{#each items as item (item.href)}
 		{@const current = isCurrent(item, pathname)}
 		{@const name = needsYouName(item, item.label, needsYou)}
 		<a

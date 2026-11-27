@@ -10,7 +10,8 @@
 		children,
 		bare = false,
 		account,
-		needsYou = 0
+		needsYou = 0,
+		organizer = false
 	}: {
 		pathname: string;
 		children: Snippet;
@@ -20,6 +21,8 @@
 		account?: Snippet;
 		/** How many matches need the player. Above 0, the Home item shows it as a badge. */
 		needsYou?: number;
+		/** An organizer member: the navs add the Events entry. Display only. */
+		organizer?: boolean;
 	} = $props();
 </script>
 
@@ -32,7 +35,7 @@
 
 <!-- eslint-disable-next-line local/no-arbitrary-tailwind-values -- side nav column beside the page, no default template -->
 <div class={['min-h-svh', !bare && 'lg:grid lg:grid-cols-[auto_1fr]']}>
-	{#if !bare}<SideNav {pathname} {account} {needsYou} />{/if}
+	{#if !bare}<SideNav {pathname} {account} {needsYou} {organizer} />{/if}
 	<div>
 		<TopBar always={bare} />
 		<!-- One column, 672px wide, with the site gutter. Room below for the tab bar on mobile. -->
@@ -47,5 +50,5 @@
 		</main>
 		<SiteFooter {bare} />
 	</div>
-	{#if !bare}<TabBar {pathname} {needsYou} />{/if}
+	{#if !bare}<TabBar {pathname} {needsYou} {organizer} />{/if}
 </div>

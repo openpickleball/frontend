@@ -1,4 +1,4 @@
-export type NavIconName = 'home' | 'record' | 'matches' | 'profile';
+export type NavIconName = 'home' | 'record' | 'matches' | 'events' | 'profile';
 
 export interface NavItem {
 	icon: NavIconName;
@@ -6,7 +6,7 @@ export interface NavItem {
 	label: string;
 	/** The label in the side nav, where there is room for more words. */
 	sideLabel: string;
-	href: '/' | '/record' | '/matches' | '/profile';
+	href: '/' | '/record' | '/matches' | '/organizer' | '/profile';
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -15,6 +15,21 @@ export const NAV_ITEMS: readonly NavItem[] = [
 	{ icon: 'matches', label: 'Matches', sideLabel: 'Matches', href: '/matches' },
 	{ icon: 'profile', label: 'Profile', sideLabel: 'Profile', href: '/profile' }
 ];
+
+/** The organizer area. Only an organizer member sees it (display only: the backend decides). */
+export const ORGANIZER_ITEM: NavItem = {
+	icon: 'events',
+	label: 'Events',
+	sideLabel: 'Events',
+	href: '/organizer'
+};
+
+/** The nav entries: `NAV_ITEMS`, with Events before Profile for an organizer member. */
+export function navItems(organizer: boolean): readonly NavItem[] {
+	if (!organizer) return NAV_ITEMS;
+	const profile = NAV_ITEMS.findIndex((item) => item.href === '/profile');
+	return [...NAV_ITEMS.slice(0, profile), ORGANIZER_ITEM, ...NAV_ITEMS.slice(profile)];
+}
 
 /** True when `pathname` is the item's page or a page under it. Home matches only `/`. */
 export function isCurrent(item: NavItem, pathname: string): boolean {

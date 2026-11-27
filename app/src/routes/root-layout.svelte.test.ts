@@ -113,3 +113,26 @@ describe('root layout mfa_required notice', () => {
 		await vi.waitFor(() => expect(reauthPrompt.request?.methods).toEqual(['code']));
 	});
 });
+
+describe('root layout organizer entry', () => {
+	const events = () => document.querySelectorAll('a[href="/organizer"]');
+
+	it('shows Events in both navs only once the memberships say member, and drops it after', async () => {
+		session.apply({ status: 'signed_in', email: 'organizer@example.com' });
+		await render(RootLayout, props);
+		// Unknown while the memberships load: no entry.
+		expect(events()).toHaveLength(0);
+		session.organizers = [
+			{
+				organizer: 'G-K7MQ-2RD4',
+				name: 'Larkspur Paddle League',
+				role: 'admin',
+				verified: true,
+				verification_requested: false
+			}
+		];
+		await vi.waitFor(() => expect(events()).toHaveLength(2));
+		session.organizers = [];
+		await vi.waitFor(() => expect(events()).toHaveLength(0));
+	});
+});
