@@ -280,6 +280,8 @@ export async function reauthenticateMfa(
 		})
 	);
 	if (!result.response.ok) fail(result);
+	// The session passed two-factor now, so calls the API refused before may answer: read again.
+	void loadAccountState({ api });
 }
 
 /**

@@ -12,6 +12,7 @@
  */
 import { allauthParams, api as appApi, toAppError, type ApiOption } from '#lib/api/index.js';
 import { z } from '#lib/domain/zod.js';
+import { loadAccountState } from './services.js';
 import { session } from './session.svelte.js';
 
 type Settled = { data?: unknown; error?: unknown; response: Response };
@@ -123,6 +124,8 @@ export async function activateTotp(code: string, { api = appApi }: ApiOption = {
 	);
 	if (!result.response.ok) fail(result);
 	session.mfaEnrolled = true;
+	// Enrolling passes two-factor for this session, so calls the API refused before may answer.
+	void loadAccountState({ api });
 }
 
 /** Turn TOTP off. The recovery codes go too, and the account's other sessions end. */
