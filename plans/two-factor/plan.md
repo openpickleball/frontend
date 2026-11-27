@@ -1,6 +1,6 @@
 # Plan: Two-factor sign-in, enrollment, and reauthentication (issue #261)
 
-**Status:** active
+**Status:** done
 
 Risk tier: High. Auth is a forced High: this changes the sign-in flow, adds a session state, retries calls after reauthentication, and gates organizer authority on two-factor.
 
