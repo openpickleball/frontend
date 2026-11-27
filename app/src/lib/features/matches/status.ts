@@ -79,7 +79,7 @@ export const CORRECT_EVENT_NOTE =
  */
 export const CORRECT_CLUB_NOTE = "A match recorded for a club can't be corrected by its players.";
 
-/** Added after `CORRECT_CLUB_NOTE` on a pending match. A disputed one is already disputed. */
+/** Added after `CORRECT_CLUB_NOTE` when the status panel offers the player Dispute. */
 export const CORRECT_CLUB_DISPUTE = 'If the score is wrong, dispute the match instead.';
 
 /** The vouch button, while the viewer's side has not vouched. */

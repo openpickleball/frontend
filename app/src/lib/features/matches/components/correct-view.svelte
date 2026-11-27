@@ -22,7 +22,8 @@
 		CORRECT_CLUB_DISPUTE,
 		CORRECT_CLUB_NOTE,
 		CORRECT_EVENT_NOTE,
-		canCorrect
+		canCorrect,
+		matchStatusCopy
 	} from '../status.js';
 	import CodeGate from './code-gate.svelte';
 
@@ -86,8 +87,9 @@
 		// The backend answers 404 for a match with an Event or a Club. Checked before the private
 		// player, since `canCorrect` refuses these too and that reason would be false here.
 		if (match.event) return CORRECT_EVENT_NOTE;
+		// The dispute advice only when the status panel offers this player Dispute, by its own rule.
 		if (match.club) {
-			return match.status === 'pending'
+			return matchStatusCopy(match).actions.includes('dispute')
 				? `${CORRECT_CLUB_NOTE} ${CORRECT_CLUB_DISPUTE}`
 				: CORRECT_CLUB_NOTE;
 		}

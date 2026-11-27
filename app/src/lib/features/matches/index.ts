@@ -31,7 +31,7 @@
  *   `MatchOut` doesn't link the two. The panel offers "Correct the score" only when
  *   `canCorrect` says so: no Event or Club, and every player has a code. Opened directly for a
  *   match with an Event or a Club, the correction page says why (`CORRECT_EVENT_NOTE`,
- *   `CORRECT_CLUB_NOTE`, plus `CORRECT_CLUB_DISPUTE` on a pending match). The form still
+ *   `CORRECT_CLUB_NOTE`, plus `CORRECT_CLUB_DISPUTE` when the panel offers Dispute). The form still
  *   explains the 404 the backend gives one.
  *   `rememberCorrection(correction, old)` tells the cache, so the old match's page links to the
  *   correction in this visit.
