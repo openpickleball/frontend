@@ -45,6 +45,10 @@
 	--color-disputed: light-dark(#a3301b, #ff8b73); /* disputed status */
 	--color-danger: light-dark(#a3301b, #ff8b73); /* errors and destructive actions */
 	--color-pending: var(--color-muted); /* pending stays neutral on purpose */
+	--color-warning: light-dark(
+		#b45309,
+		#fbbf24
+	); /* on hold edge; Tailwind amber-700 and amber-400 */
 	--color-voided: var(--color-faint);
 	--color-field: var(--color-faint); /* input borders: 3:1 or better, unlike line */
 	--color-confirmed-wash: light-dark(#e9ecd2, #141a06); /* success banner background */

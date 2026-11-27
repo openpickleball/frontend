@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-	CORRECT_EVENT_NOTE,
-	CORRECT_NOTE,
 	DISPUTE_ENDS,
 	HOLD_ENDS,
 	HOLD_WHY,
-	VOIDED_CORRECTED,
 	canCorrect,
 	hasActions,
-	matchStatusCopy
+	matchStatusCopy,
+	panelIsQuiet,
+	panelTone
 } from './status.js';
 import { sampleMatch, viewerMatch } from './testing.js';
 
@@ -31,17 +30,15 @@ describe('matchStatusCopy', () => {
 	it('offers Withdraw on a disputed match the player disputed', () => {
 		const copy = matchStatusCopy(viewerMatch({ decision: 'dispute' }, { status: 'disputed' }));
 		expect(copy.title).toBe('Disputed');
-		expect(copy.text).toMatch(/^You said this score is wrong\./);
-		expect(copy.notes).toContain(DISPUTE_ENDS);
-		expect(copy.notes.join(' ')).toMatch(/can't dispute this match again/);
+		expect(copy.text).toMatch(/^You said this score is wrong,/);
 		expect(copy.actions).toEqual(['withdraw', 'correct']);
 	});
 
-	it('offers only Correct on a disputed match someone else disputed, and says how it ends', () => {
+	it('offers only Correct on a disputed match someone else disputed', () => {
 		for (const decision of ['none', 'confirm', 'withdraw'] as const) {
 			const copy = matchStatusCopy(viewerMatch({ decision }, { status: 'disputed' }));
+			expect(copy.title).toBe('Disputed');
 			expect(copy.actions).toEqual(['correct']);
-			expect(copy.notes).toEqual([DISPUTE_ENDS, `${CORRECT_NOTE} ${CORRECT_EVENT_NOTE}`]);
 		}
 	});
 
@@ -67,13 +64,15 @@ describe('matchStatusCopy', () => {
 		expect(DISPUTE_ENDS).not.toMatch(/\d/);
 	});
 
-	it('uses no em dashes and never says moderator', () => {
+	it('says one sentence, with no em dashes, and never says moderator', () => {
 		for (const status of ['pending', 'confirmed', 'disputed', 'voided'] as const) {
 			for (const decision of ['none', 'confirm', 'dispute', 'withdraw'] as const) {
 				for (const sides of [{}, { a: true }, { b: true }, { a: true, b: true }]) {
 					for (const hold of [undefined, { vouched: false }, { vouched: true }]) {
 						const copy = matchStatusCopy(viewerMatch({ ...sides, decision }, { status }), hold);
-						const all = [copy.title, copy.text, ...copy.notes].join(' ');
+						const all = [copy.title, copy.text].join(' ');
+						// The longer explanations go in info popovers (frontend#285).
+						expect(copy.text.match(/[.?!](\s|$)/g)).toHaveLength(1);
 						expect(all).not.toContain('—');
 						expect(all).not.toMatch(/moderator/i);
 					}
@@ -84,63 +83,50 @@ describe('matchStatusCopy', () => {
 });
 
 describe('matchStatusCopy for a held match', () => {
-	it('reads On hold on a confirmed match, says why, and offers a vouch', () => {
+	it('reads On hold on a confirmed match, says why in one sentence, and offers a vouch', () => {
 		const copy = matchStatusCopy(
 			viewerMatch({ a: true, b: true, decision: 'confirm' }, { status: 'confirmed' }),
 			{ vouched: false }
 		);
 		expect(copy.title).toBe('On hold');
-		expect(copy.text).toBe(HOLD_WHY);
-		expect(copy.notes[0]).toBe('The score is confirmed. The match counts once the hold ends.');
-		expect(copy.notes[1]).toMatch(/One player from each team needs to vouch\. You can't undo/);
-		expect(copy.notes).toContain(HOLD_ENDS);
+		expect(copy.text).toBe(
+			"Another match has the same teams and date but other scores, so this one doesn't count yet."
+		);
 		expect(copy.actions).toEqual(['vouch']);
 	});
 
 	it('says the team vouched and offers nothing more once it has', () => {
 		const copy = matchStatusCopy(viewerMatch({}, { status: 'confirmed' }), { vouched: true });
 		expect(copy.title).toBe('On hold');
-		expect(copy.notes[1]).toMatch(/^Your team has vouched for this match\./);
-		expect(copy.notes[1]).toMatch(/other team vouches too, and the other match is vouched for/);
+		expect(copy.text).toBe(
+			'Your team vouched for this match, and the hold ends once the others vouch too.'
+		);
 		expect(copy.actions).toEqual([]);
 	});
 
 	it('keeps Confirm and Dispute on a pending match the player has to confirm, then Vouch', () => {
 		const copy = matchStatusCopy(viewerMatch(), { vouched: false });
 		expect(copy.title).toBe('On hold');
-		expect(copy.notes[0]).toMatch(/^Your team hasn't confirmed the score yet\./);
 		expect(copy.actions).toEqual(['confirm', 'dispute', 'vouch', 'correct']);
 		const withdrawn = matchStatusCopy(viewerMatch({ decision: 'withdraw' }), { vouched: true });
-		expect(withdrawn.notes[0]).toMatch(/can't dispute this match again/);
 		expect(withdrawn.actions).toEqual(['confirm', 'correct']);
-	});
-
-	it('says what a pending match still needs when the player has nothing to confirm', () => {
-		expect(
-			matchStatusCopy(viewerMatch({ a: true, decision: 'confirm' }), { vouched: false }).notes[0]
-		).toBe('Your team confirmed the score. A player on the other team needs to confirm it too.');
-		expect(matchStatusCopy(sampleMatch(), { vouched: false }).notes[0]).toBe(
-			'The score also needs a player on each team to confirm it.'
-		);
 	});
 
 	it('words the vouch for a member of the event organizer, who has no team in the match', () => {
 		const match = sampleMatch({ status: 'confirmed' });
 		const before = matchStatusCopy(match, { vouched: false });
-		expect(before.notes[1]).toMatch(/as a member of the event's organizer/);
 		expect(before.actions).toEqual(['vouch']);
 		const after = matchStatusCopy(match, { vouched: true });
-		expect(after.notes[1]).toMatch(/^Your organizer has vouched for this match\./);
+		expect(after.text).toMatch(/^Your organizer vouched for this match,/);
 		expect(after.actions).toEqual([]);
 	});
 
-	it('keeps the dispute copy on a disputed match and adds the hold', () => {
+	it('keeps the dispute title on a disputed match and says it is on hold too', () => {
 		const copy = matchStatusCopy(viewerMatch({ decision: 'dispute' }, { status: 'disputed' }), {
 			vouched: false
 		});
 		expect(copy.title).toBe('Disputed');
-		expect(copy.notes).toContain(DISPUTE_ENDS);
-		expect(copy.notes.join(' ')).toMatch(/This match is also on hold\./);
+		expect(copy.text).toBe('You said this score is wrong, and the match is also on hold.');
 		expect(copy.actions).toEqual(['withdraw', 'vouch', 'correct']);
 	});
 
@@ -201,28 +187,46 @@ describe('correcting a match', () => {
 		expect(matchStatusCopy(hidden).actions).not.toContain('correct');
 	});
 
-	it('offers Correct, with what it does, on a pending match waiting on the other team', () => {
+	it('offers Correct on a pending match waiting on the other team', () => {
 		const copy = matchStatusCopy(viewerMatch({ a: true, decision: 'confirm' }));
 		expect(copy.title).toBe('Waiting for the other team');
 		expect(copy.actions).toEqual(['correct']);
-		expect(copy.notes).toEqual([CORRECT_NOTE]);
 	});
 
-	it('says only the organizer changes an event match, on a disputed match only', () => {
-		expect(matchStatusCopy(viewerMatch()).notes.join(' ')).not.toContain(CORRECT_EVENT_NOTE);
-		const disputed = matchStatusCopy(viewerMatch({ decision: 'dispute' }, { status: 'disputed' }));
-		expect(disputed.notes.join(' ')).toContain(CORRECT_EVENT_NOTE);
-	});
-
-	it('does not move the panel before the score for a correction alone', () => {
+	it('does not count a correction alone as something the player has to do', () => {
 		expect(hasActions(viewerMatch({ a: true, decision: 'confirm' }))).toBe(false);
 		expect(hasActions(viewerMatch({ decision: 'none' }, { status: 'disputed' }))).toBe(false);
 		expect(hasActions(viewerMatch())).toBe(true);
 	});
+});
 
-	it('says on a voided match where a correction would be', () => {
-		expect(matchStatusCopy(viewerMatch({}, { status: 'voided' })).notes).toEqual([
-			VOIDED_CORRECTED
-		]);
+describe('panelTone', () => {
+	it('is disputed for a disputed match, held or not', () => {
+		const disputed = viewerMatch({ decision: 'dispute' }, { status: 'disputed' });
+		expect(panelTone(disputed)).toBe('disputed');
+		expect(panelTone(disputed, { vouched: false })).toBe('disputed');
+	});
+
+	it('is held for a match on hold that is not disputed or voided', () => {
+		expect(panelTone(viewerMatch(), { vouched: true })).toBe('held');
+		expect(panelTone(viewerMatch({}, { status: 'confirmed' }), { vouched: false })).toBe('held');
+		expect(panelTone(viewerMatch({}, { status: 'voided' }), { vouched: false })).toBe('plain');
+	});
+
+	it('is action when the player has a step to take, and plain otherwise', () => {
+		expect(panelTone(viewerMatch())).toBe('action');
+		expect(panelTone(viewerMatch({ a: true, decision: 'confirm' }))).toBe('plain');
+		expect(panelTone(viewerMatch({ a: true, b: true }, { status: 'confirmed' }))).toBe('plain');
+	});
+});
+
+describe('panelIsQuiet', () => {
+	it('is true only for a confirmed match that is not on hold', () => {
+		const confirmed = viewerMatch({ a: true, b: true }, { status: 'confirmed' });
+		expect(panelIsQuiet(confirmed)).toBe(true);
+		expect(panelIsQuiet(confirmed, { vouched: true })).toBe(false);
+		for (const status of ['pending', 'disputed', 'voided'] as const) {
+			expect(panelIsQuiet(viewerMatch({}, { status }))).toBe(false);
+		}
 	});
 });

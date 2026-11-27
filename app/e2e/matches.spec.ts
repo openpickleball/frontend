@@ -232,9 +232,11 @@ test.describe('match detail', () => {
 
 		// Rosa had confirmed already, so Tamsin's confirmation makes it count.
 		await expect(page.getByText('Confirmed. The match now counts.')).toBeVisible();
-		const panel = page.getByTestId('status-panel');
-		await expect(panel).toHaveAttribute('data-status', 'confirmed');
-		await expect(panel.getByRole('heading', { name: 'Confirmed' })).toBeFocused();
+		// A confirmed match with nothing else to say drops the panel. The badge says it, and the
+		// page title takes focus.
+		await expect(page.getByTestId('status-panel')).toHaveCount(0);
+		await expect(page.getByText('Confirmed', { exact: true })).toBeVisible();
+		await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Dispute' })).toHaveCount(0);
 
@@ -254,7 +256,7 @@ test.describe('match detail', () => {
 	}) => {
 		await rowFor(page, WAITING_ON_ME).click();
 		// Bea's team confirmed it, Tamsin's has not.
-		await expect(page.getByText(/The other team has confirmed this score/)).toBeVisible();
+		await expect(page.getByText(/The other team confirmed this score/)).toBeVisible();
 		await page.getByRole('button', { name: 'Confirm score' }).click();
 		await expect(page.getByText('Confirmed. The match now counts.')).toBeVisible();
 	});
@@ -265,7 +267,7 @@ test.describe('match detail', () => {
 		await rowFor(page, ALREADY_CONFIRMED_BY_ME).click();
 		// The API says her team confirmed, so there is nothing to press.
 		await expect(page.getByRole('heading', { name: 'Waiting for the other team' })).toBeVisible();
-		await expect(page.getByText('You confirmed this score.')).toBeVisible();
+		await expect(page.getByText(/^You confirmed this score,/)).toBeVisible();
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'pending');
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Dispute' })).toHaveCount(0);
@@ -425,7 +427,6 @@ test.describe('disputes', () => {
 		const panel = page.getByTestId('status-panel');
 		await expect(panel).toHaveAttribute('data-status', 'disputed');
 		await expect(panel.getByText(/You said this score is wrong/)).toBeVisible();
-		await expect(panel.getByText(/every player who disputed the score withdraws/)).toBeVisible();
 		await expect(page.getByText(/moderator/i)).toHaveCount(0);
 
 		await page.getByRole('button', { name: 'Withdraw my dispute' }).click();
@@ -462,9 +463,8 @@ test.describe('disputes', () => {
 		const panel = page.getByTestId('status-panel');
 		await expect(panel).toHaveAttribute('data-status', 'disputed');
 		await expect(
-			panel.getByText(/You withdrew your dispute\. Another player in this match still says/)
+			panel.getByText(/You withdrew your dispute, but another player still says/)
 		).toBeVisible();
-		await expect(panel.getByText(/the match is voided/)).toBeVisible();
 		await expect(panel.getByRole('button')).toHaveCount(0);
 	});
 
@@ -531,10 +531,7 @@ test.describe('holds', () => {
 		const panel = page.getByTestId('status-panel');
 		await expect(panel).toHaveAttribute('data-held', 'true');
 		await expect(panel.getByRole('heading', { name: 'On hold' })).toBeVisible();
-		await expect(
-			panel.getByText(/Another match on OPEN has the same teams and date/)
-		).toBeVisible();
-		await expect(panel.getByText(/One player from each team needs to vouch/)).toBeVisible();
+		await expect(panel.getByText(/Another match has the same teams and date/)).toBeVisible();
 		await expect(page.getByText(/moderator/i)).toHaveCount(0);
 
 		await page.getByRole('button', { name: 'This match really happened' }).click();
@@ -547,8 +544,9 @@ test.describe('holds', () => {
 		await expect(
 			page.getByText('Vouched. The hold has ended and the match now counts.')
 		).toBeVisible();
-		await expect(panel).not.toHaveAttribute('data-held');
-		await expect(page.getByRole('heading', { name: 'Confirmed' })).toBeFocused();
+		// It is confirmed and no longer held, so the panel goes and the page title takes focus.
+		await expect(panel).toHaveCount(0);
+		await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
 		await expect(page.getByRole('button', { name: 'This match really happened' })).toHaveCount(0);
 
 		// Home: it left the held list.
@@ -564,7 +562,7 @@ test.describe('holds', () => {
 		await page.goto(`/matches/${HELD_VOUCHED}`);
 		const panel = page.getByTestId('status-panel');
 		await expect(panel.getByRole('heading', { name: 'On hold' })).toBeVisible();
-		await expect(panel.getByText(/Your team has vouched for this match/)).toBeVisible();
+		await expect(panel.getByText(/Your team vouched for this match/)).toBeVisible();
 		await expect(panel.getByRole('button')).toHaveCount(0);
 	});
 
@@ -626,7 +624,6 @@ test.describe('corrections', () => {
 		await page.getByRole('link', { name: 'Matches', exact: true }).first().click();
 		await rowFor(page, WAITING_ON_ME_TOO).first().click();
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'voided');
-		await expect(page.getByText(/If a player corrected this match/)).toBeVisible();
 		await expect(page.getByRole('link', { name: 'See the corrected match' })).toHaveAttribute(
 			'href',
 			corrected
@@ -637,10 +634,7 @@ test.describe('corrections', () => {
 		page
 	}) => {
 		await page.goto(`/matches/${MY_DISPUTE}`);
-		const panel = page.getByTestId('status-panel');
-		await expect(
-			panel.getByText(/Only the organizer can change a match an organizer recorded/)
-		).toBeVisible();
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'disputed');
 		await page.getByRole('link', { name: 'Correct the score' }).click();
 		await page.getByLabel("Game 3, your team's points").fill('11');
 		await page.getByLabel("Game 3, opponents' points").fill('9');
@@ -723,5 +717,41 @@ test.describe('corrections', () => {
 			);
 			await expectNoAxeViolations(page);
 		}
+	});
+});
+
+test.describe('match page status panel', () => {
+	/** True when the status panel comes before the scoreboard in the page. */
+	async function panelBeforeScore(page: Page): Promise<boolean> {
+		const panel = page.getByTestId('status-panel');
+		const board = page.getByRole('region', { name: 'Score', exact: true });
+		await expect(panel).toBeVisible();
+		await expect(board).toBeVisible();
+		return panel.evaluate(
+			(el, other) => !!(el.compareDocumentPosition(other!) & Node.DOCUMENT_POSITION_FOLLOWING),
+			await board.elementHandle()
+		);
+	}
+
+	test('sits above the scoreboard when she has to confirm', async ({ page }) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		await expect(page.getByRole('button', { name: 'Confirm score' })).toBeVisible();
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-tone', 'action');
+		expect(await panelBeforeScore(page)).toBe(true);
+	});
+
+	test('sits above the scoreboard on a disputed match with nothing for her to do', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${STILL_DISPUTED}`);
+		await expect(page.getByTestId('status-panel').getByRole('button')).toHaveCount(0);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-tone', 'disputed');
+		expect(await panelBeforeScore(page)).toBe(true);
+	});
+
+	test('sits above the scoreboard on a held match, with the warning edge', async ({ page }) => {
+		await page.goto(`/matches/${HELD_VOUCHED}`);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-tone', 'held');
+		expect(await panelBeforeScore(page)).toBe(true);
 	});
 });
