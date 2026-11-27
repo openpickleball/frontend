@@ -19,7 +19,8 @@ import type { MyPlayer } from './types.js';
  * - `not-created`: the create on load was refused for its values (a 422 with nothing missing).
  *   The backend used the details it holds from sign-up, so a form would not help.
  * - `mfa-required`: the API refused with 403 `mfa_required`: the account needs two-factor, or this
- *   session has not passed it. Show that, with a link to the two-factor settings, not an error.
+ *   session has not passed it. Show that, not an error: the code prompt when two-factor is on,
+ *   and a link to the two-factor settings otherwise (off, or not known).
  * - `signed-out`: nobody is signed in.
  * - `error`: the backend failed or could not be reached. Show Try again.
  */

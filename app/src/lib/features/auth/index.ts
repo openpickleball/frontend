@@ -29,6 +29,8 @@
  *   then sends the call again. On Cancel it throws `ReauthCancelled`, which callers ignore.
  *   `requestReauth(methods)` opens the same prompt directly.
  *
+ * - `checkMfaEnrolled()`: ask the backend again whether two-factor is on, and keep
+ *   `session.mfaEnrolled` current. The code gate calls it when the value is unknown.
  * - `watchMfaRequired(notify)`: the root layout calls it once, and explains every 403
  *   `mfa_required` in one toast.
  * - `OrganizerMfaPrompt`: tells an organizer member without two-factor that organizer actions
