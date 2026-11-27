@@ -544,13 +544,17 @@ export function watchMfaRequired(
 /**
  * Ask allauth again whether two-factor is on for the signed-in account, and keep
  * `session.mfaEnrolled` current. Resolves to the answer, or null when it is unknown or another
- * account signed in while it asked (then nothing is written).
+ * account signed in while it asked (then nothing is written). A value set while it asked is
+ * newer, so it is kept and returned.
  */
 export async function checkMfaEnrolled({ api = appApi }: ApiOption = {}): Promise<boolean | null> {
 	if (!session.isSignedIn) return null;
 	const email = session.email;
+	const revision = session.mfaRevision;
 	const fresh = await readEnrolled(api);
 	if (!session.isSignedIn || session.email !== email) return null;
+	// A value set while this read waited (turning TOTP on, say) is newer: keep it.
+	if (session.mfaRevision !== revision) return session.mfaEnrolled;
 	if (fresh !== null) session.mfaEnrolled = fresh;
 	return fresh;
 }
