@@ -66,6 +66,14 @@
 	const kinds = EVENT_KINDS.map((kind) => ({ value: kind, label: EVENT_KIND_LABELS[kind] }));
 	const membership = $derived(session.organizers?.find((m) => m.organizer === form.organizer));
 	const organizerName = $derived(membership?.name ?? form.organizer);
+	const organizerAsText = $derived(form.isEdit || form.organizerChoices.length === 1);
+	// A field shown as text has no place for its error, so the dialog shows it as its message.
+	const hiddenError = $derived(
+		(organizerAsText ? form.errors.organizer : undefined) ??
+			(form.isEdit ? form.errors.club : undefined) ??
+			null
+	);
+	const problem = $derived(form.formError?.message ?? hiddenError);
 
 	async function submit(submitEvent: SubmitEvent) {
 		submitEvent.preventDefault();
@@ -130,7 +138,7 @@
 					error={form.errors.kind}
 					hint={form.isEdit ? KIND_NOTE : ''}
 				/>
-				{#if form.isEdit || form.organizerChoices.length === 1}
+				{#if organizerAsText}
 					<dl class="grid gap-1">
 						<dt class="text-base font-semibold text-secondary">Organizer</dt>
 						<dd class="text-base text-secondary">{organizerName}</dd>
@@ -175,11 +183,11 @@
 				/>
 			</div>
 
-			{#if form.formError}
+			{#if problem}
 				<Alert variant="destructive">
 					<CircleAlertIcon aria-hidden="true" />
-					<AlertTitle>{form.formError.message}</AlertTitle>
-					{#if form.formError.twoFactorLink}
+					<AlertTitle>{problem}</AlertTitle>
+					{#if form.formError?.twoFactorLink}
 						<AlertDescription>
 							<Button variant="link" size="inline" href={resolve(ROUTES.twoFactor)}>
 								{TWO_FACTOR_LINK}
