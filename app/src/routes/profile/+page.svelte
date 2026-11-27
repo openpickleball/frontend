@@ -1,12 +1,7 @@
 <script lang="ts">
 	import { countMatches } from '#lib/features/matches/index.js';
 	import { ProfileSettings, ProfileView } from '#lib/features/players/index.js';
-	import {
-		OrganizerMfaPrompt,
-		SignOutButton,
-		TwoFactorStatus,
-		session
-	} from '#lib/features/auth/index.js';
+	import { SignOutButton, TwoFactorStatus, session } from '#lib/features/auth/index.js';
 	import { Section } from '#lib/ui/section/index.js';
 </script>
 
@@ -17,7 +12,6 @@
 <ProfileView {countMatches}>
 	{#if session.isSignedIn}
 		<ProfileSettings />
-		<OrganizerMfaPrompt link />
 		<TwoFactorStatus />
 		<!-- From 1024px the side nav foot has Sign out, so it is not shown twice. -->
 		<Section title="Account" class="lg:hidden">

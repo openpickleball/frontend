@@ -14,6 +14,7 @@
 		AlertDialogTitle
 	} from '#lib/ui/alert-dialog/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { asAppError, parseMfaCode } from '../forms.js';
@@ -146,8 +147,8 @@
 	}
 </script>
 
-<section class="grid gap-8" aria-labelledby="two-factor-heading" aria-busy={busy}>
-	<h2 id="two-factor-heading" class="sr-only">Two-factor settings</h2>
+<!-- The section pattern (plans/ux-cleanup #283): a line, the title, then the content. -->
+<div aria-busy={busy}>
 	{#if view.status === 'loading'}
 		<LoadingState label="Loading your two-factor settings…" />
 	{:else if view.status === 'error'}
@@ -158,64 +159,78 @@
 			<Button variant="outline" size="sm" class="mt-4" onclick={() => load()}>Try again</Button>
 		</div>
 	{:else if view.status === 'off'}
-		<div class="grid gap-4">
-			<p class="max-w-md text-base text-muted">
-				Two-factor authentication is off. Turn it on to ask for a code from an authenticator app
-				each time you sign in, as well as your password.
-			</p>
-			<p class="max-w-md text-base text-muted">
-				Scan this QR code with your authenticator app, or type the setup key into it.
-			</p>
-			<QrCode value={view.totpUrl} label="QR code for your authenticator app" />
-			<div class="grid gap-1">
-				<span class="label">Setup key</span>
-				<code class="font-mono text-base break-all text-secondary">{view.secret}</code>
+		<Section title="Authenticator app">
+			<div class="grid gap-8">
+				<div class="grid gap-4">
+					<p class="max-w-md text-base text-muted">
+						Two-factor authentication is off. Turn it on to ask for a code from an authenticator app
+						each time you sign in, as well as your password.
+					</p>
+					<p class="max-w-md text-base text-muted">
+						Scan this QR code with your authenticator app, or type the setup key into it.
+					</p>
+					<QrCode value={view.totpUrl} label="QR code for your authenticator app" />
+					<div class="grid gap-1">
+						<span class="text-base font-semibold text-secondary">Setup key</span>
+						<code class="font-mono text-base break-all text-secondary">{view.secret}</code>
+					</div>
+				</div>
+				<form method="post" onsubmit={turnOn} novalidate class="grid max-w-md gap-4">
+					<MfaCodeField id="totp-code" kind="totp" bind:value={code} error={codeError} />
+					<Button type="submit" aria-disabled={busy} aria-busy={busy} class="justify-self-start">
+						{#if busy}<Spinner />{/if}
+						Turn on
+					</Button>
+				</form>
 			</div>
-		</div>
-		<form method="post" onsubmit={turnOn} novalidate class="grid max-w-md gap-4">
-			<MfaCodeField id="totp-code" kind="totp" bind:value={code} error={codeError} />
-			<Button type="submit" aria-disabled={busy} aria-busy={busy} class="justify-self-start">
-				{#if busy}<Spinner />{/if}
-				Turn on
-			</Button>
-		</form>
+		</Section>
 	{:else}
-		<div class="grid gap-4">
-			<p class="max-w-md text-base text-muted">
-				{onSince(view.authenticators)} Each sign-in asks for a code from your authenticator app.
-			</p>
-			{#if view.authenticators.recoveryCodes}
+		<Section title="Authenticator app">
+			<div class="grid gap-4">
 				<p class="max-w-md text-base text-muted">
-					{view.authenticators.recoveryCodes.unused} of {view.authenticators.recoveryCodes.total} recovery
-					codes unused.
+					{onSince(view.authenticators)} Each sign-in asks for a code from your authenticator app.
 				</p>
-			{/if}
-			<div class="flex flex-wrap gap-3">
-				<Button variant="outline" onclick={newCodes} aria-disabled={busy}>
-					Make new recovery codes
-				</Button>
-				<Button variant="outline" onclick={() => (confirmOff = true)} aria-disabled={busy}>
-					Turn off
-				</Button>
+				<div>
+					<Button variant="outline" onclick={() => (confirmOff = true)} aria-disabled={busy}>
+						Turn off
+					</Button>
+				</div>
 			</div>
-		</div>
-	{/if}
-	{#if codesProblem}
-		<Alert>
-			<CircleAlertIcon aria-hidden="true" />
-			<AlertTitle>{codesProblem}</AlertTitle>
-		</Alert>
-	{/if}
-	{#if shownCodes && shownCodes.length > 0}
-		<RecoveryCodes codes={shownCodes} />
+		</Section>
+		<Section title="Recovery codes">
+			<div class="grid gap-8">
+				<div class="grid gap-4">
+					{#if view.authenticators.recoveryCodes}
+						<p class="max-w-md text-base text-muted">
+							{view.authenticators.recoveryCodes.unused} of {view.authenticators.recoveryCodes
+								.total} recovery codes unused.
+						</p>
+					{/if}
+					<div>
+						<Button variant="outline" onclick={newCodes} aria-disabled={busy}>
+							Make new recovery codes
+						</Button>
+					</div>
+				</div>
+				{#if codesProblem}
+					<Alert>
+						<CircleAlertIcon aria-hidden="true" />
+						<AlertTitle>{codesProblem}</AlertTitle>
+					</Alert>
+				{/if}
+				{#if shownCodes && shownCodes.length > 0}
+					<RecoveryCodes codes={shownCodes} />
+				{/if}
+			</div>
+		</Section>
 	{/if}
 	{#if problem}
-		<Alert variant="destructive">
+		<Alert variant="destructive" class="mt-8">
 			<CircleAlertIcon aria-hidden="true" />
 			<AlertTitle>{problem}</AlertTitle>
 		</Alert>
 	{/if}
-</section>
+</div>
 
 <AlertDialog bind:open={confirmOff}>
 	<AlertDialogContent>

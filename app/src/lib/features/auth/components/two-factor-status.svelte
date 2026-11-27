@@ -2,7 +2,9 @@
 	import { resolve } from '$app/paths';
 	import { ROUTES } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import { session } from '../session.svelte.js';
+	import OrganizerMfaPrompt from './organizer-mfa-prompt.svelte';
 
 	/** The profile page's two-factor section: on or off, and a link to its settings. */
 	const link = $derived(
@@ -14,9 +16,10 @@
 	);
 </script>
 
-<section class="border-t border-line pt-6" aria-labelledby="two-factor-status-heading">
-	<h2 id="two-factor-status-heading" class="label">Two-factor authentication</h2>
-	<div class="mt-4 flex flex-wrap items-center justify-between gap-4">
+<Section title="Two-factor authentication">
+	<!-- The organizer callout sits in this section, so it is not left between two sections. -->
+	<OrganizerMfaPrompt link class="mb-4" />
+	<div class="flex flex-wrap items-center justify-between gap-4">
 		<p class="max-w-md text-base text-muted">
 			{#if session.mfaEnrolled === true}
 				On. Each sign-in asks for a code from your authenticator app.
@@ -28,4 +31,4 @@
 		</p>
 		<Button variant="outline" size="sm" href={resolve(ROUTES.twoFactor)}>{link}</Button>
 	</div>
-</section>
+</Section>

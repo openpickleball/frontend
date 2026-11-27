@@ -11,11 +11,19 @@
 	 * Display only: the backend enforces it. Nothing renders for anyone else, or while the
 	 * memberships or two-factor are unknown.
 	 */
-	let { link = false }: { /** Show a link to the two-factor page. */ link?: boolean } = $props();
+	let {
+		link = false,
+		class: className
+	}: {
+		/** Show a link to the two-factor page. */
+		link?: boolean;
+		/** Space around the callout, from where the page places it. */
+		class?: string;
+	} = $props();
 </script>
 
 {#if session.isOrganizer && session.mfaEnrolled === false}
-	<Alert>
+	<Alert class={className}>
 		<ShieldAlertIcon aria-hidden="true" />
 		<AlertTitle>Organizer actions need two-factor authentication.</AlertTitle>
 		<AlertDescription>
