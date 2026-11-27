@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe('MfaCodeForm', () => {
-	it('asks for the 6-digit code from the app, with a numeric one-time-code field', async () => {
+	it('asks for the 6-digit code from the app, with a numeric one-time-code field and room for its space', async () => {
 		const screen = await render(MfaCodeForm, { onsuccess: vi.fn() });
 		await expect
 			.element(screen.getByRole('heading', { level: 1 }))
@@ -38,7 +38,7 @@ describe('MfaCodeForm', () => {
 		const field = screen.getByLabelText('Code from your app');
 		await expect.element(field).toHaveAttribute('inputmode', 'numeric');
 		await expect.element(field).toHaveAttribute('autocomplete', 'one-time-code');
-		await expect.element(field).toHaveAttribute('maxlength', '6');
+		await expect.element(field).toHaveAttribute('maxlength', '7');
 	});
 
 	it('checks the code is 6 digits before it asks the backend', async () => {
