@@ -401,6 +401,19 @@
 				<dt class="text-sm text-muted">Scoring</dt>
 				<dd class="mt-0.5">{scoringName(match.scoringType)}</dd>
 			</div>
+			<!-- Names only: players have no Event or Club page, and the organizer is never named. -->
+			{#if match.event}
+				<div>
+					<dt class="text-sm text-muted">Event</dt>
+					<dd class="mt-0.5">{match.event.name}</dd>
+				</div>
+			{/if}
+			{#if match.club}
+				<div>
+					<dt class="text-sm text-muted">Club</dt>
+					<dd class="mt-0.5">{match.club.name}</dd>
+				</div>
+			{/if}
 			<!-- The address uses the code, a correction gets a new one, and organizers ask for it. -->
 			<div class="col-span-2 lg:col-span-1">
 				<dt class="text-sm text-muted">Match code</dt>

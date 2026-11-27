@@ -102,6 +102,63 @@ describe('MatchView', () => {
 		await expect.element(details.getByText('Scoring')).toBeVisible();
 	});
 
+	describe('Event and Club', () => {
+		const EVENT = { code: 'E-TEST-0001', name: 'Test Winter League', organizer: 'O-TEST-0001' };
+		const CLUB = { code: 'C-TEST-0001', name: 'Test Court Club' };
+
+		// The cached copy and the fresh read are the same match, so nothing changes under the test.
+		const showing = (overrides: Parameters<typeof viewerMatch>[1]) => {
+			const match = viewerMatch({}, { status: 'disputed', ...overrides });
+			matchCache.remember(match);
+			mocked.getMatch.mockImplementation(async () => {
+				matchCache.remember(match);
+				return match;
+			});
+		};
+
+		const row = (details: ReturnType<typeof page.getByRole>, term: string) =>
+			details.getByRole('term').filter({ hasText: new RegExp(`^${term}$`) });
+
+		it('names the Event and the Club in Details, and offers no Correct', async () => {
+			showing({ event: EVENT, club: CLUB });
+			const screen = await render(MatchView, { code: code() });
+			const details = screen.getByRole('region', { name: 'Details' });
+			await expect.element(row(details, 'Event')).toBeVisible();
+			await expect.element(details.getByText('Test Winter League', { exact: true })).toBeVisible();
+			await expect.element(row(details, 'Club')).toBeVisible();
+			await expect.element(details.getByText('Test Court Club', { exact: true })).toBeVisible();
+			await expect.element(page.getByRole('heading', { name: 'Disputed' })).toBeVisible();
+			await expect
+				.element(page.getByRole('link', { name: 'Correct the score' }))
+				.not.toBeInTheDocument();
+			// The organizer's code is not something to show.
+			expect(screen.container.textContent).not.toContain('O-TEST-0001');
+		});
+
+		it('names only the Club on a Club-only match, and offers no Correct', async () => {
+			showing({ club: CLUB });
+			const screen = await render(MatchView, { code: code() });
+			const details = screen.getByRole('region', { name: 'Details' });
+			await expect.element(row(details, 'Club')).toBeVisible();
+			await expect.element(details.getByText('Test Court Club', { exact: true })).toBeVisible();
+			await expect.element(row(details, 'Event')).not.toBeInTheDocument();
+			await expect.element(page.getByRole('heading', { name: 'Disputed' })).toBeVisible();
+			await expect
+				.element(page.getByRole('link', { name: 'Correct the score' }))
+				.not.toBeInTheDocument();
+		});
+
+		it('shows neither row on a match with neither, and still offers Correct', async () => {
+			showing({});
+			const screen = await render(MatchView, { code: code() });
+			const details = screen.getByRole('region', { name: 'Details' });
+			await expect.element(details.getByText('Match code')).toBeVisible();
+			await expect.element(row(details, 'Event')).not.toBeInTheDocument();
+			await expect.element(row(details, 'Club')).not.toBeInTheDocument();
+			await expect.element(page.getByRole('link', { name: 'Correct the score' })).toBeVisible();
+		});
+	});
+
 	it('says once that the player just recorded the match', async () => {
 		matchCache.markRecorded(code());
 		const first = await render(MatchView, { code: code() });

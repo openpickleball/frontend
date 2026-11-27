@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import { DISPUTE_ENDS, HOLD_COUNTS, VOUCH_MEANS, VOUCH_MEANS_ORGANIZER } from '../status.js';
+import {
+	DISPUTE_ENDS,
+	DISPUTE_ENDS_EVENT,
+	HOLD_COUNTS,
+	VOUCH_MEANS,
+	VOUCH_MEANS_ORGANIZER
+} from '../status.js';
 import { sampleMatch, viewerMatch } from '../testing.js';
 import StatusPanel from './status-panel.svelte';
 
@@ -490,6 +496,27 @@ describe('StatusPanel', () => {
 			await screen.getByRole('button', { name: 'What does disputed mean?' }).click();
 			const popover = page.getByRole('dialog', { name: 'What does disputed mean?' });
 			await expect.element(popover.getByText(DISPUTE_ENDS)).toBeVisible();
+		});
+
+		it("names the event's organizer in the dispute text only on an event match", async () => {
+			const event = { code: 'E-TEST-0001', name: 'Test Winter League', organizer: 'O-TEST-0001' };
+			const club = { code: 'C-TEST-0001', name: 'Test Court Club' };
+			for (const [where, text] of [
+				[{ event, club }, DISPUTE_ENDS_EVENT],
+				[{ club }, DISPUTE_ENDS]
+			] as const) {
+				const screen = await render(StatusPanel, {
+					match: viewerMatch({}, { status: 'disputed', ...where }),
+					...handlers()
+				});
+				await screen.getByRole('button', { name: 'What does disputed mean?' }).click();
+				const popover = page.getByRole('dialog', { name: 'What does disputed mean?' });
+				await expect.element(popover.getByText(text)).toBeVisible();
+				expect(popover.element().textContent?.includes('organizer')).toBe(
+					text === DISPUTE_ENDS_EVENT
+				);
+				screen.unmount();
+			}
 		});
 
 		it('explains on hold and vouch while the panel asks for a vouch', async () => {
