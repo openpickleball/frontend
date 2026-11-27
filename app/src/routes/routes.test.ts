@@ -17,6 +17,7 @@ const expected: Record<string, string> = {
 	'./profile/+page.svelte': 'Profile',
 	'./profile/two-factor/+page.svelte': 'Two-factor authentication',
 	'./profile/ratings/+page.svelte': 'Rating history',
+	'./organizer/+page.svelte': 'Events',
 	'./account/login/+page.svelte': 'Sign in',
 	'./account/signup/+page.svelte': 'Create account',
 	'./account/verify-email/[key]/+page.svelte': 'Verify your email',
@@ -27,7 +28,9 @@ const expected: Record<string, string> = {
 // Real props for each page, as SvelteKit passes them. The match pages need their load data.
 const MATCH_CODE = buildCode('match', '7QK2H9WD3NF');
 const propsFor = (path: string): Record<string, unknown> => {
-	if (path === './matches/+page.svelte') return { data: { page: 1 } };
+	if (path === './matches/+page.svelte' || path === './organizer/+page.svelte') {
+		return { data: { page: 1 } };
+	}
 	if (
 		path === './matches/[code]/+page.svelte' ||
 		path === './matches/[code]/correct/+page.svelte'
