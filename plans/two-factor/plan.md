@@ -70,7 +70,7 @@ Each step is TDD (a failing test first, then the code) and its own commit, signe
 6. [x] Reauthentication: `reauth.svelte.ts`, `ReauthPrompt`, mounted in the root layout.
 7. [x] Two-factor services and settings: `two-factor.ts`, `QrCode`, `RecoveryCodes`, `TwoFactorSettings`, the `/profile/two-factor` route, the profile section.
 8. [x] Organizer prompt and the `mfa_required` toast.
-9. [ ] E2E spec and the service worker routing test. Full gate. Live drive.
+9. [x] E2E spec and the service worker routing test. Full gate. Live drive.
 
 ## Risks
 
@@ -111,3 +111,7 @@ Measured on `origin/main` (`5761030`, 2026-11-26) for the phrase-absent test "no
 - 2026-11-26, with the user: the QR code uses `uqr` drawn as inline SVG, so the CSP does not change.
 - Settings live at `/profile/two-factor`, not under `/account`, because `/account/*` is the signed-out area (bare shell, not a `next` target).
 - A global toast handles `mfa_required`, so every screen gets the explanation and link without its own mapping.
+- 2026-11-26, live drive: allauth leaves `unused_codes` out of the recovery codes body once the codes were shown (it does not send an empty list). `getRecoveryCodes` now reads a missing list as no codes, pinned by `two-factor-shown-once.test.ts`, and the mock answers the same way.
+- 2026-11-26, live drive review: the `mfa_required` notice read `session.mfaEnrolled` before the authenticator list had loaded after a sign-in, so an account with two-factor could be told to set it up. It now waits for the account state read in flight, pinned by `mfa-required-race.test.ts`.
+- 2026-11-26, live drive: the backend's `GET account/authenticators/totp` makes a new setup key on every call, and the backend refuses a TOTP code that was already used in its 30-second window. The app reads the setup key once per visit to the page. The mock keeps one fixed key and accepts `MOCK_TOTP_CODE` every time, so neither rule is mocked.
+
