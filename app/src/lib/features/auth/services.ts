@@ -117,6 +117,7 @@ async function readAccountState({ api = appApi }: ApiOption = {}): Promise<void>
 	const email = session.isSignedIn ? session.email : null;
 	if (!email) return;
 	const current = () => session.isSignedIn && session.email === email;
+	const revision = session.mfaRevision;
 	const organizers = (async () => {
 		try {
 			const result = await settle(api.open.GET('/api/v1/organizer/organizers'));
@@ -140,7 +141,8 @@ async function readAccountState({ api = appApi }: ApiOption = {}): Promise<void>
 	const [memberships, mfa] = await Promise.all([organizers, enrolled]);
 	if (!current()) return;
 	session.organizers = memberships;
-	session.mfaEnrolled = mfa;
+	// A value set while this read waited (turning TOTP on, say) is newer: keep it.
+	if (session.mfaRevision === revision) session.mfaEnrolled = mfa;
 }
 
 let booting: Promise<void> | null = null;

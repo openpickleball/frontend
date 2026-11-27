@@ -46,8 +46,19 @@ class Session {
 	 * only: the backend decides what an organizer may do.
 	 */
 	organizers = $state<OrganizerMembership[] | null>(null);
+	#mfaEnrolled = $state<boolean | null>(null);
+	/** Counts the writes to `mfaEnrolled`, so a slow read can tell it was set after it started. */
+	mfaRevision = 0;
+
 	/** Signed in: whether two-factor (TOTP) is on, or null while unknown. */
-	mfaEnrolled = $state<boolean | null>(null);
+	get mfaEnrolled(): boolean | null {
+		return this.#mfaEnrolled;
+	}
+
+	set mfaEnrolled(value: boolean | null) {
+		this.#mfaEnrolled = value;
+		this.mfaRevision++;
+	}
 
 	get isSignedIn(): boolean {
 		return this.status === 'signed_in';
