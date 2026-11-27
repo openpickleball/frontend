@@ -42,6 +42,7 @@ Paths are under `app/` unless stated.
 - `src/lib/features/auth/index.ts`: export the new public pieces.
 - `src/lib/domain/routes.ts`: `twoFactor: '/profile/two-factor'`.
 - `src/routes/profile/two-factor/+page.svelte` (new): page title, `OrganizerMfaPrompt`, `TwoFactorSettings`. It is guarded already, since `/profile/*` is guarded.
+- `src/lib/features/auth/components/two-factor-status.svelte` (new): the profile page's section, so it can be tested on its own.
 - `src/routes/profile/+page.svelte`: a "Two-factor authentication" section in the existing section pattern (`border-t border-line pt-6`, `h2.label`) with the on or off status, a link to the page, and `OrganizerMfaPrompt` above it.
 - `src/routes/+layout.svelte`: mount `ReauthPrompt` and the `mfa_required` listener.
 - `src/lib/features/players/my-code.svelte.ts`: a 403 with code `mfa_required` is not 'unverified'. Let it reach the generic error path, whose message now explains it.
@@ -67,7 +68,7 @@ Each step is TDD (a failing test first, then the code) and its own commit, signe
 4. [x] Session and services: `pending_mfa`, `authenticateMfa`, `cancelMfa`, reauthentication calls, `loadAccountState`, clearing on sign out and expiry. Guard rules for `pending_mfa`.
 5. [x] Sign-in code step: `MfaCodeForm` and the login form switch.
 6. [x] Reauthentication: `reauth.svelte.ts`, `ReauthPrompt`, mounted in the root layout.
-7. [ ] Two-factor services and settings: `two-factor.ts`, `QrCode`, `RecoveryCodes`, `TwoFactorSettings`, the `/profile/two-factor` route, the profile section.
+7. [x] Two-factor services and settings: `two-factor.ts`, `QrCode`, `RecoveryCodes`, `TwoFactorSettings`, the `/profile/two-factor` route, the profile section.
 8. [ ] Organizer prompt and the `mfa_required` toast.
 9. [ ] E2E spec and the service worker routing test. Full gate. Live drive.
 

@@ -53,6 +53,8 @@ export { default as ResetRequestForm } from './components/reset-request-form.sve
 export { default as ResetForm } from './components/reset-form.svelte';
 export { default as SessionCheck } from './components/session-check.svelte';
 export { default as ReauthPrompt } from './components/reauth-prompt.svelte';
+export { default as TwoFactorSettings } from './components/two-factor-settings.svelte';
+export { default as TwoFactorStatus } from './components/two-factor-status.svelte';
 export { ReauthCancelled, requestReauth, withReauth } from './reauth.svelte.js';
 
 /**

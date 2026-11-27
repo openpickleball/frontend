@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { countMatches } from '#lib/features/matches/index.js';
 	import { ProfileSettings, ProfileView } from '#lib/features/players/index.js';
-	import { SignOutButton, session } from '#lib/features/auth/index.js';
+	import { SignOutButton, TwoFactorStatus, session } from '#lib/features/auth/index.js';
 </script>
 
 <svelte:head>
@@ -11,6 +11,7 @@
 <ProfileView {countMatches}>
 	{#if session.isSignedIn}
 		<ProfileSettings />
+		<TwoFactorStatus />
 		<!-- From 1024px the side nav foot has Sign out, so it is not shown twice. -->
 		<section class="border-t border-line pt-6 lg:hidden" aria-labelledby="account-heading">
 			<h2 id="account-heading" class="label">Account</h2>
