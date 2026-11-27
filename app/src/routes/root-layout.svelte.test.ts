@@ -3,8 +3,15 @@ import { createRawSnippet } from 'svelte';
 import { render } from 'vitest-browser-svelte';
 import { toast } from 'svelte-sonner';
 import { goto } from '$app/navigation';
-import { reauthPrompt, requestReauth, session } from '#lib/features/auth/index.js';
+import {
+	endDeletedAccount,
+	reauthPrompt,
+	requestReauth,
+	session,
+	unsentMatches
+} from '#lib/features/auth/index.js';
 import { matchCache } from '#lib/features/matches/index.js';
+import { createOfflineQueue, offlineQueue } from '#lib/features/offline/index.js';
 import { myCode } from '#lib/features/players/index.js';
 import RootLayout from './+layout.svelte';
 
@@ -21,6 +28,12 @@ vi.mock('#lib/features/auth/services.js', async (importOriginal) => ({
 			mfaRequired = null;
 		};
 	})
+}));
+
+// The queue never reaches a backend here: every send waits for a connection.
+vi.mock('#lib/features/offline/send.js', async (importOriginal) => ({
+	...(await importOriginal<Record<string, unknown>>()),
+	sendQueued: vi.fn(async () => ({ kind: 'retry', offline: true }))
 }));
 
 const children = createRawSnippet(() => ({ render: () => '<p>page</p>' }));
@@ -134,5 +147,48 @@ describe('root layout organizer entry', () => {
 		await vi.waitFor(() => expect(events()).toHaveLength(2));
 		session.organizers = [];
 		await vi.waitFor(() => expect(events()).toHaveLength(0));
+	});
+});
+
+describe('root layout account deletion', () => {
+	// A made-up account, and a match it recorded on this device that was not sent.
+	const EMAIL = 'quill@example.com';
+	const match = {
+		own: 'P-AAAA-BBBB',
+		body: {
+			format: 'singles' as const,
+			played_on: '2026-11-14',
+			team_a: ['P-AAAA-BBBB'],
+			team_b: ['P-CCCC-DDDD'],
+			games: [{ team_a: 11, team_b: 6 }]
+		},
+		form: { format: 'singles' }
+	};
+	/** A second queue on the same device storage, as a reload of the app would read it. */
+	const readAgain = async () => {
+		const queue = createOfflineQueue({ send: async () => ({ kind: 'retry', offline: true }) });
+		await queue.setAccount(EMAIL);
+		return queue;
+	};
+
+	afterEach(async () => {
+		await offlineQueue.setAccount(null);
+		await (await readAgain()).forget();
+	});
+
+	it("deletes the account's unsent matches from the device, after telling the dialog the count", async () => {
+		session.apply({ status: 'signed_in', email: EMAIL });
+		await render(RootLayout, props);
+		await vi.waitFor(() => offlineQueue.add(match));
+		expect(offlineQueue.unsent).toBe(1);
+		expect(unsentMatches()).toBe(1);
+
+		endDeletedAccount();
+
+		expect(session.isSignedIn).toBe(false);
+		expect(session.accountDeleted).toBe(true);
+		expect(offlineQueue.unsent).toBe(0);
+		expect(unsentMatches()).toBe(0);
+		await vi.waitFor(async () => expect((await readAgain()).unsent).toBe(0));
 	});
 });

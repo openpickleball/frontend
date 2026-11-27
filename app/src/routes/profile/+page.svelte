@@ -4,7 +4,12 @@
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 	import { ROUTES } from '#lib/domain/index.js';
 	import { ProfileView, myCode } from '#lib/features/players/index.js';
-	import { OrganizerMfaPrompt, SignOutButton, session } from '#lib/features/auth/index.js';
+	import {
+		DeleteAccountDialog,
+		OrganizerMfaPrompt,
+		SignOutButton,
+		session
+	} from '#lib/features/auth/index.js';
 	import { APP_COMMIT, APP_VERSION, versionLabel } from '#lib/ui/app-version.js';
 	import { FeedbackButton } from '#lib/ui/feedback/index.js';
 	import {
@@ -104,6 +109,23 @@
 					'Copy of your data',
 					'How to get a copy of what OPEN holds'
 				)}
+				<li>
+					<DeleteAccountDialog>
+						{#snippet trigger({ props })}
+							<Item class="cursor-pointer">
+								{#snippet child({ props: rowProps })}
+									<button {...props} {...rowProps}>
+										<ItemContent>
+											<ItemTitle>Delete your account</ItemTitle>
+											<ItemDescription>Your data goes, your match results stay</ItemDescription>
+										</ItemContent>
+										<ItemActions><ChevronRightIcon aria-hidden="true" /></ItemActions>
+									</button>
+								{/snippet}
+							</Item>
+						{/snippet}
+					</DeleteAccountDialog>
+				</li>
 			</ItemGroup>
 		</Section>
 

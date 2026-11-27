@@ -89,8 +89,8 @@ Chosen not to do:
 - [x] Delete service
 - [x] Login notice
 - [x] Dialog
-- [ ] Profile row
-- [ ] e2e
+- [x] Profile row
+- [x] e2e
 - [ ] Gate and live drive
 
 ## Decisions
