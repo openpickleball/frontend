@@ -170,9 +170,13 @@ export class MyCode {
 		this.status = 'idle';
 	}
 
-	/** Show the name the backend returned after the player changed how it is shown. */
-	showName(displayName: string): void {
-		if (this.status === 'ready') this.displayName = displayName;
+	/**
+	 * Show the name the backend returned after the player changed how it is shown. `code` is the
+	 * player the answer belongs to: a late answer for another account (after a sign-out and a
+	 * sign-in) changes nothing.
+	 */
+	showName(code: PlayerCode, displayName: string): void {
+		if (this.status === 'ready' && this.code === code) this.displayName = displayName;
 	}
 
 	/** The create in flight, or a new one. */

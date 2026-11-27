@@ -19,7 +19,11 @@
 	} = $props();
 
 	async function change<K extends PrivacyKey>(settings: SettingsStore, key: K, value: Privacy[K]) {
-		if (await settings.setPrivacy(key, value)) myCode.showName(settings.displayName);
+		// The settings belong to the player whose code the gate holds now. The answer may arrive
+		// after a sign-out, so the name goes only to that player.
+		const code = myCode.code;
+		if ((await settings.setPrivacy(key, value)) && code)
+			myCode.showName(code, settings.displayName);
 	}
 </script>
 
