@@ -50,6 +50,7 @@ describe('OwnCodeGate when two-factor is on but this session has not passed it',
 	});
 
 	it('reads two-factor again when it is unknown, then offers the code', async () => {
+		session.mfaEnrolled = null;
 		vi.mocked(checkMfaEnrolled).mockImplementation(async () => {
 			session.mfaEnrolled = true;
 			return true;
