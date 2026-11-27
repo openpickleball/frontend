@@ -3,7 +3,8 @@
  *
  * For other features and pages:
  * - `session`: the signed-in state, a runes store. `session.status` is `signed_out`,
- *   `pending_verification` or `signed_in` (`unknown` before the first load, or when the
+ *   `pending_verification`, `pending_mfa` (a login waiting for its two-factor code) or
+ *   `signed_in` (`unknown` before the first load, or when the
  *   session could not be read: the guard treats that as signed out, and `SessionCheck` on the
  *   sign-in page says so).
  *   `session.isSignedIn` is the quick check and `session.email` is the account's address
@@ -23,6 +24,18 @@
  *   marks the session signed out (so the layout clears the player's code and cached matches)
  *   and calls `onExpired`, which re-runs the guard to send the player to sign in.
  *
+ * - `withReauth(call)`: run a call that may need a recent reauthentication (the password or a
+ *   two-factor code). It asks the player with `ReauthPrompt`, which the root layout mounts once,
+ *   then sends the call again. On Cancel it throws `ReauthCancelled`, which callers ignore.
+ *   `requestReauth(methods)` opens the same prompt directly.
+ *
+ * - `checkMfaEnrolled()`: ask the backend again whether two-factor is on, and keep
+ *   `session.mfaEnrolled` current. The code gate calls it when the value is unknown.
+ * - `watchMfaRequired(notify)`: the root layout calls it once, and explains every 403
+ *   `mfa_required` in one toast.
+ * - `OrganizerMfaPrompt`: tells an organizer member without two-factor that organizer actions
+ *   need it. Display only.
+ *
  * The routes use the rest: the forms and the layout guard.
  */
 import { redirect } from '@sveltejs/kit';
@@ -30,8 +43,19 @@ import { loginUrl, redirectFor } from './guard.js';
 import { session } from './session.svelte.js';
 import { bootstrap } from './services.js';
 
-export { session, type SessionStatus } from './session.svelte.js';
-export { watchSessionExpiry, onSignOut, setSignOutWarning } from './services.js';
+export {
+	session,
+	type MfaType,
+	type OrganizerMembership,
+	type SessionStatus
+} from './session.svelte.js';
+export {
+	checkMfaEnrolled,
+	watchMfaRequired,
+	watchSessionExpiry,
+	onSignOut,
+	setSignOutWarning
+} from './services.js';
 export { isAccountPath, safeNext } from './guard.js';
 export { goAfterSignIn } from './navigation.js';
 export { default as SignOutButton } from './components/sign-out-button.svelte';
@@ -41,6 +65,11 @@ export { default as VerifyEmail } from './components/verify-email.svelte';
 export { default as ResetRequestForm } from './components/reset-request-form.svelte';
 export { default as ResetForm } from './components/reset-form.svelte';
 export { default as SessionCheck } from './components/session-check.svelte';
+export { default as ReauthPrompt } from './components/reauth-prompt.svelte';
+export { default as TwoFactorSettings } from './components/two-factor-settings.svelte';
+export { default as TwoFactorStatus } from './components/two-factor-status.svelte';
+export { default as OrganizerMfaPrompt } from './components/organizer-mfa-prompt.svelte';
+export { ReauthCancelled, reauthPrompt, requestReauth, withReauth } from './reauth.svelte.js';
 
 /**
  * Read the session once (and set up CSRF), then redirect if this visit isn't allowed:

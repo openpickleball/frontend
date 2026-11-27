@@ -291,7 +291,7 @@ test('a long picked name wraps and keeps the code on one line', async ({ page })
 	await page.waitForLoadState('networkidle');
 	await page.evaluate(
 		({ code, name }) => {
-			const key = 'open-mock-state-v1';
+			const key = 'open-mock-state-v2';
 			const state = JSON.parse(sessionStorage.getItem(key)!);
 			state.players.find((p: { code: string }) => p.code === code).displayName = name;
 			sessionStorage.setItem(key, JSON.stringify(state));

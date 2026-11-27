@@ -75,6 +75,8 @@ These block app work. The app can't do them yet.
 
 `GET /api/v1/accounts/me` and the health endpoints exist, and the app doesn't need them yet.
 
+Update 2026-11-26 (#261): backend#301 (organizer memberships, `GET /api/v1/organizer/organizers`) and backend#99 (MFA with TOTP and recovery codes) have shipped. #261 reads the memberships into the session store (`session.organizers`, `session.isOrganizer`) to prompt organizer members to set up two-factor. #217 can reuse them. Passkeys (backend#117) are still open.
+
 ## Steps
 
 - [x] S0 Read the CSRF token from `__Host-csrftoken` when it is set, else `csrftoken`, with tests (#222). Independent of the rest. It must land before the app is hosted (frontend#22).

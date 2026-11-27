@@ -6,7 +6,11 @@ import { login } from '../services.js';
 import LoginForm from './login-form.svelte';
 
 // The service has its own tests against the mock API. Here it is a stand-in.
-vi.mock('../services.js', () => ({ login: vi.fn() }));
+vi.mock('../services.js', () => ({
+	login: vi.fn(),
+	authenticateMfa: vi.fn(),
+	cancelMfa: vi.fn()
+}));
 const mockedLogin = vi.mocked(login);
 
 function appError(overrides: Partial<AppErrorFields>): AppError {
@@ -220,6 +224,28 @@ describe('LoginForm', () => {
 		await expect.element(screen.getByLabelText('Email')).toBeVisible();
 		await expect.element(screen.getByLabelText('Password', { exact: true })).toBeVisible();
 		await expect.element(screen.getByText('Check your email')).toBeVisible();
+	});
+
+	it('asks for the two-factor code after a correct password for an account with TOTP', async () => {
+		mockedLogin.mockImplementation(async () => {
+			const state = { status: 'pending_mfa', types: ['totp', 'recovery_codes'] } as const;
+			session.apply({ ...state, types: [...state.types] });
+			return { ...state, types: [...state.types] };
+		});
+		const onsuccess = vi.fn();
+		const screen = await render(LoginForm, { onsuccess });
+		await fill(screen, 'twofactor@example.com', 'a-password');
+		await screen.getByRole('button', { name: 'Sign in' }).click();
+
+		await expect.element(screen.getByLabelText('Code from your app')).toBeVisible();
+		expect(screen.getByLabelText('Email').query()).toBeNull();
+		expect(onsuccess).not.toHaveBeenCalled();
+	});
+
+	it('shows the code step again after a reload during it', async () => {
+		session.apply({ status: 'pending_mfa', types: ['totp'] });
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		await expect.element(screen.getByLabelText('Code from your app')).toBeVisible();
 	});
 
 	it('shows the Show and Hide toggle for the password', async () => {

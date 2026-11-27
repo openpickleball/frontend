@@ -1,4 +1,11 @@
-import { api, isAppError, unwrap, type ApiOption, type AppError } from '#lib/api/index.js';
+import {
+	MFA_REQUIRED,
+	api,
+	isAppError,
+	unwrap,
+	type ApiOption,
+	type AppError
+} from '#lib/api/index.js';
 import { parseMatchCode, toMatch, type Match, type MatchCode } from '#lib/domain/index.js';
 import type { MatchBody, Problem } from './types.js';
 
@@ -10,6 +17,7 @@ import type { MatchBody, Problem } from './types.js';
  *   sent before the connection dropped. It counts as sent.
  * - `refused`: sending again would get the same answer. The player has to see it.
  * - `signin`: a 401. Keep it and send it once the player signs in again.
+ * - `mfa`: a 403 `mfa_required`. Keep it and send it once the session passes two-factor.
  * - `retry`: no answer, a 5xx, a 429 or a CSRF failure. Keep it and try later.
  */
 export type SendOutcome =
@@ -17,6 +25,7 @@ export type SendOutcome =
 	| { kind: 'duplicate'; code: MatchCode }
 	| { kind: 'refused'; problem: Problem }
 	| { kind: 'signin' }
+	| { kind: 'mfa' }
 	| { kind: 'retry'; offline: boolean };
 
 export const REFUSED_MESSAGE =
@@ -64,6 +73,8 @@ export function outcomeOf(error: unknown): SendOutcome {
 				}
 			};
 		case 'forbidden':
+			// Not a refusal of the match: the session needs two-factor first. Sending later works.
+			if (error.code === MFA_REQUIRED) return { kind: 'mfa' };
 			return {
 				kind: 'refused',
 				problem: { kind: 'refused', message: REFUSED_MESSAGE, fields: {} }

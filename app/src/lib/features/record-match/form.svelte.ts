@@ -6,7 +6,7 @@
  * Every error is keyed like the backend's 422 fields (`played_on`, `team_b.0`, `games.1`), so a
  * client-side issue and a server-side one land on the same field.
  */
-import { isAppError, type AppError } from '#lib/api/index.js';
+import { MFA_REQUIRED, isAppError, type AppError } from '#lib/api/index.js';
 import {
 	MAX_GAMES,
 	groupIssues,
@@ -513,6 +513,11 @@ export class RecordForm {
 				return;
 			}
 			case 'forbidden':
+				// Two-factor is needed, or this session has not passed it: say that, not a refusal.
+				if (error.code === MFA_REQUIRED) {
+					this.failure = { kind: 'other', message: error.message };
+					return;
+				}
 				// The CSRF case has its own kind. This is a refusal of the submitter.
 				if (this.correcting) {
 					this.failure = { kind: 'forbidden', message: CORRECT_FORBIDDEN_MESSAGE };

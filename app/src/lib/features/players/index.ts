@@ -10,14 +10,17 @@
  *   `'needs-details'` means the backend needs the details again: `OwnCodeGate` shows its
  *   details form, which calls `myCode.submitDetails()`. `'refused'` is the age refusal,
  *   `'unverified'` an email that is not verified yet, and `'not-created'` a create refused for
- *   the values held from sign-up. The gate shows each of them. Anything else, including no
- *   answer (offline), is `'error'`. The code always comes from the backend: the player can't
+ *   the values held from sign-up. `'mfa-required'` is a 403 `mfa_required`: the account needs
+ *   two-factor, or this session has not passed it. The gate shows each of them, and for
+ *   `'mfa-required'` offers the code prompt when two-factor is on, and the two-factor settings
+ *   otherwise: when it is off, and while it is unknown or could not be read again.
+ *   Anything else, including no answer (offline), is `'error'`. The code always comes from the backend: the player can't
  *   type it in or change it, and nothing is kept in the browser.
  * - Call `myCode.reset()` on every sign-in and sign-out, so the next account never sees the
  *   previous one's code. The root layout does, when the account changes and on sign out.
  * - `OwnCodeGate` finds the code and renders its `children` snippet with it, or the right
  *   fallback: loading, signed out with a Sign in button, an error with Try again, the details
- *   form, the refusal, or the unverified email with Try again. Props set each page's copy.
+ *   form, the refusal, the unverified email with Try again, or the two-factor explanation. Props set each page's copy.
  *   Matches, record and profile all use it, so loading, error and retry behavior lives in one
  *   place.
  * - `ProfileView` is the profile page under its title. The route passes `countMatches` (from

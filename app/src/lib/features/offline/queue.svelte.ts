@@ -9,9 +9,10 @@ import type { MatchBody, QueuedMatch } from './types.js';
  * - `idle`: nothing has stopped them. They go on the next send.
  * - `offline`: there was no connection.
  * - `signin`: the backend answered 401. They go once the player signs in again.
+ * - `mfa`: the backend answered 403 `mfa_required`. They go once the session passes two-factor.
  * - `retry`: the server failed or was busy. They go on the next try.
  */
-export type WaitReason = 'idle' | 'offline' | 'signin' | 'retry';
+export type WaitReason = 'idle' | 'offline' | 'signin' | 'mfa' | 'retry';
 
 /** One match that left the queue because the backend has it. */
 export type SentMatch = {
@@ -187,7 +188,9 @@ export class OfflineQueue {
 					const outcome = await this.#deps.send(item.body);
 					const done = await this.#settle(item, outcome, run);
 					if (done) sent.push(done);
-					if (outcome.kind === 'signin' || outcome.kind === 'retry') return;
+					if (outcome.kind === 'signin' || outcome.kind === 'mfa' || outcome.kind === 'retry') {
+						return;
+					}
 				}
 				if (run === this.#run) this.reason = 'idle';
 			});
@@ -223,6 +226,9 @@ export class OfflineQueue {
 			}
 			case 'signin':
 				if (current) this.reason = 'signin';
+				return null;
+			case 'mfa':
+				if (current) this.reason = 'mfa';
 				return null;
 			case 'retry':
 				if (current) this.reason = outcome.offline ? 'offline' : 'retry';

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { AppError, isAppError, networkError, timeoutError, toAppError } from './errors';
+import {
+	AppError,
+	isAppError,
+	networkError,
+	reauthFlowsOf,
+	timeoutError,
+	toAppError
+} from './errors';
 
 function res(status: number, body?: string, contentType = 'application/json'): Response {
 	return new Response(body, { status, headers: { 'Content-Type': contentType } });
@@ -444,5 +451,67 @@ describe('timeoutError', () => {
 			code: 'timeout',
 			message: 'The server is taking too long to answer. Check your connection and try again.'
 		});
+	});
+});
+
+describe('toAppError: two-factor 403s', () => {
+	it('explains a 403 mfa_required and keeps its code', () => {
+		const error = toAppError(
+			{ code: 'mfa_required', message: 'Two-factor authentication is required.', errors: [] },
+			res(403)
+		);
+		expect(error).toMatchObject({ kind: 'forbidden', status: 403, code: 'mfa_required' });
+		expect(error.message).toBe(
+			'This needs two-factor authentication. Set it up or confirm with a code, then try again.'
+		);
+	});
+
+	it('explains a 403 reauthentication_required and keeps its code', () => {
+		const error = toAppError(
+			{ code: 'reauthentication_required', message: 'Reauthenticate.', errors: [] },
+			res(403)
+		);
+		expect(error).toMatchObject({ kind: 'forbidden', code: 'reauthentication_required' });
+		expect(error.message).toBe("Confirm it's you, then try again.");
+	});
+});
+
+describe('reauthFlowsOf', () => {
+	function allauth401(flows: unknown[]) {
+		return toAppError(
+			{ status: 401, data: { flows, user: {}, methods: [] }, meta: { is_authenticated: true } },
+			res(401)
+		);
+	}
+
+	it('reads the password flow', () => {
+		expect(reauthFlowsOf(allauth401([{ id: 'reauthenticate' }]))).toEqual(['password']);
+	});
+
+	it('reads the code flow', () => {
+		const flows = [{ id: 'mfa_reauthenticate', types: ['totp', 'recovery_codes'] }];
+		expect(reauthFlowsOf(allauth401(flows))).toEqual(['code']);
+	});
+
+	it('reads both, password first', () => {
+		const flows = [{ id: 'mfa_reauthenticate' }, { id: 'reauthenticate' }];
+		expect(reauthFlowsOf(allauth401(flows))).toEqual(['password', 'code']);
+	});
+
+	it('treats an OPEN 403 reauthentication_required as both', () => {
+		const error = toAppError(
+			{ code: 'reauthentication_required', message: 'x', errors: [] },
+			res(403)
+		);
+		expect(reauthFlowsOf(error)).toEqual(['password', 'code']);
+	});
+
+	it('is null for a signed-out 401, a pending login and any other error', () => {
+		expect(reauthFlowsOf(allauth401([{ id: 'login' }, { id: 'signup' }]))).toBeNull();
+		expect(reauthFlowsOf(allauth401([{ id: 'mfa_authenticate', is_pending: true }]))).toBeNull();
+		expect(
+			reauthFlowsOf(toAppError({ code: 'mfa_required', message: 'x', errors: [] }, res(403)))
+		).toBeNull();
+		expect(reauthFlowsOf(networkError())).toBeNull();
 	});
 });

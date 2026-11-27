@@ -348,6 +348,22 @@ describe('myCode creates the player when there is none (backend#124)', () => {
 		expect(mine.status).toBe('signed-out');
 	});
 
+	it('is mfa-required, not unverified, on a 403 mfa_required', async () => {
+		const mine = createMyCode({
+			fetchMyPlayer: async () => {
+				throw new AppError({
+					kind: 'forbidden',
+					status: 403,
+					code: 'mfa_required',
+					message: 'x',
+					fields: {}
+				});
+			}
+		});
+		await mine.load();
+		expect(mine.status).toBe('mfa-required');
+	});
+
 	it('is unverified on a 403 from the create', async () => {
 		const mine = make(['none'], async () => {
 			throw appError('forbidden', 403);

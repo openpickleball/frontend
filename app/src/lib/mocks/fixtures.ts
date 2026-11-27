@@ -10,6 +10,11 @@
  * - `unverified@example.com`: has not verified its email and has no player yet.
  * - `<first name>@example.com` for the other players, so you can sign in as the
  *   other side of a match and confirm it.
+ * - `organizer@example.com`: a member of a made-up verified organizer, with no two-factor yet.
+ * - `twofactor@example.com`: two-factor on. Sign in with `MOCK_TOTP_CODE` or a recovery code.
+ * - `moderator@example.com`: must have two-factor (as staff and moderators must) and has none,
+ *   so the OPEN API answers 403 `mfa_required`.
+ * These three have no player yet.
  */
 import { ALPHABET, buildCode } from '../domain/codes';
 import type { components } from '../api/generated/open';
@@ -35,6 +40,42 @@ export const MOCK_KEYS = {
 
 export const VERIFIED_EMAIL = 'player@example.com';
 export const UNVERIFIED_EMAIL = 'unverified@example.com';
+export const ORGANIZER_EMAIL = 'organizer@example.com';
+export const TWO_FACTOR_EMAIL = 'twofactor@example.com';
+export const MFA_REQUIRED_EMAIL = 'moderator@example.com';
+
+/**
+ * MOCK ONLY. The mock accepts this as the current code of every authenticator app, at any time.
+ */
+export const MOCK_TOTP_CODE = '123456';
+
+/** MOCK ONLY. A made-up setup key (base32), the same for every account the mock sets up. */
+export const MOCK_TOTP_SECRET = 'MOCKSECRETAAAAAAAAAAAAAAAAAAAAAA';
+
+/** MOCK ONLY. The unused recovery codes of `twofactor@example.com`. Each works once. */
+export const MOCK_RECOVERY_CODES = [
+	'mock0001',
+	'mock0002',
+	'mock0003',
+	'mock0004',
+	'mock0005',
+	'mock0006',
+	'mock0007',
+	'mock0008',
+	'mock0009',
+	'mock0010'
+] as const;
+
+/** The roles of an organizer member, as the schema's `MemberRole` lists them. */
+export const MEMBER_ROLES = ['admin', 'match_manager'] as const;
+
+/** A made-up organizer, as `GET organizer/organizers` lists it. */
+export type FixtureMembership = {
+	organizer: string;
+	name: string;
+	role: (typeof MEMBER_ROLES)[number];
+	verified: boolean;
+};
 
 export type PlayerKey = 'tamsin' | 'oren' | 'bea' | 'kit' | 'rosa' | 'idris' | 'nell' | 'saul';
 
@@ -44,6 +85,12 @@ export type FixtureAccount = {
 	verified: boolean;
 	/** An inactive account's player shows as "Private player" to everyone else. */
 	active: boolean;
+	/** Two-factor (TOTP) is on, with recovery codes. */
+	twoFactor?: boolean;
+	/** Its organizer memberships. */
+	organizers?: FixtureMembership[];
+	/** Must have two-factor, as staff and moderators must (ADR 0043). */
+	mfaRequired?: boolean;
 };
 
 export type FixturePlayer = {
@@ -145,7 +192,36 @@ export const ACCOUNTS: readonly FixtureAccount[] = [
 		verified: true,
 		active: p.key !== 'saul'
 	})),
-	{ email: UNVERIFIED_EMAIL, password: MOCK_PASSWORD, verified: false, active: true }
+	{ email: UNVERIFIED_EMAIL, password: MOCK_PASSWORD, verified: false, active: true },
+	{
+		email: ORGANIZER_EMAIL,
+		password: MOCK_PASSWORD,
+		verified: true,
+		active: true,
+		organizers: [
+			{
+				// A made-up organizer code. The app does not parse organizer codes.
+				organizer: 'G-K7MQ-2RD4',
+				name: 'Larkspur Paddle League',
+				role: 'admin',
+				verified: true
+			}
+		]
+	},
+	{
+		email: TWO_FACTOR_EMAIL,
+		password: MOCK_PASSWORD,
+		verified: true,
+		active: true,
+		twoFactor: true
+	},
+	{
+		email: MFA_REQUIRED_EMAIL,
+		password: MOCK_PASSWORD,
+		verified: true,
+		active: true,
+		mfaRequired: true
+	}
 ];
 
 export type FixtureDecision = { player: PlayerKey; decision: 'confirm' | 'dispute' | 'withdraw' };

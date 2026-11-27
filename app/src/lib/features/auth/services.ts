@@ -12,16 +12,22 @@
  * - A 401 that carries `flows` is session state, not an error. A pending `verify_email`
  *   flow means "check your email".
  * - Too many logins is a 429, which `toAppError` turns into kind `throttled`.
+ * - A login for an account with two-factor stops after the password: 401 with a pending
+ *   `mfa_authenticate` flow. That is `pending_mfa`, not signed in. `POST auth/2fa/authenticate`
+ *   with a code finishes it, and the backend keeps the stage across a reload.
+ * - After every change to signed in, `loadAccountState` reads the organizer memberships and
+ *   whether two-factor is on. It never throws, and nothing waits for it.
  */
 import {
 	allauthParams,
 	api as appApi,
 	toAppError,
 	type AllauthComponents,
+	type Api,
 	type ApiOption,
 	type AppError
 } from '#lib/api/index.js';
-import { session, type SessionState } from './session.svelte.js';
+import { session, type MfaType, type SessionState } from './session.svelte.js';
 
 type Settled = { data?: unknown; error?: unknown; response: Response };
 
@@ -43,6 +49,14 @@ function emailOf(data: unknown): string | null {
 	return typeof user?.email === 'string' ? user.email : null;
 }
 
+/** The code kinds a pending two-factor step offers. A code from the app when it says none. */
+function mfaTypesOf(types: readonly string[] | undefined): MfaType[] {
+	const known = (types ?? []).filter(
+		(type): type is MfaType => type === 'totp' || type === 'recovery_codes'
+	);
+	return known.length > 0 ? known : ['totp'];
+}
+
 /** Read an allauth session answer: 200 signed in, 401 with flows, 410 no session. */
 function stateOf(result: Settled): SessionState {
 	const { status } = result.response;
@@ -53,6 +67,8 @@ function stateOf(result: Settled): SessionState {
 	}
 	if (status === 401) {
 		const { flows } = toAppError(result.error, result.response);
+		const mfa = flows?.find((flow) => flow.id === 'mfa_authenticate' && flow.is_pending);
+		if (mfa) return { status: 'pending_mfa', types: mfaTypesOf(mfa.types) };
 		const pending = flows?.some((flow) => flow.id === 'verify_email' && flow.is_pending);
 		return { status: pending ? 'pending_verification' : 'signed_out' };
 	}
@@ -60,13 +76,86 @@ function stateOf(result: Settled): SessionState {
 	return fail(result);
 }
 
+/**
+ * Put the backend's answer in the store. When it signs an account in (from anything else, or
+ * as another account), read that account's state too, without waiting for it.
+ */
+function applyState(state: SessionState, options: ApiOption, typedEmail?: string): void {
+	const newlySignedIn =
+		state.status === 'signed_in' && !(session.isSignedIn && session.email === state.email);
+	session.apply(state, typedEmail);
+	if (newlySignedIn) void loadAccountState(options);
+}
+
 /** Ask the backend who is signed in, and update the store. */
 export async function refreshSession({ api = appApi }: ApiOption = {}): Promise<SessionState> {
 	const state = stateOf(
 		await settle(api.allauth.GET('/_allauth/{client}/v1/auth/session', { params: allauthParams }))
 	);
-	session.apply(state);
+	applyState(state, { api });
 	return state;
+}
+
+/**
+ * Read what the signed-in account's screens need besides the session: its organizer memberships
+ * (`GET organizer/organizers`) and whether two-factor is on (`GET account/authenticators`), in
+ * parallel. A failed call leaves the safe answer: no memberships, and two-factor unknown. It
+ * never throws. An answer for an account that is no longer signed in is dropped.
+ */
+export function loadAccountState(options: ApiOption = {}): Promise<void> {
+	const loading = readAccountState(options);
+	accountStateLoading = loading;
+	void loading.finally(() => {
+		if (accountStateLoading === loading) accountStateLoading = null;
+	});
+	return loading;
+}
+
+/**
+ * Is two-factor (TOTP) on for the signed-in account? From `GET account/authenticators`, which
+ * allauth answers even to a session the OPEN API refuses with `mfa_required`. Null when unknown.
+ */
+async function readEnrolled(api: Api): Promise<boolean | null> {
+	try {
+		const result = await settle(
+			api.allauth.GET('/_allauth/{client}/v1/account/authenticators', { params: allauthParams })
+		);
+		if (!result.response.ok) return null;
+		const list = (result.data as { data?: { type?: unknown }[] } | undefined)?.data;
+		return Array.isArray(list) ? list.some((item) => item.type === 'totp') : null;
+	} catch {
+		return null;
+	}
+}
+
+/** Counts the account state reads started, so only the newest one writes the organizer list. */
+let accountReads = 0;
+
+/** The account state read in flight, so a notice can wait until two-factor is known. */
+let accountStateLoading: Promise<void> | null = null;
+
+async function readAccountState({ api = appApi }: ApiOption = {}): Promise<void> {
+	const email = session.isSignedIn ? session.email : null;
+	if (!email) return;
+	const current = () => session.isSignedIn && session.email === email;
+	const revision = session.mfaRevision;
+	const read = ++accountReads;
+	const organizers = (async () => {
+		try {
+			const result = await settle(api.open.GET('/api/v1/organizer/organizers'));
+			return result.response.ok && Array.isArray(result.data) ? result.data : [];
+		} catch {
+			return [];
+		}
+	})();
+	const enrolled = readEnrolled(api);
+	const [memberships, mfa] = await Promise.all([organizers, enrolled]);
+	if (!current()) return;
+	// Only the newest read writes the list: an older one may have been refused before the session
+	// passed two-factor, and would overwrite the real memberships.
+	if (read === accountReads) session.organizers = memberships;
+	// A value set while this read waited (turning TOTP on, say) is newer: keep it.
+	if (session.mfaRevision === revision) session.mfaEnrolled = mfa;
 }
 
 let booting: Promise<void> | null = null;
@@ -113,14 +202,17 @@ async function alreadySignedIn(result: Settled, options: ApiOption): Promise<Ses
 }
 
 /**
- * Sign in. Resolves to `signed_in`, or `pending_verification` when the email isn't
- * confirmed yet (the backend also sends a new link then). A wrong password is an
- * `AppError` with code `email_password_mismatch`.
+ * Sign in. Resolves to `signed_in`, `pending_verification` when the email isn't
+ * confirmed yet (the backend also sends a new link then), or `pending_mfa` when the account
+ * has two-factor and a code comes next. A wrong password is an `AppError` with code
+ * `email_password_mismatch`.
  */
 export async function login(
 	{ email, password }: Credentials,
 	{ api = appApi }: ApiOption = {}
 ): Promise<SessionState> {
+	// A new attempt: the reason the last code step ended no longer applies, even if this one fails.
+	session.mfaTimedOut = false;
 	const result = await settle(
 		api.allauth.POST('/_allauth/{client}/v1/auth/login', {
 			params: allauthParams,
@@ -130,8 +222,88 @@ export async function login(
 	const state =
 		result.response.status === 409 ? await alreadySignedIn(result, { api }) : stateOf(result);
 	if (state.status === 'signed_out') fail(result);
-	session.apply(state, email);
+	applyState(state, { api }, email);
 	return state;
+}
+
+/**
+ * Finish a two-factor login with a code from the app or a recovery code. Resolves to
+ * `signed_in`. A wrong code is an `AppError` with a message on `fields.code`, and the login
+ * stays at the code step. When no login is waiting any more, the store takes the session as it
+ * now is.
+ */
+export async function authenticateMfa(
+	code: string,
+	{ api = appApi }: ApiOption = {}
+): Promise<SessionState> {
+	const result = await settle(
+		api.allauth.POST('/_allauth/{client}/v1/auth/2fa/authenticate', {
+			params: allauthParams,
+			body: { code }
+		})
+	);
+	const { status } = result.response;
+	if (status !== 200 && status !== 401 && status !== 409) fail(result);
+	let state: SessionState;
+	if (status === 409) {
+		// No login is waiting: take the session as it now is.
+		state = await refreshSession({ api });
+	} else {
+		state = stateOf(result);
+		applyState(state, { api });
+	}
+	if (state.status === 'signed_in') return state;
+	// The login's two-factor stage ran out: the sign-in page says why it is back.
+	if (state.status !== 'pending_mfa') session.mfaTimedOut = true;
+	return fail(result);
+}
+
+/** "Start over" at the code step: end the waiting login, then this device is signed out. */
+export async function cancelMfa({ api = appApi }: ApiOption = {}): Promise<void> {
+	try {
+		await settle(
+			api.allauth.DELETE('/_allauth/{client}/v1/auth/session', { params: allauthParams })
+		);
+	} finally {
+		session.apply({ status: 'signed_out' });
+	}
+}
+
+/**
+ * Confirm it is the player with the password, for a call that needs a recent reauthentication.
+ * A wrong password is an `AppError` with a message on `fields.password`.
+ */
+export async function reauthenticate(
+	password: string,
+	{ api = appApi }: ApiOption = {}
+): Promise<void> {
+	const result = await settle(
+		api.allauth.POST('/_allauth/{client}/v1/auth/reauthenticate', {
+			params: allauthParams,
+			body: { password }
+		})
+	);
+	if (!result.response.ok) fail(result);
+}
+
+/**
+ * Confirm it is the player with a two-factor code (from the app, or a recovery code). It also
+ * counts as passing two-factor for this session. A wrong code is an `AppError` with a message on
+ * `fields.code`.
+ */
+export async function reauthenticateMfa(
+	code: string,
+	{ api = appApi }: ApiOption = {}
+): Promise<void> {
+	const result = await settle(
+		api.allauth.POST('/_allauth/{client}/v1/auth/2fa/reauthenticate', {
+			params: allauthParams,
+			body: { code }
+		})
+	);
+	if (!result.response.ok) fail(result);
+	// The session passed two-factor now, so calls the API refused before may answer: read again.
+	void loadAccountState({ api });
 }
 
 /**
@@ -338,3 +510,51 @@ export function watchSessionExpiry(
 }
 
 export type { AppError };
+
+/**
+ * Notice every 403 `mfa_required` from the API, so one place can explain it. `notify` gets
+ * whether the account has two-factor: then this session only has to confirm with a code;
+ * otherwise two-factor needs setting up. Returns a function that stops watching.
+ */
+export function watchMfaRequired(
+	notify: (enrolled: boolean) => void,
+	{ api = appApi }: ApiOption = {}
+): () => void {
+	return api.onMfaRequired(() => {
+		// The refusal belongs to the account signed in now. Any later account is not told about it.
+		const email = session.isSignedIn ? session.email : null;
+		if (!email) return;
+		const same = () => session.isSignedIn && session.email === email;
+		// Right after a sign-in two-factor may still be loading: wait for it, so an account that
+		// has it is offered the code and not told to set it up.
+		const loading = accountStateLoading ?? Promise.resolve();
+		void loading.then(async () => {
+			if (!same()) return;
+			// The cached answer may be old: two-factor turned on from another device is the usual
+			// way a session meets this refusal. Unless it already says on, ask again.
+			if (session.mfaEnrolled !== true) {
+				await checkMfaEnrolled({ api });
+				if (!same()) return;
+			}
+			notify(session.mfaEnrolled === true);
+		});
+	});
+}
+
+/**
+ * Ask allauth again whether two-factor is on for the signed-in account, and keep
+ * `session.mfaEnrolled` current. Resolves to the answer, or null when it is unknown or another
+ * account signed in while it asked (then nothing is written). A value set while it asked is
+ * newer, so it is kept and returned.
+ */
+export async function checkMfaEnrolled({ api = appApi }: ApiOption = {}): Promise<boolean | null> {
+	if (!session.isSignedIn) return null;
+	const email = session.email;
+	const revision = session.mfaRevision;
+	const fresh = await readEnrolled(api);
+	if (!session.isSignedIn || session.email !== email) return null;
+	// A value set while this read waited (turning TOTP on, say) is newer: keep it.
+	if (session.mfaRevision !== revision) return session.mfaEnrolled;
+	if (fresh !== null) session.mfaEnrolled = fresh;
+	return fresh;
+}

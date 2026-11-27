@@ -31,6 +31,29 @@ describe('isNetworkOnly', () => {
 	});
 });
 
+describe('two-factor calls (frontend#261)', () => {
+	// Every path the two-factor and reauthentication screens call. None may ever be cached.
+	const paths = [
+		'/_allauth/browser/v1/auth/2fa/authenticate',
+		'/_allauth/browser/v1/auth/2fa/reauthenticate',
+		'/_allauth/browser/v1/auth/reauthenticate',
+		'/_allauth/browser/v1/auth/session',
+		'/_allauth/browser/v1/account/authenticators',
+		'/_allauth/browser/v1/account/authenticators/totp',
+		'/_allauth/browser/v1/account/authenticators/recovery-codes',
+		'/api/v1/organizer/organizers',
+		'/api/v1/organizer/events'
+	];
+
+	it.each(paths)('never caches %s', (path) => {
+		expect(isNetworkOnly(path)).toBe(true);
+		for (const method of ['GET', 'POST', 'DELETE']) {
+			expect(decide(path, { method })).toBe('ignore');
+			expect(decide(path, { method, mode: 'navigate' })).toBe('ignore');
+		}
+	});
+});
+
 describe('route', () => {
 	it('answers precached files from the cache', () => {
 		expect(decide('/_app/immutable/app.js')).toBe('precached');

@@ -10,7 +10,10 @@ import {
 	allauthJson,
 	allauthStatus,
 	authenticated,
+	incorrectCode,
+	incorrectPassword,
 	invalidEmail,
+	reauthenticationRequired,
 	required,
 	unauthenticated,
 	userOut,
@@ -25,7 +28,15 @@ import {
 	isOldEnough,
 	strip
 } from '../player-rules';
-import { passwordErrors, type MockStore, type SignupDetails } from '../store';
+import {
+	MFA_TYPES,
+	passwordErrors,
+	type MfaGuard,
+	type MockAccount,
+	type MockStore,
+	type SignupDetails
+} from '../store';
+import { MOCK_TOTP_SECRET } from '../fixtures';
 
 const MISMATCH: AllauthIssue = {
 	code: 'email_password_mismatch',
@@ -214,6 +225,24 @@ function signupDetails(body: Record<string, unknown>): SignupDetails {
 const text = (value: unknown): string | undefined =>
 	typeof value === 'string' && value !== '' ? value : undefined;
 
+/** allauth's `TOTPAuthenticator` and `RecoveryCodesAuthenticator`, as listed. */
+function totpOut(account: MockAccount) {
+	return { type: 'totp' as const, created_at: account.totp?.createdAt ?? 0, last_used_at: null };
+}
+
+function recoveryCodesOut(account: MockAccount) {
+	const codes = account.recoveryCodes;
+	const unused = codes ? codes.codes.filter((code) => !codes.used.includes(code)) : [];
+	return {
+		type: 'recovery_codes' as const,
+		created_at: codes?.createdAt ?? 0,
+		last_used_at: null,
+		total_code_count: codes?.codes.length ?? 0,
+		unused_code_count: unused.length,
+		unused
+	};
+}
+
 /**
  * allauth headless at `/_allauth/browser/v1`, with this backend's settings: email and
  * password. Sign-up also takes the birth month and year, the gender division, the names, an
@@ -224,6 +253,12 @@ const text = (value: unknown): string | undefined =>
  * by link, `resend` is always a 409, as in allauth's `ResendEmailVerificationCodeView`.
  */
 export function createAllauthHandlers(store: MockStore) {
+	/** The answer to a management call the session may not make yet. */
+	function refused(guard: Exclude<MfaGuard, { ok: true }>): Response {
+		if (guard.kind === 'unauthenticated') return unauthenticated(store);
+		return reauthenticationRequired(store, store.state.session?.email ?? '', guard.flows);
+	}
+
 	return [
 		http.get('/_allauth/{client}/v1/config', ({ response }) =>
 			response.untyped(
@@ -237,7 +272,8 @@ export function createAllauthHandlers(store: MockStore) {
 							login_by_code_enabled: false,
 							password_reset_by_code_enabled: false,
 							authentication_method: 'email'
-						}
+						},
+						mfa: { supported_types: [...MFA_TYPES] }
 					}
 				})
 			)
@@ -270,7 +306,10 @@ export function createAllauthHandlers(store: MockStore) {
 			}
 			const result = store.login(email, password);
 			if (result === 'mismatch') return response.untyped(allauthErrors(store, [MISMATCH]));
-			if (result === 'unverified') return response.untyped(unauthenticated(store));
+			// Unverified, or waiting for the two-factor code: the 401 lists the pending flow.
+			if (result === 'unverified' || result === 'mfa') {
+				return response.untyped(unauthenticated(store));
+			}
 			const account = store.currentAccount();
 			return response.untyped(
 				authenticated(store, account?.email ?? email, store.state.session?.at ?? 0)
@@ -355,6 +394,157 @@ export function createAllauthHandlers(store: MockStore) {
 			store.signup(email, password, signupDetails(body));
 			return response.untyped(unauthenticated(store));
 		}),
+
+		// Two-factor (backend `apps/accounts/mfa_views.py`, ADR 0043).
+
+		http.post(
+			'/_allauth/{client}/v1/auth/2fa/authenticate',
+			async ({ request, cookies, response }) => {
+				if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
+				if (!store.pendingMfaAccount()) return response.untyped(allauthStatus(store, 409));
+				const code = text(readObject(await readJson(request)).code);
+				if (!code) return response.untyped(allauthErrors(store, [required('code')]));
+				if (!store.completeMfaLogin(code)) {
+					return response.untyped(allauthErrors(store, [incorrectCode()]));
+				}
+				const account = store.currentAccount();
+				return response.untyped(
+					authenticated(store, account?.email ?? '', store.state.session?.at ?? 0)
+				);
+			}
+		),
+
+		http.post(
+			'/_allauth/{client}/v1/auth/reauthenticate',
+			async ({ request, cookies, response }) => {
+				if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
+				const account = store.currentAccount();
+				if (!account) return response.untyped(unauthenticated(store));
+				const password = text(readObject(await readJson(request)).password);
+				if (!password) return response.untyped(allauthErrors(store, [required('password')]));
+				if (!store.reauthenticate(password)) {
+					return response.untyped(allauthErrors(store, [incorrectPassword()]));
+				}
+				return response.untyped(authenticated(store, account.email, store.state.session?.at ?? 0));
+			}
+		),
+
+		http.post(
+			'/_allauth/{client}/v1/auth/2fa/reauthenticate',
+			async ({ request, cookies, response }) => {
+				if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
+				const account = store.currentAccount();
+				if (!account) return response.untyped(unauthenticated(store));
+				const code = text(readObject(await readJson(request)).code);
+				if (!code) return response.untyped(allauthErrors(store, [required('code')]));
+				if (!store.reauthenticateMfa(code)) {
+					return response.untyped(allauthErrors(store, [incorrectCode()]));
+				}
+				return response.untyped(authenticated(store, account.email, store.state.session?.at ?? 0));
+			}
+		),
+
+		http.get('/_allauth/{client}/v1/account/authenticators', ({ response }) => {
+			const account = store.currentAccount();
+			if (!account) return response.untyped(unauthenticated(store));
+			const list: object[] = [];
+			if (account.totp) list.push(totpOut(account));
+			if (account.recoveryCodes) {
+				const codes: Partial<ReturnType<typeof recoveryCodesOut>> = recoveryCodesOut(account);
+				delete codes.unused;
+				list.push(codes);
+			}
+			return response.untyped(allauthJson(store, 200, { status: 200, data: list }));
+		}),
+
+		http.get('/_allauth/{client}/v1/account/authenticators/totp', ({ response }) => {
+			const account = store.currentAccount();
+			if (!account) return response.untyped(unauthenticated(store));
+			if (account.totp) {
+				return response.untyped(allauthJson(store, 200, { status: 200, data: totpOut(account) }));
+			}
+			const label = encodeURIComponent(`OPEN Pickleball:${account.email}`);
+			return response.untyped(
+				allauthJson(store, 404, {
+					status: 404,
+					meta: {
+						secret: MOCK_TOTP_SECRET,
+						totp_url: `otpauth://totp/${label}?secret=${MOCK_TOTP_SECRET}&issuer=OPEN+Pickleball`
+					}
+				})
+			);
+		}),
+
+		http.post(
+			'/_allauth/{client}/v1/account/authenticators/totp',
+			async ({ request, cookies, response }) => {
+				if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
+				const guard = store.guardMfaChange(true);
+				if (!guard.ok) return response.untyped(refused(guard));
+				const code = text(readObject(await readJson(request)).code);
+				if (!code) return response.untyped(allauthErrors(store, [required('code')]));
+				const result = store.activateTotp(guard.account, code);
+				if (result === 'conflict') return response.untyped(allauthStatus(store, 409));
+				if (result === 'incorrect') {
+					return response.untyped(allauthErrors(store, [incorrectCode()]));
+				}
+				return response.untyped(
+					allauthJson(store, 200, {
+						status: 200,
+						meta: { recovery_codes_generated: true },
+						data: totpOut(guard.account)
+					})
+				);
+			}
+		),
+
+		http.delete(
+			'/_allauth/{client}/v1/account/authenticators/totp',
+			({ request, cookies, response }) => {
+				if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
+				const guard = store.guardMfaChange(true);
+				if (!guard.ok) return response.untyped(refused(guard));
+				store.deactivateTotp(guard.account);
+				return response.untyped(allauthStatus(store, 200));
+			}
+		),
+
+		http.get('/_allauth/{client}/v1/account/authenticators/recovery-codes', ({ response }) => {
+			const guard = store.guardMfaChange(false);
+			if (!guard.ok) return response.untyped(refused(guard));
+			const codes = guard.account.recoveryCodes;
+			if (!codes) return response.untyped(allauthStatus(store, 404));
+			// allauth's `view_recovery_codes` asks for a recent reauthentication before it lists them.
+			const recent = store.guardMfaChange(true);
+			if (!recent.ok) return response.untyped(refused(recent));
+			const { unused, ...out } = recoveryCodesOut(guard.account);
+			// Shown once: after that allauth leaves `unused_codes` out, though the count stays.
+			const shown = codes.viewed ? {} : { unused_codes: unused };
+			codes.viewed = true;
+			return response.untyped(allauthJson(store, 200, { status: 200, data: { ...out, ...shown } }));
+		}),
+
+		http.post(
+			'/_allauth/{client}/v1/account/authenticators/recovery-codes',
+			({ request, cookies, response }) => {
+				if (!csrfValid(request, cookies, store)) return response.untyped(allauthCsrfFailed(store));
+				const guard = store.guardMfaChange(true);
+				if (!guard.ok) return response.untyped(refused(guard));
+				if (!guard.account.totp) {
+					return response.untyped(
+						allauthErrors(store, [
+							{ code: 'invalid', message: 'You cannot deactivate two-factor authentication.' }
+						])
+					);
+				}
+				guard.account.recoveryCodes = store.newRecoveryCodes();
+				const { unused, ...out } = recoveryCodesOut(guard.account);
+				guard.account.recoveryCodes.viewed = true;
+				return response.untyped(
+					allauthJson(store, 200, { status: 200, data: { ...out, unused_codes: unused } })
+				);
+			}
+		),
 
 		http.get('/_allauth/{client}/v1/auth/email/verify', ({ request, response }) => {
 			const key = request.headers.get('X-Email-Verification-Key') ?? '';
