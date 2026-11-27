@@ -1060,6 +1060,56 @@ describe('player profile endpoints', () => {
 		expect(full.privacy.name_format).toBe('full');
 	});
 
+	describe('an initial that would not fit, as backend display_name_for trims it', () => {
+		// 61 characters is the longest first name, and the last name's initial has a mark.
+		const longFirst = 'F'.repeat(61);
+		const names = { first_name: longFirst, last_name: 'e\u0301' };
+		const trimmed = `${longFirst} e.`;
+
+		it('drops the marks that do not fit when an adult turns the initial on', async () => {
+			const api = await freshAccount();
+			await unwrap(api.open.POST('/api/v1/me/player', { body: { ...adult, ...names } }));
+			const patched = await unwrap(
+				api.open.PATCH('/api/v1/me/player', {
+					body: { privacy: { name_format: 'first_last_initial' } }
+				})
+			);
+			expect(patched.display_name).toBe(trimmed);
+			expect([...patched.display_name]).toHaveLength(64);
+		});
+
+		it('creates a player aged 13 to 17 from the body with the trimmed initial', async () => {
+			const api = await freshAccount();
+			const made = await api.open.POST('/api/v1/me/player', {
+				body: { ...adult, ...names, birth_year: new Date().getFullYear() - 15, birth_month: 1 }
+			});
+			expect(made.response.status).toBe(201);
+			expect(made.data?.display_name).toBe(trimmed);
+		});
+
+		it('creates a player aged 13 to 17 from the hold with the trimmed initial', async () => {
+			mockStore.state.accounts.push({
+				email: FRESH,
+				password: MOCK_PASSWORD,
+				verified: true,
+				active: true
+			});
+			mockStore.holdSignup(FRESH, {
+				birthYear: new Date().getFullYear() - 15,
+				birthMonth: 1,
+				genderDivision: 'womens',
+				firstName: longFirst,
+				lastName: 'e\u0301',
+				city: '',
+				region: ''
+			});
+			const api = await signedIn(FRESH);
+			const made = await api.open.POST('/api/v1/me/player', { body: {} });
+			expect(made.response.status).toBe(201);
+			expect(made.data?.display_name).toBe(trimmed);
+		});
+	});
+
 	it('refuses the full name for a player aged 13 to 17, and accepts the stored value', async () => {
 		const api = await freshAccount();
 		const made = await unwrap(
