@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import {
@@ -52,8 +53,13 @@
 	} = $props();
 
 	let form = $state(EventForm.create([]));
+	// A fresh form each time the dialog opens, and only then: a later read of the memberships (after
+	// a refusal, say) must not wipe what was typed or the refusal itself.
 	$effect.pre(() => {
-		if (open) form = event ? EventForm.edit(event) : EventForm.create(session.organizers ?? []);
+		if (!open) return;
+		untrack(() => {
+			form = event ? EventForm.edit(event) : EventForm.create(session.organizers ?? []);
+		});
 	});
 
 	const id = (field: Parameters<typeof EventForm.fieldId>[0]) => EventForm.fieldId(field);
