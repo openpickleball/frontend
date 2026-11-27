@@ -1,6 +1,6 @@
 # Plan: Update the Privacy Policy for deletion, two-factor and sessions (issue #266)
 
-**Status:** active
+**Status:** done
 
 Risk tier: Medium. Static HTML only, no code, but the pages make legal promises to players, change text that is already live, and merging deploys to openpb.org. The project owner confirmed Medium by approving this plan.
 
