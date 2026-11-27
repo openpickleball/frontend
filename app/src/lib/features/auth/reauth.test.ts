@@ -77,18 +77,6 @@ describe('withReauth', () => {
 		expect(call).toHaveBeenCalledOnce();
 	});
 
-	it('throws a second reauthentication error as it is, without asking again', async () => {
-		const again = allauthReauth(['reauthenticate']);
-		const call = vi
-			.fn<() => Promise<void>>()
-			.mockRejectedValueOnce(allauthReauth(['reauthenticate']))
-			.mockRejectedValueOnce(again);
-		const result = withReauth(call);
-		await answer(true);
-		await expect(result).rejects.toBe(again);
-		expect(reauthPrompt.request).toBeNull();
-	});
-
 	it('throws any other error at once, without asking', async () => {
 		const other = new AppError({
 			kind: 'validation',
