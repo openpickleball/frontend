@@ -18,6 +18,8 @@ import type { MyPlayer } from './types.js';
  * - `unverified`: the account's email is not verified yet (a 403 from the create).
  * - `not-created`: the create on load was refused for its values (a 422 with nothing missing).
  *   The backend used the details it holds from sign-up, so a form would not help.
+ * - `mfa-required`: the API refused with 403 `mfa_required`: the account needs two-factor, or this
+ *   session has not passed it. Show that, with a link to the two-factor settings, not an error.
  * - `signed-out`: nobody is signed in.
  * - `error`: the backend failed or could not be reached. Show Try again.
  */
@@ -29,6 +31,7 @@ export type MyCodeStatus =
 	| 'refused'
 	| 'unverified'
 	| 'not-created'
+	| 'mfa-required'
 	| 'signed-out'
 	| 'error';
 
@@ -141,7 +144,7 @@ export class MyCode {
 		} catch (error) {
 			if (run !== this.#run) return;
 			const status = failureStatus(error);
-			if (status === 'signed-out' || status === 'unverified') {
+			if (status === 'signed-out' || status === 'unverified' || status === 'mfa-required') {
 				this.#clear(status);
 				return;
 			}
@@ -218,8 +221,9 @@ export class MyCode {
 function failureStatus(error: unknown): MyCodeStatus {
 	if (!isAppError(error)) return 'error';
 	if (error.kind === 'unauthenticated') return 'signed-out';
-	// A 403 `mfa_required` is about two-factor, not the email: the generic error explains it.
-	if (error.kind === 'forbidden' && error.code !== MFA_REQUIRED) return 'unverified';
+	// A 403 `mfa_required` is about two-factor, not the email.
+	if (error.code === MFA_REQUIRED) return 'mfa-required';
+	if (error.kind === 'forbidden') return 'unverified';
 	return 'error';
 }
 

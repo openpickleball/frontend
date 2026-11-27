@@ -21,6 +21,7 @@
 		EmptyMedia,
 		EmptyTitle
 	} from '#lib/ui/empty/index.js';
+	import { actionProblem } from '../action-problem.js';
 	import { matchCache, type HoldState, type MatchAction } from '../cache.svelte.js';
 	import {
 		STATUS_LABELS,
@@ -216,36 +217,6 @@
 	let withdrawOpen = $state(false);
 	let vouchOpen = $state(false);
 
-	const FAILED: Record<MatchAction, string> = {
-		confirm: "We couldn't confirm the score. Try again.",
-		dispute: "We couldn't dispute the score. Try again.",
-		withdraw: "We couldn't withdraw your dispute. Try again.",
-		vouch: "We couldn't vouch for this match. Try again."
-	};
-
-	function problem(cause: unknown, action: MatchAction): string {
-		if (isAppError(cause)) {
-			if (cause.kind === 'conflict') {
-				if (action === 'vouch') {
-					return "This match isn't on hold any more, or it was voided. There's nothing to vouch for now. Here is where it stands.";
-				}
-				return action === 'withdraw'
-					? "There's no dispute of yours to withdraw on this match now. It may have been settled, or the match was voided. Check where it stands."
-					: "This match can't be changed any more. Check where it stands, then try again.";
-			}
-			if (cause.kind === 'not_found' || cause.kind === 'forbidden') {
-				if (action === 'vouch') {
-					return "You can't vouch for this match. For a match with no event, a player from each team vouches. For an event match, the event's organizer does.";
-				}
-				return action === 'withdraw'
-					? 'You can only withdraw a dispute on a match you played in.'
-					: 'You can only confirm or dispute a match you played in.';
-			}
-			return cause.message;
-		}
-		return FAILED[action];
-	}
-
 	// Settles once the open dialog is gone. While it is open it traps focus, and it hands focus
 	// back (the dialog's onCloseAutoFocus) after it unmounts, so the page waits for that, not a timer.
 	let dialogGone: Promise<void> = Promise.resolve();
@@ -343,12 +314,12 @@
 			const conflict = isAppError(cause) && cause.kind === 'conflict';
 			const refreshed = conflict && (await refresh());
 			if (!refreshed) {
-				error = problem(cause, action);
+				error = actionProblem(cause, action);
 				// The button the player pressed is still here, so put focus back on it.
 				focusId = `${action}-button`;
 			} else if (action === 'withdraw' || action === 'vouch') {
 				// The page now shows where the match stands. Say why the action did nothing.
-				error = problem(cause, action);
+				error = actionProblem(cause, action);
 			}
 		} finally {
 			busy = null;

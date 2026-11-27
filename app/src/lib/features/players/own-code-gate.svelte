@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack, type Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { MFA_REQUIRED_MESSAGE } from '#lib/api/index.js';
 	import { ROUTES } from '#lib/domain/index.js';
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
@@ -55,6 +56,15 @@
 	<section class={cn(fallbackClass, 'grid justify-items-start gap-3')}>
 		<p class="max-w-md text-muted">{signedOut}</p>
 		<Button href={resolve(ROUTES.login)}>Sign in</Button>
+	</section>
+{:else if myCode.status === 'mfa-required'}
+	<!-- Not a connection problem: the account needs two-factor, or this session has not passed it. -->
+	<section class={cn(fallbackClass, 'grid gap-3')} role="alert">
+		<p class="max-w-md text-danger">{MFA_REQUIRED_MESSAGE}</p>
+		<div class="flex flex-wrap gap-3">
+			<Button href={resolve(ROUTES.twoFactor)}>Set up two-factor</Button>
+			<Button variant="outline" onclick={retry}>Try again</Button>
+		</div>
 	</section>
 {:else if myCode.status === 'error'}
 	{#if error}

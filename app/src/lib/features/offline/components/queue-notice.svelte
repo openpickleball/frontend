@@ -21,8 +21,11 @@
 	const expired = $derived(expiredText(queue.expired, MAX_QUEUE_AGE_DAYS));
 	const waiting = $derived(queue.waiting.length);
 	// "Send now" when sending again could help: online, not already sending, not waiting on sign-in.
+	// After two-factor is set up or confirmed, sending again works, so it is offered then too.
 	const canSend = $derived(
-		queue.online && !queue.sending && (queue.reason === 'retry' || queue.reason === 'idle')
+		queue.online &&
+			!queue.sending &&
+			(queue.reason === 'retry' || queue.reason === 'idle' || queue.reason === 'mfa')
 	);
 </script>
 

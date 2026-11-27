@@ -10,6 +10,9 @@ export function waitingTitle(count: number): string {
 export function waitingText(count: number, reason: WaitReason, online: boolean): string {
 	const it = count === 1 ? 'it' : 'them';
 	if (reason === 'signin') return `Your session ended. Sign in again to send ${it}.`;
+	if (reason === 'mfa') {
+		return `Sending ${it} needs two-factor authentication. Set it up or confirm with a code, then send ${it}.`;
+	}
 	if (!online || reason === 'offline') {
 		return `${count === 1 ? "It's" : "They're"} saved on this device. We'll send ${it} when you're back online.`;
 	}

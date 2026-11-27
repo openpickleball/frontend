@@ -103,10 +103,13 @@ const LOGIN_LOCKOUT = 'too_many_login_attempts';
 export const MFA_REQUIRED = 'mfa_required';
 export const REAUTHENTICATION_REQUIRED = 'reauthentication_required';
 
+/** What a player reads for a 403 `mfa_required`, wherever it shows. */
+export const MFA_REQUIRED_MESSAGE =
+	'This needs two-factor authentication. Set it up or confirm with a code, then try again.';
+
 /** Our own text for the 403 codes that are not a match permission refusal. */
 const FORBIDDEN_MESSAGES: Record<string, string> = {
-	[MFA_REQUIRED]:
-		'This needs two-factor authentication. Set it up or confirm with a code, then try again.',
+	[MFA_REQUIRED]: MFA_REQUIRED_MESSAGE,
 	[REAUTHENTICATION_REQUIRED]: "Confirm it's you, then try again."
 };
 

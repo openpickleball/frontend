@@ -10,6 +10,7 @@ export {
 	reauthFlowsOf,
 	reauthCodeTypesOf,
 	MFA_REQUIRED,
+	MFA_REQUIRED_MESSAGE,
 	REAUTHENTICATION_REQUIRED
 } from './errors';
 export type {
