@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import type { ReauthMethod } from '#lib/api/index.js';
 	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
@@ -38,14 +39,19 @@
 	let kind = $state<CodeKind>('totp');
 	const form = createAuthForm('reauth', ['password', 'code']);
 
-	// Each request starts on its first method, with empty fields.
+	// Each new request starts on its first method, with no errors. A call that joins an open
+	// request keeps its id, so the player stays on the method and code they were using.
+	let shownId: number | null = null;
 	$effect(() => {
 		const request = reauthPrompt.request;
-		if (!request) return;
-		method = request.methods[0] ?? 'password';
-		kind = 'totp';
-		form.problem = null;
-		form.showFields({});
+		if (!request || request.id === shownId) return;
+		shownId = request.id;
+		untrack(() => {
+			method = request.methods[0] ?? 'password';
+			kind = 'totp';
+			form.problem = null;
+			form.showFields({});
+		});
 	});
 
 	function focusField(event: Event) {

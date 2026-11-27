@@ -47,11 +47,15 @@ class ReauthPromptStore {
 			const types = new Set([...this.request.codeTypes, ...codeTypes]);
 			const order: ReauthMethod[] = ['password', 'code'];
 			const typeOrder: ReauthCodeType[] = ['totp', 'recovery_codes'];
-			this.request = {
-				id: this.request.id,
+			const merged = {
 				methods: order.filter((method) => all.has(method)),
 				codeTypes: typeOrder.filter((type) => types.has(type))
 			};
+			const same =
+				merged.methods.join() === this.request.methods.join() &&
+				merged.codeTypes.join() === this.request.codeTypes.join();
+			// Same id: the prompt keeps the player where they are and only offers what was added.
+			if (!same) this.request = { id: this.request.id, ...merged };
 			return this.#pending;
 		}
 		this.request = { id: ++this.#nextId, methods, codeTypes };
