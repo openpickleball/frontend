@@ -5,9 +5,11 @@
  * How to use it
  *
  * - `offlineQueue` is the app-wide queue. The root layout calls `setAccount(email)` with the
- *   signed-in account (null when nobody is), `start()` once, and `forget()` when the player signs
- *   out on purpose. The queue is stored in IndexedDB under a hash of the email, so another account
- *   on the device never sees or sends it.
+ *   signed-in account (null when nobody is), `start()` once, and `forgetEmail(email)` when the
+ *   player signs out on purpose or deletes their account (`forget()` when no email is known).
+ *   `forgetEmail` deletes that account's queue even when the queue shows nobody now. The queue is
+ *   stored in IndexedDB under a hash of the email, so another account on the device never sees or
+ *   sends it.
  * - `offlineQueue.add({ own, body, form })` keeps a match and tries to send it. `body` is the
  *   `POST matches/` body, `form` what the record form needs to put the match back. It rejects when
  *   nobody is signed in or the device can't store it: say then that the match was not saved.

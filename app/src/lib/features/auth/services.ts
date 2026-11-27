@@ -480,22 +480,25 @@ export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
  * Delete the signed-in account (`DELETE /api/v1/accounts/me`). On 204 the backend has ended every
  * session of the account, so this ends it here too (`endDeletedAccount`) before it resolves. No
  * code that waits on it sees a signed-in session, so a later 401 can't make it look expired.
+ * The email is read before the request is sent: a request that raced the delete may get its 401
+ * first and sign this device out, and the cleanup still needs the deleted account's email.
  * Anything else is an `AppError`, such as 403 `reauthentication_required` (run it through
  * `withReauth`), 403 `mfa_required`, 409 `conflict` for a staff account, or `throttled`.
  */
 export async function deleteAccount({ api = appApi }: ApiOption = {}): Promise<void> {
+	const email = session.email;
 	const result = await settle(api.open.DELETE('/api/v1/accounts/me'));
 	if (result.response.status !== 204) fail(result);
-	endDeletedAccount();
+	endDeletedAccount(email);
 }
 
 /**
- * The account is gone: delete what this device keeps for it (the `onSignOut` listeners, with its
- * email, while it still looks signed in), then sign out and set `session.accountDeleted`.
- * `deleteAccount` calls it on 204, so callers don't.
+ * The account is gone: delete what this device keeps for it (the `onSignOut` listeners, with
+ * `email`, the deleted account's address), then sign out and set `session.accountDeleted`.
+ * `deleteAccount` calls it on 204 with the email it read before sending, so callers don't.
  */
-export function endDeletedAccount(): void {
-	runSignOutListeners(session.email);
+export function endDeletedAccount(email: string | null = session.email): void {
+	runSignOutListeners(email);
 	session.markDeleted();
 }
 
