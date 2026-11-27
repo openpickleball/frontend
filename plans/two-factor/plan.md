@@ -113,6 +113,18 @@ What this does not do: passkeys (#117), "trust this browser", the organizer area
 
 Live drive (High tier): run `pnpm dev:stack` (real backend, seeded) and `pnpm dev` with `PUBLIC_API_MOCK=missing`. Drive the changed path: sign up or use a seeded verified account, turn TOTP on through the reauthentication prompt (compute codes from the shown secret with a small script, for example `python3 -c` with `hmac`), sign out, sign in with a code, sign in with a recovery code, make new codes, turn TOTP off. Also the failure and edge paths: a wrong code at sign-in, a wrong password in the prompt, Cancel in the prompt, a reload at the code step, "Start over". For criterion 7, give a seeded account a membership in a verified organizer in the backend shell, and show `GET /api/v1/organizer/events` answering 403 `mfa_required` from a password-only session after enrolling elsewhere, then 200 after the code prompt. If the backend cannot run, say so and record the mocks-only evidence.
 
+Live drive results (2026-11-26 and 2026-11-27). The real backend ran on port 8001 with `FIELD_ENCRYPTION_KEYS` set. The shared one on 8000 had no key, and turning on TOTP got a 500 there. The app ran with `PUBLIC_API_MOCK=missing`, and Playwright computed the TOTP codes. No CSP violations. What passed:
+
+- **Turning on:** TOTP turned on through the password prompt. A wrong password and Cancel behaved as planned. The codes were shown once.
+- **Sign-in:** with a code and with a recovery code. A wrong code, a reload at the code step, Start over and an expired code step behaved as planned.
+- **Codes and turning off:** new codes and turning off worked.
+- **Criterion 7:**
+  - A member got 403 on `POST organizer/events` before enrolling, and 201 after.
+  - A password-only session got 403 `mfa_required` on `GET organizer/events` after enrolling elsewhere, and 200 after the code prompt.
+- **Fix rounds:** each was driven for the paths it changed (A, C, F, G for my-code, L, T1, T2). D, the other G screens, T3, T4, T5, U1 and U2 are shown by their tests only.
+
+The full gate passed after every round. Its last run, on `2b548d8`: 1932 unit tests and 140 e2e tests.
+
 Measured on `origin/main` (`5761030`, 2026-11-26) for the phrase-absent test "no organizer wording for a non-member": `grep -n -i organizer app/src/routes/profile/+page.svelte app/src/lib/features/players/*.svelte` prints nothing, so the profile page has no organizer wording today. The test may check the whole profile page and the whole two-factor page for the word "organizer" (case-insensitive) when signed in as `player@example.com`.
 
 Rewritten frozen test, `app/src/lib/features/players/own-code-gate-mfa-code.svelte.test.ts` (2026-11-27). Each run copied only that file into a scratch worktree and ran `pnpm exec vitest run --project browser src/lib/features/players/own-code-gate-mfa-code.svelte.test.ts`:
