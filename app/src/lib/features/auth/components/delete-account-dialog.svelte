@@ -21,8 +21,9 @@
 	import { TextField } from '#lib/ui/field/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { asAppError } from '../forms.js';
-	import { ReauthCancelled, withReauth } from '../reauth.svelte.js';
-	import { deleteAccount, unsentMatches } from '../services.js';
+	import { ReauthCancelled, requestReauth, withReauth } from '../reauth.svelte.js';
+	import { checkMfaEnrolled, deleteAccount, unsentMatches } from '../services.js';
+	import { session } from '../session.svelte.js';
 
 	/**
 	 * "Delete your account": says what goes and what stays, asks for the word `delete`, then
@@ -43,7 +44,8 @@
 
 	const WORD = 'delete';
 
-	type Problem = { kind: 'mfa' } | { kind: 'staff' } | { kind: 'message'; text: string };
+	type Problem =
+		{ kind: 'mfa'; enrolled: boolean } | { kind: 'staff' } | { kind: 'message'; text: string };
 
 	let typed = $state('');
 	let busy = $state(false);
@@ -61,9 +63,20 @@
 		unsent = untrack(unsentMatches);
 	});
 
-	function problemOf(cause: unknown): Problem {
+	/**
+	 * Does the account have two-factor? As `watchMfaRequired` decides: the cached answer only when
+	 * it says on, because two-factor turned on from another device is the usual way to meet this.
+	 */
+	async function mfaEnrolled(): Promise<boolean> {
+		if (session.mfaEnrolled === true) return true;
+		return (await checkMfaEnrolled()) === true;
+	}
+
+	async function problemOf(cause: unknown): Promise<Problem> {
 		const error = asAppError(cause);
-		if (error.status === 403 && error.code === MFA_REQUIRED) return { kind: 'mfa' };
+		if (error.status === 403 && error.code === MFA_REQUIRED) {
+			return { kind: 'mfa', enrolled: await mfaEnrolled() };
+		}
 		if (error.status === 409) return { kind: 'staff' };
 		return { kind: 'message', text: error.message };
 	}
@@ -77,12 +90,17 @@
 			// ended the account on this device, and sign in says which.
 			await withReauth(() => deleteAccount());
 		} catch (cause) {
-			if (!(cause instanceof ReauthCancelled)) problem = problemOf(cause);
+			if (!(cause instanceof ReauthCancelled)) problem = await problemOf(cause);
 			return;
 		} finally {
 			busy = false;
 		}
 		await goto(resolve(ROUTES.login));
+	}
+
+	/** This session has not passed two-factor: confirm with a code, then the player deletes again. */
+	async function enterCode() {
+		if (await requestReauth(['code'])) problem = null;
 	}
 
 	/** No way out while the delete is in flight: its answer belongs to this dialog. */
@@ -159,7 +177,14 @@
 		{#if problem}
 			<Alert variant="destructive">
 				<CircleAlertIcon aria-hidden="true" />
-				{#if problem.kind === 'mfa'}
+				{#if problem.kind === 'mfa' && problem.enrolled}
+					<AlertTitle>
+						Confirm with a code from your authenticator app, then press Delete account again.
+					</AlertTitle>
+					<AlertDescription>
+						<Button variant="link" size="inline" onclick={enterCode}>Enter a code</Button>
+					</AlertDescription>
+				{:else if problem.kind === 'mfa'}
 					<AlertTitle>Your account needs two-factor sign-in before it can be deleted.</AlertTitle>
 					<AlertDescription>
 						<Button variant="link" size="inline" href={resolve(ROUTES.twoFactor)}>

@@ -13,6 +13,7 @@ import DeleteAccountDialog from './delete-account-dialog.svelte';
 vi.mock('../services.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('../services.js')>()),
 	deleteAccount: vi.fn(),
+	checkMfaEnrolled: vi.fn(async () => false),
 	endDeletedAccount: vi.fn(),
 	unsentMatches: vi.fn(() => 0)
 }));
