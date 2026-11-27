@@ -59,7 +59,6 @@ test('controls are at least 44px tall and Scoring fits on one row on a phone', a
 test('records a doubles match and lands on its page', async ({ page }) => {
 	await openRecord(page);
 	await fillDoublesMatch(page);
-	await expect(page.getByText('This confirms the score for your team.')).toBeVisible();
 	await page.getByRole('button', { name: 'Record and confirm score' }).click();
 
 	await expect(page).toHaveURL(MATCH_URL);

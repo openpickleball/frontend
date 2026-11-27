@@ -77,15 +77,16 @@ test.describe('home', () => {
 
 		const needsList = page.getByRole('list', { name: 'Needs your confirmation' });
 		await expect(needsList.getByTestId('match-row')).toHaveCount(2);
-		await expect(rowFor(page, WAITING_ON_ME)).toContainText('Needs your confirmation.');
+		// The title says it, so the row doesn't say it again.
+		await expect(rowFor(page, WAITING_ON_ME)).not.toContainText('Needs your confirmation.');
 		await expect(rowFor(page, WAITING_ON_ME_TOO)).toBeVisible();
 		await expect(page.getByTestId('more-needs')).toHaveCount(0);
 
 		const waitingList = page.getByRole('list', { name: 'Waiting for the other team' });
 		await expect(waitingList.getByTestId('match-row')).toHaveCount(1);
-		await expect(
-			waitingList.locator(`a[href$="/matches/${ALREADY_CONFIRMED_BY_ME}"]`)
-		).toContainText('You confirmed this score. Waiting for the other team.');
+		const confirmedRow = waitingList.locator(`a[href$="/matches/${ALREADY_CONFIRMED_BY_ME}"]`);
+		await expect(confirmedRow).toContainText('You confirmed this score.');
+		await expect(confirmedRow).not.toContainText('Waiting for the other team.');
 		await expect(
 			page.getByRole('list', { name: 'Recent matches' }).getByTestId('match-row')
 		).toHaveCount(5);
@@ -108,24 +109,17 @@ test.describe('home', () => {
 });
 
 test.describe('match history', () => {
-	test('says who sees the matches, following the Match history setting', async ({ page }) => {
-		await page.goto('/matches');
-		await expect(
-			page.getByText('Other signed-in players see your confirmed matches.')
-		).toBeVisible();
-
+	test('says who sees the matches on the Match history switch', async ({ page }) => {
 		await page.goto('/profile');
 		const setting = page.getByRole('switch', { name: 'Match history' });
 		await expect(setting).toBeChecked();
+		await expect(page.locator('#privacy-match_history-note')).toHaveText(
+			'Other signed-in players see your confirmed matches.'
+		);
 		await setting.click();
 		await expect(setting).not.toBeChecked();
 		await expect(page.locator('#privacy-match_history-state')).toHaveText('Only me');
-
-		await page.goto('/matches');
-		await expect(page.getByText('Only you can see your matches.')).toBeVisible();
 		await expect(page.getByText(/Other signed-in players see/)).toHaveCount(0);
-		await page.getByRole('link', { name: 'Change who sees them' }).click();
-		await expect(page).toHaveURL(/\/profile#settings-heading$/);
 	});
 
 	test('pages forward and back', async ({ page }) => {
@@ -514,9 +508,8 @@ test.describe('holds', () => {
 
 		const list = page.getByRole('list', { name: 'Matches on hold' });
 		await expect(list.getByTestId('match-row')).toHaveCount(2);
-		await expect(list.locator(`a[href$="/matches/${HELD}"]`)).toContainText(
-			"On hold. It doesn't count yet. Open it to vouch for it."
-		);
+		// The title says On hold, so a row only says whether her side vouched.
+		await expect(list.locator(`a[href$="/matches/${HELD}"]`)).not.toContainText("doesn't count");
 		await expect(list.locator(`a[href$="/matches/${HELD_VOUCHED}"]`)).toContainText(
 			'Your team has vouched for it.'
 		);

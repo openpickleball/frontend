@@ -331,14 +331,11 @@
 
 	<FieldSet class={cn(sectionClass, 'gap-4')}>
 		<FieldLegend>Players</FieldLegend>
-		<p class="max-w-md text-base text-muted">
-			{#if target}
+		{#if target}
+			<p class="max-w-md text-base text-muted">
 				A correction keeps the same players. If the players are wrong, dispute the match instead.
-			{:else}
-				Type a player's name to find them, or enter their OPEN code. They can find theirs on their
-				Profile page.
-			{/if}
-		</p>
+			</p>
+		{/if}
 
 		<div class="grid gap-3" role="group" aria-labelledby="team-a-title">
 			<h2 id="team-a-title" class="text-base font-semibold text-secondary">Your team</h2>
@@ -499,7 +496,11 @@
 
 	<div class={cn(sectionClass, 'grid gap-3')}>
 		<div>
-			<Button type="submit" aria-disabled={form.sending} aria-describedby="submit-note">
+			<Button
+				type="submit"
+				aria-disabled={form.sending}
+				aria-describedby={target ? 'submit-note' : undefined}
+			>
 				{#if form.sending}<Spinner />{/if}
 				{#if target}
 					{form.sending ? 'Saving…' : 'Save the correction'}
@@ -508,15 +509,12 @@
 				{/if}
 			</Button>
 		</div>
-		<p id="submit-note" class="max-w-md text-base text-muted">
-			{#if target}
-				This voids the match as it is now and records the corrected one, with a new match code. It
-				confirms the score for your team. The corrected match counts once a player on the other team
-				confirms it.
-			{:else}
-				This confirms the score for your team. The match stays pending until a player on the other
-				team confirms it too.
-			{/if}
-		</p>
+		<!-- The button says what a new match does. A correction does more, so it gets a warning. -->
+		{#if target}
+			<p id="submit-note" class="max-w-md text-base text-muted">
+				This voids the match and records the corrected one with a new match code. It confirms the
+				score for your team.
+			</p>
+		{/if}
 	</div>
 </form>

@@ -3,7 +3,7 @@ import { render } from 'vitest-browser-svelte';
 import { page, userEvent } from 'vitest/browser';
 import { goto } from '$app/navigation';
 import { session } from '#lib/features/auth/index.js';
-import { myCode, type MySettings, type Visibility } from '#lib/features/players/index.js';
+import { myCode } from '#lib/features/players/index.js';
 import { matchCache } from '../cache.svelte.js';
 import * as services from '../services.js';
 import type { MatchFilter } from '../filter.js';
@@ -19,23 +19,7 @@ vi.mock('../services.js', async (importOriginal) => ({
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn(async () => {}) }));
 const mocked = vi.mocked(services);
-const fetchMySettings = vi.fn<() => Promise<MySettings | null>>();
-const renderView = (props: { page: number; show?: MatchFilter }) =>
-	render(HistoryView, { ...props, settingsDeps: { fetchMySettings } });
-
-function settingsWith(matchHistory: Visibility): MySettings {
-	return {
-		displayName: 'Tamsin Vale',
-		privacy: {
-			match_history: matchHistory,
-			stats: 'signed_in',
-			rating_history: 'signed_in',
-			home_club: 'signed_in',
-			city_region: 'signed_in',
-			rating: 'signed_in'
-		}
-	};
-}
+const renderView = (props: { page: number; show?: MatchFilter }) => render(HistoryView, props);
 
 beforeEach(() => {
 	vi.resetAllMocks();
@@ -45,7 +29,6 @@ beforeEach(() => {
 	myCode.code = TAMSIN;
 	myCode.status = 'ready';
 	mocked.listMyHolds.mockResolvedValue({ items: [], count: 0 });
-	fetchMySettings.mockResolvedValue(settingsWith('signed_in'));
 });
 
 afterEach(() => {
@@ -106,44 +89,14 @@ describe('HistoryView holds', () => {
 	});
 });
 
-describe('HistoryView who sees the matches', () => {
-	beforeEach(() => {
+describe('HistoryView count', () => {
+	it('gives the count in the paging range only, with no line of its own', async () => {
 		mocked.listMatches.mockResolvedValue({ items: [viewerMatch({ b: true })], count: 1 });
-	});
-
-	it('says other signed-in players see the confirmed matches when they are shared', async () => {
 		await renderView({ page: 1 });
-		await expect
-			.element(page.getByText(/Other signed-in players see your confirmed matches\./))
-			.toBeVisible();
-		await expect
-			.element(page.getByRole('link', { name: 'Change who sees them' }))
-			.toHaveAttribute('href', expect.stringMatching(/\/profile#settings-heading$/));
-	});
-
-	it('says only the player sees the matches when they are private', async () => {
-		fetchMySettings.mockResolvedValue(settingsWith('private'));
-		await renderView({ page: 1 });
-		await expect.element(page.getByText(/Only you can see your matches\./)).toBeVisible();
-		await expect.element(page.getByText(/Other signed-in players/)).not.toBeInTheDocument();
-		await expect.element(page.getByRole('link', { name: 'Change who sees them' })).toBeVisible();
-	});
-
-	it('leaves the sentence and the link out when the settings do not load', async () => {
-		fetchMySettings.mockRejectedValue(new Error('down'));
-		await renderView({ page: 1 });
-		await expect.element(page.getByText(/1 match, newest first\./)).toBeVisible();
-		await expect.element(page.getByText(/Other signed-in players/)).not.toBeInTheDocument();
-		await expect.element(page.getByText(/Only you can see/)).not.toBeInTheDocument();
-		await expect
-			.element(page.getByRole('link', { name: 'Change who sees them' }))
-			.not.toBeInTheDocument();
-	});
-
-	it('reads the settings once', async () => {
-		await renderView({ page: 1 });
-		await expect.element(page.getByText(/Other signed-in players/)).toBeVisible();
-		expect(fetchMySettings).toHaveBeenCalledTimes(1);
+		await expect.element(page.getByTestId('range')).toHaveTextContent('1–1 of 1');
+		await expect.element(page.getByText(/newest first/)).not.toBeInTheDocument();
+		// Who sees the matches is said on the Match history switch in the profile settings.
+		await expect.element(page.getByText(/signed-in players/)).not.toBeInTheDocument();
 	});
 });
 
@@ -184,7 +137,10 @@ describe('HistoryView filter', () => {
 
 		await expect.element(page.getByTestId('range')).toHaveTextContent('1–1 of 1');
 		expect(mocked.listMyHolds).toHaveBeenCalledWith(0, expect.objectContaining({ limit: 20 }));
-		await expect.element(page.getByText('1 match, newest first.', { exact: true })).toBeVisible();
+		// The filter says On hold, so the row doesn't say it again.
+		await expect
+			.element(page.getByTestId('match-row').getByText(/doesn't count yet/))
+			.not.toBeInTheDocument();
 	});
 
 	it('says so when a filter has no matches, with a way to all of them', async () => {

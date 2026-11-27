@@ -44,9 +44,6 @@
 			{code}
 		</p>
 		<!-- eslint-enable local/no-arbitrary-tailwind-values -->
-		<p class="max-w-md text-muted">
-			Share it with the people you play. They need it to add you to a match.
-		</p>
 		<div class="flex flex-wrap items-center gap-3">
 			<Button variant="outline" size="sm" onclick={onCopy}>
 				<CopyIcon aria-hidden="true" />

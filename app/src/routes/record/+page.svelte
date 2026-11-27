@@ -42,9 +42,6 @@
 
 <div class="pt-4">
 	<h1 class="page-title">Record a match</h1>
-	<p class="mt-4 max-w-md text-muted">
-		Enter the final score. Once it's saved, the other team can confirm it or dispute it.
-	</p>
 </div>
 
 <!-- The form starts with a section, which brings its own space above. -->
