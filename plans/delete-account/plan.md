@@ -91,7 +91,7 @@ Chosen not to do:
 - [x] Dialog
 - [x] Profile row
 - [x] e2e
-- [ ] Gate and live drive
+- [x] Gate and live drive
 
 ## Decisions
 
@@ -102,3 +102,5 @@ Chosen not to do:
 - `deleteAccount()` calls `endDeletedAccount()` itself, synchronously, as soon as it sees the 204, and the dialog does not call it again. Ending the account in the caller's next line leaves microtask hops (the service's resolve, `withReauth`'s `return await`, the dialog's await) where other callbacks, such as a 401 from a request that raced the delete, could still see a signed-in session and mark it expired. `endDeletedAccount()` stays exported. The service test "has ended the account before any code that waits on it runs" shows it.
 - The dialog gets the unsent count from `setUnsentMatchesSource(source)` and `unsentMatches()` in `features/auth`, which the root layout sets from `offlineQueue.unsent`, the same pattern as `setSignOutWarning`. The dialog writes its own warning, because the sign-out warning says "signing out deletes". This keeps `features/auth` from importing `features/offline`.
 - Nothing on the way to `/account/login` clears `session.accountDeleted`. The root `load` calls `enforceGuard`, which awaits the memoized `bootstrap()`, so after the first read no later navigation calls `refreshSession`. `SessionCheck` only calls `bootstrap()` when the status is `unknown`. Only a failed first read resets `booting`, and then the flag is not set yet. A full page reload loses the flag by design (it is in memory only). No extra handling was needed.
+- The sign-in notice stays after a failed sign-in, such as the old password in the live drive. Only `session.apply` clears it, and a refused login applies nothing. It explains why the old password fails, so it stays.
+- The dialog reads the unsent count once, when it opens, outside the reset effect's tracking. A live count would rerun the reset and wipe the typed word. A match that sends while the dialog is open can still be counted, which only overstates.
