@@ -101,7 +101,19 @@ export async function refreshSession({ api = appApi }: ApiOption = {}): Promise<
  * parallel. A failed call leaves the safe answer: no memberships, and two-factor unknown. It
  * never throws. An answer for an account that is no longer signed in is dropped.
  */
-export async function loadAccountState({ api = appApi }: ApiOption = {}): Promise<void> {
+export function loadAccountState(options: ApiOption = {}): Promise<void> {
+	const loading = readAccountState(options);
+	accountStateLoading = loading;
+	void loading.finally(() => {
+		if (accountStateLoading === loading) accountStateLoading = null;
+	});
+	return loading;
+}
+
+/** The account state read in flight, so a notice can wait until two-factor is known. */
+let accountStateLoading: Promise<void> | null = null;
+
+async function readAccountState({ api = appApi }: ApiOption = {}): Promise<void> {
 	const email = session.isSignedIn ? session.email : null;
 	if (!email) return;
 	const current = () => session.isSignedIn && session.email === email;
@@ -482,5 +494,10 @@ export function watchMfaRequired(
 	notify: (enrolled: boolean) => void,
 	{ api = appApi }: ApiOption = {}
 ): () => void {
-	return api.onMfaRequired(() => notify(session.mfaEnrolled === true));
+	return api.onMfaRequired(() => {
+		// Right after a sign-in two-factor may still be loading: wait for it, so an account that
+		// has it is offered the code and not told to set it up.
+		const loading = accountStateLoading ?? Promise.resolve();
+		void loading.then(() => notify(session.mfaEnrolled === true));
+	});
 }
