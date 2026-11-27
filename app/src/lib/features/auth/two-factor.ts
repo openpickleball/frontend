@@ -76,16 +76,20 @@ function toCodes(body: unknown): RecoveryCodes {
 	return { codes: data.unused_codes, total: data.total_code_count, unused: data.unused_code_count };
 }
 
-/** Is TOTP on? While it is off, a new setup key. */
+/** Is TOTP on? While it is off, a new setup key. Keeps `session.mfaEnrolled` current. */
 export async function getTotpSetup({ api = appApi }: ApiOption = {}): Promise<TotpSetup> {
 	const result = await settle(
 		api.allauth.GET('/_allauth/{client}/v1/account/authenticators/totp', {
 			params: allauthParams
 		})
 	);
-	if (result.response.status === 200) return { status: 'on' };
+	if (result.response.status === 200) {
+		session.mfaEnrolled = true;
+		return { status: 'on' };
+	}
 	if (result.response.status !== 404) fail(result);
 	const { meta } = parsed(setupSchema, result.error);
+	session.mfaEnrolled = false;
 	return { status: 'off', secret: meta.secret, totpUrl: meta.totp_url };
 }
 
