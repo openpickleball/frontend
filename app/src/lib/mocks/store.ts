@@ -1420,9 +1420,11 @@ export function createMockStore() {
 		},
 
 		/**
-		 * `list_my_holds` for a player: the held matches with no Event the signed-in account's
-		 * player played in, newest first, that are not voided. `vouched` is true once a player on
-		 * their team vouched. The mock has no Event organizer, so it lists no Event match.
+		 * `list_my_holds` for a player: the held matches with no Event and no Club the signed-in
+		 * account's player played in, newest first, that are not voided. `vouched` is true once a
+		 * player on their team vouched. An Event match is for its organizer's members, which the
+		 * mock's holds list doesn't serve, and nobody vouches for a Club-only match, so neither is
+		 * listed.
 		 */
 		listMyHolds(
 			viewerEmail: string,
@@ -1433,7 +1435,12 @@ export function createMockStore() {
 			if (!own) return { items: [], count: 0 };
 			const all = state.matches
 				.filter(
-					(m) => m.hold && m.status !== 'voided' && [...m.teamA, ...m.teamB].includes(own.code)
+					(m) =>
+						m.hold &&
+						m.status !== 'voided' &&
+						!m.event &&
+						!m.club &&
+						[...m.teamA, ...m.teamB].includes(own.code)
 				)
 				.sort(newestFirst)
 				.map((match) => {
@@ -1444,15 +1451,21 @@ export function createMockStore() {
 		},
 
 		/**
-		 * `workflow.vouch_for_match` for a player of a match with no Event. Anyone who did not play
-		 * gets the unknown-code 404. A voided match, and a match no hold keeps, are a 409. A repeat
+		 * `workflow.vouch_for_match` for a player of a match with no Event and no Club. Anyone who
+		 * did not play, and a player of a match with an Event or a Club, gets the unknown-code 404. A voided match, and a match no hold keeps, are a 409. A repeat
 		 * changes nothing. The hold ends once a player of each team vouched and the other match was
 		 * vouched for.
 		 */
 		vouch(email: string, code: string): ChangeResult {
 			const match = this.matchByCode(code);
 			const own = playerOfAccount(email);
-			if (!match || !own || ![...match.teamA, ...match.teamB].includes(own.code)) {
+			if (
+				!match ||
+				!own ||
+				match.event ||
+				match.club ||
+				![...match.teamA, ...match.teamB].includes(own.code)
+			) {
 				return { ok: false, kind: 'not_found' };
 			}
 			if (match.status === 'voided' || !match.hold) return { ok: false, kind: 'conflict' };
