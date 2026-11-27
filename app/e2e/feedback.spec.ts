@@ -111,7 +111,48 @@ test.describe('Send feedback', () => {
 		await context.setOffline(false);
 	});
 
+	test('the open dialog is a white panel with the form and a close button', async ({ page }) => {
+		await page.emulateMedia({ colorScheme: 'dark' });
+		await standInForTally(page);
+		await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+		await page.goto('/profile');
+		await page.getByRole('button', { name: 'Send feedback' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Send feedback' });
+		await expect(dialog).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+		// The title only names the dialog: nothing of ours shows above the form.
+		await expect(dialog.getByText('Send feedback')).toHaveClass(/sr-only/);
+		const panel = await dialog.boundingBox();
+		const close = await dialog.getByRole('button', { name: 'Close' }).boundingBox();
+		const frame = await page.locator('iframe[title="Feedback form"]').boundingBox();
+		expect(panel && close && frame).toBeTruthy();
+		if (!panel || !close || !frame) return;
+		// The form fills the panel from edge to edge.
+		expect(frame.x).toBeCloseTo(panel.x, 0);
+		expect(frame.width).toBeCloseTo(panel.width, 0);
+		// The close button sits in the top right corner, above the form's own top padding
+		// (about 29px in Tally's embed), so it never covers the heading.
+		expect(panel.x + panel.width - (close.x + close.width)).toBeLessThanOrEqual(8);
+		expect(close.y - panel.y).toBeLessThanOrEqual(8);
+		expect(close.y + close.height - frame.y).toBeLessThanOrEqual(29);
+	});
+
 	for (const scheme of ['dark', 'light'] as const) {
+		test(`the new-tab fallback has no WCAG 2.1 AA violations (${scheme})`, async ({
+			page,
+			context
+		}) => {
+			await page.emulateMedia({ colorScheme: scheme });
+			await standInForTally(page);
+			await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
+			await page.goto('/profile');
+			await expect(page.getByRole('heading', { level: 2, name: 'Help and about' })).toBeVisible();
+			await context.setOffline(true);
+			await page.getByRole('button', { name: 'Send feedback' }).click();
+			await expect(page.getByRole('link', { name: /open the form in a new tab/ })).toBeVisible();
+			await expectNoAxeViolations(page);
+			await context.setOffline(false);
+		});
+
 		test(`the open dialog has no WCAG 2.1 AA violations (${scheme})`, async ({ page }) => {
 			await page.emulateMedia({ colorScheme: scheme });
 			await standInForTally(page);

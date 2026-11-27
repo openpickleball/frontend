@@ -48,6 +48,11 @@ describe('cn', () => {
 	it('lets the last conflicting utility win', () => {
 		expect(cn('px-2 text-muted', 'px-4')).toBe('text-muted px-4');
 	});
+
+	it('knows the gutter is spacing', () => {
+		expect(cn('px-gutter pt-8', 'p-0')).toBe('p-0');
+		expect(cn('p-0', 'px-gutter')).toBe('p-0 px-gutter');
+	});
 });
 
 describe('Button', () => {
