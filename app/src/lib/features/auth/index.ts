@@ -25,8 +25,9 @@
  *   `session.accountDeleted` to `deleted`, so sign-in can say the account was deleted. It does
  *   the same with `maybe` when the answer is unclear: no answer or a 5xx, and this device is
  *   signed out (allauth is asked once), or a 401 after an earlier try for the same email had no
- *   answer or a 5xx. Any other 401 is a plain expiry: it throws, deletes nothing on this device
- *   (the unsent matches stay), and sign-in says the player was signed out.
+ *   answer or a 5xx. That earlier try counts for 10 minutes, until a sign-in with that email, or
+ *   until a 204 or a 409. Any other 401 is a plain expiry: it throws, deletes nothing on this
+ *   device (the unsent matches stay), and sign-in says the player was signed out.
  * - `DeleteAccountDialog`: the "Delete your account" confirm dialog. It asks for the word
  *   `delete`, runs `deleteAccount()` through `withReauth`, then goes to sign in. Profile renders
  *   its row as the `trigger`.

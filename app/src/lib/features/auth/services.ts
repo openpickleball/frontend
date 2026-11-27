@@ -253,6 +253,7 @@ export async function login(
 		result.response.status === 409 ? await alreadySignedIn(result, { api }) : stateOf(result);
 	if (state.status === 'signed_out') fail(result);
 	applyState(state, { api }, email);
+	forgetUnclearOnSignIn(state);
 	return state;
 }
 
@@ -282,6 +283,7 @@ export async function authenticateMfa(
 		state = stateOf(result);
 		applyState(state, { api });
 	}
+	forgetUnclearOnSignIn(state);
 	if (state.status === 'signed_in') return state;
 	// The login's two-factor stage ran out: the sign-in page says why it is back.
 	if (state.status !== 'pending_mfa') session.mfaTimedOut = true;
@@ -355,6 +357,7 @@ export async function signup(
 		result.response.status === 409 ? await alreadySignedIn(result, { api }) : stateOf(result);
 	if (state.status === 'signed_out') fail(result);
 	session.apply(state, details.email);
+	forgetUnclearOnSignIn(state);
 	return state;
 }
 
@@ -501,7 +504,10 @@ export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
  * Any other 401 is a plain expiry: the session ended on the backend (an idle timeout, or a sign
  * out elsewhere) and the backend deleted nothing. It throws the 401, nothing on this device is
  * deleted (no `onSignOut` listener runs, so the unsent matches stay), and the watcher's expiry
- * stands. A 204 or any other definite answer forgets the unclear try.
+ * stands. The unclear try is forgotten on a 204, on the maybe end, on a 409 (a staff account,
+ * which the backend never deletes), when a sign-in with that email succeeds, and once it is older
+ * than `UNCLEAR_DELETE_MS`. A 429, a 403 or any other answer keeps it, since the unclear try may
+ * still commit.
  *
  * Anything else is an `AppError`, such as 403 `reauthentication_required` (run it through
  * `withReauth`), 403 `mfa_required`, 409 `conflict` for a staff account, or `throttled`.
@@ -511,12 +517,13 @@ export async function deleteAccount({ api = appApi }: ApiOption = {}): Promise<A
 	try {
 		const result = await settle(api.open.DELETE('/api/v1/accounts/me'));
 		const status = result.response.status;
-		if (status === 401 && email !== null && unclearDeletes.has(email)) return endUnclear(email);
+		if (status === 401 && hadUnclearTry(email)) return endUnclear(email);
 		if (status !== 204) fail(result);
 	} catch (cause) {
-		if (!unclearAnswer(cause)) forgetUnclear(email);
-		else if (await signedOutNow(api)) return endUnclear(email);
-		else if (email !== null) unclearDeletes.add(email);
+		if (!unclearAnswer(cause)) {
+			if (isAppError(cause) && cause.status === 409) forgetUnclear(email);
+		} else if (await signedOutNow(api)) return endUnclear(email);
+		else if (email !== null) unclearDeletes.set(email, Date.now());
 		throw cause;
 	}
 	forgetUnclear(email);
@@ -525,14 +532,41 @@ export async function deleteAccount({ api = appApi }: ApiOption = {}): Promise<A
 }
 
 /**
- * The emails whose last delete try in this page had an unclear answer (no answer, or a 5xx while
- * still signed in). Only then does a 401 on the next try mean the account may be gone.
+ * How long an unclear delete try counts: 10 minutes. A slow backend commits or gives up well
+ * within that, and the player who just pressed Delete tries again within it. Later, a 401 is far
+ * more likely a session that ended than that old try, so it is a plain expiry again.
  */
-const unclearDeletes = new Set<string>();
+const UNCLEAR_DELETE_MS = 10 * 60 * 1000;
 
-/** A definite answer: the next 401 for this email is a plain expiry again. */
+/**
+ * The emails whose delete try in this page had an unclear answer (no answer, or a 5xx while still
+ * signed in), with the time of the latest such try. Only then does a 401 on a later try mean the
+ * account may be gone.
+ */
+const unclearDeletes = new Map<string, number>();
+
+/** Did a delete try for this email have an unclear answer, within `UNCLEAR_DELETE_MS`? */
+function hadUnclearTry(email: string | null): boolean {
+	if (email === null) return false;
+	const at = unclearDeletes.get(email);
+	if (at === undefined) return false;
+	if (Date.now() - at <= UNCLEAR_DELETE_MS) return true;
+	unclearDeletes.delete(email);
+	return false;
+}
+
+/** The next 401 for this email is a plain expiry again. */
 function forgetUnclear(email: string | null): void {
 	if (email !== null) unclearDeletes.delete(email);
+}
+
+/**
+ * A sign-in with this email succeeded, so its account exists and no earlier try deleted it. Not
+ * called for a session read (`refreshSession`): a 401 retry expires the session before the next
+ * `deleteAccount` reads the memory.
+ */
+function forgetUnclearOnSignIn(state: SessionState): void {
+	if (state.status === 'signed_in') forgetUnclear(state.email);
 }
 
 /** End the account as `maybe` deleted after an unclear answer. */
