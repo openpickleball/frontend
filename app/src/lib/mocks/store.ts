@@ -1452,9 +1452,9 @@ export function createMockStore() {
 
 		/**
 		 * `workflow.vouch_for_match` for a player of a match with no Event and no Club. Anyone who
-		 * did not play, and a player of a match with an Event or a Club, gets the unknown-code 404. A voided match, and a match no hold keeps, are a 409. A repeat
-		 * changes nothing. The hold ends once a player of each team vouched and the other match was
-		 * vouched for.
+		 * did not play, and a player of a match with an Event or a Club, gets the unknown-code 404.
+		 * A voided match, and a match no hold keeps, are a 409. A repeat changes nothing. The hold
+		 * ends once a player of each team vouched and the other match was vouched for.
 		 */
 		vouch(email: string, code: string): ChangeResult {
 			const match = this.matchByCode(code);
