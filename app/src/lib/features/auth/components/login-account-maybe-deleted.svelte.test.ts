@@ -1,6 +1,7 @@
 /**
- * The sign-in notice after a delete whose answer was lost (plan `delete-account`, criterion 6):
- * the account may be gone, and signing in tells the player which.
+ * The sign-in notice after a delete whose answer was unclear (plan `delete-account`, criterion 6):
+ * a lost answer, a 5xx, or a 401 after such a try. The account may be gone, and signing in tells
+ * the player which.
  */
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
@@ -16,7 +17,7 @@ vi.mock('../services.js', () => ({
 
 const MAYBE = 'Your account may have been deleted.';
 const MAYBE_MORE =
-	"We lost the connection before OPEN answered. Sign in to check: if your account is gone, sign-in won't work.";
+	"We couldn't confirm it before you were signed out. Sign in to check: if your account is gone, sign-in won't work.";
 
 beforeEach(() => {
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
