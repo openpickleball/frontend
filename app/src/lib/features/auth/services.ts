@@ -521,17 +521,20 @@ export function watchMfaRequired(
 	{ api = appApi }: ApiOption = {}
 ): () => void {
 	return api.onMfaRequired(() => {
+		// The refusal belongs to the account signed in now. Any later account is not told about it.
+		const email = session.isSignedIn ? session.email : null;
+		if (!email) return;
+		const same = () => session.isSignedIn && session.email === email;
 		// Right after a sign-in two-factor may still be loading: wait for it, so an account that
 		// has it is offered the code and not told to set it up.
 		const loading = accountStateLoading ?? Promise.resolve();
 		void loading.then(async () => {
+			if (!same()) return;
 			// The cached answer may be old: two-factor turned on from another device is the usual
 			// way a session meets this refusal. Unless it already says on, ask again.
-			if (session.mfaEnrolled !== true && session.isSignedIn) {
-				const email = session.email;
+			if (session.mfaEnrolled !== true) {
 				await checkMfaEnrolled({ api });
-				// Another account signed in meanwhile: this notice is not theirs.
-				if (!session.isSignedIn || session.email !== email) return;
+				if (!same()) return;
 			}
 			notify(session.mfaEnrolled === true);
 		});
