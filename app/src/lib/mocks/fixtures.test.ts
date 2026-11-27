@@ -56,6 +56,18 @@ describe('fixtures', () => {
 		expect(store.matchOut(waiting, null).my_team).toBeNull();
 	});
 
+	// MatchOut requires event and club. The mock has no Event or Club to show, so both are null,
+	// even for a match with the event flag.
+	it('sends every match with no event and no club', () => {
+		const store = createMockStore();
+		const flagged = { ...store.state.matches[0], event: true };
+		for (const match of [...store.state.matches, flagged]) {
+			const out = store.matchOut(match, VERIFIED_EMAIL);
+			expect(out).toHaveProperty('event', null);
+			expect(out).toHaveProperty('club', null);
+		}
+	});
+
 	// The backend lets a participant dispute a match that is already confirmed (workflow.dispute_match).
 	it('reports a dispute after a confirm without taking the confirmation back', () => {
 		const store = createMockStore();
