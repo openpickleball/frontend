@@ -529,12 +529,25 @@ export function watchMfaRequired(
 			// way a session meets this refusal. Unless it already says on, ask again.
 			if (session.mfaEnrolled !== true && session.isSignedIn) {
 				const email = session.email;
-				const fresh = await readEnrolled(api);
-				// Another account signed in meanwhile: this answer and this notice are not theirs.
+				await checkMfaEnrolled({ api });
+				// Another account signed in meanwhile: this notice is not theirs.
 				if (!session.isSignedIn || session.email !== email) return;
-				if (fresh !== null) session.mfaEnrolled = fresh;
 			}
 			notify(session.mfaEnrolled === true);
 		});
 	});
+}
+
+/**
+ * Ask allauth again whether two-factor is on for the signed-in account, and keep
+ * `session.mfaEnrolled` current. Resolves to the answer, or null when it is unknown or another
+ * account signed in while it asked (then nothing is written).
+ */
+export async function checkMfaEnrolled({ api = appApi }: ApiOption = {}): Promise<boolean | null> {
+	if (!session.isSignedIn) return null;
+	const email = session.email;
+	const fresh = await readEnrolled(api);
+	if (!session.isSignedIn || session.email !== email) return null;
+	if (fresh !== null) session.mfaEnrolled = fresh;
+	return fresh;
 }

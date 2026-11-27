@@ -47,7 +47,13 @@ export {
 	type OrganizerMembership,
 	type SessionStatus
 } from './session.svelte.js';
-export { watchMfaRequired, watchSessionExpiry, onSignOut, setSignOutWarning } from './services.js';
+export {
+	checkMfaEnrolled,
+	watchMfaRequired,
+	watchSessionExpiry,
+	onSignOut,
+	setSignOutWarning
+} from './services.js';
 export { isAccountPath, safeNext } from './guard.js';
 export { goAfterSignIn } from './navigation.js';
 export { default as SignOutButton } from './components/sign-out-button.svelte';
