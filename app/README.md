@@ -46,6 +46,8 @@ With `all`, you can sign in as `player@example.com` (see `src/lib/mocks/fixtures
 
 For two-factor, the mocks also have `organizer@example.com` (a member of a made-up verified organizer, no two-factor yet), `twofactor@example.com` (two-factor on) and `moderator@example.com` (must have two-factor and has none, so the API answers `mfa_required`). The mock accepts `MOCK_TOTP_CODE` (`123456`) as the current code from any authenticator app, and each of `MOCK_RECOVERY_CODES` once.
 
+For the organizer Events page (`/organizer`), `organizer@example.com` is an admin of a made-up verified organizer with made-up Events, and `manager@example.com` (two-factor on) is a match manager of the same organizer and a member of a made-up unverified one. `player@example.com` is not a member, so the page is not found for them. In the browser console, `window.__openMock.turnOnTwoFactor(email)` turns two-factor on for an account, and `window.__openMock.removeMembership(email, organizer)` ends a membership, as the backend would.
+
 ### The `/api` proxy
 
 `pnpm dev` forwards `/api` and `/_allauth` to the backend at `http://127.0.0.1:8000` (see `vite.config.ts`). The browser only ever talks to the backend through `localhost:5173`, so the session cookie and CSRF protection work without CORS settings.

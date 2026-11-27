@@ -130,4 +130,5 @@ Update 2026-11-26 (#261): backend#301 (organizer memberships, `GET /api/v1/organ
 - **The organizer area is a nav entry (S6).** "Events" at `/organizer`, in the side nav and the tab bar, only for organizer members (`session.isOrganizer`). Anyone else gets the app's not found page there. See `plans/organizer-events/plan.md`.
 
 ## Open questions
+
 - The dispute and hold periods (30 and 14 days by default) are backend settings, and the API returns no end date. Should the backend add one, so the app can say when a match will end?
