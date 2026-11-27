@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import MessageSquareTextIcon from '@lucide/svelte/icons/message-square-text';
 	import XIcon from '@lucide/svelte/icons/x';
 	import { Button, type ButtonSize, type ButtonVariant } from '#lib/ui/button/index.js';
@@ -32,7 +33,8 @@
 		icon = false,
 		class: className,
 		formUrl = FEEDBACK_EMBED_URL,
-		timeout = FEEDBACK_TIMEOUT_MS
+		timeout = FEEDBACK_TIMEOUT_MS,
+		trigger
 	}: {
 		variant?: ButtonVariant;
 		size?: ButtonSize;
@@ -43,6 +45,11 @@
 		formUrl?: string;
 		/** How long to wait for the form before showing the new-tab link. */
 		timeout?: number;
+		/**
+		 * Render the opener yourself, such as Profile's settings row. Spread `props` on a button.
+		 * Without it, the opener is a "Send feedback" button.
+		 */
+		trigger?: Snippet<[{ props: Record<string, unknown> }]>;
 	} = $props();
 
 	let open = $state(false);
@@ -75,10 +82,14 @@
 <Dialog bind:open>
 	<DialogTrigger>
 		{#snippet child({ props })}
-			<Button {...props} {variant} {size} class={className}>
-				{#if icon}<MessageSquareTextIcon aria-hidden="true" />{/if}
-				Send feedback
-			</Button>
+			{#if trigger}
+				{@render trigger({ props })}
+			{:else}
+				<Button {...props} {variant} {size} class={className}>
+					{#if icon}<MessageSquareTextIcon aria-hidden="true" />{/if}
+					Send feedback
+				</Button>
+			{/if}
 		{/snippet}
 	</DialogTrigger>
 	<!-- Centered on every screen, like the site's Tally popup, with 16px either side on a phone. -->

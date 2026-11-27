@@ -11,6 +11,10 @@ describe('isGuardedPath', () => {
 			'/ratings',
 			'/profile',
 			'/profile/ratings',
+			'/profile/name',
+			'/profile/two-factor',
+			'/profile/privacy',
+			'/profile/data',
 			'/organizer'
 		]) {
 			expect(isGuardedPath(path), path).toBe(true);

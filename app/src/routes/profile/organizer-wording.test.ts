@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import type { Component } from 'svelte';
 import { render } from 'svelte/server';
 import { session } from '#lib/features/auth/index.js';
 import ProfilePage from './+page.svelte';
@@ -12,10 +13,10 @@ const MEMBERSHIP = {
 	verification_requested: false
 } as const;
 
-const pages = [
+const pages: [string, Component][] = [
 	['the profile page', ProfilePage],
 	['the two-factor page', TwoFactorPage]
-] as const;
+];
 
 afterEach(() => session.reset());
 

@@ -139,7 +139,7 @@ test('from 1024px the side bar is the banner, with the theme toggle and the one 
 	await expect(toggle).toBeVisible();
 	expect((await toggle.boundingBox())?.width).toBeGreaterThanOrEqual(44);
 	await expect(bar.getByRole('button', { name: 'Sign out' })).toBeVisible();
-	// The Account section is for phones, so there is one Sign out on screen.
+	// Profile's Sign out is for phones, so there is one Sign out on screen.
 	await expect(
 		page.getByRole('button', { name: 'Sign out' }).filter({ visible: true })
 	).toHaveCount(1);

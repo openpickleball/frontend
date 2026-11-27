@@ -25,8 +25,9 @@
  *   place.
  * - `CodeStrip` is the player's code on one line with Copy code, at the top of Home and Profile.
  * - `ProfileView` is the profile page, which is the settings page: the title, the code strip,
- *   then the sections the route passes as children (`ProfileSettings`, two-factor, `YourData`
- *   and Account). The player's numbers are on Home and the Ratings page, not here.
+ *   then the settings groups the route passes as children (Account, Privacy, Your data, Help and
+ *   about, then Sign out). The player's numbers are on Home and the Ratings page, not here.
+ * - `SettingsPage` is a settings page under Profile: a back link to Profile, then the title.
  * - `myCode.status === 'signed-out'` means nobody is signed in. The route guard owns that.
  * - Ratings: `fetchRatings(code)` reads `GET players/{code}/ratings` (backend#53) and returns
  *   `null` on its 404. `RatingsCard` shows what the backend sent: every rating with its
@@ -44,15 +45,15 @@
  *   Each change shows its format, the value, its reliability, the day and what caused it (`CHANGE_KINDS`: after a match, a recount, or removed by a recount). The API gives no
  *   change amount, and the app works none out.
  *
- * - `ProfileSettings` is the "Name and privacy" section. It reads
- *   `GET me/player` and saves with `PATCH me/player` (backend#124). It reads them once
- *   `myCode` is ready, and shows no "Name and privacy" section before that. If `me/player`
- *   answers a 404 or 405, it says the player can't change these in the app yet. The backend
+ * - `NameSettings` (Profile > Display name) and `VisibilitySettings` (Profile > Profile
+ *   visibility) each read `GET me/player` and save with `PATCH me/player` (backend#124). They
+ *   read it once `myCode` is ready, and show nothing before that. If `me/player`
+ *   answers a 404 or 405, they say the player can't change these in the app yet. The backend
  *   checks every change and decides who may make it. Saving a name updates `myCode.displayName`.
  *   Current ratings (`rating_visibility`) are shown as fixed when they are shown to signed-in
  *   players, which can't be undone. When they are private (a player who joined at 13 to 17),
  *   a switch offers to show them, and the backend's refusal before 18 is shown. `YourData`
- *   says how to ask for a copy, until a data export endpoint exists (backend#39).
+ *   (Profile > Copy of your data) says how to ask for a copy, until the app has a download.
  *
  * `services.ts` calls `me/player` (GET, POST and PATCH), the ratings and the rating history with
  * the generated types.
@@ -62,7 +63,9 @@ export { MyRatings } from './my-ratings.svelte.js';
 export { default as CodeStrip } from './code-strip.svelte';
 export { default as OwnCodeGate } from './own-code-gate.svelte';
 export { default as ProfileView } from './profile-view.svelte';
-export { default as ProfileSettings } from './profile-settings.svelte';
+export { default as NameSettings } from './name-settings.svelte';
+export { default as SettingsPage } from './settings-page.svelte';
+export { default as VisibilitySettings } from './visibility-settings.svelte';
 export { default as RatingsCard } from './ratings-card.svelte';
 export { default as RatingsPage } from './ratings-page.svelte';
 export { default as YourData } from './your-data.svelte';

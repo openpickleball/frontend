@@ -193,10 +193,7 @@ test('the code comes from the backend, and nothing about it stays in this browse
 		);
 	expect(await kept()).toEqual([]);
 
-	await page
-		.getByRole('region', { name: 'Account' })
-		.getByRole('button', { name: 'Sign out' })
-		.click();
+	await page.getByRole('main').getByRole('button', { name: 'Sign out' }).click();
 	await expect(page).toHaveURL(/\/account\/login/);
 	expect(await kept()).toEqual([]);
 	await page.goto('/profile');
@@ -302,11 +299,8 @@ test('another account never sees the last account code on the profile', async ({
 	await page.goto('/profile');
 	await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 
-	// Sign out from the profile page, where it is in the Account section.
-	await page
-		.getByRole('region', { name: 'Account' })
-		.getByRole('button', { name: 'Sign out' })
-		.click();
+	// Sign out from the profile page, where it closes the settings.
+	await page.getByRole('main').getByRole('button', { name: 'Sign out' }).click();
 	await expect(page).toHaveURL(/\/account\/login/);
 
 	await signIn(page, oren.accountEmail!, MOCK_PASSWORD);
