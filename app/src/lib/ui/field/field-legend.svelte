@@ -9,7 +9,10 @@
 		children,
 		...restProps
 	}: WithElementRef<HTMLAttributes<HTMLLegendElement>> & {
-		/** `legend` is a section heading. `label` names one control, like a field label. */
+		/**
+		 * `legend` is a section heading in `section-title`, for a FieldSet with `sectionClass` from
+		 * `#lib/ui/section`. `label` names one control, like a field label.
+		 */
 		variant?: 'legend' | 'label';
 	} = $props();
 </script>
@@ -19,7 +22,7 @@
 	data-slot="field-legend"
 	data-variant={variant}
 	class={cn(
-		'font-semibold text-secondary data-[variant=label]:mb-2 data-[variant=label]:text-base data-[variant=legend]:float-left data-[variant=legend]:w-full data-[variant=legend]:text-xl data-[variant=legend]:[&+*]:clear-left',
+		'data-[variant=label]:mb-2 data-[variant=label]:text-base data-[variant=label]:font-semibold data-[variant=label]:text-secondary data-[variant=legend]:section-title data-[variant=legend]:float-left data-[variant=legend]:w-full data-[variant=legend]:[&+*]:clear-left',
 		className
 	)}
 	{...restProps}

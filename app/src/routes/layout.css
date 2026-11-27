@@ -131,7 +131,8 @@
 	mask: url('../lib/assets/mark.svg') center / contain no-repeat;
 }
 
-/* Small spaced capitals: section labels and kickers. The wordmark face is for the logo only. */
+/* Small spaced capitals for kickers and captions, such as the format and date above a match.
+   Never a heading: section headings use section-title. The wordmark face is for the logo only. */
 @utility label {
 	font-family: var(--font-body);
 	font-weight: 600;
@@ -169,4 +170,10 @@
 	text-wrap: balance;
 	/* A long name with no spaces breaks inside the column instead of widening the page. */
 	@apply wrap-anywhere;
+}
+
+/* The heading of each page section (the Section component and the FieldLegend legend variant).
+   One step below page-title. Group labels inside a section use text-base font-semibold. */
+@utility section-title {
+	@apply text-xl font-semibold text-secondary;
 }

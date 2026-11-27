@@ -39,7 +39,8 @@ const candidates = [
 	'mark',
 	'label',
 	'open-code',
-	'page-title'
+	'page-title',
+	'section-title'
 ];
 
 const tokens: Record<string, string> = {
@@ -142,6 +143,10 @@ describe('layout.css', () => {
 		expect(openCode).toContain('letter-spacing: var(--tracking-wide)');
 		expect(openCode).toContain('tabular-nums');
 		expect(openCode).not.toContain('monospace');
+		const sectionTitle = ruleBody(css, '.section-title');
+		expect(sectionTitle).toContain('font-size: var(--text-xl)');
+		expect(sectionTitle).toContain('font-weight: var(--font-weight-semibold)');
+		expect(sectionTitle).toContain('color: var(--color-secondary)');
 		expect(ruleBody(css, ':root')).toContain('color-scheme: light dark;');
 		expect(ruleBody(css, ':root[data-theme="light"]')).toContain('color-scheme: light;');
 		expect(ruleBody(css, ':root[data-theme="dark"]')).toContain('color-scheme: dark;');

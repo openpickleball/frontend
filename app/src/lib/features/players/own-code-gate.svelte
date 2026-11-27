@@ -5,6 +5,7 @@
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import { cn } from '#lib/ui/utils.js';
 	import { myCode } from './my-code.svelte.js';
 	import PlayerDetailsForm from './player-details-form.svelte';
@@ -68,22 +69,19 @@
 		</section>
 	{/if}
 {:else if myCode.status === 'needs-details'}
-	<section class={cn(fallbackClass, 'grid gap-8')} aria-labelledby="details-heading">
-		<div class="grid gap-4">
-			<h2 id="details-heading" class="text-2xl font-medium tracking-tight text-secondary">
-				Finish your player profile
-			</h2>
+	<Section title="Finish your player profile" headingId="details-heading" class={fallbackClass}>
+		<div class="grid gap-8">
 			<p class="max-w-md text-muted">
 				We need your birth month and year, gender and a display name again. This can happen if you
 				confirmed your email on another device.
 			</p>
+			<PlayerDetailsForm
+				errors={myCode.detailErrors}
+				problem={myCode.detailProblem}
+				onsubmit={(body) => myCode.submitDetails(body)}
+			/>
 		</div>
-		<PlayerDetailsForm
-			errors={myCode.detailErrors}
-			problem={myCode.detailProblem}
-			onsubmit={(body) => myCode.submitDetails(body)}
-		/>
-	</section>
+	</Section>
 {:else if myCode.status === 'refused'}
 	<section class={cn(fallbackClass, 'grid gap-4')}>
 		<p class="max-w-md text-muted">We can't create a player profile with these details.</p>

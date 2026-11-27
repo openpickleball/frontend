@@ -12,6 +12,7 @@
 	import { myCode } from '#lib/features/players/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import {
 		Empty,
@@ -426,16 +427,18 @@
 		{@render status()}
 	{/if}
 
-	<dl class="mt-8 grid grid-cols-2 gap-x-6">
-		<div>
-			<dt class="text-sm text-muted">Games to</dt>
-			<dd class="mt-0.5">{match.gameTarget}</dd>
-		</div>
-		<div>
-			<dt class="text-sm text-muted">Scoring</dt>
-			<dd class="mt-0.5">{scoringName(match.scoringType)}</dd>
-		</div>
-	</dl>
+	<Section title="Details">
+		<dl class="grid grid-cols-2 gap-x-6">
+			<div>
+				<dt class="text-sm text-muted">Games to</dt>
+				<dd class="mt-0.5">{match.gameTarget}</dd>
+			</div>
+			<div>
+				<dt class="text-sm text-muted">Scoring</dt>
+				<dd class="mt-0.5">{scoringName(match.scoringType)}</dd>
+			</div>
+		</dl>
+	</Section>
 
 	<DisputeDialog
 		bind:open={disputeOpen}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { winner, type Match, type PlayerCode } from '#lib/domain/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import { sideScores, teamNames, viewpoint, wonTag } from '../format.js';
 
 	let { match, you }: { match: Match; you: PlayerCode } = $props();
@@ -20,7 +21,7 @@
 	const columns = $derived(`1fr repeat(${match.games.length}, 40px)`);
 </script>
 
-<section class="mt-8 border-t border-line" aria-label="Score">
+<Section title="Score">
 	<!-- The table is for screen readers. The grid below is the same data, drawn for the eye. -->
 	<div class="sr-only">
 		<table>
@@ -47,7 +48,7 @@
 	</div>
 	<div aria-hidden="true">
 		<div
-			class="grid items-center gap-x-1.5 pt-3 pb-2 text-right text-sm text-muted"
+			class="grid items-center gap-x-1.5 pb-2 text-right text-sm text-muted"
 			style:grid-template-columns={columns}
 		>
 			<span class="text-left">Team</span>
@@ -57,7 +58,7 @@
 		</div>
 		{#each teams as row (row.side)}
 			<div
-				class="grid items-start gap-x-1.5 border-t border-line py-5 last:border-b"
+				class="grid items-start gap-x-1.5 border-t border-line py-5"
 				style:grid-template-columns={columns}
 				data-testid="scoreboard-team"
 			>
@@ -90,4 +91,4 @@
 			</div>
 		{/each}
 	</div>
-</section>
+</Section>

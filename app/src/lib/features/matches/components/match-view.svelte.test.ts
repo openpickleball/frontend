@@ -108,7 +108,7 @@ describe('MatchView', () => {
 	it('puts the status panel before the score when the player has to confirm', async () => {
 		const screen = await render(MatchView, { code: code() });
 		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
-		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		const board = screen.getByRole('region', { name: 'Score' }).element();
 		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
@@ -118,7 +118,7 @@ describe('MatchView', () => {
 		mocked.getMatch.mockResolvedValue(confirmed);
 		const screen = await render(MatchView, { code: code() });
 		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
-		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		const board = screen.getByRole('region', { name: 'Score' }).element();
 		expect(board.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
@@ -511,7 +511,7 @@ describe('MatchView withdraw', () => {
 		const screen = await render(MatchView, { code: code() });
 		await expect.element(page.getByRole('button', { name: 'Withdraw my dispute' })).toBeVisible();
 		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
-		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		const board = screen.getByRole('region', { name: 'Score' }).element();
 		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
@@ -694,7 +694,7 @@ describe('MatchView vouch', () => {
 		const badges = [...screen.container.querySelectorAll('[data-slot="badge"]')];
 		expect(badges.map((badge) => badge.textContent?.trim())).toEqual(['Confirmed', 'On hold']);
 		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
-		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		const board = screen.getByRole('region', { name: 'Score' }).element();
 		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
