@@ -31,7 +31,7 @@ export type MatchStatusCopy = {
  * not read them yet, so this says both ways. frontend#264 will use them.
  */
 export const DISPUTE_ENDS =
-	"A dispute ends when every player who disputed the score withdraws. For a match played at an event, the event's organizer can settle it too. If no one settles it within a set time, the match is voided and doesn't count.";
+	"A dispute ends when every player who disputed the score withdraws, or, for a match played at an event, when the event's organizer settles it. If no one settles it in time, the match is voided and doesn't count.";
 
 /**
  * What a voided match may have become. `MatchOut` doesn't link a match to its correction, so

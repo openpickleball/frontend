@@ -54,11 +54,11 @@ export function toPlayerRatings(dto: PlayerRatingsOut): PlayerRatings {
 export const RATING_TERMS = {
 	reliability: {
 		term: 'Reliability',
-		text: 'How sure a rating is, from 0 to 100. It comes from your confirmed matches on OPEN.'
+		text: 'How sure a rating is, from 0 to 100.'
 	},
 	imported: {
 		term: 'Reliability from an external rating',
-		text: 'The reliability carried over from an external rating, from 0 to 100. It is shown apart from the reliability earned on OPEN.'
+		text: 'How sure the external rating it started from is, from 0 to 100.'
 	},
 	early: { term: 'Early estimate', text: "The rating doesn't rest on enough matches yet." },
 	provisional: {

@@ -61,6 +61,12 @@ describe('InfoPopover', () => {
 		await expect.element(button()).toHaveFocus();
 	});
 
+	it('opens below the button when there is room', async () => {
+		await render(InfoPopover, props);
+		await button().click();
+		await expect.element(popover()).toHaveAttribute('data-side', 'bottom');
+	});
+
 	it('does not open on hover', async () => {
 		await render(InfoPopover, props);
 		await button().hover();

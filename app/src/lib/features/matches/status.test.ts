@@ -269,10 +269,8 @@ describe('statusInfo', () => {
 			for (const { text } of info!.terms) {
 				expect(text).not.toContain('—');
 				expect(text).not.toMatch(/moderator|OPEN rating/i);
+				expect(text.match(/[.?!](\s|$)/g)!.length).toBeLessThanOrEqual(2);
 			}
-		}
-		for (const { text } of progressInfo(true, true)!.terms) {
-			expect(text.match(/[.?!](\s|$)/g)!.length).toBeLessThanOrEqual(2);
 		}
 	});
 });

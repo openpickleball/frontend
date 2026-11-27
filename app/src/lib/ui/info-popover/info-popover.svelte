@@ -22,6 +22,31 @@
 		terms: InfoTerm[];
 		class?: string;
 	} = $props();
+
+	let trigger = $state<HTMLElement | null>(null);
+
+	/** The gap from the button to the popover, and from the popover to the screen edge. */
+	const OFFSET = 4;
+	const EDGE = 16;
+	/** How close to the top the button may be scrolled: below the phone's top bar (64px). */
+	const TOP = 80;
+
+	/**
+	 * The popover opens below its button, over the content it explains, not over the page heading.
+	 * When there is no room below, Bits UI flips it above. Before that, scroll the page up just
+	 * enough to make room, while the button stays on screen. Bits UI moves the popover back below
+	 * as the page scrolls. With no page left to scroll, it stays above.
+	 */
+	function makeRoomBelow(content: HTMLElement | null) {
+		if (!trigger || !content) return;
+		const rect = trigger.getBoundingClientRect();
+		// A few pixels to spare, so a popover that only just fits is not flipped by rounding.
+		const short = rect.bottom + OFFSET + content.offsetHeight + EDGE + 8 - window.innerHeight;
+		const scroll = Math.min(short, rect.top - TOP);
+		if (scroll > 0) window.scrollBy({ top: scroll, behavior: 'instant' });
+	}
+
+	let content = $state<HTMLElement | null>(null);
 </script>
 
 <Popover>
@@ -30,6 +55,7 @@
 		so the button sits beside a heading without making its line taller or pushing it away.
 	-->
 	<PopoverTrigger
+		bind:ref={trigger}
 		aria-label={label}
 		data-slot="info-button"
 		class={cn(
@@ -39,7 +65,15 @@
 	>
 		<InfoIcon class="size-5" aria-hidden="true" />
 	</PopoverTrigger>
-	<PopoverContent role="dialog" aria-label={label}>
+	<PopoverContent
+		bind:ref={content}
+		role="dialog"
+		aria-label={label}
+		side="bottom"
+		sideOffset={OFFSET}
+		collisionPadding={EDGE}
+		onOpenAutoFocus={() => makeRoomBelow(content)}
+	>
 		<dl class="grid gap-4">
 			{#each terms as item (item.term)}
 				<div class="grid gap-1">

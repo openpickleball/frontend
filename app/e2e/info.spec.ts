@@ -58,6 +58,25 @@ test('explains on hold and vouch on a held match, and Escape gives focus back', 
 	await expect(button).toBeFocused();
 });
 
+test('opens the reliability popover below its button, over the tiles, not the page title', async ({
+	page
+}) => {
+	await page.goto('/profile');
+	const button = page.getByRole('button', { name: 'What does reliability mean?' });
+	// The button low on the screen, with too little room below it for the popover.
+	await button.evaluate((element) => {
+		const { bottom } = element.getBoundingClientRect();
+		window.scrollBy({ top: bottom - window.innerHeight + 60, behavior: 'instant' });
+	});
+	await button.tap();
+	const popover = page.getByRole('dialog', { name: 'What does reliability mean?' });
+	await expect(popover).toHaveAttribute('data-side', 'bottom');
+	const buttonBox = (await button.boundingBox())!;
+	const popoverBox = (await popover.boundingBox())!;
+	expect(popoverBox.y).toBeGreaterThan(buttonBox.y + buttonBox.height - 12);
+	expect(popoverBox.y + popoverBox.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+});
+
 for (const scheme of ['dark', 'light'] as const) {
 	test(`has no WCAG 2.1 AA violations with each popover open (${scheme})`, async ({ page }) => {
 		await page.emulateMedia({ colorScheme: scheme });
