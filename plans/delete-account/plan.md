@@ -87,7 +87,7 @@ Chosen not to do:
 - [x] Mocks
 - [x] Session flag and end-of-account
 - [x] Delete service
-- [ ] Login notice
+- [x] Login notice
 - [ ] Dialog
 - [ ] Profile row
 - [ ] e2e
@@ -100,3 +100,4 @@ Chosen not to do:
 - Reuse `onSignOut` listeners for the device cleanup, so sign out and deletion can't drift apart.
 - `deleteAccount()` calls `endDeletedAccount()` itself, synchronously, as soon as it sees the 204, and the dialog does not call it again. Ending the account in the caller's next line leaves microtask hops (the service's resolve, `withReauth`'s `return await`, the dialog's await) where other callbacks, such as a 401 from a request that raced the delete, could still see a signed-in session and mark it expired. `endDeletedAccount()` stays exported. The service test "has ended the account before any code that waits on it runs" shows it.
 - The dialog gets the unsent count from `setUnsentMatchesSource(source)` and `unsentMatches()` in `features/auth`, which the root layout sets from `offlineQueue.unsent`, the same pattern as `setSignOutWarning`. The dialog writes its own warning, because the sign-out warning says "signing out deletes". This keeps `features/auth` from importing `features/offline`.
+- Nothing on the way to `/account/login` clears `session.accountDeleted`. The root `load` calls `enforceGuard`, which awaits the memoized `bootstrap()`, so after the first read no later navigation calls `refreshSession`. `SessionCheck` only calls `bootstrap()` when the status is `unknown`. Only a failed first read resets `booting`, and then the flag is not set yet. A full page reload loses the flag by design (it is in memory only). No extra handling was needed.

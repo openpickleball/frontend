@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import MailIcon from '@lucide/svelte/icons/mail';
 	import { ROUTES, loginSchema } from '#lib/domain/index.js';
 	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
@@ -100,6 +101,15 @@
 						<CircleAlertIcon aria-hidden="true" />
 						<AlertTitle>You were signed out.</AlertTitle>
 						<AlertDescription>Your session ended. Sign in again to continue.</AlertDescription>
+					</Alert>
+				{/if}
+				{#if session.accountDeleted}
+					<Alert>
+						<CircleCheckIcon aria-hidden="true" />
+						<AlertTitle>Your account was deleted.</AlertTitle>
+						<AlertDescription>
+							You can sign up again with the same email address as a new player.
+						</AlertDescription>
 					</Alert>
 				{/if}
 				<TextField
