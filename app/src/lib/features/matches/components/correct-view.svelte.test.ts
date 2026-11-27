@@ -9,6 +9,7 @@ import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
 import { matchCache } from '../cache.svelte.js';
 import * as services from '../services.js';
+import { CORRECT_CLUB_NOTE, CORRECT_EVENT_NOTE } from '../status.js';
 import {
 	TAMSIN,
 	kit,
@@ -88,6 +89,50 @@ describe('CorrectView', () => {
 		mocked.getMatch.mockResolvedValue(viewerMatch({}, { teamB: team('b', privatePlayer, kit) }));
 		await render(CorrectView, { code: code() });
 		await expect.element(page.getByText(/has a private account/)).toBeVisible();
+	});
+
+	describe('a match with an Event or a Club', () => {
+		const EVENT = { code: 'E-TEST-0001', name: 'Test Winter League', organizer: 'O-TEST-0001' };
+		const CLUB = { code: 'C-TEST-0001', name: 'Test Court Club' };
+
+		for (const status of ['pending', 'disputed'] as const) {
+			it(`says only the event's organizer can change a ${status} event match`, async () => {
+				mocked.getMatch.mockResolvedValue(viewerMatch({}, { status, event: EVENT, club: CLUB }));
+				const screen = await render(CorrectView, { code: code() });
+				await expect.element(page.getByText(CORRECT_EVENT_NOTE)).toBeVisible();
+				await expect
+					.element(page.getByRole('button', { name: 'Save the correction' }))
+					.not.toBeInTheDocument();
+				await expect.element(page.getByText(/has a private account/)).not.toBeInTheDocument();
+				expect(screen.container.textContent).not.toContain('O-TEST-0001');
+			});
+
+			it(`says players only correct their own matches on a ${status} Club-only match`, async () => {
+				mocked.getMatch.mockResolvedValue(viewerMatch({}, { status, club: CLUB }));
+				await render(CorrectView, { code: code() });
+				await expect.element(page.getByText(CORRECT_CLUB_NOTE)).toBeVisible();
+				await expect
+					.element(page.getByRole('button', { name: 'Save the correction' }))
+					.not.toBeInTheDocument();
+				await expect.element(page.getByText(/has a private account/)).not.toBeInTheDocument();
+			});
+		}
+
+		it('gives the event reason before the private-player one', async () => {
+			mocked.getMatch.mockResolvedValue(
+				viewerMatch({}, { event: EVENT, teamB: team('b', privatePlayer, kit) })
+			);
+			await render(CorrectView, { code: code() });
+			await expect.element(page.getByText(CORRECT_EVENT_NOTE)).toBeVisible();
+			await expect.element(page.getByText(/has a private account/)).not.toBeInTheDocument();
+		});
+
+		it('names no organizer in either reason', () => {
+			for (const note of [CORRECT_EVENT_NOTE, CORRECT_CLUB_NOTE]) {
+				expect(note).not.toMatch(/O-TEST|Larkspur/);
+				expect(note).not.toContain('—');
+			}
+		});
 	});
 
 	it('says so when the match is not hers or not there', async () => {

@@ -18,7 +18,7 @@
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { formatLongDate, formatName, matchHeadline } from '../format.js';
 	import { getMatch, rememberCorrection } from '../services.js';
-	import { canCorrect } from '../status.js';
+	import { CORRECT_CLUB_NOTE, CORRECT_EVENT_NOTE, canCorrect } from '../status.js';
 	import CodeGate from './code-gate.svelte';
 
 	let {
@@ -78,6 +78,10 @@
 			return "This match is confirmed, so it can't be corrected.";
 		}
 		if (match.status === 'voided') return 'This match was voided, so there is nothing to correct.';
+		// The backend answers 404 for a match with an Event or a Club. Checked before the private
+		// player, since `canCorrect` refuses these too and that reason would be false here.
+		if (match.event) return CORRECT_EVENT_NOTE;
+		if (match.club) return CORRECT_CLUB_NOTE;
 		if (!canCorrect(match)) {
 			return "A player in this match has a private account, so the app can't name them in a correction. If the score is wrong, dispute the match instead.";
 		}
