@@ -1,6 +1,6 @@
 # Plan: Let organizers list, create, edit and delete their Events (issue #217)
 
-**Status:** active
+**Status:** done
 
 Risk tier: High. The change gates a whole area on organizer membership and two-factor authority (permissions are a forced High). It also adds stateful dialogs, a new route guard, and nav changes across about 20 files.
 
@@ -160,3 +160,11 @@ Measured on `origin/main` (`c6c7374`, 2026-11-27), for the "no request" and "no 
 - The organizer area is a nav entry ("Events", `/organizer`), shown only to members. The issue asks for one, and it answers the open question in `plans/frontend-v1-2/plan.md`.
 - A member without two-factor gets 403 on create and 404 on edit and delete, the same answer as for an unverified organizer or a non-member. So the copy covers every cause, and the app uses what it knows (`verified`, `mfaEnrolled`) to say which applies ahead of time.
 - 2026-11-27, while implementing: the API snapshot (`app/src/lib/api/schema/open.json`) had no `club-grants` operation, so step 0 pulls it from backend 925bb69 (`pnpm api:pull`, `pnpm api:gen`). The pull also brings operations this issue does not use, and adds `verification_requested` to `OrganizerMembershipOut`. The mock fixture and the tests that build a membership gain that field, set to false. Nothing in the app reads it yet.
+- 2026-11-27, while implementing: the e2e gets an admin with TOTP through `window.__openMock.turnOnTwoFactor(email)`, not a fixture variant. The mock store gains `turnOnTwoFactor` and `removeMembership`, and the browser mock exposes both. A fixture variant would add a fifth organizer account only for one test, and enrolling through the two-factor screens is already covered by `e2e/two-factor.spec.ts`. The same helper object takes the membership away for the reload test.
+- 2026-11-27, while implementing: `organizerMemberships(url, options)` takes the URL, as `requireSession` does, and lives in the auth `index.ts` beside it. The waiting part is `settledMemberships` in `services.ts`. `requireSession` takes an optional `{ api }` too, so node tests can pass a client.
+- 2026-11-27, while implementing: the services, not the form, read the memberships again after a 403 on create or a 404 on a change or delete. So the delete dialog gets it too. The `/organizer` page runs its load again (`invalidateAll`) when the memberships come back empty, so the area goes away at once.
+- 2026-11-27, while implementing: `OrganizerMfaPrompt` has no link (#284 moved the link to the page around it), so the Events page puts a "Set up two-factor" link under it.
+- 2026-11-27, while implementing: the delete dialog stays open until the backend answers, so a 409 or 404 shows in it.
+- 2026-11-27, while implementing: `TextField` takes `type="date"`, so the dates reuse it with the native date picker.
+- 2026-11-27, while implementing: the domain tests are in `lib/domain/organizer-event.test.ts`, and the form test runs in node (`event-form.test.ts`) against the mocks, not in the browser project. A route test swaps the app-wide client for `cookieJarApi()` from `lib/mocks/node.ts`.
+- 2026-11-27, while implementing: the stored mock state gains Events, so the storage key moves to `open-mock-state-v3`, and `e2e/record.spec.ts` reads it there.
