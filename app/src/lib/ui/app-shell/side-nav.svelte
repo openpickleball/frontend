@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { FeedbackButton } from '#lib/ui/feedback/index.js';
 	import * as Sidebar from '#lib/ui/sidebar/index.js';
 	import { ThemeToggle } from '#lib/ui/theme-toggle/index.js';
 	import NavBadge from './nav-badge.svelte';
@@ -59,6 +60,8 @@
 			</nav>
 		</Sidebar.Content>
 		<Sidebar.Footer class="gap-4 p-0 pt-8 pr-6 pb-6 pl-8">
+			<!-- Pulled left like the menu, so the icon lines up with the wordmark. -->
+			<div class="flex"><FeedbackButton variant="ghost" icon class="-ml-1" /></div>
 			{#if account}<div class="flex">{@render account()}</div>{/if}
 			<div class="flex items-center justify-between text-sm text-faint">
 				<span>Theme</span>

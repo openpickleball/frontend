@@ -11,6 +11,7 @@
  */
 import type { Config } from '@sveltejs/kit/vite';
 import { PHOTON_URL } from './lib/features/places/photon.ts';
+import { FEEDBACK_EMBED_URL } from './lib/ui/feedback/feedback.ts';
 
 export type CspDirectives = NonNullable<NonNullable<Config['csp']>['directives']>;
 
@@ -33,6 +34,8 @@ export const directives = {
 	'script-src': ['self'],
 	// The city search (src/lib/features/places/photon.ts).
 	'connect-src': ['self', originOf(PHOTON_URL)],
+	// The feedback form, Tally's iframe embed (src/lib/ui/feedback/feedback.ts). No Tally script.
+	'frame-src': ['self', originOf(FEEDBACK_EMBED_URL)],
 	// The app's service worker, and MSW's in the mock modes.
 	'worker-src': ['self'],
 	'object-src': ['none'],
