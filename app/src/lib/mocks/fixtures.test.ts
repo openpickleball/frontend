@@ -108,6 +108,26 @@ describe('fixtures', () => {
 		}
 	});
 
+	// list_my_holds and vouch_for_match: a player is given, and may vouch for, only a held match
+	// with no Event. A Club-only match has no level, so nobody vouches for it, and an Event match
+	// is for the organizer's members. Either one is a 404 to a player, as for an unknown code.
+	it('keeps held Event and Club-only matches from a player, in the list and the vouch', () => {
+		const store = createMockStore();
+		const held = [EVENT_MATCH, CLUB_MATCH].map((random) => {
+			const match = store.matchByCode(buildCode('match', random));
+			if (!match) throw new Error('fixture match is missing');
+			match.hold = { vouched: [], otherVouched: true };
+			return match;
+		});
+		const listed = store.listMyHolds(VERIFIED_EMAIL, 50, 0).items.map((h) => h.match.code);
+		expect(listed.length).toBeGreaterThan(0);
+		for (const match of held) {
+			expect(listed).not.toContain(match.code);
+			expect(store.vouch(VERIFIED_EMAIL, match.code)).toEqual({ ok: false, kind: 'not_found' });
+			expect(match.hold).toEqual({ vouched: [], otherVouched: true });
+		}
+	});
+
 	// The backend lets a participant dispute a match that is already confirmed (workflow.dispute_match).
 	it('reports a dispute after a confirm without taking the confirmation back', () => {
 		const store = createMockStore();
