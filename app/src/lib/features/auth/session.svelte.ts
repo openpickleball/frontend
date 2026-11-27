@@ -39,6 +39,8 @@ class Session {
 	email = $state<string | null>(null);
 	/** True when the session ended while the app was open, so sign-in can say why it is back. */
 	expired = $state(false);
+	/** True when a login's two-factor step ran out, so sign-in can say why the password is back. */
+	mfaTimedOut = $state(false);
 	/** With `pending_mfa`: the kinds of code the backend accepts. Empty otherwise. */
 	mfaTypes = $state<MfaType[]>([]);
 	/**
@@ -88,6 +90,7 @@ class Session {
 			this.status === 'signed_in' && state.status === 'signed_in' && this.email === state.email;
 		this.status = state.status;
 		this.expired = false;
+		this.mfaTimedOut = false;
 		this.mfaTypes = state.status === 'pending_mfa' ? state.types : [];
 		if (!sameAccount) {
 			this.organizers = null;
@@ -115,6 +118,7 @@ class Session {
 		this.status = 'unknown';
 		this.email = null;
 		this.expired = false;
+		this.mfaTimedOut = false;
 		this.mfaTypes = [];
 		this.organizers = null;
 		this.mfaEnrolled = null;

@@ -235,12 +235,19 @@ export async function authenticateMfa(
 		})
 	);
 	const { status } = result.response;
-	if (status === 409) return refreshSession({ api });
-	if (status !== 200 && status !== 401) fail(result);
-	const state = stateOf(result);
-	applyState(state, { api });
-	if (state.status !== 'signed_in') fail(result);
-	return state;
+	if (status !== 200 && status !== 401 && status !== 409) fail(result);
+	let state: SessionState;
+	if (status === 409) {
+		// No login is waiting: take the session as it now is.
+		state = await refreshSession({ api });
+	} else {
+		state = stateOf(result);
+		applyState(state, { api });
+	}
+	if (state.status === 'signed_in') return state;
+	// The login's two-factor stage ran out: the sign-in page says why it is back.
+	if (state.status !== 'pending_mfa') session.mfaTimedOut = true;
+	return fail(result);
 }
 
 /** "Start over" at the code step: end the waiting login, then this device is signed out. */

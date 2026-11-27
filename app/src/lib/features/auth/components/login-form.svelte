@@ -88,6 +88,13 @@
 						</AlertDescription>
 					</Alert>
 				{/if}
+				{#if session.mfaTimedOut}
+					<Alert variant="destructive">
+						<CircleAlertIcon aria-hidden="true" />
+						<AlertTitle>That took too long. Sign in again.</AlertTitle>
+						<AlertDescription>Your sign-in waited too long for its code.</AlertDescription>
+					</Alert>
+				{/if}
 				{#if session.expired}
 					<Alert variant="destructive">
 						<CircleAlertIcon aria-hidden="true" />
