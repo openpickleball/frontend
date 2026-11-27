@@ -65,7 +65,7 @@
 
     <main id="main" tabindex="-1" class="wrap pt-16 pb-24 outline-none">
       <h1 class="max-w-[20ch] text-[clamp(30px,3.6vw,48px)] leading-none font-medium tracking-tight text-balance">Privacy Policy</h1>
-      <p class="mt-4 text-sm tracking-wide text-faint">Version 2 · Effective November 24, 2026</p>
+      <p class="mt-4 text-sm tracking-wide text-faint">Version 3 · Effective November 27, 2026</p>
 
       <div role="note" class="mt-8 max-w-2xl rounded-lg border border-line bg-surface p-5 leading-relaxed text-muted">
         <p>
@@ -166,16 +166,26 @@
           <li>
             Your matches: who played and on which team, the scores, the date and time, the place, the event or club, any event
             or bracket labels, and who submitted the match. For the place, OPEN asks for a name, such as a court or a park,
-            not an address.
+            not an address. A match from an event also records the event's code and the OPEN Codes of its organizer and
+            club.
           </li>
           <li>Whether you confirmed or disputed a match, and when.</li>
           <li>
-            Your privacy settings: one each for match history, stats, rating history, home club, and city and region.
+            Your privacy settings. There are six: match history, stats, rating history, current ratings, home club, and city
+            and region.
           </li>
           <li>
-            Your sign-in session, until you log out or it expires. It also holds the email address a login was started with,
-            how and when you signed in, and, after signup, your signup details (birth month and year, gender division, name,
-            and city and region, if you added them) until your player profile is created, you log out, or the session ends.
+            Your sign-in session. It holds the email address a login was started with, how and when you signed in, and when
+            the session was last used. After signup, it also holds the versions of the Terms and this policy you accepted and
+            your signup details (birth month and year, gender division, name, and city and region, if you added them) until
+            your player profile is created, you log out, or the session ends. While you set up two-factor sign-in, it holds
+            the new authenticator secret. During a passkey sign-in, it holds a one-time challenge. OPEN keeps the session
+            until you log out, you end it, or it expires.
+          </li>
+          <li>
+            Your session list. For each session you are signed in on, OPEN records its IP address and the browser or app it
+            came from, so you can see your sessions and end any of them. For an IPv6 address, OPEN keeps only the first half.
+            Each entry is deleted when its session ends.
           </li>
           <li>When you joined, and when you last signed in.</li>
           <li>
@@ -184,10 +194,62 @@
             account by its email address.
           </li>
           <li>
-            To stop abuse, sign-in and signup limits keep your IP address in short-term memory, only for as long as the limit
-            lasts.
+            To stop abuse, OPEN limits how often anyone can sign in, sign up, reset a password and do similar things. These
+            limits keep your IP address and a hash of the email address you typed, never the address itself. They are kept
+            only in short-term memory, for an hour at most.
+          </li>
+          <li>
+            Test ratings. Once accounts open, OPEN calculates ratings from matches. It keeps your current ratings and a
+            history of each change, marked as test ratings. No OPEN rating is published yet.
           </li>
         </ul>
+
+        <h3>Two-factor sign-in and passkeys</h3>
+        <ul>
+          <li>
+            You can add an authenticator app, which gives you a code each time you sign in. OPEN stores the app's secret.
+            With it you get recovery codes. OPEN stores the seed they are made from and which ones you have used.
+          </li>
+          <li>
+            The authenticator secret and the recovery code seed are encrypted. OPEN shows them to you only while you set
+            them up. Nobody else ever sees them, and they never go in a log.
+          </li>
+          <li>
+            You can also add a passkey. OPEN stores the name you give it, its credential ID and its public key. None of
+            these is a secret. Your device shows your email address as the passkey's name.
+          </li>
+          <li>
+            You need two-factor sign-in to act for a verified organizer, to run an approved partner app, or to work as OPEN
+            staff or a moderator. For other players it is a choice.
+          </li>
+          <li>
+            OPEN keeps these until you remove them or delete your account. A password reset removes every passkey.
+          </li>
+        </ul>
+
+        <h3>Cookies in the app</h3>
+        <p>In a web browser, the OPEN app sets three cookies:</p>
+        <ul>
+          <li><strong>Sign-in session.</strong> Keeps you signed in. It lasts as long as your session.</li>
+          <li>
+            <strong>Security cookie.</strong> Stops other websites from sending forms to OPEN as you (a CSRF cookie).
+          </li>
+          <li>
+            <strong>Device marker</strong>, named <code>open_device</code>. It tells OPEN whether you signed in on this
+            browser before. It holds a signed list of up to 10 scrambled account IDs (keyed hashes). It holds no email
+            address, IP address or browser details, and OPEN keeps no copy of it. It lasts 365 days after your last sign-in
+            on that browser.
+          </li>
+        </ul>
+        <p>
+          An OPEN app installed on a phone sends the same session and device marker as tokens in its requests, instead of
+          cookies.
+        </p>
+        <p>
+          When you sign in from a browser or app that doesn't have the device marker, OPEN emails you a sign-in alert. It
+          says when you signed in, whether it was a web browser or the OPEN app, and links to your session list. Your first
+          sign-in sends no alert. Clearing your cookies or reinstalling the app counts as a new device.
+        </p>
 
         <h3>If you run events or act for a club</h3>
         <ul>
@@ -201,7 +263,9 @@
         <h2>Who can see what</h2>
         <p>
           This applies once player accounts open. Profiles are only for signed-in players. Visitors who are not signed in can't
-          see them. "Staff" below means OPEN volunteers, including moderators, whose role needs the information.
+          see them. "Staff" below means OPEN volunteers whose role needs the information. Moderators are volunteers who
+          review organizers and help run OPEN. They see players only by OPEN Code, never by email address, legal name, birth month and year or
+          gender division.
         </p>
         <ul>
           <li>
@@ -214,17 +278,26 @@
             settings, whatever your own setting is. Other signed-in players see your confirmed matches in your own match
             history while your match history setting allows it. A person who acts for the verified organizer of the event
             can also see a match from that event when they confirm it. So can staff and moderators whose role needs it.
+            Everyone who can see a match also sees its event's name and code, its organizer's OPEN Code, and its club's
+            name and code. A match never shows the organizer's name. If an organizer is one person, its code points to that
+            person.
           </li>
           <li>
             <strong>City and region:</strong> whoever your privacy setting allows, either other signed-in players or only
             you.
           </li>
-          <li><strong>Birth month and year:</strong> you, and staff. Other players see only an age group.</li>
+          <li>
+            <strong>Birth month and year:</strong> you, and staff with access to personal data. Each time staff look, OPEN
+            records it. Other players see only an age group.
+          </li>
           <li>
             <strong>Gender division:</strong> not shown to other players on your profile. You see it in your own profile. But
-            a rating in men's or women's doubles shows which division you play in.
+            a rating in men's or women's doubles shows which division you play in. Staff with access to personal data can
+            see it, and each time they look, OPEN records it.
           </li>
-          <li><strong>Legal name:</strong> you, and staff.</li>
+          <li>
+            <strong>Legal name:</strong> you, and staff with access to personal data. Each time staff look, OPEN records it.
+          </li>
           <li><strong>Email address:</strong> you, and staff. Never other players.</li>
           <li><strong>Your password:</strong> nobody. We store only a hash that can't be turned back into it.</li>
           <li>
@@ -235,15 +308,26 @@
           </li>
           <li><strong>Your privacy settings:</strong> you, and staff whose role needs them.</li>
           <li><strong>When you joined and last signed in:</strong> staff whose role needs it.</li>
-          <li><strong>Your sign-in session:</strong> nobody, through the app.</li>
+          <li>
+            <strong>Your sign-in sessions:</strong> you see your own, with their IP address and browser or app. Nobody else
+            sees them through the app.
+          </li>
+          <li>
+            <strong>Your authenticator secret and recovery codes:</strong> nobody. You see them only while you set them up.
+          </li>
           <li>
             <strong>The audit record of changes:</strong> staff whose role needs it. You will get the records about you in the
             copy of your data we send you.
           </li>
-          <li><strong>Organizer details:</strong> staff.</li>
           <li>
-            <strong>Ratings:</strong> no OPEN rating is published yet. Once ratings are published, your display name and
-            current ratings will be visible to every signed-in player, and you won't be able to hide them.
+            <strong>An organizer's name and OPEN Code:</strong> the people who act for it, and staff. Its admins see the other
+            people who act for it by display name, OPEN Code and role, never by email address.
+          </li>
+          <li>
+            <strong>Ratings:</strong> no OPEN rating is published yet. OPEN's test ratings follow these rules. Your current
+            ratings: every signed-in player, and adults can't hide them. Players aged 13 to 17 start with their current
+            ratings hidden, and they stay hidden until the player chooses to show them at 18 or later. Your rating history:
+            whoever your rating history setting allows.
           </li>
         </ul>
 
@@ -280,6 +364,14 @@
           Photon, the place search at signup, is not on this list. It is a public service that komoot runs under its own
           privacy policy, not a company that handles data for us. See "Location search at signup" above.
         </p>
+        <p>
+          Pwned Passwords is not on the list either. When you choose a password, OPEN's server checks that it hasn't shown up
+          in a known data breach. It sends the first five characters of the password's SHA-1 hash to the Pwned Passwords
+          range API. It never sends your password, your email address or your IP address, so the service handles no personal
+          data for us. If the service is down, OPEN skips the check.
+          <a href="https://haveibeenpwned.com/Privacy" target="_blank" rel="noopener">Pwned Passwords' privacy policy<span class="sr-only"> (opens in a new tab)</span></a>
+          covers the service.
+        </p>
 
         <h2>Ages</h2>
         <p>This applies once player accounts open.</p>
@@ -298,8 +390,12 @@
             we delete that account if you ask, or when we learn of it.
           </li>
           <li>
-            For players aged 13 to 17, the privacy settings start at "only you", and the player can widen them later. Their data
+            For players aged 13 to 17, the privacy settings start at "only you", and the player can widen most of them later. Their data
             is never shared with partners until they turn 18.
+          </li>
+          <li>
+            Current ratings of players aged 13 to 17 start hidden. They stay hidden until the player chooses to show them, at
+            18 or later.
           </li>
         </ul>
 
@@ -317,24 +413,54 @@
         <ul>
           <li>We keep your account details while your account exists. We don't delete accounts for being inactive.</li>
           <li>
-            Deleting an account is not built yet. Today, an account with a player profile can't be deleted at all. Until
-            deletion is built, email <a href="mailto:info@openpb.org">info@openpb.org</a> and we will deactivate your account.
-            A deactivated account keeps all its details until full deletion is available. While it is deactivated, other
-            players see "Private player" in its matches, and player search leaves it out.
+            An entry in your session list is deleted when its session ends. The sign-in limits keep their entries for an hour
+            at most.
+          </li>
+        </ul>
+
+        <h3>Deleting your account</h3>
+        <ul>
+          <li>
+            You can delete your account. A button in the app is not built yet. Until it is, email
+            <a href="mailto:info@openpb.org">info@openpb.org</a> and we will delete it for you. Once the button is built, it
+            will ask you to confirm with your password or a two-factor code. If OPEN requires two-factor sign-in for your
+            account, you will need to set it up first.
           </li>
           <li>
-            Deleting an account won't remove everything, because other players' records and ratings depend on some of it. These
-            stay: match results in the Ledger, OPEN's permanent record of matches; your player profile's OPEN Code; the audit
-            record of changes, which never holds your name, email address or age; if you verified an organizer as staff, the
-            record that you did; and, if you have submitted a match or made a change that OPEN records, such as disputing a match
-            or changing a setting, your account itself, deactivated, with your identifying details removed. These go: your email
-            address, password hash, display name and legal name, birth month and year, gender division, city and region, privacy
-            settings, sign-in sessions, your organizer memberships and club roles, the name of an organizer that is you, and the
-            admin history entries tied to your account. We are still deciding how deletion treats your confirmations and disputes,
-            the link to matches you submitted, the events of an organizer that is one person, whether the join and last sign-in
-            dates on a kept account are reset, what your player profile's link to your account becomes, and whether an account
-            that never did any of that is deleted outright. Until then they stay. We will update this policy before full deletion
-            is available.
+            <strong>What goes:</strong> your email addresses, password, sessions, two-factor methods and passkeys, the record
+            of which agreements you accepted, organizer reports you filed, invites sent to you or by you, emails waiting to be
+            sent to you, the admin history entries tied to you, your organizer memberships and club roles, and any copy of
+            your data waiting to be downloaded.
+          </li>
+          <li>
+            <strong>Your player profile:</strong> if nothing depends on it (no match, confirmation or rating), it is deleted
+            with its settings. Otherwise it stays with its OPEN Code. It shows as "Deleted player" in OPEN's records and as
+            "Private player" to other players. Your legal name, gender division, city and region, and birth month and year
+            are emptied, and every privacy setting is set to "only you". No new match can name it.
+          </li>
+          <li>
+            <strong>What stays:</strong> the Ledger, OPEN's permanent record of matches, as it is. That means matches, who
+            played, scores, confirmations and disputes, and ratings with their history. The link to matches you submitted
+            and the audit record of changes stay too. The audit record never holds your name, email address or age.
+          </li>
+          <li>
+            <strong>Your account itself:</strong> deleted outright if nothing depends on it. For most players something
+            does, for example a match they submitted or confirmed, or a change that OPEN records. Then a cleared, deactivated
+            account stays, with your email address, password and last sign-in date removed. The date you joined stays.
+          </li>
+          <li>
+            <strong>Organizers:</strong> if you are the only person who acts for an organizer, it is renamed
+            "Removed organizer" and its verification requests are blanked. Its events stay as they are. An organizer that
+            other people act for keeps its name.
+          </li>
+          <li>
+            <strong>Signing up again:</strong> you can sign up again with the same email address, as a new player. Your old
+            matches and ratings stay with the old, deleted player. This is also how to fix a birth month and year or gender
+            division you entered wrong.
+          </li>
+          <li>
+            <strong>Backups:</strong> deleted data ages out of our backups within 30 days. We never restore a backup to bring
+            a deleted account back.
           </li>
           <li>
             We delete each account email from our outbox once it is sent, and never keep one more than three days. Resend's
@@ -353,6 +479,20 @@
           <li>openpb.org uses HTTPS, and so will the OPEN app.</li>
           <li>Passwords are stored only as salted hashes.</li>
           <li>
+            Your legal name, birth month and year, gender division and two-factor secrets are encrypted in our database.
+            Each time staff reveal one of those player details, OPEN records it.
+          </li>
+          <li>You can add two-factor sign-in and passkeys to your account.</li>
+          <li>
+            When you change your password, or remove two-factor sign-in or a passkey, OPEN signs you out everywhere else. A
+            password reset signs out every session, including the one you are using.
+          </li>
+          <li>
+            A session ends 30 days after you sign in, or after 7 days without use, whichever comes first. If you act for an
+            organizer or are a club admin, those limits are 7 days and 1 day.
+          </li>
+          <li>OPEN checks new passwords against known data breaches. See "Services we use" above.</li>
+          <li>
             The links we email you to confirm your address or reset your password are signed, so we keep no separate list of
             them. The email itself waits in our outbox until it is sent, three days at most, and Resend keeps a copy for
             up to 30 days.
@@ -367,19 +507,24 @@
         <p>This applies once player accounts open.</p>
         <ul>
           <li>
-            Your privacy settings choose who sees your own match history and your city and region: other signed-in players,
-            or only you. They start at "signed-in players", or at "only you" for players aged 13 to 17. There are settings for
-            stats, rating history and home club too, with the same choices and starting points.
+            You have six privacy settings. Five choose who sees your match history, stats, rating history, home club, and
+            city and region: other signed-in players, or only you. They start at "signed-in players", or at "only you" for
+            players aged 13 to 17. The sixth covers your current ratings. Adults can't set it to "only you". For players aged
+            13 to 17 it starts at "only you", and they can't widen it before they turn 18.
           </li>
           <li>
             Your privacy settings don't hide you in other players' match histories. A match you played names you there, on
             their settings.
           </li>
           <li>
-            OPEN doesn't keep stats, a rating history or a home club for you yet. Those three settings are saved, but they
-            don't change anything today. Anyone who can see your match history can work out your wins and losses from it.
+            OPEN doesn't keep stats or a home club for you yet. Those two settings are saved, but they don't change anything
+            today. Anyone who can see your match history can work out your wins and losses from it.
           </li>
           <li>Change your details in your profile.</li>
+          <li>
+            Once the app is out, you can see and end your sessions, and add two-factor sign-in or passkeys, in your account
+            settings.
+          </li>
           <li>Ask us anything about your data at <a href="mailto:info@openpb.org">info@openpb.org</a>.</li>
         </ul>
 

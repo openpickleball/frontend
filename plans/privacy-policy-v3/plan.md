@@ -22,6 +22,13 @@ The Privacy Policy matches the backend's `docs/privacy/personal-data-inventory.m
 - Data export: the backend has it (ADR 0051), but the app page is not built. The existing "Getting a copy of your data" text stays true and is unchanged.
 - Backups: #67 (backup retention) is still open. ADR 0048 and ADR 0009 commit to the 30 days. The policy states the commitment, as the issue asks.
 - Pwned Passwords is presented apart from "Services we use", like Photon: OPEN's server sends it a five-character hash prefix and nothing that identifies you, so it handles no personal data for us.
+- Implementation, 2026-11-27, where the backend source differed from this plan (the source wins):
+  - Staff reveal: the Player admin reveals the four fields together, in one POST with one `player.personal_data_view` event (ADR 0046, `apps/players/admin.py`), not one by one. Criterion 8 now says each reveal is recorded.
+  - Organizer members: only an Organizer's admin members (with MFA) list the other members (`list_organizer_members`, inventory `clubs.OrganizerMember`). The policy says "Its admins see the other people who act for it", not "its members see each other".
+  - Deletion and two-factor: ADR 0048 names an Organizer member as an Account that must have MFA, but `mfa_required` (`apps/accounts/mfa.py`) and ADR 0043's API rule cover staff, moderators and owners of a production Partner Application. The policy says "If OPEN requires two-factor sign-in for your account, you will need to set it up first", which is true under both.
+  - Who must use two-factor: ADR 0043 also requires it for the owner of a partner app with production access. The policy names "an approved partner app" too.
+  - A kept Account row gets a placeholder email that receives no mail (ADR 0048). The policy says the email address is removed.
+- Implementation, 2026-11-27, layout and wording: the deletion items sit under a new h3 "Deleting your account" inside "How long we keep it", so the list reads in groups. In the Terms, "Players confirm or dispute their own matches." is left out, because the item before it already says the players in a match confirm or dispute it.
 
 ## Acceptance criteria
 
@@ -32,7 +39,7 @@ The Privacy Policy matches the backend's `docs/privacy/personal-data-inventory.m
 5. Sign-in alerts and cookies: the device marker (`open_device` cookie in a browser, a device token in the app), what it holds (no email, IP address or browser details), 365 days, and the alert email. A new app cookie list names the sign-in session cookie, the CSRF cookie and the device marker. The openpb.org "no cookies" sentence stays.
 6. Breached password check: first five characters of the password's SHA-1 hash to the Pwned Passwords range API, never the password, skipped when the service is down.
 7. Sign-in limits: IP address and a hash of the typed email address, at most an hour, in short-term memory.
-8. Encryption and staff access (ADR 0046): legal name, birth month and year, gender division and two-factor secrets are encrypted; staff must reveal those four player fields one by one, and each reveal is recorded.
+8. Encryption and staff access (ADR 0046): legal name, birth month and year, gender division and two-factor secrets are encrypted; staff see those four player fields only by revealing them, and each reveal is recorded.
 9. Who sees what: a match shows its event's name and code, its organizer's OPEN Code and its club's name and code to everyone who can see the match, never the organizer's name (ADR 0053); an organizer's members see its name and code (ADR 0050). "Organizer details: staff." is gone.
 10. Moderators (#273, ADR 0034): the "Staff" definition no longer implies moderators see email, legal name, birth month and year or gender division. Moderators see players by OPEN Code only.
 11. Now-false lines fixed: six privacy settings, with current ratings locked (adults can't hide them; players aged 13 to 17 start hidden and can't widen them); "you won't be able to hide them" gone; rating history no longer said to be not kept; the Ages section says ratings of players aged 13 to 17 start hidden.
@@ -41,7 +48,7 @@ The Privacy Policy matches the backend's `docs/privacy/personal-data-inventory.m
 
 ## Files that change
 
-- `site/public/privacy/index.html`: version line; "This website" cookies item (unchanged meaning); "Player accounts" lists; "Who can see what"; "Services we use" note; "Ages"; "How long we keep it"; "Keeping your data safe"; "Your choices". New h3 "Two-factor sign-in and passkeys" and "Cookies in the app" under "Player accounts".
+- `site/public/privacy/index.html`: version line; "This website" cookies item (unchanged meaning); "Player accounts" lists; "Who can see what"; "Services we use" note; "Ages"; "How long we keep it"; "Keeping your data safe"; "Your choices". New h3 "Two-factor sign-in and passkeys" and "Cookies in the app" under "Player accounts", and "Deleting your account" under "How long we keep it".
 - `site/public/terms/index.html`: version line, the moderators item in "Matches", the deletion item in "Ending your use".
 - `plans/privacy-policy-v3/plan.md`: this plan.
 
@@ -65,14 +72,14 @@ Every fact below comes from backend origin/main; check any you doubt with `git -
    - Intro: "Staff" means OPEN volunteers whose role needs the information. Moderators review organizers and see players only by OPEN Code, never email, legal name, birth month and year or gender division. Drop "including moderators".
    - Matches item: add that a match shows its event's name and code, its organizer's OPEN Code and its club's name and code to everyone who can see the match. It never shows the organizer's name. If an organizer is one person, its code points to that person.
    - Birth month and year, gender division, legal name: "you, and staff with access to personal data. Each time staff look, OPEN records it." Email stays "you, and staff. Never other players."
-   - Replace "Organizer details: staff." with: an organizer's name and OPEN Code: the people who act for it, and staff. Its members see each other by display name, OPEN Code and role, never by email.
+   - Replace "Organizer details: staff." with: an organizer's name and OPEN Code: the people who act for it, and staff. Its admins see the other members by display name, OPEN Code and role, never by email.
    - Sign-in session item: you see your own sessions, with their IP address and browser or app. Nobody else, through the app.
    - Two-factor item (new): nobody, not even you after setup.
    - Ratings item: no OPEN rating is published yet. Your current ratings: every signed-in player, and adults can't hide them. Players aged 13 to 17 start hidden and stay hidden until they choose to show them at 18 or later. Rating history: whoever your rating history setting allows.
 6. **"Services we use"**: after the Photon paragraph, a short paragraph on the breached password check: when you pick a password, OPEN's server sends the first five characters of its SHA-1 hash to the Pwned Passwords range API, to check it hasn't appeared in a known data breach. It never sends the password, your email address or your IP address. If the service is down, the check is skipped. Link Pwned Passwords' privacy page: `https://haveibeenpwned.com/Privacy` (check it resolves; if not, link `https://haveibeenpwned.com/API/v3#PwnedPasswords`).
 7. **"Ages"**: the 13 to 17 item adds that their current ratings start hidden and stay hidden until they choose to show them at 18 or later.
 8. **"How long we keep it"**, replace the deletion item and the "won't remove everything" item:
-   - How: you can delete your account. A button in the app is not built yet. Until it is, email info@openpb.org and we delete it for you. In the app, you will confirm with your password or a two-factor code. A person who acts for a verified organizer must have two-factor set up first.
+   - How: you can delete your account. A button in the app is not built yet. Until it is, email info@openpb.org and we delete it for you. In the app, you will confirm with your password or a two-factor code. If OPEN requires two-factor sign-in for your account, you set it up first.
    - What goes: email addresses, password, sessions, two-factor and passkeys, the record of which agreements you accepted, organizer reports you filed, invites sent to you or by you, queued emails, the admin history entries tied to you, organizer memberships and club roles, and a data copy waiting to download.
    - Your player profile: if nothing depends on it (no match, confirmation or rating), it is deleted with its settings. Otherwise it stays with its OPEN Code, shown as "Deleted player" in records and as "Private player" to other players; your legal name, gender division and city and region are emptied, your birth month and year become empty, and every privacy setting is set to private. No new match can name it.
    - What stays: the Ledger as it is (matches, who played, scores, confirmations and disputes, ratings and rating history), the link to matches you submitted, and the audit record of changes.
@@ -86,7 +93,7 @@ Every fact below comes from backend origin/main; check any you doubt with `git -
 10. **"Your choices"**: first item names six settings; current ratings has no "only you" choice for adults, and players aged 13 to 17 can't widen it. Third item becomes: "OPEN doesn't keep stats or a home club for you yet. Those two settings are saved, but they don't change anything today. Anyone who can see your match history can work out your wins and losses from it." Add: see and end your sessions, and add two-factor or passkeys, in your account settings, once the app is out.
 11. **Version line** to "Version 3 · Effective November 27, 2026".
 12. **Terms** (`site/public/terms/index.html`):
-    - "Matches": replace the moderators item with: "Players confirm or dispute their own matches. For a match from an event, the event's verified organizer settles a dispute. A dispute nobody settles in 30 days voids the match." and "OPEN's moderators can void the matches of a submitter that broke these terms." Check ADR 0034 (`MATCH_DISPUTE_EXPIRY_DAYS`) before writing the 30 days.
+    - "Matches": replace the moderators item with: "For a match from an event, the event's verified organizer settles a dispute. A dispute nobody settles in 30 days voids the match." and "OPEN's moderators can void the matches of a submitter that broke these terms." Check ADR 0034 (`MATCH_DISPUTE_EXPIRY_DAYS`) before writing the 30 days.
     - "Ending your use": replace the deletion item with: you can delete your account. A button in the app is not built yet; until it is, email info@openpb.org and we delete it for you. Your matches stay in the Ledger under "Deleted player". The Privacy Policy explains what stays.
     - Version line to "Version 2 · Effective November 27, 2026".
 13. Run the humanizer skill over every new sentence. Then the proof script (green), `pnpm build` in `site/`, and the live drive.
