@@ -106,17 +106,32 @@ describe('CorrectView', () => {
 				await expect.element(page.getByText(/has a private account/)).not.toBeInTheDocument();
 				expect(screen.container.textContent).not.toContain('O-TEST-0001');
 			});
-
-			it(`says players only correct their own matches on a ${status} Club-only match`, async () => {
-				mocked.getMatch.mockResolvedValue(viewerMatch({}, { status, club: CLUB }));
-				await render(CorrectView, { code: code() });
-				await expect.element(page.getByText(CORRECT_CLUB_NOTE)).toBeVisible();
-				await expect
-					.element(page.getByRole('button', { name: 'Save the correction' }))
-					.not.toBeInTheDocument();
-				await expect.element(page.getByText(/has a private account/)).not.toBeInTheDocument();
-			});
 		}
+
+		// Any player in a match may correct it, whoever recorded it. The backend refuses a Club-only
+		// match because it has a Club, so the reason says that, and points a pending one to a dispute.
+		const CLUB_REASON = "A match recorded for a club can't be corrected by its players.";
+		const DISPUTE_INSTEAD = 'If the score is wrong, dispute the match instead.';
+		const reason = () => page.getByTestId('cannot-correct').getByText(/club/);
+
+		it('says a pending Club-only match cannot be corrected, and to dispute it instead', async () => {
+			mocked.getMatch.mockResolvedValue(viewerMatch({}, { status: 'pending', club: CLUB }));
+			await render(CorrectView, { code: code() });
+			await expect.element(reason()).toHaveTextContent(`${CLUB_REASON} ${DISPUTE_INSTEAD}`);
+			await expect
+				.element(page.getByRole('button', { name: 'Save the correction' }))
+				.not.toBeInTheDocument();
+		});
+
+		it('says a disputed Club-only match cannot be corrected, with no dispute advice', async () => {
+			mocked.getMatch.mockResolvedValue(viewerMatch({}, { status: 'disputed', club: CLUB }));
+			await render(CorrectView, { code: code() });
+			await expect.element(reason()).toHaveTextContent(CLUB_REASON);
+			await expect.element(page.getByText(/dispute the match instead/)).not.toBeInTheDocument();
+			await expect
+				.element(page.getByRole('button', { name: 'Save the correction' }))
+				.not.toBeInTheDocument();
+		});
 
 		it('gives the event reason before the private-player one', async () => {
 			mocked.getMatch.mockResolvedValue(
