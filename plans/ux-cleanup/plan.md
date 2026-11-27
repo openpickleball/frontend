@@ -12,7 +12,7 @@ Merged in waves, so that agents working at the same time never edit the same fil
 
 Wave 1
 - [ ] #280 Keep Krona One for the logo only (app)
-- [ ] #280 Keep Krona One for the logo only (site), with #281 Drop the numbered kickers and call the nav link About
+- [x] #280 Keep Krona One for the logo only (site), with #281 Drop the numbered kickers and call the nav link About
 - [x] #282 Put the Record a match line above each section heading
 - [ ] #289 Filter the Matches list by status
 
