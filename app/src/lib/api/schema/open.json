@@ -382,6 +382,22 @@
 				"title": "LiveOut",
 				"type": "object"
 			},
+			"MatchClubOut": {
+				"description": "The Club a match names: its OPEN Code and name.",
+				"properties": {
+					"code": {
+						"title": "Code",
+						"type": "string"
+					},
+					"name": {
+						"title": "Name",
+						"type": "string"
+					}
+				},
+				"required": ["code", "name"],
+				"title": "MatchClubOut",
+				"type": "object"
+			},
 			"MatchCorrectionIn": {
 				"description": "A player's correction of a self-reported match (#267).\n\nThe same fields as a submission. The teams must be the match's own two\nteams, in either order. A missing game target or scoring type is the\ncorrected match's, and a missing best-of is inferred from the games.",
 				"properties": {
@@ -522,6 +538,26 @@
 				"title": "MatchCreateIn",
 				"type": "object"
 			},
+			"MatchEventOut": {
+				"description": "The Event a match was recorded under.\n\n``organizer`` is the Event's Organizer's OPEN Code, the value\n``report_organizer`` (``POST /api/v1/organizers/{code}/reports``)\ntakes, which accepts it only while the Organizer is verified. The\nOrganizer's name is never shown, since it may be a person's name.",
+				"properties": {
+					"code": {
+						"title": "Code",
+						"type": "string"
+					},
+					"name": {
+						"title": "Name",
+						"type": "string"
+					},
+					"organizer": {
+						"title": "Organizer",
+						"type": "string"
+					}
+				},
+				"required": ["code", "name", "organizer"],
+				"title": "MatchEventOut",
+				"type": "object"
+			},
 			"MatchFormat": {
 				"description": "Singles or doubles.\n\nThe values are the two base values of ``open_engine.RatingFormat``. The\nengine's doubles categories (mixed, men's, women's) are not stored here:\nthe engine adapter (``apps.ratings.engine_adapter``) derives them from\nthe players.",
 				"enum": ["singles", "doubles"],
@@ -529,10 +565,20 @@
 				"type": "string"
 			},
 			"MatchOut": {
-				"description": "A match, its teams, and its games, as the signed-in Account sees it.\n\n``my_team`` is the viewer's own team, null when the viewer's Player did\nnot play in the match. ``my_decision`` is the latest confirm, dispute,\nor withdraw this player recorded on the match, ``none`` when they\nrecorded none or did not play. A repeated decision is not recorded\nagain, so confirming again after a dispute that the Event's verified\norganizer resolved still shows ``dispute``. An organizer's confirmation is not a player\ndecision: a player who confirms as a member of the match's Event\nOrganizer still shows ``none``. For a participant, ``confirmed_by_team``\nsays whether a player on each team recorded a confirmation (a dispute is\nnot a confirmation); it is null for anyone else. A confirmation still\nshows in ``confirmed_by_team`` after the same player disputes, and\nafter they withdraw that dispute, since a recorded decision is never\nremoved: a player who confirmed, disputed, then withdrew shows\n``withdraw`` while their confirmation stays in ``confirmed_by_team``.\nIt counts player confirmations only: a match confirmed by an organizer,\nor a correction, can be confirmed with both false, so\nread ``status`` for whether the match is confirmed. ``created_at`` is when the match was submitted.",
+				"description": "A match, its teams, and its games, as the signed-in Account sees it.\n\n``my_team`` is the viewer's own team, null when the viewer's Player did\nnot play in the match. ``my_decision`` is the latest confirm, dispute,\nor withdraw this player recorded on the match, ``none`` when they\nrecorded none or did not play. A repeated decision is not recorded\nagain, so confirming again after a dispute that the Event's verified\norganizer resolved still shows ``dispute``. An organizer's confirmation is not a player\ndecision: a player who confirms as a member of the match's Event\nOrganizer still shows ``none``. For a participant, ``confirmed_by_team``\nsays whether a player on each team recorded a confirmation (a dispute is\nnot a confirmation); it is null for anyone else. A confirmation still\nshows in ``confirmed_by_team`` after the same player disputes, and\nafter they withdraw that dispute, since a recorded decision is never\nremoved: a player who confirmed, disputed, then withdrew shows\n``withdraw`` while their confirmation stays in ``confirmed_by_team``.\nIt counts player confirmations only: a match confirmed by an organizer,\nor a correction, can be confirmed with both false, so\nread ``status`` for whether the match is confirmed. ``created_at`` is when the match was submitted.\n``event`` is the Event the match was recorded under, null for a match\nwith none, and ``club`` the match's own Club, null for a match with\nnone.",
 				"properties": {
 					"best_of": {
 						"$ref": "#/components/schemas/BestOf"
+					},
+					"club": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/MatchClubOut"
+							},
+							{
+								"type": "null"
+							}
+						]
 					},
 					"code": {
 						"title": "Code",
@@ -552,6 +598,16 @@
 						"format": "date-time",
 						"title": "Created At",
 						"type": "string"
+					},
+					"event": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/MatchEventOut"
+							},
+							{
+								"type": "null"
+							}
+						]
 					},
 					"format": {
 						"$ref": "#/components/schemas/MatchFormat"
@@ -619,6 +675,8 @@
 					"my_team",
 					"my_decision",
 					"confirmed_by_team",
+					"event",
+					"club",
 					"created_at"
 				],
 				"title": "MatchOut",
@@ -628,6 +686,12 @@
 				"description": "Where a Match is in confirmation.\n\nOnly ``record_match`` (the initial status) and the services in\n``apps.matches.workflow`` set it.",
 				"enum": ["pending", "confirmed", "disputed", "voided"],
 				"title": "MatchStatus",
+				"type": "string"
+			},
+			"MemberRole": {
+				"description": "A role an Account holds at an Organizer.",
+				"enum": ["admin", "match_manager"],
+				"title": "MemberRole",
 				"type": "string"
 			},
 			"MyDecision": {
@@ -687,6 +751,29 @@
 					"privacy"
 				],
 				"title": "MyPlayerOut",
+				"type": "object"
+			},
+			"OrganizerMembershipOut": {
+				"description": "One of the signed-in Account's own Organizer memberships.\n\n``organizer`` is the Organizer's OPEN Code, the value\n``EventCreateIn.organizer`` takes. ``name`` is the Organizer's name,\nshown only to its own members. ``verified`` says whether the Organizer\nis verified; it does not say whether the Account may act for it now\n(Organizer authority also needs MFA, ADR 0043). ``role`` is the\nAccount's own role there. It names no other member.",
+				"properties": {
+					"name": {
+						"title": "Name",
+						"type": "string"
+					},
+					"organizer": {
+						"title": "Organizer",
+						"type": "string"
+					},
+					"role": {
+						"$ref": "#/components/schemas/MemberRole"
+					},
+					"verified": {
+						"title": "Verified",
+						"type": "boolean"
+					}
+				},
+				"required": ["organizer", "name", "verified", "role"],
+				"title": "OrganizerMembershipOut",
 				"type": "object"
 			},
 			"OrganizerReportIn": {
@@ -1610,6 +1697,75 @@
 	"openapi": "3.1.0",
 	"paths": {
 		"/api/v1/accounts/me": {
+			"delete": {
+				"description": "Delete your Account and your personal data.\n\nReauthenticate first, through allauth's `auth/reauthenticate` (your\npassword) or `auth/2fa/reauthenticate` (a two-factor code); without a\nrecent one you get 403 with code `reauthentication_required`. Your\nemail address, name, birth year and month, gender division, city and\nregion, privacy settings, sessions, two-factor methods, and\norganizer memberships go. Matches you played stay in the ledger, with\nyour player shown as a private player, so other players' ratings do\nnot change. Every session of the Account ends, this one included.\nThe same email address can sign up again afterwards. A staff or\nsuperuser Account gets 409. An Account that must use two-factor\nauthentication sets up a method first (403 `mfa_required`).",
+				"operationId": "delete_current_account",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Delete Current Account",
+				"tags": ["accounts"]
+			},
 			"get": {
 				"description": "Return the Account that the session token or session cookie belongs to.",
 				"operationId": "get_current_account",
@@ -1634,6 +1790,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"429": {
 						"content": {
@@ -1761,7 +1927,7 @@
 								}
 							}
 						},
-						"description": "Forbidden"
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"409": {
 						"content": {
@@ -1858,6 +2024,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -1963,7 +2139,7 @@
 								}
 							}
 						},
-						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -2089,7 +2265,7 @@
 								}
 							}
 						},
-						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -2205,7 +2381,7 @@
 								}
 							}
 						},
-						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -2271,7 +2447,7 @@
 		},
 		"/api/v1/matches/{code}/dispute-correction": {
 			"post": {
-				"description": "Settle a dispute on your Event's match by correcting it.\n\nFor a member of the verified organizer that ran the match's Event, who\nplays neither in the match nor in the correction. The correction also\nneeds the consent of every Club the match names to your organizer;\nwithout it you get 404 as well. The disputed match is voided and the\ncorrection, given as for a new match, is created confirmed and returned.\nA scoring type or game target left out is the disputed match's, and a\nmissing best-of is inferred from the games. Its location, labels, and\norder come from the disputed match. The reason is required and is kept\nin the match's audit log, which cannot be erased, so do not name a\nplayer in it. A match that is not disputed gets 409. Anyone else gets\n404, as for an unknown code.",
+				"description": "Settle a dispute on your Event's match by correcting it.\n\nFor a member of the verified organizer that ran the match's Event, with\ntwo-factor authentication, who plays neither in the match nor in the\ncorrection. The correction also\nneeds the consent of every Club the match names to your organizer;\nwithout it you get 404 as well. The disputed match is voided and the\ncorrection, given as for a new match, is created confirmed and returned.\nA scoring type or game target left out is the disputed match's, and a\nmissing best-of is inferred from the games. Its location, labels, and\norder come from the disputed match. The reason is required and is kept\nin the match's audit log, which cannot be erased, so do not name a\nplayer in it. A match that is not disputed gets 409. Anyone else gets\n404, as for an unknown code.",
 				"operationId": "correct_disputed_match",
 				"parameters": [
 					{
@@ -2331,7 +2507,7 @@
 								}
 							}
 						},
-						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -2397,7 +2573,7 @@
 		},
 		"/api/v1/matches/{code}/resolve-dispute": {
 			"post": {
-				"description": "Settle a dispute on your Event's match as confirmed or voided.\n\nFor a member of the verified organizer that ran the match's Event,\nwho did not play in the match. The reason is required and is kept in\nthe match's audit log, which cannot be erased, so do not name a\nplayer in it. A confirmed match counts again. A match that is not\ndisputed gets 409. Anyone else gets 404, as for an unknown code.",
+				"description": "Settle a dispute on your Event's match as confirmed or voided.\n\nFor a member of the verified organizer that ran the match's Event,\nwith two-factor authentication, who did not play in the match. The\nreason is required and is kept in\nthe match's audit log, which cannot be erased, so do not name a\nplayer in it. A confirmed match counts again. A match that is not\ndisputed gets 409. Anyone else gets 404, as for an unknown code.",
 				"operationId": "resolve_match_dispute",
 				"parameters": [
 					{
@@ -2457,7 +2633,7 @@
 								}
 							}
 						},
-						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -2523,7 +2699,7 @@
 		},
 		"/api/v1/matches/{code}/vouch": {
 			"post": {
-				"description": "Vouch that a held match is not a duplicate of the other match.\n\nA match recorded with the same teams and date as another, with other\nscores, is held from counting along with that match until each one is\nvouched for at its own level. A match with an Event is vouched for by\na member of the verified organizer that ran it whose player is in no\nmatch of the match's correction chain. A match with no Event is\nvouched for by one player of each team. A match with a club and no\nEvent has no level: nobody vouches for it, and a hold against it ends\nonly when a match is voided or the hold period ends. Once both\nmatches are vouched for, each counts again once it is confirmed and\nno other open hold keeps it. The response is this match only: the\nother match is never named. A vouch cannot be undone. Vouching again\nrecords nothing new unless another hold has opened on the match since.\nA voided match, and a match nothing holds (a released one included),\nget 409. Anyone else gets 404, as for an unknown code.",
+				"description": "Vouch that a held match is not a duplicate of the other match.\n\nA match recorded with the same teams and date as another, with other\nscores, is held from counting along with that match until each one is\nvouched for at its own level. A match with an Event is vouched for by\na member, with two-factor authentication, of the verified organizer\nthat ran it whose player is in no match of the match's correction\nchain. A match with no Event is\nvouched for by one player of each team. A match with a club and no\nEvent has no level: nobody vouches for it, and a hold against it ends\nonly when a match is voided or the hold period ends. Once both\nmatches are vouched for, each counts again once it is confirmed and\nno other open hold keeps it. The response is this match only: the\nother match is never named. A vouch cannot be undone. Vouching again\nrecords nothing new unless another hold has opened on the match since.\nA voided match, and a match nothing holds (a released one included),\nget 409. Anyone else gets 404, as for an unknown code.",
 				"operationId": "vouch_for_match",
 				"parameters": [
 					{
@@ -2573,7 +2749,7 @@
 								}
 							}
 						},
-						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -2689,7 +2865,7 @@
 								}
 							}
 						},
-						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code."
+						"description": "Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -2804,6 +2980,16 @@
 						},
 						"description": "The request is not authenticated."
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
 					"422": {
 						"content": {
 							"application/json": {
@@ -2897,6 +3083,16 @@
 						},
 						"description": "The request is not authenticated."
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
 					"422": {
 						"content": {
 							"application/json": {
@@ -2941,7 +3137,7 @@
 		},
 		"/api/v1/me/matches/holds": {
 			"get": {
-				"description": "The held matches you may vouch for, newest first.\n\nLists each match that is not voided and that a possible duplicate\nhold keeps from counting, when you may vouch for it: a match with no\nEvent you played in, or a match of an Event run by a verified\norganizer you are a member of, when your player is in no match of its\ncorrection chain. A match with a club and no Event is never listed:\nnobody vouches for it. ``vouched`` says\nwhether your side has vouched for it already. The other match of the\nhold is never named. A match leaves the list once the hold ends.",
+				"description": "The held matches you may vouch for, newest first.\n\nLists each match that is not voided and that a possible duplicate\nhold keeps from counting, when you may vouch for it: a match with no\nEvent you played in, or a match of an Event run by a verified\norganizer you are a member of, when you have two-factor\nauthentication and your player is in no match of its correction\nchain. A match with a club and no Event is never listed:\nnobody vouches for it. ``vouched`` says\nwhether your side has vouched for it already. The other match of the\nhold is never named. A match leaves the list once the hold ends.",
 				"operationId": "list_my_holds",
 				"parameters": [
 					{
@@ -2990,6 +3186,16 @@
 						},
 						"description": "The request is not authenticated."
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
 					"422": {
 						"content": {
 							"application/json": {
@@ -3034,7 +3240,7 @@
 		},
 		"/api/v1/me/matches/organizer-disputes": {
 			"get": {
-				"description": "The disputed matches of your organizers' Events you can settle,\nnewest first.\n\nLists every disputed match of an Event run by a verified organizer\nyou are a member of, except a match your player plays in, or plays in\nan earlier or later version of (a corrected match): you cannot settle\nthose. Anyone else gets an empty page. A match leaves the list once\nits dispute is settled or ends.",
+				"description": "The disputed matches of your organizers' Events you can settle,\nnewest first.\n\nLists every disputed match of an Event run by a verified organizer\nyou are a member of, when you have two-factor authentication, except\na match your player plays in, or plays in\nan earlier or later version of (a corrected match): you cannot settle\nthose. Anyone else gets an empty page. A match leaves the list once\nits dispute is settled or ends.",
 				"operationId": "list_organizer_disputes",
 				"parameters": [
 					{
@@ -3082,6 +3288,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"422": {
 						"content": {
@@ -3150,6 +3366,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -3226,6 +3452,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -3321,7 +3557,7 @@
 								}
 							}
 						},
-						"description": "Forbidden"
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"409": {
 						"content": {
@@ -3426,6 +3662,16 @@
 						},
 						"description": "The request is not authenticated."
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
 					"422": {
 						"content": {
 							"application/json": {
@@ -3468,7 +3714,7 @@
 				"tags": ["events"]
 			},
 			"post": {
-				"description": "Create an Event for a verified Organizer the Account is a member of.\n\n403 for any other Organizer, an unknown one included. A Club must have\ngranted the Organizer a Club Organizer Grant (422 on ``club``).",
+				"description": "Create an Event for a verified Organizer the Account is a member of.\n\nThe Account needs two-factor authentication. 403 for any other\nOrganizer, an unknown one included, and for a member without it. A Club must have\ngranted the Organizer a Club Organizer Grant (422 on ``club``).",
 				"operationId": "create_organizer_event",
 				"parameters": [],
 				"requestBody": {
@@ -3510,7 +3756,7 @@
 								}
 							}
 						},
-						"description": "Forbidden"
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"409": {
 						"content": {
@@ -3600,6 +3846,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -3714,6 +3970,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -3861,6 +4127,16 @@
 						},
 						"description": "The request is not authenticated."
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
 					"404": {
 						"content": {
 							"application/json": {
@@ -3923,6 +4199,78 @@
 				"tags": ["matches"]
 			}
 		},
+		"/api/v1/organizer/organizers": {
+			"get": {
+				"description": "The Organizers the signed-in Account is a member of.\n\nVerified or not, each with its OPEN Code (the value an Event create\ntakes as ``organizer``), its name, whether it is verified, and the\nAccount's own role there. Ordered by OPEN Code. Empty for an Account\nwith no memberships. No other member is listed. ``verified`` is the\nOrganizer's state: acting for a verified Organizer also needs MFA on\nthe Account (ADR 0043).",
+				"operationId": "list_my_organizers",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/OrganizerMembershipOut"
+									},
+									"title": "Response",
+									"type": "array"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List My Organizers",
+				"tags": ["organizers"]
+			}
+		},
 		"/api/v1/organizer/results-files/{code}": {
 			"get": {
 				"description": "A results file you uploaded, with its report.\n\nEach row shows its result (``recorded``, ``duplicate``, or\n``failed``), the match's OPEN Code when there is one you may know,\nand issues and warnings as columns, a code, and a fixed message. The\nreport never repeats a name, a player ID, or any other cell. Anyone\nbut the uploader gets the same 404 as an unknown code.",
@@ -3966,6 +4314,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -4072,6 +4430,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -4187,6 +4555,16 @@
 						},
 						"description": "The request is not authenticated."
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
 					"422": {
 						"content": {
 							"application/json": {
@@ -4272,6 +4650,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
@@ -4393,6 +4781,16 @@
 						},
 						"description": "The request is not authenticated."
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
 					"404": {
 						"content": {
 							"application/json": {
@@ -4513,6 +4911,16 @@
 						},
 						"description": "The request is not authenticated."
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
 					"404": {
 						"content": {
 							"application/json": {
@@ -4608,6 +5016,16 @@
 							}
 						},
 						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
 					},
 					"404": {
 						"content": {
