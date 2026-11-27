@@ -641,8 +641,8 @@ export const MATCHES: readonly FixtureMatch[] = [
 		hold: { vouched: ['B'], otherVouched: true }
 	},
 	{
-		// An Event match, recorded under Larkspur Winter League. Nell disputed it, so Tamsin
-		// can't correct it: only the event's organizer can change it.
+		// An Event match, recorded under Larkspur Winter League. It has an Event, so Tamsin can't
+		// correct it. Nell disputed it, so the Disputed popover names the event's organizer.
 		random: EVENT_MATCH,
 		status: 'disputed',
 		format: 'doubles',
@@ -684,8 +684,8 @@ export const MATCHES: readonly FixtureMatch[] = [
 		]
 	},
 	{
-		// A legacy Club-only match at Marshwalk Racquet Club, with no Event. Idris disputed it.
-		// Its players settle the dispute, but they can't correct it.
+		// A legacy Club-only match at Marshwalk Racquet Club, with no Event. It has a Club, so its
+		// players can't correct it. Idris disputed it, and only a withdraw by Idris ends that.
 		random: CLUB_MATCH,
 		status: 'disputed',
 		format: 'singles',
