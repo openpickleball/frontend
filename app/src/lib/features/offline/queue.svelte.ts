@@ -64,7 +64,8 @@ const plain = <T>(value: T): T => JSON.parse(JSON.stringify(value));
  * `setAccount(email)` picks whose queue this is, reads it and sends it. Pass null when nobody is
  * signed in: the queue then shows and sends nothing. Each match is sent oldest first, one at a
  * time. A match leaves the device only when the backend has it, when the player deletes it
- * (`remove`), or on sign out (`forget`). A match the backend refused stays, with its `problem`,
+ * (`remove`), or on sign out or account deletion (`forgetEmail`, `forget`). A match the backend
+ * refused stays, with its `problem`,
  * until the player fixes or deletes it.
  */
 export class OfflineQueue {
