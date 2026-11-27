@@ -46,25 +46,31 @@ const FILLERS = new Set(['ᅟ', 'ᅠ', 'ㅤ', 'ﾠ', '⠀', '\u{1d159}']);
 export const hasVisibleCharacter = (value: string): boolean =>
 	[...value].some((char) => /[\p{L}\p{N}\p{P}\p{S}\p{Cn}]/u.test(char) && !FILLERS.has(char));
 
+/** The backend's `DISPLAY_NAME_MAX_LENGTH`, in code points. */
+const DISPLAY_NAME_MAX = 64;
+
 /**
- * The backend's "First L." (`first_last_initial`, the format a player aged 13 to 17 starts
- * with): the last name's first character that renders and the combining marks after it.
+ * The backend's `last_initial` (`apps/players/names.py`): the last name's first character that
+ * renders, with the combining marks after it.
  */
-export function minorDisplayName(first: string, last: string): string {
+function lastInitial(last: string): string[] {
 	const chars = [...last];
 	const found = chars.findIndex((char) => hasVisibleCharacter(char));
 	const start = found === -1 ? 0 : found;
 	let end = start + 1;
 	while (end < chars.length && /\p{M}/u.test(chars[end])) end += 1;
-	return `${first} ${chars.slice(start, end).join('')}.`;
+	return chars.slice(start, end);
 }
 
 /**
  * The backend's `display_name_for` (`apps/players/names.py`): "First Last" for `full`, and
- * "First L." for `first_last_initial` (see `minorDisplayName`).
+ * "First L." otherwise, so an unknown format fails closed. The initial's marks are dropped from
+ * the end while the name would pass 64 characters, keeping at least its first character.
  */
 export function displayNameFor(first: string, last: string, format: NameFormat): string {
-	return format === 'full' ? `${first} ${last}` : minorDisplayName(first, last);
+	if (format === 'full') return `${first} ${last}`;
+	const room = DISPLAY_NAME_MAX - codePoints(first) - 2;
+	return `${first} ${lastInitial(last).slice(0, Math.max(room, 1)).join('')}.`;
 }
 
 /** The backend's `FULL_NAME_FROM_18_MESSAGE`. */
