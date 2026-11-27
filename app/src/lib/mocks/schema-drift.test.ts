@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import openJson from '../api/schema/open.json?raw';
 import {
 	BEST_OF_VALUES,
+	EVENT_KINDS,
 	GAME_TARGETS,
 	MATCH_FORMATS,
 	MATCH_STATUSES,
@@ -32,7 +33,8 @@ describe('schema/open.json against the domain and the mock', () => {
 		['ScoringType', SCORING_TYPES],
 		['BestOf', BEST_OF_VALUES],
 		['GameTarget', GAME_TARGETS],
-		['MemberRole', MEMBER_ROLES]
+		['MemberRole', MEMBER_ROLES],
+		['EventKind', EVENT_KINDS]
 	] as const)('%s lists the same values', (name, values) => {
 		expect([...(schemas[name].enum ?? [])].sort()).toEqual([...values].sort());
 	});
