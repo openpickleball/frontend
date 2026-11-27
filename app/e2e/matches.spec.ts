@@ -265,7 +265,7 @@ test.describe('home needs you count', () => {
 
 test.describe('match history', () => {
 	test('says who sees the matches on the Match history switch', async ({ page }) => {
-		await page.goto('/profile');
+		await page.goto('/profile/privacy');
 		const setting = page.getByRole('switch', { name: 'Match history' });
 		await expect(setting).toBeChecked();
 		await expect(page.locator('#privacy-match_history-note')).toHaveText(

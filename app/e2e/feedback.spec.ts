@@ -70,7 +70,7 @@ test.describe('Send feedback', () => {
 		const asked = await standInForTally(page);
 		await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
 		await page.goto('/profile');
-		await expect(page.getByRole('heading', { level: 2, name: 'Feedback' })).toBeVisible();
+		await expect(page.getByRole('heading', { level: 2, name: 'Help and about' })).toBeVisible();
 		await openAndClose(page, asked);
 	});
 
@@ -101,7 +101,7 @@ test.describe('Send feedback', () => {
 		const asked = await standInForTally(page);
 		await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
 		await page.goto('/profile');
-		await expect(page.getByRole('heading', { level: 2, name: 'Feedback' })).toBeVisible();
+		await expect(page.getByRole('heading', { level: 2, name: 'Help and about' })).toBeVisible();
 		await context.setOffline(true);
 		await page.getByRole('button', { name: 'Send feedback' }).click();
 		const link = page.getByRole('link', { name: /open the form in a new tab/ });

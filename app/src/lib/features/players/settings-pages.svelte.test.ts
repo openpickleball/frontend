@@ -3,7 +3,8 @@ import { render } from 'vitest-browser-svelte';
 import { AppError } from '#lib/api/index.js';
 import { buildCode, type PlayerCode } from '#lib/domain/index.js';
 import { myCode } from './my-code.svelte.js';
-import ProfileSettings from './profile-settings.svelte';
+import NameSettings from './name-settings.svelte';
+import VisibilitySettings from './visibility-settings.svelte';
 import YourData from './your-data.svelte';
 import type { MySettings, MySettingsChange } from './types.js';
 
@@ -31,8 +32,11 @@ function backend() {
 	});
 }
 
-async function renderReady(updateMySettings = backend()) {
-	const screen = await render(ProfileSettings, {
+/** The display name page's form, or the Profile visibility switches. */
+type Part = typeof NameSettings | typeof VisibilitySettings;
+
+async function renderReady(updateMySettings = backend(), part: Part = VisibilitySettings) {
+	const screen = await render(part, {
 		deps: { fetchMySettings: async () => SAVED, updateMySettings }
 	});
 	return { screen, updateMySettings };
@@ -52,10 +56,17 @@ beforeEach(() => {
 	readyCode();
 });
 
-describe('ProfileSettings', () => {
-	it('shows the name and one switch per privacy setting', async () => {
-		const { screen } = await renderReady();
+describe('NameSettings and VisibilitySettings', () => {
+	it('shows the saved name in the display name form, and no switches', async () => {
+		const { screen } = await renderReady(backend(), NameSettings);
 		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
+		expect(screen.getByRole('switch').elements()).toHaveLength(0);
+	});
+
+	it('shows one switch per privacy setting, and no name field', async () => {
+		const { screen } = await renderReady();
+		await expect.element(screen.getByRole('switch', { name: 'Stats' })).toBeVisible();
+		await expect.element(screen.getByLabelText('Display name')).not.toBeInTheDocument();
 		const matches = screen.getByRole('switch', { name: 'Match history' });
 		await expect.element(matches).toBeChecked();
 		// Match history says which matches are shown, which the Matches page used to say.
@@ -71,7 +82,7 @@ describe('ProfileSettings', () => {
 	});
 
 	it('saves a new display name', async () => {
-		const { screen, updateMySettings } = await renderReady();
+		const { screen, updateMySettings } = await renderReady(backend(), NameSettings);
 		const field = screen.getByLabelText('Display name');
 		await field.fill('  Fern Quill  ');
 		await screen.getByRole('button', { name: 'Save name' }).click();
@@ -80,10 +91,18 @@ describe('ProfileSettings', () => {
 		expect(updateMySettings).toHaveBeenCalledWith({ displayName: 'Fern Quill' });
 	});
 
+	it('updates the name the app shows once a new name is saved', async () => {
+		const { screen } = await renderReady(backend(), NameSettings);
+		await screen.getByLabelText('Display name').fill('Fern Quill');
+		await screen.getByRole('button', { name: 'Save name' }).click();
+		await expect.element(screen.getByText('Name saved.')).toBeVisible();
+		expect(myCode.displayName).toBe('Fern Quill');
+	});
+
 	it('ignores a second click on Save name while saving and keeps focus on it', async () => {
 		let finish: (value: MySettings) => void = () => {};
 		const updateMySettings = vi.fn(() => new Promise<MySettings>((resolve) => (finish = resolve)));
-		const { screen } = await renderReady(updateMySettings);
+		const { screen } = await renderReady(updateMySettings, NameSettings);
 		await screen.getByLabelText('Display name').fill('Fern Quill');
 		const button = screen.getByRole('button', { name: 'Save name' }).element() as HTMLButtonElement;
 		button.focus();
@@ -101,7 +120,7 @@ describe('ProfileSettings', () => {
 	});
 
 	it('says what is wrong with an empty name and does not send it', async () => {
-		const { screen, updateMySettings } = await renderReady();
+		const { screen, updateMySettings } = await renderReady(backend(), NameSettings);
 		const field = screen.getByLabelText('Display name');
 		await field.fill('');
 		await screen.getByRole('button', { name: 'Save name' }).click();
@@ -158,7 +177,7 @@ describe('ProfileSettings', () => {
 		};
 
 		async function renderPrivate(updateMySettings: (c: MySettingsChange) => Promise<MySettings>) {
-			return render(ProfileSettings, {
+			return render(VisibilitySettings, {
 				deps: { fetchMySettings: async () => structuredClone(PRIVATE), updateMySettings }
 			});
 		}
@@ -200,7 +219,9 @@ describe('ProfileSettings', () => {
 	});
 
 	it('says the settings are not available yet when me/player has no player to read', async () => {
-		const screen = await render(ProfileSettings, { deps: { fetchMySettings: async () => null } });
+		const screen = await render(VisibilitySettings, {
+			deps: { fetchMySettings: async () => null }
+		});
 		await expect
 			.element(
 				screen.getByText(/can't change your display name or privacy settings in the app yet/)
@@ -214,16 +235,14 @@ describe('ProfileSettings', () => {
 			.fn<() => Promise<MySettings | null>>()
 			.mockRejectedValueOnce(new Error('offline'))
 			.mockResolvedValueOnce(SAVED);
-		const screen = await render(ProfileSettings, { deps: { fetchMySettings } });
+		const screen = await render(NameSettings, { deps: { fetchMySettings } });
 		await screen.getByRole('button', { name: 'Try again' }).click();
 		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
 	});
 
 	it('always says how to get a copy of your data', async () => {
 		const screen = await render(YourData);
-		await expect
-			.element(screen.getByRole('heading', { level: 2, name: 'Your data' }))
-			.toBeVisible();
+		await expect.element(screen.getByText(/You can always get a copy of your data/)).toBeVisible();
 		await expect
 			.element(screen.getByRole('link', { name: 'info@openpb.org' }))
 			.toHaveAttribute('href', 'mailto:info@openpb.org');
@@ -232,7 +251,7 @@ describe('ProfileSettings', () => {
 	it('loads the settings once, when the code is ready, not while it is found', async () => {
 		const fetchMySettings = vi.fn<() => Promise<MySettings | null>>().mockResolvedValue(SAVED);
 		myCode.reset();
-		const screen = await render(ProfileSettings, { deps: { fetchMySettings } });
+		const screen = await render(NameSettings, { deps: { fetchMySettings } });
 		myCode.status = 'loading';
 		await new Promise((resolve) => setTimeout(resolve, 50));
 		expect(fetchMySettings).not.toHaveBeenCalled();
@@ -244,7 +263,7 @@ describe('ProfileSettings', () => {
 
 	it('does not load again when the gate finds the same code again', async () => {
 		const fetchMySettings = vi.fn<() => Promise<MySettings | null>>().mockResolvedValue(SAVED);
-		const screen = await render(ProfileSettings, { deps: { fetchMySettings } });
+		const screen = await render(NameSettings, { deps: { fetchMySettings } });
 		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
 		myCode.status = 'loading';
 		await new Promise((resolve) => setTimeout(resolve, 50));
@@ -258,14 +277,12 @@ describe('ProfileSettings', () => {
 		async (status) => {
 			myCode.reset();
 			myCode.status = status;
-			const screen = await render(ProfileSettings, {
+			const screen = await render(VisibilitySettings, {
 				deps: { fetchMySettings: async () => null }
 			});
 			await new Promise((resolve) => setTimeout(resolve, 50));
 			await expect.element(screen.getByText(/You can't change/)).not.toBeInTheDocument();
-			await expect
-				.element(screen.getByRole('heading', { level: 2, name: 'Name and privacy' }))
-				.not.toBeInTheDocument();
+			await expect.element(screen.getByTestId('settings')).not.toBeInTheDocument();
 		}
 	);
 });
