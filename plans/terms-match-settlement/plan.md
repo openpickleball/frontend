@@ -19,7 +19,7 @@ The Terms of Service say how a match is settled today: by its players, by its ev
 - Bulk voids work by submitter or upload batch (ADR 0032), and a submitter can be a player, an organizer's member or a partner app. The Terms say moderators can void "all the matches a person or app submitted", not only an organizer's.
 - The app has no report button yet. The Matches section already says it applies once player accounts open, so it states the rule.
 - "Your account" gets one line that points to "Ending your use" and the Privacy Policy, instead of a second copy of the deletion text.
-- Review, 2026-11-27: the duplicate rule says 'marked as a real, separate match' (a vouch), not 'confirmed', and the withdrawal item says a player disputes a match only once (both finders; workflow.py).
+- Review, 2026-11-27: the duplicate rule says 'marked as a real, separate match' (a vouch), not 'confirmed', and the withdrawal item says a player disputes a match only once (both finders; workflow.py). A hold also ends when either match is voided (delta finder; ADR 0034).
 
 ## Acceptance criteria
 
@@ -28,7 +28,7 @@ The Terms of Service say how a match is settled today: by its players, by its ev
    b. a player can correct a match not from an event while it waits for confirmation or is disputed, keeping the same teams, and the correction counts once the other team confirms it;
    c. the event's verified organizer settles a dispute on an event match, by confirming, voiding or correcting it;
    d. a dispute nobody settles in 30 days voids the match;
-   e. a possible duplicate holds both matches until each is marked as a real, separate match (vouched for by a player on each team, or the event's organizer), and after 14 days, when the earlier match is confirmed, the newer one is voided;
+   e. a possible duplicate holds both matches until each is marked as a real, separate match (vouched for by a player on each team, or the event's organizer), or until either match is voided, and the earlier match then can count; if neither happens within 14 days and the earlier match is confirmed, the newer one is voided and the earlier one can count;
    f. a player can report an event's organizer to OPEN, and a report changes no match by itself;
    g. OPEN's moderators can remove an organizer's verified status and void at once the matches a person or app submitted.
    The old line "OPEN's moderators can void the matches of a submitter that broke these terms." is gone.
@@ -40,7 +40,7 @@ The Terms of Service say how a match is settled today: by its players, by its ev
 
 ## Files that change
 
-- `site/public/terms/index.html`: version line, "Your account", "Matches".
+- `site/public/terms/index.html`: version line, "Your account", "Matches", and `id="ending"` on the "Ending your use" heading.
 - `plans/terms-match-settlement/plan.md`: this plan.
 
 No other doc changes: `site/AGENTS.md` describes the legal pages in general terms that stay true.
@@ -57,7 +57,7 @@ No other doc changes: `site/AGENTS.md` describes the legal pages in general term
    - For a match that isn't from an event, the players settle it. While the match waits for confirmation or is disputed, a player in it can correct it, with the same teams. The correction counts once the other team confirms it.
    - For a match from an event, the event's verified organizer settles a dispute. It can confirm the match, void it or correct it.
    - A dispute nobody settles in 30 days voids the match.
-   - If two matches look like the same match, neither counts until each one is marked as a real, separate match: by a player on each team, or by the organizer for a match from an event. If that hasn't happened after 14 days and the earlier match is confirmed, the newer one is voided.
+   - If two matches look like the same match, neither counts until each one is marked as a real, separate match (by a player on each team, or by the organizer for a match from an event), or until one of them is voided. If neither happens within 14 days and the earlier match is confirmed, the newer one is voided and the earlier one can count.
    - You can report an event's organizer to OPEN, for example if it gets results wrong or ignores disputes. A report doesn't change any match by itself.
    - OPEN's moderators decide whether an organizer stays verified. They can remove an organizer's verified status. They can also void at once all the matches a person or app submitted, if those break these terms.
    - OPEN keeps a record of every change to a match.
@@ -74,8 +74,8 @@ No other doc changes: `site/AGENTS.md` describes the legal pages in general term
 
 Script `proof.sh` checks `site/public/terms/index.html` with fixed-string grep on a copy with whitespace collapsed, so a phrase wrapped across source lines still counts:
 
-- Present (criteria 1 to 3): "Version 3 · Effective November 27, 2026", "withdraw your dispute", "with the same teams", "once the other team confirms it", "verified organizer settles a dispute", "30 days voids the match", "after 14 days", "report an event's organizer", "doesn't change any match by itself", "verified status", "a person or app submitted", "delete your account at any time", `id="ending"`, "marked as a real, separate match", "You can dispute a match only once", "doesn't count while it is disputed".
-- Absent: "Version 2 · Effective", "OPEN's moderators can void the matches of a submitter that broke these terms.", an em dash (`grep -P '\x{2014}'`), "user", "OPEN rating is live", "confirmed as real", "until the dispute is settled".
+- Present (criteria 1 to 3): "Version 3 · Effective November 27, 2026", "withdraw your dispute", "with the same teams", "once the other team confirms it", "verified organizer settles a dispute", "30 days voids the match", "within 14 days", "or until one of them is voided", "the earlier one can count", "report an event's organizer", "doesn't change any match by itself", "verified status", "a person or app submitted", "delete your account at any time", `id="ending"`, "marked as a real, separate match", "You can dispute a match only once", "doesn't count while it is disputed".
+- Absent: "Version 2 · Effective", "OPEN's moderators can void the matches of a submitter that broke these terms.", an em dash (`grep -P '\x{2014}'`), "user", "OPEN rating is live", "confirmed as real", "until the dispute is settled", "If that hasn't happened after 14 days".
 - Measured on origin/main `3fdddf8` with `grep -cF`: "Version 2 · Effective November 27, 2026" 1, the old moderator line 1, "withdraw" 0, "14 days" 0, "report" 0, "verified status" 0, "Version 3" 0.
 
 Criterion 4: the verifier reads both pages side by side. Criterion 6: `pnpm build` output. Live drive (Medium): serve `site/public/` and open `/terms/` in black and ivory, with reduced motion emulated and at 390px; the "Ending your use" link jumps to the heading; no console messages; heading order has no skip.
