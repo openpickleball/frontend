@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import type { Component } from 'svelte';
+import { isRedirect } from '@sveltejs/kit';
 import { ROUTES, buildCode } from '#lib/domain/index.js';
+import { load as oldRatingHistory } from './profile/ratings/+page.js';
 import appHtml from '../app.html?raw';
 import themeScript from '../../static/theme.js?raw';
 
@@ -15,8 +17,11 @@ const expected: Record<string, string> = {
 	'./matches/[code]/+page.svelte': 'Match',
 	'./matches/[code]/correct/+page.svelte': 'Correct the score',
 	'./profile/+page.svelte': 'Profile',
+	'./profile/name/+page.svelte': 'Display name',
 	'./profile/two-factor/+page.svelte': 'Two-factor authentication',
-	'./profile/ratings/+page.svelte': 'Rating history',
+	'./profile/privacy/+page.svelte': 'Profile visibility',
+	'./profile/data/+page.svelte': 'Copy of your data',
+	'./ratings/+page.svelte': 'Ratings',
 	'./organizer/+page.svelte': 'Events',
 	'./account/login/+page.svelte': 'Sign in',
 	'./account/signup/+page.svelte': 'Create account',
@@ -77,6 +82,18 @@ describe('route pages', () => {
 		// The match isn't loaded yet. Once it is, the title is its format and date.
 		expect(detail.head).toContain('<title>Match · OPEN Pickleball</title>');
 		expect(detail.head).not.toContain(MATCH_CODE);
+	});
+
+	it('sends the old rating history address to the Ratings page', () => {
+		let thrown: unknown;
+		try {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the load needs no event
+			void oldRatingHistory({} as any);
+		} catch (error) {
+			thrown = error;
+		}
+		expect(isRedirect(thrown)).toBe(true);
+		expect(thrown).toMatchObject({ status: 308, location: '/ratings' });
 	});
 
 	it('keeps copy plain: no em dashes in any page', () => {

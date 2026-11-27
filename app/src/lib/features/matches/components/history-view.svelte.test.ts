@@ -19,7 +19,7 @@ vi.mock('../services.js', async (importOriginal) => ({
 	listMyDisputes: vi.fn(),
 	listMyHolds: vi.fn()
 }));
-vi.mock('$app/navigation', () => ({ goto: vi.fn(async () => {}) }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn(async () => {}), snapshot: vi.fn() }));
 const mocked = vi.mocked(services);
 const renderView = (props: { page: number; show?: MatchFilter }) => render(HistoryView, props);
 

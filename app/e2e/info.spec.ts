@@ -61,7 +61,7 @@ test('explains on hold and vouch on a held match, and Escape gives focus back', 
 test('opens the reliability popover below its button, over the tiles, not the page title', async ({
 	page
 }) => {
-	await page.goto('/profile');
+	await page.goto('/ratings');
 	const button = page.getByRole('button', { name: 'What does reliability mean?' });
 	// The button low on the screen, with too little room below it for the popover.
 	await button.evaluate((element) => {
@@ -97,7 +97,7 @@ for (const scheme of ['dark', 'light'] as const) {
 		await expect(progress).toContainText("doesn't count while it is disputed");
 		await expectNoAxeViolations(page);
 
-		await page.goto('/profile');
+		await page.goto('/ratings');
 		await page.getByRole('button', { name: 'What does reliability mean?' }).tap();
 		const reliability = page.getByRole('dialog', { name: 'What does reliability mean?' });
 		await expect(reliability).toContainText('How sure a rating is, from 0 to 100.');

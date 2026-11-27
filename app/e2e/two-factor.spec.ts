@@ -101,7 +101,7 @@ test('turns two-factor on as an organizer member, then may act for the organizer
 
 	await page.goto('/profile');
 	await expect(page.getByText('Organizer actions need two-factor authentication.')).toBeVisible();
-	await page.getByRole('link', { name: 'Set up two-factor' }).click();
+	await page.getByRole('link', { name: 'Two-factor authentication Off' }).click();
 	await expect(page).toHaveURL(/\/profile\/two-factor$/);
 	await expect(page.getByRole('img', { name: 'QR code for your authenticator app' })).toBeVisible();
 
@@ -177,7 +177,7 @@ test('says nothing about organizers to a player who is not a member', async ({ p
 		await page.goto(path);
 		await expect(
 			page
-				.getByRole('heading', { level: 2, name: 'Two-factor authentication' })
+				.getByRole('link', { name: /^Two-factor authentication/ })
 				.or(page.getByRole('button', { name: 'Turn on' }))
 		).toBeVisible();
 		await expect(page.locator('main')).not.toContainText(/organizer/i);

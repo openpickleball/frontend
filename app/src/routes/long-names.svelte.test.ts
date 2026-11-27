@@ -50,14 +50,15 @@ describe('long names', () => {
 		expectInsideColumn(column, heading);
 	});
 
-	it('break inside the column in the profile display name', async () => {
+	it('never push the profile sideways, which has no name line under its title', async () => {
 		myCode.displayName = NAME;
 		const { container } = await render(Profile);
 		const column = container as HTMLElement;
 		column.style.width = `${PHONE}px`;
 		await expect.element(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
-		const line = column.querySelector('h1 + p') as HTMLElement;
-		expect(line.textContent).toBe(NAME);
-		expectInsideColumn(column, line);
+		// The display name field shows the name, once the settings load.
+		expect(column.querySelector('h1 + p')).toBeNull();
+		expect(column.textContent).not.toContain(NAME);
+		expectInsideColumn(column, column);
 	});
 });

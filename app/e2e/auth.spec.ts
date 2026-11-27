@@ -193,10 +193,7 @@ test('the code comes from the backend, and nothing about it stays in this browse
 		);
 	expect(await kept()).toEqual([]);
 
-	await page
-		.getByRole('region', { name: 'Account' })
-		.getByRole('button', { name: 'Sign out' })
-		.click();
+	await page.getByRole('main').getByRole('button', { name: 'Sign out' }).click();
 	await expect(page).toHaveURL(/\/account\/login/);
 	expect(await kept()).toEqual([]);
 	await page.goto('/profile');
@@ -243,7 +240,7 @@ test('a signed-out visit to a signed-in page goes to sign in, then back', async 
 
 test('a session that ends mid-use sends the player to sign in, then back', async ({ page }) => {
 	await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
-	await expect(page.getByRole('heading', { name: 'Recent matches' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'In progress' })).toBeVisible();
 
 	// The backend forgets the session, as when it expires or the player signs out elsewhere.
 	await page.evaluate(() =>
@@ -302,11 +299,8 @@ test('another account never sees the last account code on the profile', async ({
 	await page.goto('/profile');
 	await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 
-	// Sign out from the profile page, where it is in the Account section.
-	await page
-		.getByRole('region', { name: 'Account' })
-		.getByRole('button', { name: 'Sign out' })
-		.click();
+	// Sign out from the profile page, where it closes the settings.
+	await page.getByRole('main').getByRole('button', { name: 'Sign out' }).click();
 	await expect(page).toHaveURL(/\/account\/login/);
 
 	await signIn(page, oren.accountEmail!, MOCK_PASSWORD);

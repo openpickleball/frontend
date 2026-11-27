@@ -10,6 +10,7 @@ export const LOGIN_PATH = ROUTES.login;
 const GUARDED_BASES: readonly string[] = [
 	ROUTES.record,
 	ROUTES.matches,
+	ROUTES.ratings,
 	ROUTES.profile,
 	ROUTES.organizer
 ];
@@ -33,7 +34,10 @@ export function isSignedOutOnlyPath(pathname: string): boolean {
 	return SIGNED_OUT_ONLY.includes(pathname.replace(/\/+$/, ''));
 }
 
-/** Does this page need a signed-in player? Home, record, matches, profile and organizer do. */
+/**
+ * Does this page need a signed-in player? Home, record, matches, ratings, profile and organizer
+ * do.
+ */
 export function isGuardedPath(pathname: string): boolean {
 	return pathname === ROUTES.home || GUARDED_BASES.some((base) => under(pathname, base));
 }

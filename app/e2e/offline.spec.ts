@@ -127,6 +127,10 @@ for (const scheme of ['dark', 'light'] as const) {
 		await recordWhileOffline(page);
 		await expect(waiting(page)).toBeVisible();
 
+		// Axe reads the toast's colors mid fade-in otherwise.
+		await page.waitForFunction(() =>
+			document.getAnimations().every((animation) => animation.playState !== 'running')
+		);
 		const results = await new AxeBuilder({ page })
 			.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
 			.analyze();
@@ -138,6 +142,10 @@ for (const scheme of ['dark', 'light'] as const) {
 		await openRecord(page);
 		await queueRefused(page);
 
+		// Axe reads the toast's colors mid fade-in otherwise.
+		await page.waitForFunction(() =>
+			document.getAnimations().every((animation) => animation.playState !== 'running')
+		);
 		const results = await new AxeBuilder({ page })
 			.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
 			.analyze();

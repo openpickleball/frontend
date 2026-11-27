@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
+import { afterNavigate } from '$app/navigation';
 import { toast } from 'svelte-sonner';
 import { AppError, type AppErrorFields } from '#lib/api/index.js';
 import { buildCode, type MatchCode } from '#lib/domain/index.js';
 import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
+import { resetOrigins } from '../back-link.svelte.js';
 import { matchCache } from '../cache.svelte.js';
 import * as services from '../services.js';
 import { TAMSIN, sampleMatch, viewerMatch } from '../testing.js';
@@ -22,6 +24,23 @@ vi.mock('../services.js', async (importOriginal) => ({
 	withdrawDispute: vi.fn()
 }));
 const mocked = vi.mocked(services);
+// The back link reads the navigation that opened the page. The tests call it by hand.
+type AfterNavigate = Parameters<Parameters<typeof afterNavigate>[0]>[0];
+vi.mock('$app/navigation', () => ({ afterNavigate: vi.fn(), goto: vi.fn(async () => {}) }));
+let arrive: (navigation: AfterNavigate) => void = () => {};
+
+/** Open the page as SvelteKit would after a navigation from `from`. */
+function arriveFrom(type: AfterNavigate['type'], from: string, routeId: string) {
+	arrive({
+		type,
+		shallow: false,
+		willUnload: false,
+		complete: Promise.resolve(),
+		from: { url: new URL(from, location.origin), route: { id: routeId }, params: {}, scroll: null },
+		to: { url: new URL(location.href), route: { id: '/matches/[code]' }, params: {}, scroll: null }
+	} as AfterNavigate);
+}
+
 // The page has no Toaster in these tests, so the toasts are read from this stand-in.
 vi.mock('svelte-sonner', () => ({ toast: vi.fn() }));
 
@@ -55,6 +74,8 @@ const freshRead = () => {
 // runs, and a reset code store would make it start loading the code.
 beforeEach(() => {
 	vi.resetAllMocks();
+	vi.mocked(afterNavigate).mockImplementation((callback) => (arrive = callback));
+	resetOrigins();
 	matchCache.reset();
 	myCode.reset();
 	matchCache.setOwnerSource(() => myCode.code);
@@ -72,6 +93,60 @@ afterEach(() => {
 const code = () => sampleMatch().code;
 
 describe('MatchView', () => {
+	describe('back link', () => {
+		const back = (name: string) => page.getByRole('link', { name, exact: true });
+
+		it('links to Matches when no app page came before it', async () => {
+			await render(MatchView, { code: code() });
+			await expect.element(back('Matches')).toHaveAttribute('href', '/matches');
+		});
+
+		it('goes back in history to Home when the player came from Home', async () => {
+			const historyBack = vi.spyOn(history, 'back').mockImplementation(() => {});
+			try {
+				await render(MatchView, { code: code() });
+				arriveFrom('link', '/', '/');
+				await expect.element(back('Home')).toHaveAttribute('href', '/');
+				await back('Home').click();
+				expect(historyBack).toHaveBeenCalledOnce();
+			} finally {
+				historyBack.mockRestore();
+			}
+		});
+
+		it('keeps the Matches filter and page it came from', async () => {
+			await render(MatchView, { code: code() });
+			arriveFrom('link', '/matches?show=disputed&page=2', '/matches');
+			await expect
+				.element(back('Matches'))
+				.toHaveAttribute('href', '/matches?show=disputed&page=2');
+		});
+
+		it('opens the address instead of going back after the browser back or forward button', async () => {
+			const historyBack = vi.spyOn(history, 'back').mockImplementation(() => {});
+			try {
+				await render(MatchView, { code: code() });
+				arriveFrom('popstate', '/', '/');
+				await expect.element(back('Home')).toHaveAttribute('href', '/');
+				const link = (await back('Home').element()) as HTMLAnchorElement;
+				// Read whether the page handled the click, then stop the test page from navigating.
+				let handled: boolean | undefined;
+				const stop = (event: Event) => {
+					handled = event.defaultPrevented;
+					event.preventDefault();
+				};
+				document.addEventListener('click', stop);
+				const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+				link.dispatchEvent(event);
+				document.removeEventListener('click', stop);
+				expect(historyBack).not.toHaveBeenCalled();
+				expect(handled).toBe(false);
+			} finally {
+				historyBack.mockRestore();
+			}
+		});
+	});
+
 	it('makes the format and date the heading, with the status badge next to it', async () => {
 		const screen = await render(MatchView, { code: code() });
 

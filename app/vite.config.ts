@@ -2,6 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { playwright } from '@vitest/browser-playwright';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { loadEnv, type Plugin } from 'vite';
@@ -44,8 +45,38 @@ function apiMocks(command: 'build' | 'serve', mode: string): Plugin {
 	};
 }
 
+/**
+ * The app version Profile shows (`src/lib/ui/app-version.ts`): `version` from package.json and
+ * the short commit hash, as `__APP_VERSION__` and `__APP_COMMIT__`. The commit is `APP_COMMIT`
+ * when the host sets it (a build without the git folder), otherwise git's `HEAD`, otherwise
+ * empty, and Profile then shows the version alone.
+ */
+function appVersion(): Plugin {
+	const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
+	let commit = process.env.APP_COMMIT ?? '';
+	if (!commit) {
+		try {
+			commit = execFileSync('git', ['rev-parse', 'HEAD'], {
+				encoding: 'utf8',
+				stdio: ['ignore', 'pipe', 'ignore']
+			});
+		} catch {
+			commit = '';
+		}
+	}
+	// Only a hex hash goes into the bundle, cut to the usual 7 characters.
+	const short = /^[0-9a-f]{7,40}$/i.test(commit.trim()) ? commit.trim().slice(0, 7) : '';
+	return {
+		name: 'open-app-version',
+		config: () => ({
+			define: { __APP_VERSION__: JSON.stringify(version), __APP_COMMIT__: JSON.stringify(short) }
+		})
+	};
+}
+
 export default defineConfig(({ command, mode }) => ({
 	plugins: [
+		appVersion(),
 		apiMocks(command, mode),
 		tailwindcss(),
 		sveltekit({

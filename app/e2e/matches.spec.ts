@@ -77,15 +77,31 @@ function rowFor(page: Page, code: string) {
 }
 
 test.describe('home', () => {
-	test('lists what needs her, then what is in progress, then recent matches and her code', async ({
-		page
-	}) => {
+	test('shows her code, then her ratings, then what is in progress', async ({ page }) => {
 		await expect(page).toHaveTitle('OPEN Pickleball');
-		await expect(page.getByRole('heading', { level: 2 })).toHaveText([
-			'Needs you',
-			'In progress',
-			'Recent matches'
-		]);
+		await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Ratings', 'In progress']);
+		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
+		const order = await page.evaluate(() => {
+			const code = document.querySelector('[data-testid="my-code"]');
+			const [ratings, progress] = [...document.querySelectorAll('main h2')];
+			const follows = (a: Element | null, b: Element | null) =>
+				!!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+			return follows(code, ratings) && follows(ratings, progress);
+		});
+		expect(order).toBe(true);
+
+		// Ratings: the tiles, the demonstration sentence and a Details link to the Ratings tab.
+		const ratings = page.getByRole('region', { name: 'Ratings' });
+		await expect(ratings.getByTestId('ratings').getByRole('listitem').first()).toBeVisible();
+		await expect(ratings.getByText(/demonstration numbers/)).toBeVisible();
+		await expect(ratings.getByRole('link', { name: 'Details' })).toHaveAttribute(
+			'href',
+			'/ratings'
+		);
+		// Compact tiles: the format, the number and the badge. Reliability is on the Ratings tab.
+		await expect(ratings.getByText('Demonstration', { exact: true })).toHaveCount(2);
+		await expect(ratings.getByText(/Reliability/)).toHaveCount(0);
+		await expect(ratings.getByRole('button', { name: /reliability/ })).toHaveCount(0);
 
 		// Oldest first, each row saying what she can do: vouch for the held match, confirm the rest.
 		const needsList = page.getByRole('list', { name: 'Needs you' });
@@ -110,15 +126,52 @@ test.describe('home', () => {
 		// Every dispute, the one she can withdraw too, and both holds. No waiting count.
 		await expect(page.getByTestId('in-progress')).toHaveText('4 disputed · 2 on hold');
 
-		const recent = page.getByRole('list', { name: 'Recent matches' });
-		await expect(recent.getByTestId('match-row')).toHaveCount(3);
-		await expect(recent.locator(`a[href$="/matches/${HELD}"]`)).toHaveCount(0);
+		// No Recent matches and no Record a match on Home: Record stays in the nav.
+		await expect(page.getByRole('list', { name: 'Recent matches' })).toHaveCount(0);
+		await expect(page.getByRole('main').getByRole('link', { name: 'Record a match' })).toHaveCount(
+			0
+		);
 
-		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
-		await expect(page.getByRole('link', { name: 'Record a match' })).toBeVisible();
-
-		await page.getByRole('link', { name: 'All matches' }).click();
+		// Her match count, next to In progress, opens Matches.
+		const progress = page.getByRole('region', { name: 'In progress' });
+		await progress.getByTestId('all-matches').click();
 		await expect(page).toHaveURL(/\/matches$/);
+	});
+
+	test('the match count next to In progress is the total on Matches', async ({ page }) => {
+		const link = page.getByTestId('all-matches');
+		await expect(link).toHaveText(/^\d+ matches\s*$/);
+		const count = (await link.textContent())?.match(/\d+/)?.[0];
+		await link.click();
+		await expect(page.getByTestId('range')).toHaveText(new RegExp(`of ${count}$`));
+	});
+
+	test('keeps each rating tile, badge included, inside its edges on a 320px phone', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 320, height: 740 });
+		await page.reload();
+		const tiles = page.getByTestId('ratings').getByRole('listitem');
+		await expect(tiles).toHaveCount(2);
+		const fits = await tiles.evaluateAll((items) =>
+			items.map((tile) => {
+				const box = tile.getBoundingClientRect();
+				return [...tile.querySelectorAll('*')].every((child) => {
+					const inner = child.getBoundingClientRect();
+					return inner.left >= box.left && inner.right <= box.right;
+				});
+			})
+		);
+		expect(fits).toEqual([true, true]);
+	});
+
+	test('Details opens the Ratings tab', async ({ page }) => {
+		await page
+			.getByRole('region', { name: 'Ratings' })
+			.getByRole('link', { name: 'Details' })
+			.click();
+		await expect(page).toHaveURL(/\/ratings$/);
+		await expect(page.getByRole('heading', { level: 1, name: 'Ratings' })).toBeVisible();
 	});
 
 	test('copies the code', async ({ page, context }) => {
@@ -145,7 +198,9 @@ test.describe('home needs you count', () => {
 		const tabBar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
 		await expect(tabBar.getByRole('link', { name: 'Home, 3 need you', exact: true })).toBeVisible();
 		await expect(tabBar.getByTestId('needs-you-badge')).toHaveText('3');
-		await expect(page.getByRole('region', { name: 'Needs you' })).toContainText('3 matches');
+		await expect(
+			page.getByRole('list', { name: 'Needs you' }).getByTestId('match-row')
+		).toHaveCount(3);
 
 		await page.goto('/matches?show=needs-you');
 		await expect(page.getByTestId('range')).toHaveText('1–3 of 3');
@@ -210,7 +265,7 @@ test.describe('home needs you count', () => {
 
 test.describe('match history', () => {
 	test('says who sees the matches on the Match history switch', async ({ page }) => {
-		await page.goto('/profile');
+		await page.goto('/profile/privacy');
 		const setting = page.getByRole('switch', { name: 'Match history' });
 		await expect(setting).toBeChecked();
 		await expect(page.locator('#privacy-match_history-note')).toHaveText(
@@ -352,7 +407,7 @@ test.describe('match detail', () => {
 		await expect(
 			page.getByRole('list', { name: 'Needs you' }).getByTestId('match-row')
 		).toHaveCount(2);
-		await page.getByRole('link', { name: 'All matches' }).click();
+		await page.getByTestId('all-matches').click();
 		await expect(
 			rowFor(page, WAITING_ON_ME_TOO).getByText('Confirmed', { exact: true })
 		).toBeVisible();
@@ -371,6 +426,8 @@ test.describe('match detail', () => {
 	test('says it is waiting for the other team when her team already confirmed', async ({
 		page
 	}) => {
+		// Home lists only what needs her, so open it from Matches.
+		await page.goto('/matches');
 		await rowFor(page, ALREADY_CONFIRMED_BY_ME).click();
 		// The API says her team confirmed, so there is nothing to press.
 		await expect(page.getByRole('heading', { name: 'Waiting for the other team' })).toBeVisible();
@@ -953,5 +1010,214 @@ test.describe('match page header', () => {
 		await expect(score.getByTestId('scoreboard-result')).toHaveText(
 			/^You and .+ (beat|lost to) .+, \d+-\d+(, \d+-\d+)*\.$/
 		);
+	});
+});
+
+test.describe('match page back link', () => {
+	/** The back link above the match page's title. */
+	function backLink(page: Page, name: 'Home' | 'Matches') {
+		return page.locator('#main').getByRole('link', { name, exact: true });
+	}
+
+	function needsYouRow(page: Page, code: string) {
+		return page.getByRole('list', { name: 'Needs you' }).locator(`a[href$="/matches/${code}"]`);
+	}
+
+	test('returns to Home from the Needs you list, by going back in history', async ({ page }) => {
+		await needsYouRow(page, WAITING_ON_ME).click();
+		await expect(page).toHaveURL(new RegExp(`/matches/${WAITING_ON_ME}$`));
+		const back = backLink(page, 'Home');
+		await expect(back).toHaveAttribute('href', '/');
+
+		const entries = await page.evaluate(() => history.length);
+		await back.click();
+		await expect(page).toHaveURL(/\/$/);
+		await expect(page.getByRole('list', { name: 'Needs you' })).toBeVisible();
+		// Back in history, not a new entry.
+		expect(await page.evaluate(() => history.length)).toBe(entries);
+
+		// Forward to the match again: the link still says Home.
+		await page.goForward();
+		await expect(backLink(page, 'Home')).toHaveAttribute('href', '/');
+	});
+
+	test('returns to Matches with its filter', async ({ page }) => {
+		await page.goto('/matches?show=disputed');
+		await rowFor(page, STILL_DISPUTED).click();
+		const back = backLink(page, 'Matches');
+		await expect(back).toHaveAttribute('href', '/matches?show=disputed');
+		await back.click();
+		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
+		await expect(pill(page, 'Disputed')).toBeChecked();
+	});
+
+	test('returns to the page of Matches it came from', async ({ page }) => {
+		await page.goto('/matches?page=2');
+		await expect(page.getByTestId('range')).toHaveText('21–28 of 28');
+		await rowFor(page, matchCode(oldest.random)).click();
+		const back = backLink(page, 'Matches');
+		await expect(back).toHaveAttribute('href', '/matches?page=2');
+		const entries = await page.evaluate(() => history.length);
+		await back.click();
+		await expect(page).toHaveURL(/\/matches\?page=2$/);
+		await expect(page.getByTestId('range')).toHaveText('21–28 of 28');
+		expect(await page.evaluate(() => history.length)).toBe(entries);
+	});
+
+	test('opens its address in a new tab with a modifier click', async ({ page, context }) => {
+		await page.goto('/matches?show=disputed');
+		await rowFor(page, STILL_DISPUTED).click();
+		const [tab] = await Promise.all([
+			context.waitForEvent('page'),
+			backLink(page, 'Matches').click({ modifiers: ['ControlOrMeta'] })
+		]);
+		await expect(tab).toHaveURL(/\/matches\?show=disputed$/);
+		// The match stays open in the first tab.
+		await expect(page).toHaveURL(new RegExp(`/matches/${STILL_DISPUTED}$`));
+	});
+
+	test('goes to Matches from a shared link', async ({ page }) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		const back = backLink(page, 'Matches');
+		await expect(back).toHaveAttribute('href', '/matches');
+		await back.click();
+		await expect(page).toHaveURL(/\/matches$/);
+		await expect(page.getByRole('heading', { level: 1, name: 'Matches' })).toBeVisible();
+	});
+
+	test('keeps Home after a correction, without going back to the form', async ({ page }) => {
+		await needsYouRow(page, WAITING_ON_ME_TOO).click();
+		await expect(backLink(page, 'Home')).toBeVisible();
+		await page.getByRole('link', { name: 'Correct the score' }).click();
+
+		// The correction page goes back to the match, and the match still goes back to Home.
+		const toMatch = page.locator('#main').getByRole('link', { name: 'Back to the match' });
+		await expect(toMatch).toHaveAttribute('href', `/matches/${WAITING_ON_ME_TOO}`);
+		await toMatch.click();
+		await expect(page).toHaveURL(new RegExp(`/matches/${WAITING_ON_ME_TOO}$`));
+		await expect(backLink(page, 'Home')).toHaveAttribute('href', '/');
+
+		await page.getByRole('link', { name: 'Correct the score' }).click();
+		await page.getByLabel("Game 3, your team's points").fill('11');
+		await page.getByLabel("Game 3, opponents' points").fill('8');
+		await page.getByRole('button', { name: 'Save the correction' }).click();
+		await expect(page.getByText('Correction saved', { exact: true })).toBeVisible();
+		await expect(page).toHaveURL(/\/matches\/M-FXD/);
+
+		const back = backLink(page, 'Home');
+		await expect(back).toHaveAttribute('href', '/');
+		await back.click();
+		await expect(page).toHaveURL(/\/$/);
+		await expect(page.getByRole('list', { name: 'Needs you' })).toBeVisible();
+	});
+});
+
+test.describe('scroll position on the way back', () => {
+	// The restored position can be a few pixels off, where a row's height rounds.
+	const TOLERANCE = 8;
+
+	function backLink(page: Page, name: 'Home' | 'Matches') {
+		return page.locator('#main').getByRole('link', { name, exact: true });
+	}
+
+	function tab(page: Page, name: 'Home' | 'Matches') {
+		return page
+			.getByRole('navigation', { name: 'Main' })
+			.filter({ visible: true })
+			.getByRole('link', { name: new RegExp(`^${name}`) });
+	}
+
+	const scrollY = (page: Page) => page.evaluate(() => window.scrollY);
+
+	/** Scroll down to the last row and open it. Returns where the page was scrolled to. */
+	async function openLastRow(page: Page, rows: Locator): Promise<number> {
+		const last = rows.last();
+		await last.scrollIntoViewIfNeeded();
+		await page.evaluate(() => window.scrollBy(0, 200));
+		const y = await scrollY(page);
+		await last.click();
+		await expect(page).toHaveURL(/\/matches\/M-/);
+		return y;
+	}
+
+	async function expectScrolledTo(page: Page, y: number) {
+		await expect.poll(() => scrollY(page)).toBeGreaterThan(y - TOLERANCE);
+		expect(Math.abs((await scrollY(page)) - y)).toBeLessThanOrEqual(TOLERANCE);
+	}
+
+	for (const [where, path, range] of [
+		['Matches', '/matches', '1–20 of 28'],
+		['the second page of Matches', '/matches?page=2', '21–28 of 28'],
+		['a filter on Matches', '/matches?show=disputed', '1–4 of 4']
+	] as const) {
+		test(`returns to the same place on ${where}, by the back link and the back button`, async ({
+			page
+		}) => {
+			await page.goto(path);
+			await expect(page.getByTestId('range')).toHaveText(range);
+			const rows = page.getByTestId('match-row');
+
+			const y = await openLastRow(page, rows);
+			expect(y).toBeGreaterThan(0);
+			await backLink(page, 'Matches').click();
+			await expect(page.getByTestId('range')).toHaveText(range);
+			await expectScrolledTo(page, y);
+
+			const again = await openLastRow(page, rows);
+			await page.goBack();
+			await expect(page.getByTestId('range')).toHaveText(range);
+			await expectScrolledTo(page, again);
+		});
+	}
+
+	test('returns to the same place on Home, by the back link and the back button', async ({
+		page
+	}) => {
+		const rows = page.getByRole('list', { name: 'Needs you' }).getByRole('link');
+		await expect(rows.first()).toBeVisible();
+
+		const y = await openLastRow(page, rows);
+		expect(y).toBeGreaterThan(0);
+		await backLink(page, 'Home').click();
+		await expect(rows.first()).toBeVisible();
+		await expectScrolledTo(page, y);
+
+		const again = await openLastRow(page, rows);
+		await page.goBack();
+		await expect(rows.first()).toBeVisible();
+		await expectScrolledTo(page, again);
+	});
+
+	test.describe('on a desktop', () => {
+		test.use({ viewport: { width: 1280, height: 800 } });
+
+		test('returns to the same place on Matches by the back link', async ({ page }) => {
+			await page.goto('/matches');
+			await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
+			const y = await openLastRow(page, page.getByTestId('match-row'));
+			expect(y).toBeGreaterThan(0);
+			await backLink(page, 'Matches').click();
+			await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
+			await expectScrolledTo(page, y);
+		});
+	});
+
+	test('starts at the top after a tap on the nav', async ({ page }) => {
+		await page.goto('/matches');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
+		expect(await openLastRow(page, page.getByTestId('match-row'))).toBeGreaterThan(0);
+		await tab(page, 'Matches').click();
+		await expect(page).toHaveURL(/\/matches$/);
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
+		expect(await scrollY(page)).toBe(0);
+
+		await page.goto('/');
+		const rows = page.getByRole('list', { name: 'Needs you' }).getByRole('link');
+		await expect(rows.first()).toBeVisible();
+		expect(await openLastRow(page, rows)).toBeGreaterThan(0);
+		await tab(page, 'Home').click();
+		await expect(page).toHaveURL(/\/$/);
+		await expect(rows.first()).toBeVisible();
+		expect(await scrollY(page)).toBe(0);
 	});
 });

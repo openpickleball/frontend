@@ -6,6 +6,7 @@ import { Badge } from './badge/index.js';
 import { Card, CardDescription, CardFooter, CardTitle } from './card/index.js';
 import { EmptyDescription, EmptyMedia, EmptyTitle } from './empty/index.js';
 import { Input } from './input/index.js';
+import { Item, ItemDescription, ItemGroup, ItemTitle } from './item/index.js';
 import { LoadingState } from './loading-state/index.js';
 import { Skeleton } from './skeleton/index.js';
 import { Spinner } from './spinner/index.js';
@@ -70,6 +71,29 @@ describe('Button', () => {
 		const { body } = render(Button, { props: { variant: 'destructive', children: text('x') } });
 		expect(body).toContain('text-danger');
 		expect(body).not.toMatch(/bg-background|text-foreground|bg-destructive|bg-muted-foreground/);
+	});
+});
+
+describe('Item', () => {
+	it('is a row in our tokens, not shadcn color names', () => {
+		const { body } = render(Item, { props: { children: text('Display name') } });
+		expect(body).toContain('data-slot="item"');
+		for (const cls of ['text-secondary', 'min-h-14', 'focus-visible:focus-ring']) {
+			expect(body).toContain(cls);
+		}
+		expect(body).not.toMatch(/bg-muted|text-muted-foreground|border-border|ring-ring/);
+	});
+
+	it('styles its title and description with our tokens', () => {
+		expect(render(ItemTitle, { props: { children: text('x') } }).body).toContain('font-semibold');
+		const description = render(ItemDescription, { props: { children: text('x') } }).body;
+		expect(description).toContain('text-muted');
+		expect(description).not.toContain('text-muted-foreground');
+	});
+
+	it('groups rows in a list with a line between them', () => {
+		const { body } = render(ItemGroup, { props: { children: text('x') } });
+		expect(body).toMatch(/<ul[^>]*divide-y divide-line/);
 	});
 });
 

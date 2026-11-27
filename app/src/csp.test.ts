@@ -20,6 +20,11 @@ describe('directives', () => {
 		expect(directives['connect-src']).toEqual(['self', 'https://photon.komoot.io']);
 	});
 
+	it('lets the page frame this origin and the Tally feedback form, and nothing else', () => {
+		// The origin of FEEDBACK_EMBED_URL, spelled out like the Photon origin above.
+		expect(directives['frame-src']).toEqual(['self', 'https://tally.so']);
+	});
+
 	it('locks down workers, plugins, the base URL and form targets', () => {
 		expect(directives['worker-src']).toEqual(['self']);
 		expect(directives['object-src']).toEqual(['none']);
@@ -40,6 +45,7 @@ describe('directives', () => {
 			'default-src',
 			'script-src',
 			'connect-src',
+			'frame-src',
 			'worker-src',
 			'object-src',
 			'base-uri',

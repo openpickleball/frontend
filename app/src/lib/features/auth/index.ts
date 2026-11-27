@@ -13,7 +13,7 @@
  *   to the account's email, or redirects to sign in and back to `url` afterwards.
  *   Layout and page loads run in parallel, so call it first in a page load that calls
  *   the API: the layout's own guard may not have redirected yet.
- * - `SignOutButton`: a sign out button. The root layout shows it in the top bar and the side nav, and the profile page too.
+ * - `SignOutButton`: a sign out button. The side nav and the profile page show it.
  * - `onSignOut(listener)`: the root layout calls it once, so the player's code is cleared as soon
  *   as the player signs out on purpose.
  * - `setSignOutWarning(source)`: what a sign out would delete from this device, such as unsent
@@ -74,7 +74,6 @@ export { default as ResetForm } from './components/reset-form.svelte';
 export { default as SessionCheck } from './components/session-check.svelte';
 export { default as ReauthPrompt } from './components/reauth-prompt.svelte';
 export { default as TwoFactorSettings } from './components/two-factor-settings.svelte';
-export { default as TwoFactorStatus } from './components/two-factor-status.svelte';
 export { default as OrganizerMfaPrompt } from './components/organizer-mfa-prompt.svelte';
 export { ReauthCancelled, reauthPrompt, requestReauth, withReauth } from './reauth.svelte.js';
 
