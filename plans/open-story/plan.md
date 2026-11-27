@@ -2,7 +2,7 @@
 
 **Status:** active
 
-Risk tier: Medium. Copy and a small layout change on one static page that deploys to openpb.org on merge. There are no automated tests for `site/`, so the change is proven by the build and by looking at the page in both themes, with reduced motion, at 320, 375, 768, 1024 and 1440 widths.
+Risk tier: Medium. Copy and a small layout change on one static page that deploys to openpb.org on merge. There are no automated tests for `site/`, so the change is proven by the build and by looking at the page in both themes at 320, 375, 768, 1024 and 1440 widths, and with reduced motion.
 
 Domain skills: impeccable and frontend-design, not applicable because the change adds copy inside the existing visual system and adds no new design. humanizer, invoke on the new copy before it is final. chrome-devtools-mcp, invoke for the live drive (screenshots at each width and theme, reduced motion emulation). All other listed skills (Django, Expo, React, Celery, API, auth, payments, email) are not applicable because the change is a static HTML page.
 
@@ -74,7 +74,7 @@ Sources: `site/public/funding.json` ("a volunteer, community-governed group", "A
 ## Risks
 
 - Four columns at `lg` (1024px) are narrow. If "Community-driven" or the longer pillar texts look cramped, move the four-column step to `xl` and record why. No custom breakpoint.
-- The Tally form lacks a board option and a match-results option today (page 1 has "Which best describes you?" and "How would you like to be involved?" with no board or match-data choice). Nobody in this run has Tally access, so the PR says the form must be updated before merge and leaves criterion 7 unchecked for a maintainer.
+- The Tally form lacks a board option and a match-results option today (page 1 has "Which best describes you?" and "How would you like to be involved?" with no board or match-data choice). Nobody in this run has Tally access, so the PR says the form needs both options and leaves criterion 7 unchecked for the maintainer, who updates it in Tally.
 - "Built by players" could read as "only players build it". The About intro says "built by volunteers" right after it, and Get involved names developers and statisticians, so the page doesn't claim that.
 - The board line must not promise a seat. It says "We're looking for people", and the public nomination sentence makes clear the form is not an application that grants one.
 - The match-results item must not ask players to log matches, because the app is not deployed. It asks organizers and apps only.
@@ -87,7 +87,7 @@ What we chose not to do: no hero change (the teaser is fitted to the render and 
 No automated tests cover `site/`. Each criterion is proven as follows:
 
 - Criteria 1, 2, 3, 6: read the rendered page text against the frustrations table and the six changes. A grep for em dashes (U+2014) and emoji in the changed lines of `site/public/index.html` returns nothing. A grep for "rating system" names no external system.
-- Criterion 4: live drive with `site` from `.claude/launch.json` (serve `site/public/` on port 4173): screenshots of About and Get involved at 320, 375, 768 and 1440 wide, in black and ivory, and once with reduced motion emulated (sections visible, standing still). The Open Collective link and email link open the right targets. The Get involved button still opens the Tally popup.
+- Criterion 4: live drive with `site` from `.claude/launch.json` (serve `site/public/` on port 4173): screenshots of About and Get involved at 320, 375, 768, 1024 and 1440 wide, in black and ivory, and once with reduced motion emulated (sections visible, standing still). The Open Collective link and email link open the right targets. The Get involved button still opens the Tally popup.
 - Criterion 5: the diff of `plans/site-content-v2/plan.md`.
 - Criterion 8: `pnpm build` output.
 
@@ -114,4 +114,4 @@ Run on this branch:
 - This plan lives in `plans/open-story/` because the repo has no `.claude/work-issue.md` and keeps plans under `plans/`.
 - The vision line ends "owned by no company", not "owned by no one". GOVERNANCE.md says no person controlling OPEN is the goal and not true yet, while no company owning OPEN is true today. The maintainer approved the change in review.
 - The Tally link's `mt-9` and `reveal` moved to the new flex row that holds the button and the email. The row keeps the same space above it, and the button and the email fade in together as one block. The link is otherwise unchanged.
-- The status stays `active` after the PR merges, because the last step (adding board and match-results options to the Tally form) happens in Tally, outside the repo. Whoever updates the form ticks that step and sets the status to `done`.
+- If the form is not updated before the PR merges, the status stays `active` until it is, because the last step (adding board and match-results options to the Tally form) happens in Tally, outside the repo. Whoever updates the form ticks that step and sets the status to `done`.
