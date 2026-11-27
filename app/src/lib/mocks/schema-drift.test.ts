@@ -13,6 +13,7 @@ import {
 	MAX_GAME_ENTRIES,
 	MAX_TEAM_ENTRIES
 } from './validation';
+import { MEMBER_ROLES } from './fixtures';
 
 // The domain and the mock copy the schema's enums and limits by hand, so both could drift from it
 // together and still agree with each other. This pins them to the committed snapshot.
@@ -30,7 +31,8 @@ describe('schema/open.json against the domain and the mock', () => {
 		['MatchStatus', MATCH_STATUSES],
 		['ScoringType', SCORING_TYPES],
 		['BestOf', BEST_OF_VALUES],
-		['GameTarget', GAME_TARGETS]
+		['GameTarget', GAME_TARGETS],
+		['MemberRole', MEMBER_ROLES]
 	] as const)('%s lists the same values', (name, values) => {
 		expect([...(schemas[name].enum ?? [])].sort()).toEqual([...values].sort());
 	});

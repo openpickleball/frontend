@@ -1490,7 +1490,13 @@ describe('signup details held for the create (backend#124)', () => {
 
 	it('answers 403 for an account whose email is not verified, and keeps the hold', async () => {
 		mockStore.holdSignup(UNVERIFIED_EMAIL, HELD);
-		mockStore.state.session = { email: UNVERIFIED_EMAIL, at: 0 };
+		mockStore.state.session = {
+			email: UNVERIFIED_EMAIL,
+			at: 0,
+			stage: null,
+			mfaAt: null,
+			reauthAt: null
+		};
 		const { api } = browser();
 		await api.initCsrf();
 		const result = await api.open.POST('/api/v1/me/player', { body: {} });

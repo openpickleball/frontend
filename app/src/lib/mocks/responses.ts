@@ -10,7 +10,7 @@
  */
 import { HttpResponse } from 'msw';
 import { CSRF_COOKIE_NAME } from '../api/csrf';
-import type { FieldIssue, MockStore } from './store';
+import { MFA_TYPES, type FieldIssue, type MockStore } from './store';
 
 // OPEN API (ninja)
 
@@ -102,10 +102,18 @@ export function userOut(email: string) {
 	return { display: email, email, has_usable_password: true };
 }
 
-/** The flows an unauthenticated session can start, plus the pending email verification. */
+type MockFlow = { id: string; is_pending?: true; types?: string[] };
+
+/**
+ * The flows an unauthenticated session can start, plus the pending email verification, or the
+ * pending two-factor step of a login.
+ */
 export function flows(store: MockStore) {
-	const list: { id: string; is_pending?: true }[] = [{ id: 'login' }, { id: 'signup' }];
+	const list: MockFlow[] = [{ id: 'login' }, { id: 'signup' }];
 	if (store.state.pendingEmail) list.push({ id: 'verify_email', is_pending: true });
+	if (store.pendingMfaAccount()) {
+		list.push({ id: 'mfa_authenticate', is_pending: true, types: [...MFA_TYPES] });
+	}
 	return list;
 }
 
@@ -118,11 +126,53 @@ export function unauthenticated(store: MockStore): Response {
 	});
 }
 
+/** The ways this session authenticated: the password, and two-factor once it passed it. */
+function methods(store: MockStore, email: string, at: number) {
+	const list: object[] = [{ method: 'password', at, email }];
+	const mfaAt = store.state.session?.mfaAt;
+	if (mfaAt != null) list.push({ method: 'mfa', at: mfaAt, type: 'totp' });
+	return list;
+}
+
 /** `AuthenticatedResponse`: 200 for a signed-in session. */
 export function authenticated(store: MockStore, email: string, at: number): Response {
 	return allauthJson(store, 200, {
 		status: 200,
-		data: { user: userOut(email), methods: [{ method: 'password', at, email }] },
+		data: { user: userOut(email), methods: methods(store, email, at) },
 		meta: { is_authenticated: true }
 	});
 }
+
+/** `ReauthenticationResponse`: 401 for a signed-in session that must reauthenticate first. */
+export function reauthenticationRequired(
+	store: MockStore,
+	email: string,
+	ids: readonly string[]
+): Response {
+	const at = store.state.session?.at ?? 0;
+	return allauthJson(store, 401, {
+		status: 401,
+		data: {
+			flows: ids.map((id) =>
+				id === 'mfa_reauthenticate' ? { id, types: [...MFA_TYPES] } : { id }
+			),
+			user: userOut(email),
+			methods: methods(store, email, at)
+		},
+		meta: { is_authenticated: true }
+	});
+}
+
+/** A wrong code, on the `code` field, as allauth words it. */
+export const incorrectCode = (): AllauthIssue => ({
+	code: 'incorrect_code',
+	message: 'Incorrect code.',
+	param: 'code'
+});
+
+/** A wrong password at reauthentication, on the `password` field. */
+export const incorrectPassword = (): AllauthIssue => ({
+	code: 'incorrect_password',
+	message: 'Incorrect password.',
+	param: 'password'
+});

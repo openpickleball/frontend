@@ -12,7 +12,7 @@ import type { MockMode } from './mode';
 import { mockStore } from './store';
 
 /** Bump the suffix when the shape of the mock state changes. */
-const STORAGE_KEY = 'open-mock-state-v1';
+const STORAGE_KEY = 'open-mock-state-v2';
 
 declare global {
 	interface Window {

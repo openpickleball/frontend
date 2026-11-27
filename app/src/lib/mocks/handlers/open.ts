@@ -1,3 +1,4 @@
+import { http as anyHttp } from 'msw';
 import { normalizeCode } from '../../domain/codes';
 import type { components } from '../../api/generated/open';
 import { csrfValid, openHttp as http, readJson } from '../http';
@@ -15,6 +16,7 @@ import {
 import type { MockStore } from '../store';
 
 type PlayerCreateIn = components['schemas']['PlayerCreateIn'];
+type EventCreateIn = components['schemas']['EventCreateIn'];
 type PlayerUpdateIn = components['schemas']['PlayerUpdateIn'];
 import { matchCreateIssues, pageQuery } from '../validation';
 
@@ -56,6 +58,56 @@ export function createOpenHandlers(store: MockStore) {
 	}
 
 	return [
+		// `config/auth.py`: an account that must have two-factor and has none, or has it and this
+		// session did not pass it, gets 403 `mfa_required` on every operation. Any other request
+		// falls through to its own handler.
+		anyHttp.all('*/api/v1/*', () =>
+			store.mfaRequiredNow()
+				? ninjaError(403, 'mfa_required', 'Two-factor authentication is required.')
+				: undefined
+		),
+
+		// `list_my_organizers`: the signed-in account's own memberships.
+		http.get('/api/v1/organizer/organizers', ({ request, cookies, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			return response(200).json(structuredClone(store.accountByEmail(email)?.organizers ?? []));
+		}),
+
+		// Only so the two-factor tests can show an organizer operation. The app has no Event
+		// screens yet (frontend#217), so the mock keeps no Events.
+		http.get('/api/v1/organizer/events', ({ request, cookies, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			return response(200).json({ items: [], count: 0 });
+		}),
+
+		// `create_organizer_event`: a verified organizer the account is a member of, and two-factor
+		// on the account. Anything else is the same plain 403.
+		http.post('/api/v1/organizer/events', async ({ request, cookies, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const account = store.accountByEmail(email);
+			const body = (await readJson(request)) as Partial<EventCreateIn> | undefined;
+			const membership = account?.organizers?.find(
+				(m) => m.verified && m.organizer === body?.organizer
+			);
+			if (!membership || !account?.totp) {
+				return response.untyped(
+					ninjaError(403, 'forbidden', 'You cannot create an Event for this organizer.')
+				);
+			}
+			return response(201).json({
+				code: 'E-MOCK-0001',
+				organizer: membership.organizer,
+				club: null,
+				name: String(body?.name ?? ''),
+				kind: body?.kind ?? 'tournament',
+				start_date: String(body?.start_date ?? ''),
+				end_date: String(body?.end_date ?? '')
+			});
+		}),
+
 		http.get('/api/v1/accounts/me', ({ request, cookies, response }) => {
 			const email = guard(request, cookies);
 			if (typeof email !== 'string') return response.untyped(email);

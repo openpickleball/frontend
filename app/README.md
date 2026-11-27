@@ -44,6 +44,8 @@ The City field at signup asks Photon (`photon.komoot.io`) for suggestions from t
 
 With `all`, you can sign in as `player@example.com` (see `src/lib/mocks/fixtures.ts` for the password and the other made-up players).
 
+For two-factor, the mocks also have `organizer@example.com` (a member of a made-up verified organizer, no two-factor yet), `twofactor@example.com` (two-factor on) and `moderator@example.com` (must have two-factor and has none, so the API answers `mfa_required`). The mock accepts `MOCK_TOTP_CODE` (`123456`) as the current code from any authenticator app, and each of `MOCK_RECOVERY_CODES` once.
+
 ### The `/api` proxy
 
 `pnpm dev` forwards `/api` and `/_allauth` to the backend at `http://127.0.0.1:8000` (see `vite.config.ts`). The browser only ever talks to the backend through `localhost:5173`, so the session cookie and CSRF protection work without CORS settings.

@@ -28,11 +28,15 @@ import {
 	ACCOUNTS,
 	MATCHES,
 	MOCK_KEYS,
+	MOCK_RECOVERY_CODES,
+	MOCK_TOTP_CODE,
+	MOCK_TOTP_SECRET,
 	PLAYERS,
 	RATINGS,
 	RATING_HISTORY,
 	UNVERIFIED_EMAIL,
 	VERIFIED_EMAIL,
+	type FixtureMembership,
 	type PlayerKey,
 	type RatingsByFormat
 } from './fixtures';
@@ -63,7 +67,48 @@ type PagedRatingHistoryItemOut = Schemas['PagedRatingHistoryItemOut'];
 /** The backend's default `OPEN_PUBLIC_PROFILE_URL`: `profile_url` is this and the code. */
 const PUBLIC_PROFILE_URL = 'https://openpb.org/players/';
 
-export type MockAccount = { email: string; password: string; verified: boolean; active: boolean };
+/** Recovery codes: all of them, the ones used, and whether the unused ones were shown. */
+export type MockRecoveryCodes = {
+	codes: string[];
+	used: string[];
+	createdAt: number;
+	/** Shown once (`MFA_RECOVERY_CODES_SHOW_ONCE`): after that, the list comes back empty. */
+	viewed: boolean;
+};
+
+export type MockAccount = {
+	email: string;
+	password: string;
+	verified: boolean;
+	active: boolean;
+	/** Two-factor (TOTP), and when it was turned on (seconds since the epoch). */
+	totp?: { secret: string; createdAt: number };
+	recoveryCodes?: MockRecoveryCodes;
+	organizers?: FixtureMembership[];
+	/** Must have two-factor: stands in for staff and moderators (ADR 0043). */
+	mfaRequired?: boolean;
+};
+
+/**
+ * The browser session. `stage` is `mfa` while a login waits for its code: nobody is signed in
+ * then. `mfaAt` is when the session last passed two-factor and `reauthAt` when it last
+ * reauthenticated, in seconds since the epoch.
+ */
+export type MockSession = {
+	email: string;
+	at: number;
+	stage: 'mfa' | null;
+	mfaAt: number | null;
+	reauthAt: number | null;
+};
+
+/** allauth's `ACCOUNT_REAUTHENTICATION_TIMEOUT`: a reauthentication counts for 300 seconds. */
+export const REAUTHENTICATION_SECONDS = 300;
+
+/** The authenticator types this backend supports (`MFA_SUPPORTED_TYPES`). */
+export const MFA_TYPES = ['totp', 'recovery_codes'] as const;
+
+const now = () => Date.now() / 1000;
 
 export type MockPlayer = {
 	code: string;
@@ -158,8 +203,8 @@ export type MockState = {
 	matches: MockMatch[];
 	/** Current ratings by player code. A player left out has none yet. */
 	ratings: Record<string, RatingsByFormat>;
-	/** The signed-in account's email, and when it signed in (seconds since the epoch). */
-	session: { email: string; at: number } | null;
+	/** The signed-in account (or the one at the code step), and when it signed in. */
+	session: MockSession | null;
 	/** A sign-up or login waiting on email verification, in this browser session. */
 	pendingEmail: string | null;
 	/** The backend's session flag after an under-13 sign-up: later sign-ups are refused too. */
@@ -233,7 +278,24 @@ function seed(): MockState {
 	// Fixtures list newest first. `seq` counts up, so the oldest gets the lowest.
 	const total = MATCHES.length;
 	return {
-		accounts: ACCOUNTS.map((a) => ({ ...a })),
+		accounts: ACCOUNTS.map(({ twoFactor, organizers, ...a }) => ({
+			...a,
+			...(organizers ? { organizers: structuredClone(organizers) } : {}),
+			...(twoFactor
+				? {
+						totp: {
+							secret: MOCK_TOTP_SECRET,
+							createdAt: Date.parse('2026-10-01T12:00:00Z') / 1000
+						},
+						recoveryCodes: {
+							codes: [...MOCK_RECOVERY_CODES],
+							used: [],
+							createdAt: Date.parse('2026-10-01T12:00:00Z') / 1000,
+							viewed: false
+						}
+					}
+				: {})
+		})),
 		players: PLAYERS.map((p) => ({
 			code: p.code,
 			displayName: p.displayName,
@@ -308,7 +370,13 @@ export type ChangeResult =
 export type ListResult =
 	{ ok: true; items: MockMatch[]; count: number } | { ok: false; kind: 'not_found' };
 
-export type LoginResult = 'ok' | 'mismatch' | 'unverified';
+export type LoginResult = 'ok' | 'mismatch' | 'unverified' | 'mfa';
+
+/** A management view's check before it reads any input (backend `_GuardsMFAChanges`). */
+export type MfaGuard =
+	| { ok: true; account: MockAccount }
+	| { ok: false; kind: 'unauthenticated' }
+	| { ok: false; kind: 'reauthenticate'; flows: ('reauthenticate' | 'mfa_reauthenticate')[] };
 
 export type CreatePlayerResult =
 	| { ok: true; player: MockPlayer }
@@ -438,6 +506,8 @@ export function createMockStore() {
 				// A hold of another shape would create a player with undefined fields.
 				const hold = parsed.signupHold;
 				if (hold !== undefined && hold !== null && !isSignupHold(hold)) return false;
+				// A session saved before two-factor has no stage: drop the snapshot.
+				if (parsed.session !== null && typeof parsed.session?.stage === 'undefined') return false;
 				// A snapshot from older fixtures would show stale data: drop it.
 				if (parsed.matches.length < fresh.matches.length) return false;
 				state = parsed;
@@ -451,11 +521,137 @@ export function createMockStore() {
 		playerByCode,
 		playerOfAccount,
 
-		/** The signed-in account, or undefined. An inactive account is never signed in. */
+		/**
+		 * The signed-in account, or undefined. An inactive account is never signed in, and neither
+		 * is a login still waiting for its two-factor code.
+		 */
 		currentAccount(): MockAccount | undefined {
-			const email = state.session?.email;
+			const email = state.session?.stage === 'mfa' ? undefined : state.session?.email;
 			const account = email ? accountByEmail(email) : undefined;
 			return account?.active ? account : undefined;
+		},
+
+		/** The account of a login waiting for its two-factor code, or undefined. */
+		pendingMfaAccount(): MockAccount | undefined {
+			if (state.session?.stage !== 'mfa') return undefined;
+			const account = accountByEmail(state.session.email);
+			return account?.active ? account : undefined;
+		},
+
+		/** Did this session pass two-factor (a code at login or a code reauthentication)? */
+		sessionPassedMfa(): boolean {
+			return state.session?.mfaAt != null;
+		},
+
+		/** Did this session reauthenticate in the last 300 seconds? A login does not count. */
+		recentlyReauthenticated(): boolean {
+			const at = state.session?.reauthAt;
+			return at != null && now() - at <= REAUTHENTICATION_SECONDS;
+		},
+
+		/**
+		 * Is `code` the account's current code, or one of its unused recovery codes? A recovery
+		 * code is used up here, so it works once.
+		 */
+		useMfaCode(account: MockAccount, code: string): 'totp' | 'recovery_codes' | null {
+			if (!account.totp) return null;
+			const trimmed = code.trim();
+			if (trimmed === MOCK_TOTP_CODE) return 'totp';
+			const codes = account.recoveryCodes;
+			if (codes && codes.codes.includes(trimmed) && !codes.used.includes(trimmed)) {
+				codes.used.push(trimmed);
+				return 'recovery_codes';
+			}
+			return null;
+		},
+
+		/** Finish a login at the code step. False for a wrong code, or no login waiting. */
+		completeMfaLogin(code: string): boolean {
+			const account = this.pendingMfaAccount();
+			const session = state.session;
+			if (!account || !session || !this.useMfaCode(account, code)) return false;
+			session.stage = null;
+			session.mfaAt = now();
+			return true;
+		},
+
+		/** `auth/reauthenticate`: the password, again. */
+		reauthenticate(password: string): boolean {
+			const account = this.currentAccount();
+			const session = state.session;
+			if (!account || !session || account.password !== password) return false;
+			session.reauthAt = now();
+			return true;
+		},
+
+		/** `auth/2fa/reauthenticate`: a code. It also passes two-factor for this session. */
+		reauthenticateMfa(code: string): boolean {
+			const account = this.currentAccount();
+			const session = state.session;
+			if (!account || !session || !this.useMfaCode(account, code)) return false;
+			session.reauthAt = now();
+			session.mfaAt = now();
+			return true;
+		},
+
+		/**
+		 * The management views' order (backend `mfa_views.py`): signed in, then, for an account
+		 * with TOTP, a session that passed two-factor (else only the code flow), then, when
+		 * `recent` is set, a recent reauthentication (the password flow, and the code flow for an
+		 * account with TOTP). Only then is any input read.
+		 */
+		guardMfaChange(recent: boolean): MfaGuard {
+			const account = this.currentAccount();
+			if (!account) return { ok: false, kind: 'unauthenticated' };
+			if (account.totp && !this.sessionPassedMfa()) {
+				return { ok: false, kind: 'reauthenticate', flows: ['mfa_reauthenticate'] };
+			}
+			if (recent && !this.recentlyReauthenticated()) {
+				return {
+					ok: false,
+					kind: 'reauthenticate',
+					flows: account.totp ? ['reauthenticate', 'mfa_reauthenticate'] : ['reauthenticate']
+				};
+			}
+			return { ok: true, account };
+		},
+
+		/** Turn TOTP on with the current code. New recovery codes come with it. */
+		activateTotp(account: MockAccount, code: string): 'ok' | 'incorrect' | 'conflict' {
+			if (account.totp) return 'conflict';
+			if (code.trim() !== MOCK_TOTP_CODE) return 'incorrect';
+			account.totp = { secret: MOCK_TOTP_SECRET, createdAt: now() };
+			account.recoveryCodes = this.newRecoveryCodes();
+			// The enrolling session has passed the second factor it just set up.
+			if (state.session) state.session.mfaAt = now();
+			return 'ok';
+		},
+
+		/** Turn TOTP off. The recovery codes go with it. */
+		deactivateTotp(account: MockAccount): void {
+			delete account.totp;
+			delete account.recoveryCodes;
+		},
+
+		/** Ten new made-up recovery codes, not yet shown. */
+		newRecoveryCodes(): MockRecoveryCodes {
+			const batch = nextCounter();
+			const codes = Array.from(
+				{ length: 10 },
+				(_, i) => `r${String(batch).padStart(3, '0')}${String(i).padStart(4, '0')}`
+			);
+			return { codes, used: [], createdAt: now(), viewed: false };
+		},
+
+		/**
+		 * Should the OPEN API refuse this session with 403 `mfa_required`? Yes for an account that
+		 * must have two-factor and has none, and for one with it whose session did not pass it.
+		 */
+		mfaRequiredNow(): boolean {
+			const account = this.currentAccount();
+			if (!account) return false;
+			if (account.totp) return !this.sessionPassedMfa();
+			return account.mfaRequired === true;
 		},
 
 		/** The code of the player that belongs to the signed-in account. */
@@ -474,9 +670,11 @@ export function createMockStore() {
 				sendMail('verify_email', account.email);
 				return 'unverified';
 			}
-			state.session = { email: account.email, at: Date.now() / 1000 };
 			state.pendingEmail = null;
-			return 'ok';
+			// An account with TOTP stops at the code step: nobody is signed in yet.
+			const stage = account.totp ? 'mfa' : null;
+			state.session = { email: account.email, at: now(), stage, mfaAt: null, reauthAt: null };
+			return stage ? 'mfa' : 'ok';
 		},
 
 		/** Logging out flushes the session: the hold goes, the refusal flag stays (ADR 0017). */
