@@ -49,3 +49,26 @@ export function focusFirstError(errors: Record<string, string>, order: string[],
 export function isThrottled(error: AppError): boolean {
 	return error.kind === 'throttled';
 }
+
+/** Which code the player types: from the authenticator app, or a recovery code. */
+export type CodeKind = 'totp' | 'recovery';
+
+type CodeParse =
+	| { success: true; data: { code: string } }
+	| { success: false; error: { issues: { path: string[]; message: string }[] } };
+
+/**
+ * Check a two-factor code before it is sent. A code from the app is 6 digits (spaces are
+ * dropped, as apps show `123 456`). A recovery code only needs to be there: the backend checks it.
+ */
+export function parseMfaCode(raw: string, kind: CodeKind): CodeParse {
+	const code = kind === 'totp' ? raw.replace(/\s+/g, '') : raw.trim();
+	const fail = (message: string): CodeParse => ({
+		success: false,
+		error: { issues: [{ path: ['code'], message }] }
+	});
+	if (kind === 'totp' && !/^\d{6}$/.test(code))
+		return fail('Enter the 6-digit code from your app.');
+	if (code === '') return fail('Enter a recovery code.');
+	return { success: true, data: { code } };
+}
