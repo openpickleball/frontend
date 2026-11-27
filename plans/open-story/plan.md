@@ -13,7 +13,7 @@ The home page tells visitors who builds OPEN (volunteers, not a company), why a 
 ## Acceptance criteria
 
 1. Each line of new copy answers a row of the frustrations table in issue #309.
-2. The copy speaks to everyday players and turns no player away. One audience line is on the page: "A rating for every player, from your first open play to your first tournament."
+2. The copy speaks to everyday players and turns no player away. One audience line is on the page: "It's a rating for every player, from your first open play to your first tournament."
 3. All six changes from the issue are in `site/public/index.html`:
    1. A vision line under the About headline, and a new About intro that says OPEN is free, built by volunteers, not a company, and why a rating matters.
    2. "Every dollar in and out is public." ends the Community-driven pillar, linked to `https://opencollective.com/open-pickleball` in a new tab. The footer link stays.
@@ -59,7 +59,7 @@ Sources: `site/public/funding.json` ("a volunteer, community-governed group", "A
 
 - `site/public/index.html`: About intro and vision line, the pillar list (fourth item, grid `md:grid-cols-2 lg:grid-cols-4`), the Free, Transparent and Community-driven text, and the Get involved section.
 - `site/src/input.css`: only if a style the new markup needs has no Tailwind default or token. Expected: no change.
-- `plans/site-content-v2/plan.md`: new Decisions entries (see Order of work step 3).
+- `plans/site-content-v2/plan.md`: new Decisions entries (see Order of work step 4).
 - `plans/open-story/plan.md`: this plan. Tick steps, set status to done.
 - `site/AGENTS.md`: only if its description of the page becomes wrong. The About and Get involved summaries there stay true, so expected: no change.
 
@@ -86,7 +86,7 @@ What we chose not to do: no hero change (the teaser is fitted to the render and 
 
 No automated tests cover `site/`. Each criterion is proven as follows:
 
-- Criteria 1, 2, 3, 6: read the rendered page text against the frustrations table and the six changes. A grep for em dashes (`—`) and emoji in the changed lines of `site/public/index.html` returns nothing. A grep for "rating system" names no external system.
+- Criteria 1, 2, 3, 6: read the rendered page text against the frustrations table and the six changes. A grep for em dashes (U+2014) and emoji in the changed lines of `site/public/index.html` returns nothing. A grep for "rating system" names no external system.
 - Criterion 4: live drive with `site` from `.claude/launch.json` (serve `site/public/` on port 4173): screenshots of About and Get involved at 320, 375, 768 and 1440 wide, in black and ivory, and once with reduced motion emulated (sections visible, standing still). The Open Collective link and email link open the right targets. The Get involved button still opens the Tally popup.
 - Criterion 5: the diff of `plans/site-content-v2/plan.md`.
 - Criterion 8: `pnpm build` output.
@@ -97,6 +97,7 @@ Run on this branch:
 - `pnpm build` in `site/`: Tailwind v4.3.5, "Done", exit 0. A grep for the em dash character in the added lines of `site/public/index.html` (against `origin/main`) prints nothing, and no added line in either changed file has an en dash, em dash or emoji.
 - Live drive (Chrome DevTools, `site/public/` on port 4173), black and ivory at 320, 375, 768, 1024 and 1440: `scrollWidth` never exceeds the window, no pillar overlaps another, nothing in About or Get involved sits outside the window, and the only clipped elements are the `sr-only` labels. The pillar grid has 1 column at 320 and 375, 2 at 768, and 4 at 1024 and 1440. At 1024 each pillar is 202px wide, "Community-driven" stays on one line and no word breaks, so the four-column step stays at `lg`. The button and the email sit side by side from 768 and stack below it.
 - Reduced motion (375, black): no running animations, and every `.reveal` in About and Get involved is at opacity 1 with no transform before any scroll.
+- Review fix: the Get involved row (button and email) carries the one `reveal`. Before the fix a check (`grep` for `reveal` on the row wrapper and none on the Tally link) failed both lines, and after it both pass. In the browser, with motion allowed at 375 and 1024 (black), the row runs the only `reveal` animation and neither child has its own. Midway through, the row is at opacity 0.39 and both children fade with it. With reduced motion the row and both children are at opacity 1, and nothing is animating.
 - The Open Collective link goes to `https://opencollective.com/open-pickleball` with `target="_blank" rel="noopener"`, the email link is `mailto:info@openpb.org`, and clicking "Get involved" opens the Tally popup (`tally.so/popup/Kp50eD`, `hideTitle=1`) on the page.
 
 ## Steps
@@ -111,4 +112,4 @@ Run on this branch:
 ## Decisions
 
 - This plan lives in `plans/open-story/` because the repo has no `.claude/work-issue.md` and keeps plans under `plans/`.
-- The Tally link's `mt-9` moved to the new flex row that holds the button and the email, so the row keeps the same space above it. The link is otherwise unchanged.
+- The Tally link's `mt-9` and `reveal` moved to the new flex row that holds the button and the email. The row keeps the same space above it, and the button and the email fade in together as one block. The link is otherwise unchanged.
