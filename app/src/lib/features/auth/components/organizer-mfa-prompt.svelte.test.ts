@@ -7,7 +7,8 @@ const MEMBERSHIP: OrganizerMembership = {
 	organizer: 'G-K7MQ-2RD4',
 	name: 'Larkspur Paddle League',
 	role: 'admin',
-	verified: true
+	verified: true,
+	verification_requested: false
 };
 
 function signedIn(organizers: OrganizerMembership[] | null, mfaEnrolled: boolean | null) {

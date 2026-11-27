@@ -17,7 +17,8 @@ const MEMBERSHIP = {
 	organizer: 'G-K7MQ-2RD4',
 	name: 'Larkspur Paddle League',
 	role: 'admin',
-	verified: true
+	verified: true,
+	verification_requested: false
 };
 
 afterEach(() => session.reset());

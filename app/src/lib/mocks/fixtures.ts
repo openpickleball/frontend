@@ -75,6 +75,7 @@ export type FixtureMembership = {
 	name: string;
 	role: (typeof MEMBER_ROLES)[number];
 	verified: boolean;
+	verification_requested: boolean;
 };
 
 export type PlayerKey = 'tamsin' | 'oren' | 'bea' | 'kit' | 'rosa' | 'idris' | 'nell' | 'saul';
@@ -204,7 +205,8 @@ export const ACCOUNTS: readonly FixtureAccount[] = [
 				organizer: 'G-K7MQ-2RD4',
 				name: 'Larkspur Paddle League',
 				role: 'admin',
-				verified: true
+				verified: true,
+				verification_requested: false
 			}
 		]
 	},

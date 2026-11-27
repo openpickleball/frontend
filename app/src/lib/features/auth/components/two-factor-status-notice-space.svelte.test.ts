@@ -14,7 +14,13 @@ describe('TwoFactorStatus with the organizer notice', () => {
 	it('puts 32px between the notice and the status line', async () => {
 		session.apply({ status: 'signed_in', email: 'organizer@example.com' });
 		session.organizers = [
-			{ organizer: 'G-K7MQ-2RD4', name: 'Larkspur Paddle League', role: 'admin', verified: true }
+			{
+				organizer: 'G-K7MQ-2RD4',
+				name: 'Larkspur Paddle League',
+				role: 'admin',
+				verified: true,
+				verification_requested: false
+			}
 		];
 		session.mfaEnrolled = false;
 		const screen = await render(TwoFactorStatus);

@@ -40,6 +40,227 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/api/v1/clubs': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Create Club
+		 * @description Create a Club, with you as its only admin.
+		 *
+		 *     Your login address must be verified (403 otherwise). 409 when you are
+		 *     already an admin of as many Clubs as an Account may create. No MFA is
+		 *     needed to create one; every admin action on it needs MFA. A Club
+		 *     gives no authority to record matches: allow a verified Organizer to
+		 *     name it with `grant_club_organizer`.
+		 */
+		post: operations['create_club'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/clubs/invites/accept': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Accept Club Invite
+		 * @description Accept an invite to be a Club admin, with the key from its email.
+		 *
+		 *     Sign in with the invited address, verified, and have a player
+		 *     profile. A key that is unknown, malformed, expired, already used, or
+		 *     for another address, an unverified address, an Account with no
+		 *     player, and anyone else refused get the same 404. 409 when you are
+		 *     already an admin; the invite is used up then too.
+		 */
+		post: operations['accept_club_invite'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/clubs/{code}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Club
+		 * @description A Club's public profile: its OPEN Code, name, city, and region.
+		 *
+		 *     For any signed-in Account. An unknown code gets 404.
+		 */
+		get: operations['get_club'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * Update Club
+		 * @description Change the Club's name, city, or region. For a Club admin with MFA.
+		 *
+		 *     A field left out or null is not changed. Anyone else, and an unknown
+		 *     code, gets the same 404. 409 for a new name once any Event or
+		 *     recorded match names the Club: players see the name on those
+		 *     matches, so OPEN staff rename it. The city and region may still
+		 *     change.
+		 */
+		patch: operations['update_club'];
+		trace?: never;
+	};
+	'/api/v1/clubs/{code}/admins': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List Club Admins
+		 * @description The Club's admins. For a Club admin with MFA.
+		 *
+		 *     Each with its player's OPEN Code and display name, and whether it is
+		 *     you. Never an email.
+		 */
+		get: operations['list_club_admins'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/clubs/{code}/admins/{player}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/**
+		 * Remove Club Admin
+		 * @description Remove an admin, yourself included. For a Club admin with MFA.
+		 *
+		 *     ``player`` is the admin's player OPEN Code; one that is not an admin
+		 *     of this Club gets the same 404 as an unknown code. 409 when it would
+		 *     leave the Club with no admin. The invites that admin sent to this
+		 *     Club stop working.
+		 */
+		delete: operations['remove_club_admin'];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/clubs/{code}/invites': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Invite Club Admin
+		 * @description Invite an email address to be an admin of the Club. For a Club
+		 *     admin with MFA.
+		 *
+		 *     The answer is the same whether or not the address has an OPEN
+		 *     Account, is already an admin, or was invited before: an invite email
+		 *     with a link that works once goes to any address that is not an
+		 *     admin's, replacing an earlier invite to it. The invitee accepts
+		 *     while signed in with that address (`accept_club_invite`). 409 when
+		 *     the Club has too many open invites. Limited per Account to a number
+		 *     of invites a day; past that the answer is 429 with a Retry-After
+		 *     header.
+		 */
+		post: operations['invite_club_admin'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/clubs/{code}/organizer-grants': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List Club Organizer Grants
+		 * @description The Organizers the Club allows to name it on Events and matches.
+		 *     For a Club admin with MFA.
+		 *
+		 *     Each by its OPEN Code, with when it was allowed, ordered by code.
+		 *     Never an Organizer's name.
+		 */
+		get: operations['list_club_organizer_grants'];
+		put?: never;
+		/**
+		 * Grant Club Organizer
+		 * @description Allow an Organizer to name the Club on its Events and matches. For
+		 *     a Club admin with MFA.
+		 *
+		 *     The grant is consent, not trust: only a verified Organizer's matches
+		 *     count, and this changes nothing about verification. An unknown or
+		 *     malformed Organizer code gets the same 404 as an unknown Club. 409
+		 *     when the Club already allows it.
+		 */
+		post: operations['grant_club_organizer'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/clubs/{code}/organizer-grants/{organizer}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/**
+		 * Remove Club Organizer Grant
+		 * @description Stop allowing an Organizer to name the Club. For a Club admin with
+		 *     MFA.
+		 *
+		 *     Events and matches already recorded keep the Club; a new Event or
+		 *     match naming it is refused from then on. An Organizer the Club does
+		 *     not allow gets the same 404 as an unknown code.
+		 */
+		delete: operations['remove_club_organizer_grant'];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/api/v1/health/live': {
 		parameters: {
 			query?: never;
@@ -330,6 +551,62 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/api/v1/me/export': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Request Data Export
+		 * @description Ask for a copy of your data.
+		 *
+		 *     Reauthenticate first, through allauth's `auth/reauthenticate` (your
+		 *     password) or `auth/2fa/reauthenticate` (a two-factor code); without a
+		 *     recent one you get 403 with code `reauthentication_required`. A new
+		 *     request replaces any earlier export. Once the export is built, an
+		 *     email to your login address links to the web app's download page,
+		 *     which calls `download_data_export` with the key. The link works once
+		 *     and lasts 24 hours. Limited per Account to a few requests a day; past
+		 *     that the answer is 429 with a Retry-After header; a request without a
+		 *     recent reauthentication counts against the Account's general limits
+		 *     instead. 404 when the Account was deleted while the request ran.
+		 */
+		post: operations['request_data_export'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/me/export/download': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Download Data Export
+		 * @description Download your data export once, with the key from the email.
+		 *
+		 *     Returns the export as a JSON file (`open-data-export.json`) and
+		 *     deletes it, so the key works once. A key that is unknown, malformed,
+		 *     longer than 128 characters, expired, already used, not built yet, or
+		 *     another Account's gets the same 404. No reauthentication is needed.
+		 */
+		post: operations['download_data_export'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/api/v1/me/matches/awaiting-confirmation': {
 		parameters: {
 			query?: never;
@@ -575,6 +852,32 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/api/v1/organizer/invites/accept': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Accept Organizer Invite
+		 * @description Accept an invite to act for an Organizer, with the key from its email.
+		 *
+		 *     Sign in with the invited address, verified, and have a player
+		 *     profile. A key that is unknown, malformed, expired, already used, or
+		 *     for another address, an unverified address, an Account with no
+		 *     player, and anyone else refused get the same 404. 409 when you are
+		 *     already a member; the invite is used up then too.
+		 */
+		post: operations['accept_organizer_invite'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/api/v1/organizer/organizers': {
 		parameters: {
 			query?: never;
@@ -595,7 +898,177 @@ export interface paths {
 		 */
 		get: operations['list_my_organizers'];
 		put?: never;
+		/**
+		 * Create Organizer Operation
+		 * @description Create an Organizer, with you as its only admin.
+		 *
+		 *     Your login address must be verified (403 otherwise). The Organizer
+		 *     starts unverified: it cannot record counted matches or manage Events
+		 *     until an OPEN moderator verifies it (ask with
+		 *     `request_organizer_verification`). 409 when you are already an admin
+		 *     of as many Organizers as an Account may create. No MFA is needed to
+		 *     create one; every admin action on it needs MFA.
+		 */
+		post: operations['create_organizer'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/organizer/organizers/{code}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
 		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * Update Organizer
+		 * @description Change the Organizer's name. For an admin member with MFA.
+		 *
+		 *     Anyone else, and an unknown code, gets the same 404. 409 while the
+		 *     Organizer is verified: a moderator verified it under its name, so a
+		 *     moderator unverifies it first, or staff rename it.
+		 */
+		patch: operations['update_organizer'];
+		trace?: never;
+	};
+	'/api/v1/organizer/organizers/{code}/club-grants': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List Organizer Club Grants
+		 * @description The Clubs that allow the Organizer to name them on its Events and
+		 *     matches. For an admin member with MFA.
+		 *
+		 *     Each with its OPEN Code, name, city, region, and when it allowed the
+		 *     Organizer, ordered by Club code. A Club decides this; the Organizer
+		 *     cannot add or remove one.
+		 */
+		get: operations['list_organizer_club_grants'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/organizer/organizers/{code}/invites': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Invite Organizer Member
+		 * @description Invite an email address to act for the Organizer, as admin or
+		 *     match manager. For an admin member with MFA.
+		 *
+		 *     The answer is the same whether or not the address has an OPEN
+		 *     Account, is already a member, or was invited before: an invite email
+		 *     with a link that works once goes to any address that is not a
+		 *     member's, replacing an earlier invite to it. The invitee accepts
+		 *     while signed in with that address (`accept_organizer_invite`). 409
+		 *     when the Organizer has too many open invites. Limited per Account to
+		 *     a number of invites a day; past that the answer is 429 with a
+		 *     Retry-After header.
+		 */
+		post: operations['invite_organizer_member'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/organizer/organizers/{code}/members': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List Organizer Members
+		 * @description The Organizer's members. For an admin member with MFA.
+		 *
+		 *     Each with its player's OPEN Code and display name, its role, and
+		 *     whether it is you; admins first. Never an email.
+		 */
+		get: operations['list_organizer_members'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/organizer/organizers/{code}/members/{player}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/**
+		 * Remove Organizer Member
+		 * @description Remove a member, yourself included. For an admin member with MFA.
+		 *
+		 *     ``player`` is the member's player OPEN Code; one that is not a member
+		 *     of this Organizer gets the same 404 as an unknown code. 409 when it
+		 *     would leave the Organizer with no admin.
+		 */
+		delete: operations['remove_organizer_member'];
+		options?: never;
+		head?: never;
+		/**
+		 * Change Organizer Member Role
+		 * @description Change a member's role. For an admin member with MFA.
+		 *
+		 *     ``player`` is the member's player OPEN Code; one that is not a member
+		 *     of this Organizer gets the same 404 as an unknown code. 409 when it
+		 *     would leave the Organizer with no admin.
+		 */
+		patch: operations['change_organizer_member_role'];
+		trace?: never;
+	};
+	'/api/v1/organizer/organizers/{code}/verification-request': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Request Organizer Verification
+		 * @description Ask OPEN moderators to verify the Organizer. For an admin member
+		 *     with MFA.
+		 *
+		 *     ``statement`` says what the Organizer runs, for moderators only. A
+		 *     moderator decides; nothing is verified automatically. 409 when the
+		 *     Organizer is already verified or already has an open request.
+		 */
+		post: operations['request_organizer_verification'];
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -789,11 +1262,152 @@ export type webhooks = Record<string, never>;
 export interface components {
 	schemas: {
 		/**
+		 * AuditActor
+		 * @description Who acted, without naming another Account.
+		 * @enum {string}
+		 */
+		AuditActor: 'you' | 'staff' | 'other' | 'system';
+		/**
 		 * BestOf
 		 * @description How many games a Match is played to (decision F15 in #1).
 		 * @enum {integer}
 		 */
 		BestOf: 1 | 3 | 5;
+		/**
+		 * ClubAdminOut
+		 * @description One admin of a Club, as its admins see it.
+		 *
+		 *     ``player`` is the admin's Player's OPEN Code (the value the remove
+		 *     operation takes), or null when the Account has no Player.
+		 *     ``display_name`` is that Player's display name, or null when there is
+		 *     none or the Account is inactive. ``you`` marks the signed-in Account.
+		 *     Never an email.
+		 */
+		ClubAdminOut: {
+			/** Display Name */
+			display_name: string | null;
+			/** Player */
+			player: string | null;
+			/** You */
+			you: boolean;
+		};
+		/**
+		 * ClubCreateIn
+		 * @description A new Club. ``name`` is 1 to 200 characters after trimming;
+		 *     ``city`` and ``region`` are optional, at most 100 characters each.
+		 *     None has control characters. A Club is a place or group, not a
+		 *     person: its profile is shown to any signed-in Account.
+		 */
+		ClubCreateIn: {
+			/**
+			 * City
+			 * @default
+			 */
+			city: string;
+			/** Name */
+			name: string;
+			/**
+			 * Region
+			 * @default
+			 */
+			region: string;
+		};
+		/**
+		 * ClubInviteAcceptIn
+		 * @description The key from the Club invite email's link.
+		 */
+		ClubInviteAcceptIn: {
+			/**
+			 * Key
+			 * @description The key from the link in the invite email. A key longer than 128 characters gets the same 404 as an unknown one.
+			 */
+			key: string;
+		};
+		/**
+		 * ClubInviteIn
+		 * @description An invite of an email address to be an admin of the Club.
+		 */
+		ClubInviteIn: {
+			/** Email */
+			email: string;
+		};
+		/**
+		 * ClubInviteSentOut
+		 * @description The same answer for every accepted Club invite request: it never
+		 *     says whether the address has an Account, is an admin, or was
+		 *     invited.
+		 */
+		ClubInviteSentOut: {
+			/** Message */
+			message: string;
+		};
+		/**
+		 * ClubOrganizerGrantIn
+		 * @description The Organizer to allow, by its OPEN Code, in any case, with or
+		 *     without hyphens. An unknown or malformed code gets the same 404 as an
+		 *     unknown Club.
+		 */
+		ClubOrganizerGrantIn: {
+			/** Organizer */
+			organizer: string;
+		};
+		/**
+		 * ClubOrganizerGrantOut
+		 * @description An Organizer the Club allows to name it: the Organizer's OPEN Code
+		 *     and when the Club allowed it. Never the Organizer's name, which may be
+		 *     a person's.
+		 */
+		ClubOrganizerGrantOut: {
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/** Organizer */
+			organizer: string;
+		};
+		/**
+		 * ClubOut
+		 * @description A Club's public profile: its OPEN Code (``club``), name, city, and
+		 *     region. Any signed-in Account may read it. Never a row id or an
+		 *     admin.
+		 */
+		ClubOut: {
+			/** City */
+			city: string;
+			/** Club */
+			club: string;
+			/** Name */
+			name: string;
+			/** Region */
+			region: string;
+		};
+		/**
+		 * ClubRoleKind
+		 * @description A role an Account holds at a Club. A Club has only admins (ADR 0021).
+		 * @enum {string}
+		 */
+		ClubRoleKind: 'admin';
+		/**
+		 * ClubUpdateIn
+		 * @description The profile fields to change, with the create's rules. A field left
+		 *     out or null is not changed; an empty body changes nothing. ``city``
+		 *     and ``region`` may be set to an empty string; ``name`` may not.
+		 */
+		ClubUpdateIn: {
+			/** City */
+			city?: string | null;
+			/** Name */
+			name?: string | null;
+			/** Region */
+			region?: string | null;
+		};
+		/**
+		 * ConfirmationDecision
+		 * @description What a participant said about a Match.
+		 * @enum {string}
+		 */
+		ConfirmationDecision: 'confirm' | 'dispute' | 'withdraw';
 		/**
 		 * CurrentAccount
 		 * @description The signed-in Account.
@@ -801,6 +1415,87 @@ export interface components {
 		CurrentAccount: {
 			/** Email */
 			email: string;
+		};
+		/**
+		 * DataExportDownloadIn
+		 * @description The download key from the data export email.
+		 */
+		DataExportDownloadIn: {
+			/**
+			 * Key
+			 * @description The key from the link in the data export email. A key longer than 128 characters gets the same 404 as an unknown one.
+			 */
+			key: string;
+		};
+		/**
+		 * DataExportOut
+		 * @description A copy of the data OPEN holds about the signed-in Account.
+		 *
+		 *     Player sections are null or empty for an Account with no Player. Other
+		 *     players appear only as match responses show them. Every rating carries
+		 *     its reliability and ``demonstration: true``.
+		 */
+		DataExportOut: {
+			account: components['schemas']['ExportAccountOut'];
+			/** Agreements */
+			agreements: components['schemas']['ExportAgreementOut'][];
+			/** Audit Events */
+			audit_events: components['schemas']['ExportAuditEventOut'][];
+			/** Club Roles */
+			club_roles: components['schemas']['ExportClubRoleOut'][];
+			/** Confirmations */
+			confirmations: components['schemas']['ExportConfirmationOut'][];
+			/** Email Addresses */
+			email_addresses: components['schemas']['ExportEmailAddressOut'][];
+			/**
+			 * Format Version
+			 * @constant
+			 */
+			format_version: '1';
+			/**
+			 * Generated At
+			 * Format: date-time
+			 */
+			generated_at: string;
+			/** Matches */
+			matches: components['schemas']['ExportMatchOut'][];
+			/** Mfa Methods */
+			mfa_methods: components['schemas']['ExportMFAMethodOut'][];
+			/** Oauth */
+			oauth: components['schemas']['ExportOAuthRecordOut'][];
+			/** Organizer Memberships */
+			organizer_memberships: components['schemas']['OrganizerMembershipOut'][];
+			/** Organizer Reports */
+			organizer_reports: components['schemas']['ExportOrganizerReportOut'][];
+			/** Partner Applications */
+			partner_applications: components['schemas']['ExportPartnerApplicationOut'][];
+			profile: components['schemas']['MyPlayerOut'] | null;
+			/** Rating History */
+			rating_history: components['schemas']['ExportRatingHistoryItemOut'][];
+			/** Ratings */
+			ratings: {
+				[key: string]: components['schemas']['ExportRatingOut'];
+			};
+			/** Sessions */
+			sessions: components['schemas']['ExportSessionOut'][];
+			/** Submission Batches */
+			submission_batches: components['schemas']['ExportSubmissionBatchOut'][];
+			/** Submitted Matches */
+			submitted_matches: components['schemas']['ExportSubmittedMatchOut'][];
+			/** Vouches */
+			vouches: components['schemas']['ExportVouchOut'][];
+		};
+		/**
+		 * DataExportRequestOut
+		 * @description A data export request was stored; the email follows.
+		 */
+		DataExportRequestOut: {
+			/**
+			 * Requested At
+			 * Format: date-time
+			 * @description When the request was stored. An email with a single-use download link follows once the export is built; the link lasts 24 hours.
+			 */
+			requested_at: string;
 		};
 		/**
 		 * DisputeCorrectionIn
@@ -952,6 +1647,554 @@ export interface components {
 			start_date?: string;
 		};
 		/**
+		 * ExportAccountOut
+		 * @description The Account: its login email, dates, and access.
+		 */
+		ExportAccountOut: {
+			/**
+			 * Date Joined
+			 * Format: date-time
+			 */
+			date_joined: string;
+			/** Email */
+			email: string;
+			/**
+			 * Groups
+			 * @description The names of the Account's groups.
+			 */
+			groups: string[];
+			/** Is Active */
+			is_active: boolean;
+			/** Is Staff */
+			is_staff: boolean;
+			/** Is Superuser */
+			is_superuser: boolean;
+			/** Last Login */
+			last_login: string | null;
+			/**
+			 * Permissions
+			 * @description The Account's own permissions, as app_label.codename.
+			 */
+			permissions: string[];
+		};
+		/**
+		 * ExportAgreementOut
+		 * @description One version of a legal agreement the Account accepted.
+		 */
+		ExportAgreementOut: {
+			/**
+			 * Accepted At
+			 * Format: date-time
+			 */
+			accepted_at: string;
+			/** Agreement */
+			agreement: string;
+			/** Version */
+			version: number;
+		};
+		/**
+		 * ExportAuditEventOut
+		 * @description One Audit Event about the Account's own records, or that it made.
+		 *
+		 *     ``before`` and ``after`` appear only when the target is one of the
+		 *     Account's own records (the Account, its Player and privacy row, its
+		 *     ratings, and its agreement rows), without row ids. The reason is
+		 *     never included.
+		 */
+		ExportAuditEventOut: {
+			/** Action */
+			action: string;
+			actor: components['schemas']['AuditActor'];
+			after?: components['schemas']['JsonValue'];
+			/**
+			 * At
+			 * Format: date-time
+			 */
+			at: string;
+			before?: components['schemas']['JsonValue'];
+			/**
+			 * Target Code
+			 * @description The target's OPEN Code, or null when it has none.
+			 */
+			target_code: string | null;
+			/**
+			 * Target Type
+			 * @description The target's model, as app.model.
+			 */
+			target_type: string;
+		};
+		/**
+		 * ExportClubRoleOut
+		 * @description One of the Account's Club Roles.
+		 */
+		ExportClubRoleOut: {
+			/**
+			 * Club
+			 * @description The Club's OPEN Code.
+			 */
+			club: string;
+			/** Name */
+			name: string;
+			role: components['schemas']['ClubRoleKind'];
+		};
+		/**
+		 * ExportConfirmationOut
+		 * @description One confirm, dispute, or withdrawal the Player made on a match.
+		 */
+		ExportConfirmationOut: {
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			decision: components['schemas']['ConfirmationDecision'];
+			/**
+			 * Match
+			 * @description The match's OPEN Code.
+			 */
+			match: string;
+		};
+		/**
+		 * ExportEmailAddressOut
+		 * @description One email address on the Account.
+		 */
+		ExportEmailAddressOut: {
+			/** Email */
+			email: string;
+			/** Primary */
+			primary: boolean;
+			/** Verified */
+			verified: boolean;
+		};
+		/**
+		 * ExportMFAMethodOut
+		 * @description One two-factor method: its type, a passkey's name, and its dates,
+		 *     never its secret or credential.
+		 */
+		ExportMFAMethodOut: {
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/** Last Used At */
+			last_used_at: string | null;
+			/**
+			 * Name
+			 * @description The name the player chose for a passkey; null otherwise.
+			 */
+			name?: string | null;
+			/** Type */
+			type: string;
+		};
+		/**
+		 * ExportMatchOut
+		 * @description A match the player played: ``MatchOut`` as match responses show it
+		 *     to the player, plus the match's own details. Never its rating format,
+		 *     which reveals the players' gender divisions.
+		 */
+		ExportMatchOut: {
+			best_of: components['schemas']['BestOf'];
+			/** Bracket Label */
+			bracket_label: string;
+			club: components['schemas']['MatchClubOut'] | null;
+			/** Code */
+			code: string;
+			confirmed_by_team: components['schemas']['TeamConfirmationsOut'] | null;
+			/**
+			 * Corrects
+			 * @description The OPEN Code of the match this one corrects, only when the player played in that match too; null otherwise.
+			 */
+			corrects: string | null;
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			event: components['schemas']['MatchEventOut'] | null;
+			/** Event Label */
+			event_label: string;
+			format: components['schemas']['MatchFormat'];
+			game_target: components['schemas']['GameTarget'];
+			/** Games */
+			games: components['schemas']['GameOut'][];
+			/** Location */
+			location: string;
+			match_type: components['schemas']['MatchType'];
+			my_decision: components['schemas']['MyDecision'];
+			my_team: components['schemas']['Team'] | null;
+			/** Played At */
+			played_at: string | null;
+			/**
+			 * Played At Utc Offset
+			 * @description Minutes east of UTC where the match was played.
+			 */
+			played_at_utc_offset: number | null;
+			/**
+			 * Played On
+			 * Format: date
+			 */
+			played_on: string;
+			scoring_type: components['schemas']['ScoringType'];
+			status: components['schemas']['MatchStatus'];
+			/** Team A */
+			team_a: components['schemas']['ParticipantOut'][];
+			/** Team B */
+			team_b: components['schemas']['ParticipantOut'][];
+		};
+		/**
+		 * ExportOAuthRecordOut
+		 * @description An OAuth token or grant issued to the Account, never its value.
+		 */
+		ExportOAuthRecordOut: {
+			/**
+			 * Application
+			 * @description The application's client_id, if the record names one.
+			 */
+			application: string | null;
+			/** Created */
+			created: string | null;
+			/** Expires */
+			expires: string | null;
+			kind: components['schemas']['OAuthRecordKind'];
+			/**
+			 * Redirect Uri
+			 * @description A grant's redirect URI.
+			 */
+			redirect_uri: string | null;
+			/**
+			 * Revoked
+			 * @description When a refresh token was revoked.
+			 */
+			revoked: string | null;
+			/** Scope */
+			scope: string | null;
+		};
+		/**
+		 * ExportOrganizerReportOut
+		 * @description An Organizer Report the Account filed.
+		 */
+		ExportOrganizerReportOut: {
+			/** Closed At */
+			closed_at: string | null;
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/**
+			 * Organizer
+			 * @description The Organizer's OPEN Code.
+			 */
+			organizer: string;
+			reason: components['schemas']['OrganizerReportReason'];
+		};
+		/**
+		 * ExportPartnerApplicationOut
+		 * @description A Partner Application the Account owns, never its secret or who
+		 *     approved it.
+		 */
+		ExportPartnerApplicationOut: {
+			/** Algorithm */
+			algorithm: string;
+			/** Allowed Origins */
+			allowed_origins: string;
+			/** Approved At */
+			approved_at: string | null;
+			/** Authorization Grant Type */
+			authorization_grant_type: string;
+			/** Client Id */
+			client_id: string;
+			/** Client Type */
+			client_type: string;
+			/**
+			 * Created
+			 * Format: date-time
+			 */
+			created: string;
+			/** Is Sandbox */
+			is_sandbox: boolean;
+			/** Name */
+			name: string;
+			/**
+			 * Organizer
+			 * @description The owning Organizer's OPEN Code.
+			 */
+			organizer: string | null;
+			/** Post Logout Redirect Uris */
+			post_logout_redirect_uris: string;
+			/** Redirect Uris */
+			redirect_uris: string;
+			/** Skip Authorization */
+			skip_authorization: boolean;
+			/**
+			 * Updated
+			 * Format: date-time
+			 */
+			updated: string;
+		};
+		/**
+		 * ExportRatingHistoryItemOut
+		 * @description A rating change, with its reliability and ``demonstration: true``,
+		 *     plus the match that caused it, the change, and the stored detail.
+		 */
+		ExportRatingHistoryItemOut: {
+			/** Calculated As Of */
+			calculated_as_of: string | null;
+			/** Config Version */
+			config_version: string;
+			/**
+			 * Delta
+			 * @description The change a live update made.
+			 */
+			delta: number | null;
+			/**
+			 * Demonstration
+			 * @description Always true: every rating is a demonstration rating while the rating engine is a demonstration package.
+			 * @constant
+			 */
+			demonstration: true;
+			/** Engine Version */
+			engine_version: string;
+			/**
+			 * Established
+			 * @description True once the rating rests on enough matches to be established.
+			 */
+			established: boolean;
+			/**
+			 * Imported Reliability
+			 * @description The reliability carried from an external rating, 0 to 100, shown apart from the OPEN-earned reliability. Null when there is none.
+			 */
+			imported_reliability: number | null;
+			kind: components['schemas']['RatingChangeKind'];
+			/** Last Played */
+			last_played: string | null;
+			/** Live Updates Since Recalculation */
+			live_updates_since_recalculation: number;
+			/**
+			 * Match
+			 * @description The causing match's OPEN Code.
+			 */
+			match: string | null;
+			/** Matches Played */
+			matches_played: number;
+			/** Parameter Fingerprint */
+			parameter_fingerprint: string;
+			/**
+			 * Params Version
+			 * @description The published parameter set label; null when it is not one.
+			 */
+			params_version: string | null;
+			/**
+			 * Provisional
+			 * @description True when the rating holds live updates not yet confirmed by a replay of the ledger, or was never replayed. A provisional rating can change at the next replay.
+			 */
+			provisional: boolean;
+			/**
+			 * Rating
+			 * @description The rating after the change.
+			 */
+			rating: number;
+			rating_format: components['schemas']['RatingFormat'];
+			/** Rd */
+			rd: number;
+			/**
+			 * Recorded At
+			 * Format: date-time
+			 * @description When the change was recorded.
+			 */
+			recorded_at: string;
+			/**
+			 * Reliability
+			 * @description OPEN-earned reliability, 0 to 100. The OPEN standard requires any app that shows an OPEN rating to show its reliability next to it.
+			 */
+			reliability: number;
+			/**
+			 * Spec Version
+			 * @description The OPEN rating spec version the rating follows.
+			 */
+			spec_version: string;
+		};
+		/**
+		 * ExportRatingOut
+		 * @description A current rating, with its reliability and ``demonstration: true``,
+		 *     plus the stored detail and versions.
+		 */
+		ExportRatingOut: {
+			/** Calculated As Of */
+			calculated_as_of: string | null;
+			/** Config Version */
+			config_version: string;
+			/**
+			 * Demonstration
+			 * @description Always true: every rating is a demonstration rating while the rating engine is a demonstration package.
+			 * @constant
+			 */
+			demonstration: true;
+			/** Engine Version */
+			engine_version: string;
+			/**
+			 * Established
+			 * @description True once the rating rests on enough matches to be established.
+			 */
+			established: boolean;
+			/**
+			 * Imported Reliability
+			 * @description The reliability carried from an external rating, 0 to 100, shown apart from the OPEN-earned reliability. Null when there is none.
+			 */
+			imported_reliability: number | null;
+			/** Last Played */
+			last_played: string | null;
+			/** Live Updates Since Recalculation */
+			live_updates_since_recalculation: number;
+			/** Matches Played */
+			matches_played: number;
+			/** Parameter Fingerprint */
+			parameter_fingerprint: string;
+			/**
+			 * Params Version
+			 * @description The published parameter set label; null when it is not one.
+			 */
+			params_version: string | null;
+			/**
+			 * Provisional
+			 * @description True when the rating holds live updates not yet confirmed by a replay of the ledger, or was never replayed. A provisional rating can change at the next replay.
+			 */
+			provisional: boolean;
+			/**
+			 * Rating
+			 * @description The rating, as the engine gave it.
+			 */
+			rating: number;
+			/** Rd */
+			rd: number;
+			/**
+			 * Reliability
+			 * @description OPEN-earned reliability, 0 to 100. The OPEN standard requires any app that shows an OPEN rating to show its reliability next to it.
+			 */
+			reliability: number;
+			/**
+			 * Spec Version
+			 * @description The OPEN rating spec version the rating follows.
+			 */
+			spec_version: string;
+			/**
+			 * Updated At
+			 * Format: date-time
+			 * @description When the rating last changed.
+			 */
+			updated_at: string;
+		};
+		/**
+		 * ExportResultsFileOut
+		 * @description A CSV results file the Account uploaded, without its contents.
+		 */
+		ExportResultsFileOut: {
+			/** Code */
+			code: string;
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/**
+			 * Error Code
+			 * @description Why processing failed; empty if not.
+			 */
+			error_code: string;
+			/** Game Target */
+			game_target: number;
+			/** Location */
+			location: string;
+			/** Processed At */
+			processed_at: string | null;
+			status: components['schemas']['ResultsFileStatus'];
+		};
+		/**
+		 * ExportSessionOut
+		 * @description One signed-in session, as the session list records it.
+		 */
+		ExportSessionOut: {
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/** Ip */
+			ip: string | null;
+			/**
+			 * Last Seen At
+			 * Format: date-time
+			 */
+			last_seen_at: string;
+			/** User Agent */
+			user_agent: string;
+		};
+		/**
+		 * ExportSubmissionBatchOut
+		 * @description One upload or bulk request of matches the Account submitted.
+		 */
+		ExportSubmissionBatchOut: {
+			/**
+			 * Club
+			 * @description The Club's OPEN Code, if any.
+			 */
+			club: string | null;
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/**
+			 * Event
+			 * @description The Event's OPEN Code, if any.
+			 */
+			event: string | null;
+			/**
+			 * Expected Size
+			 * @description How many matches the batch meant to record, if set.
+			 */
+			expected_size: number | null;
+			/**
+			 * Matches
+			 * @description The OPEN Codes of its matches.
+			 */
+			matches: string[];
+			results_file: components['schemas']['ExportResultsFileOut'] | null;
+		};
+		/**
+		 * ExportSubmittedMatchOut
+		 * @description A match the Account submitted.
+		 */
+		ExportSubmittedMatchOut: {
+			/**
+			 * Match
+			 * @description The match's OPEN Code.
+			 */
+			match: string;
+			/**
+			 * Submitted At
+			 * Format: date-time
+			 */
+			submitted_at: string;
+		};
+		/**
+		 * ExportVouchOut
+		 * @description One vouch the Account gave for a held match.
+		 */
+		ExportVouchOut: {
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/**
+			 * Match
+			 * @description The match's OPEN Code.
+			 */
+			match: string;
+		};
+		/**
 		 * FieldError
 		 * @description One invalid input: where it is, what kind of error, and a message.
 		 *
@@ -1026,6 +2269,7 @@ export interface components {
 			 */
 			offset: number;
 		};
+		JsonValue: unknown;
 		/** LiveOut */
 		LiveOut: {
 			/**
@@ -1189,6 +2433,19 @@ export interface components {
 		 */
 		MatchStatus: 'pending' | 'confirmed' | 'disputed' | 'voided';
 		/**
+		 * MatchType
+		 * @description The match type a Match counts as (ADR 0024, ADR 0035).
+		 *
+		 *     The values are ``open_engine.MatchType``'s. ``record_match`` stores one
+		 *     per Match when it is recorded (``apps.matches.services.draft_match``):
+		 *     the Event's kind, ``rec_verified`` for a Club with no Event, and
+		 *     ``self_reported`` for neither. It never changes afterward, so a later
+		 *     change of an Event's kind moves only matches recorded after it. A
+		 *     correction (``edit_match``) copies the type of the match it corrects.
+		 * @enum {string}
+		 */
+		MatchType: 'tournament' | 'league' | 'rec_verified' | 'self_reported';
+		/**
 		 * MemberRole
 		 * @description A role an Account holds at an Organizer.
 		 * @enum {string}
@@ -1228,6 +2485,98 @@ export interface components {
 			region: string;
 		};
 		/**
+		 * OAuthRecordKind
+		 * @description Which kind of OAuth record an entry describes.
+		 * @enum {string}
+		 */
+		OAuthRecordKind: 'access_token' | 'refresh_token' | 'id_token' | 'grant' | 'device_grant';
+		/**
+		 * OrganizerClubGrantOut
+		 * @description A Club that allows the Organizer to name it, as the Organizer's
+		 *     admin members see it: the Club's OPEN Code, name, city, and region,
+		 *     and when it allowed it.
+		 */
+		OrganizerClubGrantOut: {
+			/** City */
+			city: string;
+			/** Club */
+			club: string;
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/** Name */
+			name: string;
+			/** Region */
+			region: string;
+		};
+		/**
+		 * OrganizerCreateIn
+		 * @description A new Organizer. ``name`` is 1 to 200 characters after trimming,
+		 *     with no control characters. It may be a person's name: it is shown
+		 *     only to the Organizer's members and staff.
+		 */
+		OrganizerCreateIn: {
+			/** Name */
+			name: string;
+		};
+		/**
+		 * OrganizerInviteAcceptIn
+		 * @description The key from the invite email's link.
+		 */
+		OrganizerInviteAcceptIn: {
+			/**
+			 * Key
+			 * @description The key from the link in the invite email. A key longer than 128 characters gets the same 404 as an unknown one.
+			 */
+			key: string;
+		};
+		/**
+		 * OrganizerInviteIn
+		 * @description An invite of an email address to act for the Organizer as ``role``.
+		 */
+		OrganizerInviteIn: {
+			/** Email */
+			email: string;
+			role: components['schemas']['MemberRole'];
+		};
+		/**
+		 * OrganizerInviteSentOut
+		 * @description The same answer for every accepted invite request: it never says
+		 *     whether the address has an Account, is a member, or was invited.
+		 */
+		OrganizerInviteSentOut: {
+			/** Message */
+			message: string;
+		};
+		/**
+		 * OrganizerMemberOut
+		 * @description One member of an Organizer, as its admins see it.
+		 *
+		 *     ``player`` is the member's Player's OPEN Code (the value the member
+		 *     operations take), or null when the Account has no Player.
+		 *     ``display_name`` is that Player's display name, or null when there is
+		 *     none or the Account is inactive. ``you`` marks the signed-in Account.
+		 *     Never an email.
+		 */
+		OrganizerMemberOut: {
+			/** Display Name */
+			display_name: string | null;
+			/** Player */
+			player: string | null;
+			role: components['schemas']['MemberRole'];
+			/** You */
+			you: boolean;
+		};
+		/**
+		 * OrganizerMemberRoleIn
+		 * @description A member's new role.
+		 */
+		OrganizerMemberRoleIn: {
+			role: components['schemas']['MemberRole'];
+		};
+		/**
 		 * OrganizerMembershipOut
 		 * @description One of the signed-in Account's own Organizer memberships.
 		 *
@@ -1235,8 +2584,10 @@ export interface components {
 		 *     ``EventCreateIn.organizer`` takes. ``name`` is the Organizer's name,
 		 *     shown only to its own members. ``verified`` says whether the Organizer
 		 *     is verified; it does not say whether the Account may act for it now
-		 *     (Organizer authority also needs MFA, ADR 0043). ``role`` is the
-		 *     Account's own role there. It names no other member.
+		 *     (Organizer authority also needs MFA, ADR 0043).
+		 *     ``verification_requested`` says whether a request that moderators
+		 *     verify it is open (#229). ``role`` is the Account's own role there.
+		 *     It names no other member.
 		 */
 		OrganizerMembershipOut: {
 			/** Name */
@@ -1244,6 +2595,8 @@ export interface components {
 			/** Organizer */
 			organizer: string;
 			role: components['schemas']['MemberRole'];
+			/** Verification Requested */
+			verification_requested: boolean;
 			/** Verified */
 			verified: boolean;
 		};
@@ -1281,6 +2634,40 @@ export interface components {
 		 */
 		OrganizerReportReason:
 			'wrong_results' | 'fake_matches' | 'ignores_disputes' | 'misuses_player_data' | 'other';
+		/**
+		 * OrganizerUpdateIn
+		 * @description A new name for an Organizer, with the create's rules.
+		 */
+		OrganizerUpdateIn: {
+			/** Name */
+			name: string;
+		};
+		/**
+		 * OrganizerVerificationRequestIn
+		 * @description A request that moderators verify the Organizer.
+		 *
+		 *     ``statement`` says what the Organizer runs, for moderators only: 1 to
+		 *     1000 characters after trimming, with no control characters except
+		 *     line breaks and tabs.
+		 */
+		OrganizerVerificationRequestIn: {
+			/** Statement */
+			statement: string;
+		};
+		/**
+		 * OrganizerVerificationRequestOut
+		 * @description The request just made: the Organizer's OPEN Code and when. The
+		 *     statement is not repeated.
+		 */
+		OrganizerVerificationRequestOut: {
+			/**
+			 * Created At
+			 * Format: date-time
+			 */
+			created_at: string;
+			/** Organizer */
+			organizer: string;
+		};
 		/** PagedEventOut */
 		PagedEventOut: {
 			/** Count */
@@ -1842,6 +3229,774 @@ export interface operations {
 			};
 			/** @description Conflict */
 			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	create_club: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ClubCreateIn'];
+			};
+		};
+		responses: {
+			/** @description Created */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClubOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	accept_club_invite: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ClubInviteAcceptIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClubOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	get_club: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a club. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClubOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	update_club: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a club. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ClubUpdateIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClubOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_club_admins: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a club. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClubAdminOut'][];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	remove_club_admin: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a club. Any case, with or without hyphens and the prefix. */
+				code: string;
+				/** @description An OPEN Code for a player. Any case, with or without hyphens and the prefix. */
+				player: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No Content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	invite_club_admin: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a club. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ClubInviteIn'];
+			};
+		};
+		responses: {
+			/** @description Accepted */
+			202: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClubInviteSentOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_club_organizer_grants: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a club. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClubOrganizerGrantOut'][];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	grant_club_organizer: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a club. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ClubOrganizerGrantIn'];
+			};
+		};
+		responses: {
+			/** @description Created */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClubOrganizerGrantOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	remove_club_organizer_grant: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a club. Any case, with or without hyphens and the prefix. */
+				code: string;
+				/** @description An OPEN Code for a organizer. Any case, with or without hyphens and the prefix. */
+				organizer: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No Content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -2588,6 +4743,135 @@ export interface operations {
 			};
 			/** @description Conflict */
 			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	request_data_export: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Accepted */
+			202: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['DataExportRequestOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	download_data_export: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['DataExportDownloadIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['DataExportOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -3451,6 +5735,86 @@ export interface operations {
 			};
 		};
 	};
+	accept_organizer_invite: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['OrganizerInviteAcceptIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerMembershipOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
 	list_my_organizers: {
 		parameters: {
 			query?: never;
@@ -3480,6 +5844,639 @@ export interface operations {
 			};
 			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	create_organizer: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['OrganizerCreateIn'];
+			};
+		};
+		responses: {
+			/** @description Created */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerMembershipOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	update_organizer: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a organizer. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['OrganizerUpdateIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerMembershipOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_organizer_club_grants: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a organizer. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerClubGrantOut'][];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	invite_organizer_member: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a organizer. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['OrganizerInviteIn'];
+			};
+		};
+		responses: {
+			/** @description Accepted */
+			202: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerInviteSentOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_organizer_members: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a organizer. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerMemberOut'][];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	remove_organizer_member: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a organizer. Any case, with or without hyphens and the prefix. */
+				code: string;
+				/** @description An OPEN Code for a player. Any case, with or without hyphens and the prefix. */
+				player: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No Content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	change_organizer_member_role: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a organizer. Any case, with or without hyphens and the prefix. */
+				code: string;
+				/** @description An OPEN Code for a player. Any case, with or without hyphens and the prefix. */
+				player: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['OrganizerMemberRoleIn'];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerMemberOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	request_organizer_verification: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description An OPEN Code for a organizer. Any case, with or without hyphens and the prefix. */
+				code: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['OrganizerVerificationRequestIn'];
+			};
+		};
+		responses: {
+			/** @description Created */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerVerificationRequestOut'];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description The request is not valid. */
+			422: {
 				headers: {
 					[name: string]: unknown;
 				};
