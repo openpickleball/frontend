@@ -33,7 +33,7 @@ These add to the [organization contributing guide](https://github.com/openpickle
 - Every PR links an issue with `Closes #N`. If there is no issue for the change, open one first. Dependabot PRs are the exception.
 - Name branches `issue-<N>-<slug>`, for example `issue-15-app-page-title`.
 - Fill in every section of `.github/PULL_REQUEST_TEMPLATE.md`.
-- Commit messages: imperative mood, subject under 72 characters, body explains why.
+- Commit messages: imperative mood, subject under 72 characters, no type prefix such as `docs:` or `fix(app):`, body explains why. These are the organization's [commit message rules](https://github.com/openpickleball/.github/blob/main/CONTRIBUTING.md#commit-messages). The `pull-request / check` check (`.github/workflows/pull-request.yml`) runs them on every PR, with the `Closes #N` link, and again when the title or description is edited.
 - Add or update tests and docs when behavior changes.
 - License: AGPL-3.0-or-later. A hosted version must show users a visible link to its source code.
 - Before proposing a feature, ask whether it makes the standard more accurate, more trusted, or easier to adopt. If not, it probably belongs in a partner's product.
