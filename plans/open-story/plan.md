@@ -31,7 +31,7 @@ The home page tells visitors who builds OPEN (volunteers, not a company), why a 
 
 About, under the headline "A rating that belongs to the players":
 
-> A rating built by players, checked by anyone, owned by no one.
+> A rating built by players, checked by anyone, owned by no company.
 
 > OPEN, the Open Pickleball Evaluation Network, is a free pickleball rating system built by volunteers. It's not a company, and there's nothing to sell. Your rating decides which events you can enter and who you play with, so you should be able to see how it works. It's a rating for every player, from your first open play to your first tournament.
 
@@ -112,4 +112,5 @@ Run on this branch:
 ## Decisions
 
 - This plan lives in `plans/open-story/` because the repo has no `.claude/work-issue.md` and keeps plans under `plans/`.
+- The vision line ends "owned by no company", not "owned by no one". GOVERNANCE.md says no person controlling OPEN is the goal and not true yet, while no company owning OPEN is true today. The maintainer approved the change in review.
 - The Tally link's `mt-9` and `reveal` moved to the new flex row that holds the button and the email. The row keeps the same space above it, and the button and the email fade in together as one block. The link is otherwise unchanged.
