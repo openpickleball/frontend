@@ -168,3 +168,4 @@ Measured on `origin/main` (`c6c7374`, 2026-11-27), for the "no request" and "no 
 - 2026-11-27, while implementing: `TextField` takes `type="date"`, so the dates reuse it with the native date picker.
 - 2026-11-27, while implementing: the domain tests are in `lib/domain/organizer-event.test.ts`, and the form test runs in node (`event-form.test.ts`) against the mocks, not in the browser project. A route test swaps the app-wide client for `cookieJarApi()` from `lib/mocks/node.ts`.
 - 2026-11-27, while implementing: the stored mock state gains Events, so the storage key moves to `open-mock-state-v3`, and `e2e/record.spec.ts` reads it there.
+- 2026-11-27, review F1: an admin with `session.mfaEnrolled === false` gets the club code input and no `club-grants` read, since the backend would answer 403 `mfa_required` and fire the app-wide toast. The read still runs when two-factor is on or unknown.

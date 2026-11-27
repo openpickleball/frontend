@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { session } from '#lib/features/auth/index.js';
 	import { SelectField, TextField } from '#lib/ui/field/index.js';
 	import { CLUB_CODE_HINT, CLUB_PICKER_HINT, NO_CLUB } from '../copy.js';
 	import { listClubGrants, type ClubGrant } from '../services.js';
@@ -7,7 +8,9 @@
 	/**
 	 * The optional club of a new Event. An admin member picks from the clubs that allow the
 	 * organizer (`club-grants`). A match manager can't read that list, so they type the club's code,
-	 * as does an admin whose read failed (no two-factor, say). The backend checks the club either way.
+	 * as does an admin whose read failed. An admin known to have no two-factor gets the code input
+	 * with no read at all: the backend would answer 403 `mfa_required`, which also fires the
+	 * app-wide toast. The backend checks the club either way.
 	 */
 	let {
 		id = 'event-club',
@@ -33,7 +36,9 @@
 
 	$effect(() => {
 		const code = organizer;
-		if (!admin || !code) {
+		if (!admin || !code || session.mfaEnrolled === false) {
+			// A read still in flight must not bring the picker back.
+			read++;
 			status = 'code';
 			return;
 		}
