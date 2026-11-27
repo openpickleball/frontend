@@ -40,7 +40,7 @@
 		vouchForMatch,
 		withdrawDispute
 	} from '../services.js';
-	import { hasActions } from '../status.js';
+	import { panelIsQuiet } from '../status.js';
 	import CodeGate from './code-gate.svelte';
 	import DisputeDialog from './dispute-dialog.svelte';
 	import Scoreboard from './scoreboard.svelte';
@@ -93,10 +93,15 @@
 		if (result.code === found.code) result.fetched = found;
 	}
 
+	/** The status heading, or the page title when a confirmed match shows no status panel. */
+	function statusTarget(): HTMLElement | null {
+		return document.getElementById('status-heading') ?? document.getElementById('match-title');
+	}
+
 	/** Move focus to the status heading, but only when the page lost it (it was on a control that is gone). */
 	function rescueFocus() {
 		if (!document.activeElement || document.activeElement === document.body) {
-			document.getElementById('status-heading')?.focus();
+			statusTarget()?.focus();
 		}
 	}
 
@@ -264,7 +269,7 @@
 		await tick();
 		await dialogGone;
 		// The button may be gone after a fresh read, so the status heading takes focus then.
-		(document.getElementById(id) ?? document.getElementById('status-heading'))?.focus();
+		(document.getElementById(id) ?? statusTarget())?.focus();
 	}
 
 	/**
@@ -381,7 +386,9 @@
 	{/if}
 	<div class="pt-4">
 		<p class="label">{formatName(match.format)} · {formatLongDate(match.playedOn)}</p>
-		<h1 class="page-title mt-2">{matchHeadline(match, you)}</h1>
+		<h1 id="match-title" tabindex="-1" class="page-title mt-2 outline-none">
+			{matchHeadline(match, you)}
+		</h1>
 		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match))}</p>
 		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
 			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
@@ -398,10 +405,9 @@
 		</div>
 	</div>
 
-	{#snippet score()}
-		<Scoreboard {match} {you} />
-	{/snippet}
-	{#snippet status()}
+	<!-- The status panel always comes first, so it is in the same place for every state and viewer.
+	     A confirmed match with nothing else to say drops it, and the badge says where it stands. -->
+	{#if !panelIsQuiet(match, hold) || justRecorded || justCorrected || error}
 		<StatusPanel
 			{match}
 			{hold}
@@ -416,16 +422,8 @@
 			onwithdraw={() => openDialog('withdraw')}
 			onvouch={() => openDialog('vouch')}
 		/>
-	{/snippet}
-
-	<!-- When the player has something to do, the buttons come before the scoreboard. -->
-	{#if hasActions(match, hold)}
-		{@render status()}
-		{@render score()}
-	{:else}
-		{@render score()}
-		{@render status()}
 	{/if}
+	<Scoreboard {match} {you} />
 
 	<Section title="Details">
 		<dl class="grid grid-cols-2 gap-x-6">

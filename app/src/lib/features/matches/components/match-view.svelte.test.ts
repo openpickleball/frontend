@@ -112,14 +112,25 @@ describe('MatchView', () => {
 		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
-	it('keeps the score before the status panel when there is nothing to do', async () => {
+	it('puts the status panel before the score on a disputed match with nothing to do', async () => {
+		const disputed = viewerMatch({ decision: 'none' }, { status: 'disputed' });
+		matchCache.remember(disputed);
+		mocked.getMatch.mockResolvedValue(disputed);
+		const screen = await render(MatchView, { code: code() });
+		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toBeVisible();
+		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
+		const board = screen.getByRole('region', { name: 'Score' }).element();
+		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
+	it('drops the status panel on a confirmed match that is not on hold', async () => {
 		const confirmed = viewerMatch({ a: true, b: true }, { status: 'confirmed' });
 		matchCache.remember(confirmed);
 		mocked.getMatch.mockResolvedValue(confirmed);
 		const screen = await render(MatchView, { code: code() });
-		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
-		const board = screen.getByRole('region', { name: 'Score' }).element();
-		expect(board.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		await expect.element(screen.getByRole('region', { name: 'Score' })).toBeVisible();
+		await expect.element(page.getByText('Confirmed', { exact: true })).toBeVisible();
+		expect(screen.container.querySelector('[data-testid="status-panel"]')).toBeNull();
 	});
 
 	it('puts focus back on the Dispute button when the dispute fails', async () => {
@@ -145,6 +156,23 @@ describe('MatchView', () => {
 		await page.getByRole('button', { name: 'Dispute score' }).click();
 
 		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toHaveFocus();
+	});
+
+	it('moves focus to the page title when a confirm makes the match count and the panel goes', async () => {
+		mocked.confirmMatch.mockImplementation(async () => {
+			const confirmed = viewerMatch(
+				{ a: true, b: true, decision: 'confirm' },
+				{ status: 'confirmed' }
+			);
+			matchCache.remember(confirmed);
+			return confirmed;
+		});
+		await render(MatchView, { code: code() });
+
+		await page.getByRole('button', { name: 'Confirm score' }).click();
+
+		await expect.element(page.getByTestId('status-panel')).not.toBeInTheDocument();
+		await expect.element(page.getByRole('heading', { level: 1 })).toHaveFocus();
 	});
 
 	it('reads the match again after a 409 and shows the new status', async () => {
@@ -552,7 +580,7 @@ describe('MatchView withdraw', () => {
 
 		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toHaveFocus();
 		await expect
-			.element(page.getByText(/You withdrew your dispute\. Another player in this match/))
+			.element(page.getByText(/You withdrew your dispute, but another player still says/))
 			.toBeVisible();
 		await expect
 			.element(page.getByRole('button', { name: 'Withdraw my dispute' }))
@@ -725,7 +753,7 @@ describe('MatchView vouch', () => {
 		await render(MatchView, { code: code() });
 		await expect.element(page.getByRole('heading', { name: 'On hold' })).toBeVisible();
 		await expect
-			.element(page.getByText(/vouch for it as a member of the event's organizer/))
+			.element(page.getByRole('button', { name: 'This match really happened' }))
 			.toBeVisible();
 		await expect
 			.element(page.getByRole('heading', { name: "We couldn't find this match" }))
@@ -747,7 +775,7 @@ describe('MatchView vouch', () => {
 
 		expect(mocked.vouchForMatch).toHaveBeenCalledExactlyOnceWith(code());
 		await expect.element(page.getByRole('heading', { name: 'On hold' })).toHaveFocus();
-		await expect.element(page.getByText(/Your team has vouched for this match/)).toBeVisible();
+		await expect.element(page.getByText(/Your team vouched for this match/)).toBeVisible();
 		expect(toast).toHaveBeenCalledWith('Vouched. The hold ends once the others vouch too.');
 		await expect
 			.element(page.getByRole('button', { name: 'This match really happened' }))
@@ -766,7 +794,9 @@ describe('MatchView vouch', () => {
 
 		await vouch();
 
-		await expect.element(page.getByRole('heading', { name: 'Confirmed' })).toHaveFocus();
+		// A confirmed match with no hold drops the panel, so the page title takes focus.
+		await expect.element(page.getByRole('heading', { level: 1 })).toHaveFocus();
+		await expect.element(page.getByTestId('status-panel')).not.toBeInTheDocument();
 		expect(toast).toHaveBeenCalledWith('Vouched. The hold has ended and the match now counts.');
 		await expect.element(page.getByText('On hold', { exact: true })).not.toBeInTheDocument();
 	});

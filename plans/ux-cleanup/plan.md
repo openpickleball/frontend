@@ -27,7 +27,7 @@ Wave 3
 
 Wave 4
 
-- [ ] #286 Show match status in one place above the scoreboard
+- [x] #286 Show match status in one place above the scoreboard
 - [ ] #287 Trim the match page header and move the match code to the details
 - [x] #288 Show each rating format at the same size and move rating history to its own page
 - [ ] #290 Make Home a short list of what needs you
@@ -76,6 +76,20 @@ Where it applies:
 - Privacy: "Choose what other signed-in players can see. Your display name is always shown to them."
 - Ratings (#288 shortened these in the tiles): "Early estimate: not enough matches yet." is now "Early estimate.", and "It may change when ratings are next recounted." is now "May still change." The reliability popover can carry the longer meaning.
 
+#286 cut the match page's status panel to a title, one sentence and the buttons. These left it. The ones marked with a constant are still exported from `app/src/lib/features/matches/status.ts`.
+
+- How a dispute ends (`DISPUTE_ENDS`): "A dispute ends when every player who disputed the score withdraws. For a match played at an event, the event's organizer can settle it too. If no one settles it within a set time, the match is voided and doesn't count."
+- Disputed: "No one can confirm it while it is disputed." and, to the player who disputed, "If the score is right after all, withdraw your dispute. You can't dispute this match again after that."
+- Why a match is on hold (`HOLD_WHY`): "Another match on OPEN has the same teams and date as this one, but other scores. Both matches are on hold and don't count until each one is vouched for."
+- How a hold ends (`HOLD_ENDS`): "If no one settles the hold within a set time, the newer of the two matches is voided, as long as the older one is confirmed by then."
+- Who vouches, before the player's side has: "If this is a separate match, not a repeat of the other one, vouch for it. One player from each team needs to vouch. You can't undo a vouch." For a member of the event's organizer: "If this is a separate match, not a repeat of the other one, vouch for it as a member of the event's organizer. You can't undo a vouch."
+- After a vouch: "Your team has vouched for this match. The hold ends once a player on the other team vouches too, and the other match is vouched for." For the organizer: "Your organizer has vouched for this match. The hold ends once the other match is vouched for too."
+- What a held match still needs: "The score is confirmed. The match counts once the hold ends.", "Your team hasn't confirmed the score yet. Confirm it if it's right, or dispute it if it's wrong.", "Your team confirmed the score. A player on the other team needs to confirm it too." and "The score also needs a player on each team to confirm it."
+- A disputed match on hold: "This match is also on hold. Another match on OPEN has the same teams and date, but other scores."
+- Correcting (`CORRECT_NOTE`): "To fix a wrong score, correct it. This match is then voided, and the corrected one counts once a player on the other team confirms it."
+- Event matches (`CORRECT_EVENT_NOTE`): "Only the organizer can change a match an organizer recorded, such as one played at an event."
+- Voided (`VOIDED_CORRECTED`): "If a player corrected this match, the corrected match is in your match history, with a new code."
+
 ## Home (#290)
 
 To be filled in by #290.
@@ -104,3 +118,8 @@ To be filled in by #290.
 - #288: rating history is its own page at `/profile/ratings` (`ROUTES.ratingHistory`), linked from the Ratings section's `aside` ("Rating history", like Home's "All matches"). It has a back link to Profile, like the match page's back link to Matches, then the page title. It has no intro line under the title, because "Every change to your ratings, newest first." restated the title, and the paging range shows the order. Its list keeps its top border, as the Matches list does, because no section line sits above it.
 - #288: the history page keeps 5 changes a page, as on Profile before. It reads the same endpoint for the player's own code, so the `rating_history_visibility` setting applies as before: the player always sees their own, and a 404 reads "There is no rating history to show." The guard covers the page, because it is under `/profile`.
 - #288: the Rating history link shows whatever the Ratings section shows (loading, no ratings yet, failed), because the history page has its own empty and error states.
+- #286: the panel's edge has a fourth, plain state (the panel's own line color) for a match with nothing to do and no problem: waiting for the other team, waiting for confirmation, voided, and a confirmed match the panel still shows. Neutral (the text color) means the player has a step to take. Disputed wins over on hold, since a disputed match doesn't count either way.
+- #286: on hold uses a new `warning` token, `light-dark(#b45309, #fbbf24)` (Tailwind's amber-700 and amber-400), in `app/src/routes/layout.css`. There was no warning color. It is used only for the edge, which is not the only signal: the panel title and the On hold badge say it.
+- #286: a confirmed match drops the panel unless it is on hold, the player just recorded or corrected it, or an action left an error to show. Focus after an action goes to the panel heading, or to the page title (`match-title`) when the panel has gone, for example after the last confirm or vouch.
+- #286: the one-visit lines "You just recorded this match." and "You just corrected this match, so it has a new code and the old match is voided." stay in the panel above its sentence. They are not explanations, and they show once.
+- #286: a held match keeps the buttons its status needs, such as Confirm and Dispute, under the On hold title, with no extra line about them.

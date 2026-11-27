@@ -4,7 +4,7 @@
 	import { Button } from '#lib/ui/button/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import type { HoldState, MatchAction } from '../cache.svelte.js';
-	import { matchStatusCopy, type PanelAction } from '../status.js';
+	import { matchStatusCopy, panelTone, type PanelAction, type PanelTone } from '../status.js';
 
 	let {
 		match,
@@ -50,38 +50,35 @@
 	const panel = $derived(matchStatusCopy(match, hold));
 	const held = $derived(hold !== undefined && match.status !== 'voided');
 	const offers = (action: PanelAction) => panel.actions.includes(action);
+	// One panel style for every state. Only the edge changes, and it carries the meaning.
+	const EDGE: Record<PanelTone, string> = {
+		disputed: 'border-l-disputed',
+		held: 'border-l-warning',
+		action: 'border-l-secondary',
+		plain: 'border-l-line'
+	};
+	const tone = $derived(panelTone(match, hold));
 </script>
 
 <section
-	class="mt-8 border border-l-4 border-line bg-surface px-5 py-5 {held &&
-	match.status !== 'disputed'
-		? 'border-l-secondary'
-		: match.status === 'confirmed'
-			? 'border-l-confirmed'
-			: match.status === 'disputed'
-				? 'border-l-disputed'
-				: match.status === 'voided'
-					? 'border-l-voided'
-					: 'border-l-secondary'}"
+	class="mt-8 border border-l-4 border-line bg-surface px-5 py-5 {EDGE[tone]}"
 	aria-labelledby="status-heading"
 	data-testid="status-panel"
 	data-status={match.status}
 	data-held={held || undefined}
+	data-tone={tone}
 >
 	<h2 id="status-heading" tabindex="-1" class="text-lg font-semibold outline-none">
 		{panel.title}
 	</h2>
 	{#if corrected}
 		<p class="mt-2 max-w-md text-secondary">
-			You just corrected this match. It has a new code, and the old match is voided.
+			You just corrected this match, so it has a new code and the old match is voided.
 		</p>
 	{:else if recorded}
 		<p class="mt-2 max-w-md text-secondary">You just recorded this match.</p>
 	{/if}
 	<p class="mt-2 max-w-md text-muted">{panel.text}</p>
-	{#each panel.notes as note (note)}
-		<p class="mt-2 max-w-md text-muted">{note}</p>
-	{/each}
 	{#if replacedByHref && match.status === 'voided'}
 		<p class="mt-2 max-w-md">
 			<Button variant="link" size="inline" href={replacedByHref}>See the corrected match</Button>

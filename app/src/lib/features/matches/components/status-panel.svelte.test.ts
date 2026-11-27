@@ -34,21 +34,21 @@ describe('StatusPanel', () => {
 		it('says neither team has confirmed', async () => {
 			const screen = await render(StatusPanel, { match: viewerMatch(), ...handlers() });
 			await expect
-				.element(screen.getByText(/Neither team has confirmed this score yet/))
+				.element(screen.getByText(/counts once a player on each team confirms this score/))
 				.toBeVisible();
 		});
 
 		it('says the other team has confirmed', async () => {
 			const screen = await render(StatusPanel, { match: viewerMatch({ b: true }), ...handlers() });
 			await expect
-				.element(screen.getByText(/The other team has confirmed this score. Your team has not./))
+				.element(screen.getByText(/The other team confirmed this score, and the match counts/))
 				.toBeVisible();
 		});
 
 		it('reads the other team from the side the player is on', async () => {
 			const match = viewerMatch({ a: true, b: false }, { viewerSide: 'b' });
 			const screen = await render(StatusPanel, { match, ...handlers() });
-			await expect.element(screen.getByText(/The other team has confirmed/)).toBeVisible();
+			await expect.element(screen.getByText(/The other team confirmed/)).toBeVisible();
 			await expect.element(screen.getByRole('button', { name: 'Confirm score' })).toBeVisible();
 		});
 
@@ -155,8 +155,8 @@ describe('StatusPanel', () => {
 	});
 
 	for (const [status, title, text] of [
-		['confirmed', 'Confirmed', /This score is confirmed\. It counts in your match history/],
-		['disputed', 'Disputed', /No one can confirm it while it is disputed/],
+		['confirmed', 'Confirmed', /This score is confirmed, and it counts in your match history/],
+		['disputed', 'Disputed', /A player in this match said the score is wrong/],
 		['voided', 'Voided', /This match was voided/]
 	] as const) {
 		it(`explains a ${status} match, with no buttons`, async () => {
@@ -196,7 +196,7 @@ describe('StatusPanel', () => {
 	describe('a disputed match the player disputed', () => {
 		const disputed = () => viewerMatch({ decision: 'dispute' }, { status: 'disputed' });
 
-		it('says how the dispute ends and offers Withdraw my dispute', async () => {
+		it('says the player disputed it and offers Withdraw my dispute', async () => {
 			const onwithdraw = vi.fn();
 			const screen = await render(StatusPanel, {
 				match: disputed(),
@@ -205,9 +205,14 @@ describe('StatusPanel', () => {
 			});
 			await expect.element(screen.getByRole('heading', { name: 'Disputed' })).toBeVisible();
 			await expect
-				.element(screen.getByText(/every player who disputed the score withdraws/))
+				.element(
+					screen.getByText("You said this score is wrong, so the match doesn't count for now.")
+				)
 				.toBeVisible();
-			await expect.element(screen.getByText(/the match is voided/)).toBeVisible();
+			// How a dispute ends goes in an info popover (frontend#285).
+			await expect
+				.element(screen.getByText(/every player who disputed the score withdraws/))
+				.not.toBeInTheDocument();
 			await expect
 				.element(screen.getByRole('button', { name: 'Confirm score' }))
 				.not.toBeInTheDocument();
@@ -260,7 +265,7 @@ describe('StatusPanel', () => {
 			});
 			await expect.element(screen.getByRole('heading', { name: 'Disputed' })).toBeVisible();
 			await expect
-				.element(screen.getByText(/You withdrew your dispute\. Another player in this match/))
+				.element(screen.getByText(/You withdrew your dispute, but another player still says/))
 				.toBeVisible();
 			await expect
 				.element(screen.getByText(/You said this score is wrong/))
@@ -311,7 +316,7 @@ describe('StatusPanel', () => {
 		const confirmed = () =>
 			viewerMatch({ a: true, b: true, decision: 'confirm' }, { status: 'confirmed' });
 
-		it('says it is on hold and why, and offers This match really happened', async () => {
+		it('says it is on hold in one sentence, and offers This match really happened', async () => {
 			const onvouch = vi.fn();
 			const screen = await render(StatusPanel, {
 				match: confirmed(),
@@ -321,12 +326,12 @@ describe('StatusPanel', () => {
 			});
 			await expect.element(screen.getByRole('heading', { name: 'On hold' })).toBeVisible();
 			await expect
-				.element(screen.getByText(/Another match on OPEN has the same teams and date/))
+				.element(screen.getByText(/Another match has the same teams and date/))
 				.toBeVisible();
-			await expect.element(screen.getByText(/You can't undo a vouch/)).toBeVisible();
+			// Why and how a hold ends go in an info popover (frontend#285). The dialog says a vouch can't be undone.
 			await expect
 				.element(screen.getByText(/the newer of the two matches is voided/))
-				.toBeVisible();
+				.not.toBeInTheDocument();
 			await expect
 				.element(screen.getByText(/It counts in your match history/))
 				.not.toBeInTheDocument();
@@ -341,7 +346,7 @@ describe('StatusPanel', () => {
 				hold: { vouched: true },
 				...handlers()
 			});
-			await expect.element(screen.getByText(/Your team has vouched for this match/)).toBeVisible();
+			await expect.element(screen.getByText(/Your team vouched for this match/)).toBeVisible();
 			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
 		});
 
@@ -386,6 +391,23 @@ describe('StatusPanel', () => {
 		});
 	});
 
+	describe('the edge', () => {
+		it('carries the meaning: neutral to act, danger when disputed, warning on hold', async () => {
+			for (const [match, hold, tone, edge] of [
+				[viewerMatch(), undefined, 'action', 'border-l-secondary'],
+				[viewerMatch({}, { status: 'disputed' }), undefined, 'disputed', 'border-l-disputed'],
+				[viewerMatch({}, { status: 'confirmed' }), { vouched: false }, 'held', 'border-l-warning'],
+				[viewerMatch({ a: true, decision: 'confirm' }), undefined, 'plain', 'border-l-line']
+			] as const) {
+				const screen = await render(StatusPanel, { match, hold, ...handlers() });
+				const panel = screen.getByTestId('status-panel');
+				await expect.element(panel).toHaveAttribute('data-tone', tone);
+				await expect.element(panel).toHaveClass(edge);
+				screen.unmount();
+			}
+		});
+	});
+
 	describe('correcting the score', () => {
 		const href = '/matches/M-7QK2-H9WD-3NF0/correct';
 
@@ -398,21 +420,8 @@ describe('StatusPanel', () => {
 			const link = screen.getByRole('link', { name: 'Correct the score' });
 			await expect.element(link).toHaveAttribute('href', href);
 			await expect.element(link).toHaveAttribute('id', 'correct-button');
-			await expect.element(screen.getByText(/To fix a wrong score, correct it/)).toBeVisible();
 			const buttons = [...screen.container.querySelectorAll('a, button')].map((el) => el.id);
 			expect(buttons).toEqual(['confirm-button', 'dispute-button', 'correct-button']);
-		});
-
-		it('says only the organizer changes an event match, on a disputed match', async () => {
-			const screen = await render(StatusPanel, {
-				match: viewerMatch({ decision: 'dispute' }, { status: 'disputed' }),
-				correctHref: href,
-				...handlers()
-			});
-			await expect.element(screen.getByRole('link', { name: 'Correct the score' })).toBeVisible();
-			await expect
-				.element(screen.getByText(/Only the organizer can change a match an organizer recorded/))
-				.toBeVisible();
 		});
 
 		it('offers no correction on a confirmed match', async () => {
@@ -448,7 +457,7 @@ describe('StatusPanel', () => {
 				...handlers()
 			});
 			await expect
-				.element(screen.getByText(/You just corrected this match\. It has a new code/))
+				.element(screen.getByText(/You just corrected this match, so it has a new code/))
 				.toBeVisible();
 		});
 
@@ -458,7 +467,7 @@ describe('StatusPanel', () => {
 				replacedByHref: '/matches/M-FXD0-0000-0001',
 				...handlers()
 			});
-			await expect.element(screen.getByText(/If a player corrected this match/)).toBeVisible();
+			await expect.element(screen.getByRole('heading', { name: 'Voided' })).toBeVisible();
 			await expect
 				.element(screen.getByRole('link', { name: 'See the corrected match' }))
 				.toHaveAttribute('href', '/matches/M-FXD0-0000-0001');
