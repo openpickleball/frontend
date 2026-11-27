@@ -1312,8 +1312,8 @@ export function createMockStore() {
 		 * unknown-code 404. A voided match is a 409 first, even after a withdraw. A repeat withdraw
 		 * changes nothing. A match that is not disputed, or has no open dispute of theirs, is a 409.
 		 * The match stays disputed while another player's dispute is open, and goes back to how it
-		 * was before the dispute once none is. The mock has no Event organizer, so a dispute is
-		 * never settled by one, and every dispute not withdrawn is open.
+		 * was before the dispute once none is. The mock has no way for an Event's organizer to
+		 * settle a dispute, so every dispute not withdrawn is open.
 		 */
 		withdrawDispute(email: string, code: string): ChangeResult {
 			const match = this.matchByCode(code);
