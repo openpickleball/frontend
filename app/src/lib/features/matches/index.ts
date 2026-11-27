@@ -88,17 +88,20 @@ export {
 	withdrawDispute
 } from './services.js';
 export {
+	CORRECT_CLUB_NOTE,
 	CORRECT_EVENT_NOTE,
 	CORRECT_NOTE,
 	VOIDED_CORRECTED,
 	canCorrect,
 	DISPUTE_ENDS,
+	DISPUTE_ENDS_EVENT,
 	DISPUTED_MEANS,
 	HOLD_COUNTS,
 	HOLD_ENDS,
 	HOLD_WHY,
 	ON_HOLD_MEANS,
 	VOUCH_MEANS,
+	VOUCH_MEANS_EVENT,
 	VOUCH_MEANS_ORGANIZER,
 	hasActions,
 	matchStatusCopy,

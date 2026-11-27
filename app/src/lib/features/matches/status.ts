@@ -22,16 +22,24 @@ export type MatchStatusCopy = {
 };
 
 // The explanations below left the status panel's sentence in frontend#286. The info popovers
-// (frontend#285, `statusInfo` below) use DISPUTE_ENDS and HOLD_ENDS. plans/ux-cleanup/plan.md
-// lists them all.
+// (frontend#285, `statusInfo` below) use DISPUTE_ENDS, DISPUTE_ENDS_EVENT and HOLD_ENDS.
+// plans/ux-cleanup/plan.md lists them all.
 
 /**
- * How a dispute ends. The API gives no end date (the period is a backend setting), so this
- * promises none. `MatchOut` now sends the match's Event and Club (backend#302), but the app does
- * not read them yet, so this says both ways. frontend#264 will use them.
+ * How a dispute ends on a match with no Event, a Club-only match included: only its players
+ * settle it, since a match without an Event has no organizer level (backend ADR 0034). The API
+ * gives no end date (the period is a backend setting), so this promises none.
  */
 export const DISPUTE_ENDS =
-	"A dispute ends when every player who disputed the score withdraws, or, for a match played at an event, when the event's organizer settles it. If no one settles it in time, the match is voided and doesn't count.";
+	"A dispute ends when every player who disputed the score withdraws. If no one settles it in time, the match is voided and doesn't count.";
+
+/**
+ * How a dispute ends on a match with an Event: its players withdraw, or the Event's organizer
+ * settles it. The app can't tell whether that organizer is still verified, so this says the
+ * normal case and the backend decides.
+ */
+export const DISPUTE_ENDS_EVENT =
+	"A dispute ends when every player who disputed the score withdraws, or when the event's organizer settles it. If no one settles it in time, the match is voided and doesn't count.";
 
 /**
  * What a voided match may have become. `MatchOut` doesn't link a match to its correction, so
@@ -59,12 +67,15 @@ export const CORRECT_NOTE =
 	'To fix a wrong score, correct it. This match is then voided, and the corrected one counts once a player on the other team confirms it.';
 
 /**
- * A disputed match may have an event. `MatchOut` now sends the Event and Club (backend#302), but
- * the app does not read them yet, so the panel offers a correction and the correction page says
- * who changes an event match. The backend answers 404 for one. frontend#264 will use the fields.
+ * Why the correction page shows no form for a match with an Event. The backend answers 404 for
+ * one, and `canCorrect` keeps the panel from offering it. Names no organizer.
  */
 export const CORRECT_EVENT_NOTE =
-	'Only the organizer can change a match an organizer recorded, such as one played at an event.';
+	"Only the event's organizer can change a match played at an event.";
+
+/** Why the correction page shows no form for a match with a Club and no Event. */
+export const CORRECT_CLUB_NOTE =
+	'Players can only correct a match they recorded themselves, and this one was recorded for a club.';
 
 /** The vouch button, while the viewer's side has not vouched. */
 function vouchAction(hold: HoldState): PanelAction[] {
@@ -118,13 +129,13 @@ export function matchStatusCopy(match: Match, hold?: HoldState): MatchStatusCopy
 
 /**
  * True when the signed-in player may try to correct the match (backend#267): it is pending or
- * disputed, they played in it, and every player in it has a code, since a correction names the
- * same players and the API gives no code for a private player. The backend also refuses a match
- * with an event or a club. `MatchOut` now sends both (backend#302), but the app does not read
- * them yet; frontend#264 will. The backend decides (rule 6).
+ * disputed, it has no Event and no Club (the backend answers 404 for either), they played in it,
+ * and every player in it has a code, since a correction names the same players and the API gives
+ * no code for a private player. The backend decides (rule 6).
  */
 export function canCorrect(match: Match): boolean {
 	if (match.status !== 'pending' && match.status !== 'disputed') return false;
+	if (match.event !== null || match.club !== null) return false;
 	if (!match.viewerSide) return false;
 	return [...match.teamA.players, ...match.teamB.players].every((player) => player.code !== null);
 }
@@ -249,9 +260,16 @@ export type StatusInfo = {
 /** Why a held match doesn't count, once the panel's sentence has said there is another match. */
 export const HOLD_COUNTS = `Both matches are on hold and don't count until each one is vouched for. ${HOLD_ENDS}`;
 
-/** What a vouch says, for a player in the match. */
+/** What a vouch says, for a player in a match with no Event, a Club-only match included. */
 export const VOUCH_MEANS =
 	"To vouch is to say this is a separate match, not a repeat of the other one. One player from each team needs to vouch, and you can't undo a vouch.";
+
+/**
+ * What a vouch says, for a player in a match with an Event: the Event's organizer vouches for it
+ * (backend ADR 0034).
+ */
+export const VOUCH_MEANS_EVENT =
+	"To vouch is to say this is a separate match, not a repeat of the other one. For a match played at an event, the event's organizer vouches for this match, not the players.";
 
 /** What a vouch says, for a member of the event's organizer, who did not play in it. */
 export const VOUCH_MEANS_ORGANIZER =
@@ -281,13 +299,23 @@ function infoFor(terms: StatusInfo['terms']): StatusInfo | null {
  */
 export function statusInfo(match: Match, hold?: HoldState): StatusInfo | null {
 	const terms: StatusInfo['terms'] = [];
-	if (match.status === 'disputed') terms.push({ term: 'Disputed', text: DISPUTE_ENDS });
+	if (match.status === 'disputed') {
+		terms.push({
+			term: 'Disputed',
+			text: match.event === null ? DISPUTE_ENDS : DISPUTE_ENDS_EVENT
+		});
+	}
 	if (hold && match.status !== 'voided') {
 		terms.push({ term: 'On hold', text: HOLD_COUNTS });
 		if (!hold.vouched) {
 			terms.push({
 				term: 'Vouch',
-				text: match.viewerSide === null ? VOUCH_MEANS_ORGANIZER : VOUCH_MEANS
+				text:
+					match.viewerSide === null
+						? VOUCH_MEANS_ORGANIZER
+						: match.event === null
+							? VOUCH_MEANS
+							: VOUCH_MEANS_EVENT
 			});
 		}
 	}
