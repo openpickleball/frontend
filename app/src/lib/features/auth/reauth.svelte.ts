@@ -5,7 +5,7 @@
  * `reauthentication_required`. `withReauth` catches that, opens the one prompt
  * (`ReauthPrompt`, in the root layout), and sends the call once more after the player confirms.
  */
-import { isAppError, reauthFlowsOf, type ReauthMethod } from '#lib/api/index.js';
+import { AppError, isAppError, reauthFlowsOf, type ReauthMethod } from '#lib/api/index.js';
 import { session } from './session.svelte.js';
 
 /** The player closed the prompt. Nothing changed, so callers show no error. */
@@ -23,9 +23,14 @@ class ReauthPromptStore {
 	#pending: Promise<boolean> | null = null;
 	#resolve: ((ok: boolean) => void) | null = null;
 
-	/** Open the prompt, or join the one already open. */
+	/** Open the prompt, or join the one already open and add the ways this call offers. */
 	open(methods: ReauthMethod[]): Promise<boolean> {
-		if (this.#pending) return this.#pending;
+		if (this.#pending && this.request) {
+			const all = new Set([...this.request.methods, ...methods]);
+			const order: ReauthMethod[] = ['password', 'code'];
+			this.request = { methods: order.filter((method) => all.has(method)) };
+			return this.#pending;
+		}
 		this.request = { methods };
 		this.#pending = new Promise<boolean>((resolve) => (this.#resolve = resolve));
 		return this.#pending;
@@ -60,7 +65,8 @@ export function requestReauth(methods: ReauthMethod[]): Promise<boolean> {
 
 /**
  * Run `call`. When the backend asks for a reauthentication, ask the player, then run `call` once
- * more. A second refusal is thrown as it is. On Cancel it throws `ReauthCancelled`.
+ * more. A second refusal becomes an `AppError` that says the confirmation did not work. On Cancel
+ * it throws `ReauthCancelled`.
  */
 export async function withReauth<T>(call: () => Promise<T>): Promise<T> {
 	try {
@@ -69,6 +75,24 @@ export async function withReauth<T>(call: () => Promise<T>): Promise<T> {
 		const methods = isAppError(error) ? reauthFlowsOf(error) : null;
 		if (!methods) throw error;
 		if (!(await requestReauth(methods))) throw new ReauthCancelled();
-		return call();
+	}
+	try {
+		return await call();
+	} catch (error) {
+		// Refused again right after the player confirmed: say so, not "You're not signed in".
+		if (isAppError(error) && reauthFlowsOf(error)) {
+			throw new AppError({
+				kind: 'forbidden',
+				status: error.status,
+				code: 'reauthentication_failed',
+				message: REAUTH_FAILED,
+				fields: {},
+				cause: error
+			});
+		}
+		throw error;
 	}
 }
+
+/** A refusal right after a reauthentication. */
+const REAUTH_FAILED = "We couldn't confirm it's you. Try again.";
