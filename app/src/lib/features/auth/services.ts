@@ -562,8 +562,9 @@ function forgetUnclear(email: string | null): void {
 
 /**
  * A sign-in with this email succeeded, so its account exists and no earlier try deleted it. Not
- * called for a session read (`refreshSession`): a 401 retry expires the session before the next
- * `deleteAccount` reads the memory.
+ * called for a session read (`refreshSession`): a read that says `signed_in` can come before a
+ * slow try commits. `signedOutNow` runs its own `refreshSession`, which can return `signed_in`
+ * that way, and that same call is about to set the memory.
  */
 function forgetUnclearOnSignIn(state: SessionState): void {
 	if (state.status === 'signed_in') forgetUnclear(state.email);
