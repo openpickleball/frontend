@@ -6,6 +6,7 @@
 	import { page } from '$app/state';
 	import { onDestroy, untrack } from 'svelte';
 	import {
+		ReauthPrompt,
 		SignOutButton,
 		isAccountPath,
 		onSignOut,
@@ -116,6 +117,8 @@
 	{@render children()}
 </AppShell>
 <Toaster />
+<!-- One prompt for every call that needs a recent password or code (withReauth). -->
+<ReauthPrompt />
 
 {#snippet signOut()}
 	<SignOutButton />

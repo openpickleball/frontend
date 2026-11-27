@@ -24,6 +24,11 @@
  *   marks the session signed out (so the layout clears the player's code and cached matches)
  *   and calls `onExpired`, which re-runs the guard to send the player to sign in.
  *
+ * - `withReauth(call)`: run a call that may need a recent reauthentication (the password or a
+ *   two-factor code). It asks the player with `ReauthPrompt`, which the root layout mounts once,
+ *   then sends the call again. On Cancel it throws `ReauthCancelled`, which callers ignore.
+ *   `requestReauth(methods)` opens the same prompt directly.
+ *
  * The routes use the rest: the forms and the layout guard.
  */
 import { redirect } from '@sveltejs/kit';
@@ -47,6 +52,8 @@ export { default as VerifyEmail } from './components/verify-email.svelte';
 export { default as ResetRequestForm } from './components/reset-request-form.svelte';
 export { default as ResetForm } from './components/reset-form.svelte';
 export { default as SessionCheck } from './components/session-check.svelte';
+export { default as ReauthPrompt } from './components/reauth-prompt.svelte';
+export { ReauthCancelled, requestReauth, withReauth } from './reauth.svelte.js';
 
 /**
  * Read the session once (and set up CSRF), then redirect if this visit isn't allowed:

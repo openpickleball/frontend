@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRawSnippet } from 'svelte';
 import { render } from 'vitest-browser-svelte';
-import { session } from '#lib/features/auth/index.js';
+import { requestReauth, session } from '#lib/features/auth/index.js';
 import { matchCache } from '#lib/features/matches/index.js';
 import { myCode } from '#lib/features/players/index.js';
 import RootLayout from './+layout.svelte';
@@ -65,5 +65,15 @@ describe('root layout account switch', () => {
 		await Promise.resolve();
 		expect(resetCode).not.toHaveBeenCalled();
 		expect(resetCache).not.toHaveBeenCalled();
+	});
+});
+
+describe('root layout reauthentication prompt', () => {
+	it('opens the one prompt when a call asks for a reauthentication', async () => {
+		const screen = await render(RootLayout, props);
+		const asked = requestReauth(['password']);
+		await expect.element(screen.getByRole('dialog')).toBeVisible();
+		await screen.getByRole('button', { name: 'Cancel' }).click();
+		expect(await asked).toBe(false);
 	});
 });
