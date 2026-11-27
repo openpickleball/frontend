@@ -219,6 +219,39 @@ describe('SettingsStore.setPrivacy', () => {
 		expect(store.privacyError).toBe(message);
 	});
 
+	it('keeps the newer answer for the same setting when an older one arrives after it', async () => {
+		const answers = [deferred<MySettings>(), deferred<MySettings>()];
+		let call = 0;
+		const store = await ready(() => answers[call++].promise);
+		const on = store.setPrivacy('name', 'first_last_initial');
+		const off = store.setPrivacy('name', 'full');
+		answers[1].resolve({ ...SAVED, displayName: 'Fern Mock', privacy: { ...OPEN, name: 'full' } });
+		expect(await off).toBe(true);
+		answers[0].resolve({
+			...SAVED,
+			displayName: 'Fern M.',
+			privacy: { ...OPEN, name: 'first_last_initial' }
+		});
+		// The older answer is stale: it is not applied, so the caller shows no name from it.
+		expect(await on).toBe(false);
+		expect(store.privacy?.name).toBe('full');
+		expect(store.displayName).toBe('Fern Mock');
+	});
+
+	it('keeps the newer answer for another setting when an older one arrives after it', async () => {
+		const answers = [deferred<MySettings>(), deferred<MySettings>()];
+		let call = 0;
+		const store = await ready(() => answers[call++].promise);
+		const first = store.setPrivacy('stats', 'private');
+		const second = store.setPrivacy('home_club', 'private');
+		answers[1].resolve({ ...SAVED, privacy: { ...OPEN, stats: 'private', home_club: 'private' } });
+		expect(await second).toBe(true);
+		// The older answer does not know about home_club yet.
+		answers[0].resolve({ ...SAVED, privacy: { ...OPEN, stats: 'private' } });
+		expect(await first).toBe(false);
+		expect(store.privacy).toMatchObject({ stats: 'private', home_club: 'private' });
+	});
+
 	it('does nothing before the settings have loaded', async () => {
 		const update = vi.fn();
 		const store = new SettingsStore({
