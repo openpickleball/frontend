@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+	CORRECT_CLUB_DISPUTE,
+	CORRECT_CLUB_NOTE,
+	CORRECT_EVENT_NOTE,
 	DISPUTE_ENDS,
 	DISPUTE_ENDS_EVENT,
 	HOLD_ENDS,
@@ -333,6 +336,19 @@ describe('statusInfo', () => {
 				expect(text).not.toMatch(/moderator|OPEN rating/i);
 				expect(text.match(/[.?!](\s|$)/g)!.length).toBeLessThanOrEqual(2);
 			}
+		}
+	});
+
+	it('keeps the correction page reasons to two sentences at most, in plain words', () => {
+		// The pending Club-only reason is the two shown together, as the correction page shows them.
+		for (const text of [
+			CORRECT_EVENT_NOTE,
+			CORRECT_CLUB_NOTE,
+			`${CORRECT_CLUB_NOTE} ${CORRECT_CLUB_DISPUTE}`
+		]) {
+			expect(text).not.toContain('—');
+			expect(text).not.toMatch(/moderator|OPEN rating/i);
+			expect(text.match(/[.?!](\s|$)/g)!.length).toBeLessThanOrEqual(2);
 		}
 	});
 });
