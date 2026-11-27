@@ -15,7 +15,7 @@
 	<h1 class="page-title">Profile</h1>
 </div>
 
-<!-- Each section brings its own space above. The display name field shows the player's name. -->
+<!-- Each section brings its own space above. -->
 <div>
 	<OwnCodeGate
 		reloadOnOpen

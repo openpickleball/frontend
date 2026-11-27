@@ -3,7 +3,7 @@
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 	import { ROUTES } from '#lib/domain/index.js';
-	import { ProfileView } from '#lib/features/players/index.js';
+	import { ProfileView, myCode } from '#lib/features/players/index.js';
 	import { OrganizerMfaPrompt, SignOutButton, session } from '#lib/features/auth/index.js';
 	import { APP_COMMIT, APP_VERSION, versionLabel } from '#lib/ui/app-version.js';
 	import { FeedbackButton } from '#lib/ui/feedback/index.js';
@@ -19,8 +19,10 @@
 	import { Section, sectionClass } from '#lib/ui/section/index.js';
 
 	/** The settings pages under Profile. */
-	type SettingsPath = (typeof ROUTES)[
-		'profileName' | 'twoFactor' | 'profilePrivacy' | 'profileData'];
+	type SettingsPath = (typeof ROUTES)['twoFactor' | 'profilePrivacy' | 'profileData'];
+
+	// The name other players see, as the backend sent it. Nothing until it is known.
+	const name = $derived(myCode.status === 'ready' ? myCode.displayName : null);
 
 	// What the two-factor row says, from the account state the layout reads. Nothing while unknown.
 	const twoFactor = $derived(
@@ -73,7 +75,18 @@
 			<!-- The organizer callout sits above the rows, next to the two-factor row it is about. -->
 			<OrganizerMfaPrompt class="mb-8" />
 			<ItemGroup>
-				{@render pageRow(ROUTES.profileName, 'Display name', 'The name other players see')}
+				<!-- The name comes from sign-up and can't be changed, so it is text, not a link. -->
+				{#if name}
+					<li data-testid="profile-name">
+						<Item>
+							<ItemContent>
+								<ItemTitle>Name</ItemTitle>
+								<ItemDescription>From your sign-up. It can't be changed.</ItemDescription>
+							</ItemContent>
+							<ItemActions class="text-base">{name}</ItemActions>
+						</Item>
+					</li>
+				{/if}
 				{@render pageRow(ROUTES.twoFactor, 'Two-factor authentication', twoFactor)}
 			</ItemGroup>
 		</Section>

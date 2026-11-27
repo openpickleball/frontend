@@ -45,11 +45,15 @@
  *   Each change shows its format, the value, its reliability, the day and what caused it (`CHANGE_KINDS`: after a match, a recount, or removed by a recount). The API gives no
  *   change amount, and the app works none out.
  *
- * - `NameSettings` (Profile > Display name) and `VisibilitySettings` (Profile > Profile
- *   visibility) each read `GET me/player` and save with `PATCH me/player` (backend#124). They
- *   read it once `myCode` is ready, and show nothing before that. If `me/player`
- *   answers a 404 or 405, they say the player can't change these in the app yet. The backend
- *   checks every change and decides who may make it. Saving a name updates `myCode.displayName`.
+ * - `VisibilitySettings` (Profile > Profile visibility) reads `GET me/player` and saves with
+ *   `PATCH me/player` (backend#124). It reads it once `myCode` is ready, and shows nothing
+ *   before that. If `me/player` answers a 404 or 405, it says the player can't change these in
+ *   the app yet. The backend checks every change and decides who may make it.
+ *   The name comes from sign-up and can't be changed (backend#354). The first switch shows the
+ *   last name as an initial (`name_format`), with the name the backend built. It is on and
+ *   locked while `name_format_locked` (13 to 17), and the backend refuses the full name then.
+ *   A saved change shows the returned name through `myCode.showName`, so Home and the Profile
+ *   Name row follow it.
  *   Current ratings (`rating_visibility`) are shown as fixed when they are shown to signed-in
  *   players, which can't be undone. When they are private (a player who joined at 13 to 17),
  *   a switch offers to show them, and the backend's refusal before 18 is shown. `YourData`
@@ -63,7 +67,6 @@ export { MyRatings } from './my-ratings.svelte.js';
 export { default as CodeStrip } from './code-strip.svelte';
 export { default as OwnCodeGate } from './own-code-gate.svelte';
 export { default as ProfileView } from './profile-view.svelte';
-export { default as NameSettings } from './name-settings.svelte';
 export { default as SettingsPage } from './settings-page.svelte';
 export { default as VisibilitySettings } from './visibility-settings.svelte';
 export { default as RatingsCard } from './ratings-card.svelte';
