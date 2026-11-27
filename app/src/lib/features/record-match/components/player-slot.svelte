@@ -177,7 +177,7 @@
 				{/if}
 				<span
 					class={[
-						'shrink-0 font-display tracking-wide whitespace-nowrap',
+						'open-code shrink-0 whitespace-nowrap',
 						name && 'text-sm text-muted',
 						error && 'text-danger'
 					]}
@@ -225,7 +225,7 @@
 			>
 				{#snippet child({ props })}
 					<div class="relative">
-						<Input {...props} class="font-display tracking-wide" />
+						<Input {...props} class="open-code" />
 						{#if note}
 							<p
 								class="absolute inset-x-0 top-full z-20 mt-1.5 rounded-2xl border border-field bg-surface px-5 py-3 text-sm text-muted shadow-lg"
@@ -250,7 +250,7 @@
 						class="flex-wrap justify-between gap-x-4"
 					>
 						<span class="font-medium">{hit.name}</span>
-						<span class="font-display text-sm tracking-wide text-muted">{hit.code}</span>
+						<span class="open-code text-sm text-muted">{hit.code}</span>
 					</Combobox.Item>
 				{/each}
 			</Combobox.Content>

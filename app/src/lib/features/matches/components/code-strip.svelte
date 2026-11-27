@@ -23,7 +23,7 @@
 >
 	<p class="grid gap-1">
 		<span class="label">Your OPEN code</span>
-		<span class="font-display text-xl tracking-wide text-secondary" data-testid="my-code">
+		<span class="open-code text-xl text-secondary" data-testid="my-code">
 			{code}
 		</span>
 	</p>

@@ -80,7 +80,7 @@
 		{:else}
 			<div class="grid gap-2" data-testid="headline-rating">
 				{@render name(headline)}
-				<span class="font-display text-5xl tracking-tight text-secondary tabular-nums">
+				<span class="text-5xl font-semibold tracking-tight text-secondary tabular-nums">
 					{formatRating(headline.value)}
 				</span>
 				{@render details(headline)}
