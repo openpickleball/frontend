@@ -59,7 +59,15 @@ export interface paths {
 		post: {
 			parameters: {
 				query?: never;
-				header?: never;
+				header?: {
+					/**
+					 * @description App client only. The device token the last completed login on this
+					 *     install returned, if any. Send it on every request of a login (this one
+					 *     and the MFA step), so a sign-in from a known install sends no new
+					 *     sign-in email. The browser client uses a cookie instead.
+					 */
+					'X-Device-Token'?: string;
+				};
 				path: {
 					/** @description The type of client accessing the API. */
 					client: components['parameters']['Client'];
@@ -68,7 +76,20 @@ export interface paths {
 			};
 			requestBody: components['requestBodies']['Login'];
 			responses: {
-				200: components['responses']['AuthenticatedByPassword'];
+				/** @description Authenticated by password. */
+				200: {
+					headers: {
+						/**
+						 * @description App client only, on a completed login: the device token to keep and send
+						 *     with the next login. It replaces any earlier one.
+						 */
+						'X-Device-Token'?: string;
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['AuthenticatedResponse'];
+					};
+				};
 				/** @description An input error occurred. */
 				400: {
 					headers: {
@@ -96,6 +117,7 @@ export interface paths {
 						'application/json': components['schemas']['ConflictResponse'];
 					};
 				};
+				429: components['responses']['TooManyRequests'];
 			};
 		};
 		delete?: never;
@@ -465,6 +487,7 @@ export interface paths {
 					};
 				};
 				403: components['responses']['Forbidden'];
+				429: components['responses']['TooManyRequests'];
 			};
 		};
 		delete?: never;
@@ -773,6 +796,125 @@ export interface paths {
 						'application/json': components['schemas']['ConflictResponse'];
 					};
 				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/_allauth/{client}/v1/auth/2fa/authenticate': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Two-factor authentication
+		 * @description If, during authentication,  a response with status 401 is encountered where one of the pending
+		 *     flows has ID `mfa_authenticate`, that indicates that the Two-Factor Authentication stage needs to
+		 *     be completed.
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: {
+					/**
+					 * @description App client only. The device token the last completed login on this
+					 *     install returned, if any. Send it on every request of a login (this one
+					 *     and the MFA step), so a sign-in from a known install sends no new
+					 *     sign-in email. The browser client uses a cookie instead.
+					 */
+					'X-Device-Token'?: string;
+				};
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody: components['requestBodies']['MFAAuthenticate'];
+			responses: {
+				/** @description Authenticated by password and 2FA. */
+				200: {
+					headers: {
+						/**
+						 * @description App client only, on a completed login: the device token to keep and send
+						 *     with the next login. It replaces any earlier one.
+						 */
+						'X-Device-Token'?: string;
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['AuthenticatedResponse'];
+					};
+				};
+				/** @description An input error occurred. */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ErrorResponse'];
+					};
+				};
+				401: components['responses']['Authentication'];
+				429: components['responses']['TooManyRequests'];
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/_allauth/{client}/v1/auth/2fa/reauthenticate': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Reauthenticate using 2FA
+		 * @description In order to safeguard the account, some actions require the user to be
+		 *     recently authenticated.  If you try to perform such an action without
+		 *     having been recently authenticated, a `401` status is returned, listing
+		 *     flows that can be performed to reauthenticate. One such flow is the flow
+		 *     with ID `mfa_reauthenticate`, which allows for the user to input an
+		 *     authenticator code (e.g. TOTP or recovery code). This is the endpoint
+		 *     related towards that flow.
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody: components['requestBodies']['MFAAuthenticate'];
+			responses: {
+				200: components['responses']['AuthenticatedByPasswordAnd2FA'];
+				/** @description An input error occurred. */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ErrorResponse'];
+					};
+				};
+				403: components['responses']['Forbidden'];
+				429: components['responses']['TooManyRequests'];
 			};
 		};
 		delete?: never;
@@ -1103,6 +1245,186 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/_allauth/{client}/v1/account/authenticators': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List authenticators */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				200: components['responses']['Authenticators'];
+				401: components['responses']['Authentication'];
+				410: components['responses']['SessionGone'];
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/_allauth/{client}/v1/account/authenticators/totp': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * TOTP authenticator status
+		 * @description Retrieve the information about the current TOTP authenticator, if any.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				200: components['responses']['TOTPAuthenticator'];
+				404: components['responses']['TOTPAuthenticatorNotFound'];
+				409: components['responses']['AddAuthenticatorConflict'];
+			};
+		};
+		put?: never;
+		/**
+		 * Activate TOTP
+		 * @description The code should be provided from the consuming TOTP authenticator
+		 *     application which was generated using the TOTP authenticator secret
+		 *     retrieved from the TOTP authenticator status endpoint.
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody?: components['requestBodies']['SetupTOTP'];
+			responses: {
+				200: components['responses']['TOTPAuthenticator'];
+				/** @description An input error occurred. */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ErrorResponse'];
+					};
+				};
+				401: components['responses']['ReauthenticationRequired'];
+				409: components['responses']['AddAuthenticatorConflict'];
+			};
+		};
+		/**
+		 * Deactivate TOTP
+		 * @description Deactivates TOTP authentication. If the user authentication is not
+		 *     sufficiently recent, a reauthentication flow (`401`) will is presented.
+		 */
+		delete: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				200: components['responses']['StatusOK'];
+				401: components['responses']['ReauthenticationRequired'];
+			};
+		};
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/_allauth/{client}/v1/account/authenticators/recovery-codes': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List recovery codes
+		 * @description List recovery codes.
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				200: components['responses']['RecoveryCodes'];
+				401: components['responses']['ReauthenticationRequired'];
+				404: components['responses']['NotFound'];
+			};
+		};
+		put?: never;
+		/** Regenerate recovery codes */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description An input error occurred. */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['ErrorResponse'];
+					};
+				};
+				401: components['responses']['ReauthenticationRequired'];
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/_allauth/{client}/v1/auth/session': {
 		parameters: {
 			query?: never;
@@ -1237,6 +1559,53 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/_allauth/{client}/v1/auth/sessions': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List sessions */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				200: components['responses']['Sessions'];
+			};
+		};
+		put?: never;
+		post?: never;
+		/** End one or more sessions */
+		delete: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description The type of client accessing the API. */
+					client: components['parameters']['Client'];
+				};
+				cookie?: never;
+			};
+			requestBody: components['requestBodies']['EndSessions'];
+			responses: {
+				200: components['responses']['Sessions'];
+				401: components['responses']['Authentication'];
+			};
+		};
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/_allauth/{client}/v1/auth/signup/age-check': {
 		parameters: {
 			query?: never;
@@ -1336,7 +1705,9 @@ export interface paths {
 		 *     A password that passes gets a success answer. One that fails gets a 400
 		 *     with one error per failed rule, each with `param` `password` and Django's
 		 *     message and code (`password_too_short`, `password_too_common`,
-		 *     `password_entirely_numeric`, `password_too_similar`), the same errors
+		 *     `password_entirely_numeric`, `password_too_similar`,
+		 *     `password_breached` for a password found in a data breach, and
+		 *     `password_invalid_characters` for one that is not UTF-8 text), the same errors
 		 *     signup gives for that password and address. A missing, empty, or
 		 *     non-string password gets a field error on `password`.
 		 *
@@ -1412,8 +1783,11 @@ export interface components {
 			ip: string;
 			created_at: components['schemas']['Timestamp'];
 			is_current: boolean;
-			/** @example 123 */
-			id: number;
+			/**
+			 * @description An opaque id for the session, from the session list. Never a row id.
+			 * @example 3f9a1c0e8b7d4a2f9c6e5d4b3a291807
+			 */
+			id: string;
 			last_seen_at?: components['schemas']['Timestamp'];
 		};
 		/** @description Configuration of the Django `allauth.account` app. */
@@ -1443,7 +1817,7 @@ export interface components {
 		};
 		EndSessions: {
 			/** @description The IDs of the sessions that are to be ended. */
-			sessions: number[];
+			sessions: string[];
 		};
 		/** @description A phone number. */
 		PhoneNumber: {

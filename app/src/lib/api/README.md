@@ -24,4 +24,4 @@ The backend commits its OPEN API document as `openapi/openapi.json`. To refresh 
 
 allauth headless has no export command, so `pnpm api:pull:allauth` still fetches its document from a backend running on 127.0.0.1:8000. It is the same document `HEADLESS_SERVE_SPECIFICATION` serves. Run it only when the allauth routes change.
 
-The allauth document describes endpoints OPEN disables (phone, codes, sessions). Wrap only the ones we use.
+The allauth document describes endpoints OPEN disables (phone, codes). Wrap only the ones we use.

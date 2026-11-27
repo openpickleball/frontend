@@ -28,9 +28,10 @@
  * - A player corrects a pending or disputed match with no event on its own page,
  *   `/matches/{code}/correct`, which the route builds from the record-match form (backend#267).
  *   The backend voids the old match and returns the correction, a new match with a new code.
- *   `MatchOut` doesn't link the two or say whether a match has an event (backend#302), so the
- *   panel offers "Correct the score" on every pending or disputed match the player can name
- *   every player of (`canCorrect`), and the form explains the 404 an event match gets.
+ *   `MatchOut` doesn't link the two. It now sends the match's Event and Club (backend#302), but
+ *   the app does not read them yet (frontend#264 will), so the panel offers "Correct the score"
+ *   on every pending or disputed match the player can name every player of (`canCorrect`), and
+ *   the form explains the 404 an event match gets.
  *   `rememberCorrection(correction, old)` tells the cache, so the old match's page links to the
  *   correction in this visit.
  * - `status.ts` (`matchStatusCopy`) says how each status and decision reads and which buttons

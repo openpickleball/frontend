@@ -18,7 +18,23 @@ export interface paths {
 		get: operations['get_current_account'];
 		put?: never;
 		post?: never;
-		delete?: never;
+		/**
+		 * Delete Current Account
+		 * @description Delete your Account and your personal data.
+		 *
+		 *     Reauthenticate first, through allauth's `auth/reauthenticate` (your
+		 *     password) or `auth/2fa/reauthenticate` (a two-factor code); without a
+		 *     recent one you get 403 with code `reauthentication_required`. Your
+		 *     email address, name, birth year and month, gender division, city and
+		 *     region, privacy settings, sessions, two-factor methods, and
+		 *     organizer memberships go. Matches you played stay in the ledger, with
+		 *     your player shown as a private player, so other players' ratings do
+		 *     not change. Every session of the Account ends, this one included.
+		 *     The same email address can sign up again afterwards. A staff or
+		 *     superuser Account gets 409. An Account that must use two-factor
+		 *     authentication sets up a method first (403 `mfa_required`).
+		 */
+		delete: operations['delete_current_account'];
 		options?: never;
 		head?: never;
 		patch?: never;
@@ -202,8 +218,9 @@ export interface paths {
 		 * Correct Disputed Match
 		 * @description Settle a dispute on your Event's match by correcting it.
 		 *
-		 *     For a member of the verified organizer that ran the match's Event, who
-		 *     plays neither in the match nor in the correction. The correction also
+		 *     For a member of the verified organizer that ran the match's Event, with
+		 *     two-factor authentication, who plays neither in the match nor in the
+		 *     correction. The correction also
 		 *     needs the consent of every Club the match names to your organizer;
 		 *     without it you get 404 as well. The disputed match is voided and the
 		 *     correction, given as for a new match, is created confirmed and returned.
@@ -235,7 +252,8 @@ export interface paths {
 		 * @description Settle a dispute on your Event's match as confirmed or voided.
 		 *
 		 *     For a member of the verified organizer that ran the match's Event,
-		 *     who did not play in the match. The reason is required and is kept in
+		 *     with two-factor authentication, who did not play in the match. The
+		 *     reason is required and is kept in
 		 *     the match's audit log, which cannot be erased, so do not name a
 		 *     player in it. A confirmed match counts again. A match that is not
 		 *     disputed gets 409. Anyone else gets 404, as for an unknown code.
@@ -263,8 +281,9 @@ export interface paths {
 		 *     A match recorded with the same teams and date as another, with other
 		 *     scores, is held from counting along with that match until each one is
 		 *     vouched for at its own level. A match with an Event is vouched for by
-		 *     a member of the verified organizer that ran it whose player is in no
-		 *     match of the match's correction chain. A match with no Event is
+		 *     a member, with two-factor authentication, of the verified organizer
+		 *     that ran it whose player is in no match of the match's correction
+		 *     chain. A match with no Event is
 		 *     vouched for by one player of each team. A match with a club and no
 		 *     Event has no level: nobody vouches for it, and a hold against it ends
 		 *     only when a match is voided or the hold period ends. Once both
@@ -374,8 +393,9 @@ export interface paths {
 		 *     Lists each match that is not voided and that a possible duplicate
 		 *     hold keeps from counting, when you may vouch for it: a match with no
 		 *     Event you played in, or a match of an Event run by a verified
-		 *     organizer you are a member of, when your player is in no match of its
-		 *     correction chain. A match with a club and no Event is never listed:
+		 *     organizer you are a member of, when you have two-factor
+		 *     authentication and your player is in no match of its correction
+		 *     chain. A match with a club and no Event is never listed:
 		 *     nobody vouches for it. ``vouched`` says
 		 *     whether your side has vouched for it already. The other match of the
 		 *     hold is never named. A match leaves the list once the hold ends.
@@ -402,7 +422,8 @@ export interface paths {
 		 *     newest first.
 		 *
 		 *     Lists every disputed match of an Event run by a verified organizer
-		 *     you are a member of, except a match your player plays in, or plays in
+		 *     you are a member of, when you have two-factor authentication, except
+		 *     a match your player plays in, or plays in
 		 *     an earlier or later version of (a corrected match): you cannot settle
 		 *     those. Anyone else gets an empty page. A match leaves the list once
 		 *     its dispute is settled or ends.
@@ -484,7 +505,8 @@ export interface paths {
 		 * Create Organizer Event
 		 * @description Create an Event for a verified Organizer the Account is a member of.
 		 *
-		 *     403 for any other Organizer, an unknown one included. A Club must have
+		 *     The Account needs two-factor authentication. 403 for any other
+		 *     Organizer, an unknown one included, and for a member without it. A Club must have
 		 *     granted the Organizer a Club Organizer Grant (422 on ``club``).
 		 */
 		post: operations['create_organizer_event'];
@@ -547,6 +569,33 @@ export interface paths {
 		 *     recorded, a pending one included, is reported as a duplicate.
 		 */
 		post: operations['create_results_file'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/organizer/organizers': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List My Organizers
+		 * @description The Organizers the signed-in Account is a member of.
+		 *
+		 *     Verified or not, each with its OPEN Code (the value an Event create
+		 *     takes as ``organizer``), its name, whether it is verified, and the
+		 *     Account's own role there. Ordered by OPEN Code. Empty for an Account
+		 *     with no memberships. No other member is listed. ``verified`` is the
+		 *     Organizer's state: acting for a verified Organizer also needs MFA on
+		 *     the Account (ADR 0043).
+		 */
+		get: operations['list_my_organizers'];
+		put?: never;
+		post?: never;
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -986,6 +1035,16 @@ export interface components {
 			status: 'ok';
 		};
 		/**
+		 * MatchClubOut
+		 * @description The Club a match names: its OPEN Code and name.
+		 */
+		MatchClubOut: {
+			/** Code */
+			code: string;
+			/** Name */
+			name: string;
+		};
+		/**
 		 * MatchCorrectionIn
 		 * @description A player's correction of a self-reported match (#267).
 		 *
@@ -1038,6 +1097,23 @@ export interface components {
 			team_b: string[];
 		};
 		/**
+		 * MatchEventOut
+		 * @description The Event a match was recorded under.
+		 *
+		 *     ``organizer`` is the Event's Organizer's OPEN Code, the value
+		 *     ``report_organizer`` (``POST /api/v1/organizers/{code}/reports``)
+		 *     takes, which accepts it only while the Organizer is verified. The
+		 *     Organizer's name is never shown, since it may be a person's name.
+		 */
+		MatchEventOut: {
+			/** Code */
+			code: string;
+			/** Name */
+			name: string;
+			/** Organizer */
+			organizer: string;
+		};
+		/**
 		 * MatchFormat
 		 * @description Singles or doubles.
 		 *
@@ -1069,9 +1145,13 @@ export interface components {
 		 *     It counts player confirmations only: a match confirmed by an organizer,
 		 *     or a correction, can be confirmed with both false, so
 		 *     read ``status`` for whether the match is confirmed. ``created_at`` is when the match was submitted.
+		 *     ``event`` is the Event the match was recorded under, null for a match
+		 *     with none, and ``club`` the match's own Club, null for a match with
+		 *     none.
 		 */
 		MatchOut: {
 			best_of: components['schemas']['BestOf'];
+			club: components['schemas']['MatchClubOut'] | null;
 			/** Code */
 			code: string;
 			confirmed_by_team: components['schemas']['TeamConfirmationsOut'] | null;
@@ -1080,6 +1160,7 @@ export interface components {
 			 * Format: date-time
 			 */
 			created_at: string;
+			event: components['schemas']['MatchEventOut'] | null;
 			format: components['schemas']['MatchFormat'];
 			game_target: components['schemas']['GameTarget'];
 			/** Games */
@@ -1107,6 +1188,12 @@ export interface components {
 		 * @enum {string}
 		 */
 		MatchStatus: 'pending' | 'confirmed' | 'disputed' | 'voided';
+		/**
+		 * MemberRole
+		 * @description A role an Account holds at an Organizer.
+		 * @enum {string}
+		 */
+		MemberRole: 'admin' | 'match_manager';
 		/**
 		 * MyDecision
 		 * @description The viewer's own latest decision on a match.
@@ -1139,6 +1226,26 @@ export interface components {
 			privacy: components['schemas']['PrivacyOut'];
 			/** Region */
 			region: string;
+		};
+		/**
+		 * OrganizerMembershipOut
+		 * @description One of the signed-in Account's own Organizer memberships.
+		 *
+		 *     ``organizer`` is the Organizer's OPEN Code, the value
+		 *     ``EventCreateIn.organizer`` takes. ``name`` is the Organizer's name,
+		 *     shown only to its own members. ``verified`` says whether the Organizer
+		 *     is verified; it does not say whether the Account may act for it now
+		 *     (Organizer authority also needs MFA, ADR 0043). ``role`` is the
+		 *     Account's own role there. It names no other member.
+		 */
+		OrganizerMembershipOut: {
+			/** Name */
+			name: string;
+			/** Organizer */
+			organizer: string;
+			role: components['schemas']['MemberRole'];
+			/** Verified */
+			verified: boolean;
 		};
 		/**
 		 * OrganizerReportIn
@@ -1677,6 +1784,71 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	delete_current_account: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No Content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Conflict */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description Too many requests. Retry after the seconds in Retry-After. */
 			429: {
 				headers: {
@@ -1770,7 +1942,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -1840,6 +2012,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description Not Found */
 			404: {
 				headers: {
@@ -1901,7 +2082,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -1984,7 +2165,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -2063,7 +2244,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -2146,7 +2327,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -2229,7 +2410,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -2308,7 +2489,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -2387,7 +2568,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -2466,6 +2647,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description The request is not valid. */
 			422: {
 				headers: {
@@ -2511,6 +2701,15 @@ export interface operations {
 			};
 			/** @description The request is not authenticated. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -2570,6 +2769,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description The request is not valid. */
 			422: {
 				headers: {
@@ -2622,6 +2830,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description The request is not valid. */
 			422: {
 				headers: {
@@ -2664,6 +2881,15 @@ export interface operations {
 			};
 			/** @description The request is not authenticated. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -2724,7 +2950,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -2795,6 +3021,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description Not Found */
 			404: {
 				headers: {
@@ -2856,6 +3091,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description The request is not valid. */
 			422: {
 				headers: {
@@ -2909,7 +3153,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -2970,6 +3214,15 @@ export interface operations {
 			};
 			/** @description The request is not authenticated. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -3044,6 +3297,15 @@ export interface operations {
 			};
 			/** @description The request is not authenticated. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -3140,6 +3402,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description Not Found */
 			404: {
 				headers: {
@@ -3160,6 +3431,55 @@ export interface operations {
 			};
 			/** @description The request is not valid. */
 			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Too many requests. Retry after the seconds in Retry-After. */
+			429: {
+				headers: {
+					/** @description Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets. */
+					'Retry-After'?: number;
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+		};
+	};
+	list_my_organizers: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OrganizerMembershipOut'][];
+				};
+			};
+			/** @description The request is not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -3203,6 +3523,15 @@ export interface operations {
 			};
 			/** @description The request is not authenticated. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -3268,6 +3597,15 @@ export interface operations {
 			};
 			/** @description The request is not authenticated. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -3346,6 +3684,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description The request is not valid. */
 			422: {
 				headers: {
@@ -3391,6 +3738,15 @@ export interface operations {
 			};
 			/** @description The request is not authenticated. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -3462,6 +3818,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description Not Found */
 			404: {
 				headers: {
@@ -3526,6 +3891,15 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
 			/** @description Not Found */
 			404: {
 				headers: {
@@ -3580,6 +3954,15 @@ export interface operations {
 			};
 			/** @description The request is not authenticated. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ErrorResponse'];
+				};
+			};
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};

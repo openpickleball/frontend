@@ -108,7 +108,8 @@ export type MockMatch = {
 	hold?: MockHold;
 	/**
 	 * True for a match with an Event (or a Club). Players can't correct it: `correct_match`
-	 * answers 404. No fixture has one, since `MatchOut` can't show it; tests set it.
+	 * answers 404. No fixture has one; tests set it. `matchOut` always sends `event` and `club`
+	 * as `null`, even with this flag. Showing them is its own issue.
 	 */
 	event?: boolean;
 	/** The code of the match this one corrects, as `corrects` links them in the backend. */
@@ -769,7 +770,9 @@ export function createMockStore() {
 				game_target: match.gameTarget,
 				team_a: match.teamA.map(participant),
 				team_b: match.teamB.map(participant),
-				games: match.games.map((g, i) => ({ number: i + 1, team_a: g.a, team_b: g.b }))
+				games: match.games.map((g, i) => ({ number: i + 1, team_a: g.a, team_b: g.b })),
+				event: null,
+				club: null
 			};
 		},
 
