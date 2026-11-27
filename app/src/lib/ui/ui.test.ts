@@ -25,6 +25,7 @@ describe('index files', () => {
 				'badge',
 				'button',
 				'card',
+				'dialog',
 				'empty',
 				'input',
 				'label',

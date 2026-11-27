@@ -60,15 +60,15 @@ Paths are under `app/` unless stated.
 
 Each step is TDD (a failing test first, then the code) and its own commit, signed off.
 
-1. Add `uqr` and the shadcn-svelte `dialog`, restyled. No behavior yet. Gate: `pnpm check`, `pnpm lint`.
-2. Errors and client: `mfa_required` and `reauthentication_required` messages, `reauthFlowsOf`, `onMfaRequired` middleware. Fix the `my-code` 403 mapping.
-3. Mocks: store fields, fixtures, allauth MFA handlers, organizer handlers, `mfa_required` gate, storage key bump. Unit tests on the mock store's rules (reauthentication first, code once).
-4. Session and services: `pending_mfa`, `authenticateMfa`, `cancelMfa`, reauthentication calls, `loadAccountState`, clearing on sign out and expiry. Guard rules for `pending_mfa`.
-5. Sign-in code step: `MfaCodeForm` and the login form switch.
-6. Reauthentication: `reauth.svelte.ts`, `ReauthPrompt`, mounted in the root layout.
-7. Two-factor services and settings: `two-factor.ts`, `QrCode`, `RecoveryCodes`, `TwoFactorSettings`, the `/profile/two-factor` route, the profile section.
-8. Organizer prompt and the `mfa_required` toast.
-9. E2E spec and the service worker routing test. Full gate. Live drive.
+1. [x] Add `uqr` and the shadcn-svelte `dialog`, restyled. No behavior yet. Gate: `pnpm check`, `pnpm lint`.
+2. [ ] Errors and client: `mfa_required` and `reauthentication_required` messages, `reauthFlowsOf`, `onMfaRequired` middleware. Fix the `my-code` 403 mapping.
+3. [ ] Mocks: store fields, fixtures, allauth MFA handlers, organizer handlers, `mfa_required` gate, storage key bump. Unit tests on the mock store's rules (reauthentication first, code once).
+4. [ ] Session and services: `pending_mfa`, `authenticateMfa`, `cancelMfa`, reauthentication calls, `loadAccountState`, clearing on sign out and expiry. Guard rules for `pending_mfa`.
+5. [ ] Sign-in code step: `MfaCodeForm` and the login form switch.
+6. [ ] Reauthentication: `reauth.svelte.ts`, `ReauthPrompt`, mounted in the root layout.
+7. [ ] Two-factor services and settings: `two-factor.ts`, `QrCode`, `RecoveryCodes`, `TwoFactorSettings`, the `/profile/two-factor` route, the profile section.
+8. [ ] Organizer prompt and the `mfa_required` toast.
+9. [ ] E2E spec and the service worker routing test. Full gate. Live drive.
 
 ## Risks
 
