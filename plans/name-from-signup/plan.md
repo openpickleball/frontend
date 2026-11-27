@@ -83,7 +83,7 @@ A player's name comes only from the first and last name given at signup, and pla
 - [x] Display name page removed, Profile Name row
 - [x] Create-player details form
 - [x] e2e and a11y
-- [ ] Gate and live drive
+- [x] Gate and live drive
 
 ## Decisions
 
