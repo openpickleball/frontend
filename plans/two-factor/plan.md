@@ -107,6 +107,12 @@ Live drive (High tier): run `pnpm dev:stack` (real backend, seeded) and `pnpm de
 
 Measured on `origin/main` (`5761030`, 2026-11-26) for the phrase-absent test "no organizer wording for a non-member": `grep -n -i organizer app/src/routes/profile/+page.svelte app/src/lib/features/players/*.svelte` prints nothing, so the profile page has no organizer wording today. The test may check the whole profile page and the whole two-factor page for the word "organizer" (case-insensitive) when signed in as `player@example.com`.
 
+Rewritten frozen test, `app/src/lib/features/players/own-code-gate-mfa-code.svelte.test.ts` (2026-11-27). Each run copied only that file into a scratch worktree and ran `pnpm exec vitest run --project browser src/lib/features/players/own-code-gate-mfa-code.svelte.test.ts`:
+
+- At `0aec873` (the red commit, before the T1 fix): all 3 cases fail. "offers the code prompt" fails on `TimeoutError: locator.click` (no "Enter a code" button). The other two fail on `TypeError: Cannot read properties of undefined (reading 'mockImplementation')` and `(reading 'mockReset')`, because `checkMfaEnrolled` is not exported yet.
+- At `0aec873` plus only the `checkMfaEnrolled` export (`auth/services.ts`, `auth/index.ts`), without the gate change: "reads two-factor again when it is unknown" fails on `VitestBrowserElementError: Cannot find element with locator: getByRole('button', { name: 'Enter a code' })`. The gate never reads two-factor again and keeps the setup link. "offers the code prompt" fails on `TimeoutError: locator.click`. "keeps the setup link" passes. So the rewritten case catches the defect itself.
+- At `git merge-base origin/main HEAD` (`5761030`): all 3 fail on missing pieces. `TypeError: Cannot read properties of undefined (reading 'mockImplementation')` and `(reading 'settle')` (no `checkMfaEnrolled` or `reauthPrompt` on main), `TimeoutError: locator.click`, and `Cannot find element with locator: getByRole('link', { name: 'Set up two-factor' })` (main has no `mfa-required` status).
+
 ## Decisions
 
 - 2026-11-26, with the user: #261 reads the organizer memberships itself (`list_my_organizers`), following #217's "Only for organizers" rules, rather than waiting for #217. Issue criterion 1 is reworded to criterion 7 above, since Event screens are #217.
@@ -116,4 +122,4 @@ Measured on `origin/main` (`5761030`, 2026-11-26) for the phrase-absent test "no
 - 2026-11-26, live drive: allauth leaves `unused_codes` out of the recovery codes body once the codes were shown (it does not send an empty list). `getRecoveryCodes` now reads a missing list as no codes, pinned by `two-factor-shown-once.test.ts`, and the mock answers the same way.
 - 2026-11-26, live drive review: the `mfa_required` notice read `session.mfaEnrolled` before the authenticator list had loaded after a sign-in, so an account with two-factor could be told to set it up. It now waits for the account state read in flight, pinned by `mfa-required-race.test.ts`.
 - 2026-11-26, live drive: the backend's `GET account/authenticators/totp` makes a new setup key on every call, and the backend refuses a TOTP code that was already used in its 30-second window. The app reads the setup key once per visit to the page. The mock keeps one fixed key and accepts `MOCK_TOTP_CODE` every time, so neither rule is mocked.
-
+- 2026-11-27, with the user: the frozen test `own-code-gate-mfa-code.svelte.test.ts` was rewritten by one line (`session.mfaEnrolled = null;` first in "reads two-factor again when it is unknown"). The first case set `mfaEnrolled` to true, and nothing reset the session between cases, so the "unknown" case started with two-factor already on and could not pass against a correct gate. The proof is under Proof.
