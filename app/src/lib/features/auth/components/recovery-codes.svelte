@@ -4,15 +4,19 @@
 	/** New recovery codes, shown once. The player saves them, or copies them all at once. */
 	let { codes }: { codes: string[] } = $props();
 
-	let copied = $state(false);
+	/** The codes last copied, so "Copied." shows only while those same codes are on screen. */
+	let copiedText = $state<string | null>(null);
+	const text = $derived(codes.join('\n'));
+	const copied = $derived(copiedText === text);
 
 	async function copy() {
+		const copying = text;
 		try {
-			await navigator.clipboard.writeText(codes.join('\n'));
-			copied = true;
+			await navigator.clipboard.writeText(copying);
+			copiedText = copying;
 		} catch {
 			// No clipboard here (or the browser said no). The codes stay on screen to write down.
-			copied = false;
+			copiedText = null;
 		}
 	}
 </script>
