@@ -23,6 +23,9 @@
  * - `deleteAccount()`: delete the signed-in account. Run it through `withReauth`. On 204 it calls
  *   `endDeletedAccount()`, which runs the `onSignOut` listeners, signs out and sets
  *   `session.accountDeleted`, so sign-in can say the account was deleted.
+ * - `DeleteAccountDialog`: the "Delete your account" confirm dialog. It asks for the word
+ *   `delete`, runs `deleteAccount()` through `withReauth`, then goes to sign in. Profile renders
+ *   its row as the `trigger`.
  * - `goAfterSignIn(searchParams)`: go to `next`, or home, once signed in. The sign-in and
  *   sign-up pages call it.
  * - `watchSessionExpiry(onExpired)`: the root layout calls it once. The first 401 from the API
@@ -75,6 +78,7 @@ export {
 export { isAccountPath, safeNext } from './guard.js';
 export { goAfterSignIn } from './navigation.js';
 export { default as SignOutButton } from './components/sign-out-button.svelte';
+export { default as DeleteAccountDialog } from './components/delete-account-dialog.svelte';
 export { default as LoginForm } from './components/login-form.svelte';
 export { default as SignupForm } from './components/signup-form.svelte';
 export { default as VerifyEmail } from './components/verify-email.svelte';

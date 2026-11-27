@@ -88,7 +88,7 @@ Chosen not to do:
 - [x] Session flag and end-of-account
 - [x] Delete service
 - [x] Login notice
-- [ ] Dialog
+- [x] Dialog
 - [ ] Profile row
 - [ ] e2e
 - [ ] Gate and live drive
