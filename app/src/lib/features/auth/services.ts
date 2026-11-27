@@ -522,7 +522,10 @@ export function watchMfaRequired(
 			// The cached answer may be old: two-factor turned on from another device is the usual
 			// way a session meets this refusal. Unless it already says on, ask again.
 			if (session.mfaEnrolled !== true && session.isSignedIn) {
+				const email = session.email;
 				const fresh = await readEnrolled(api);
+				// Another account signed in meanwhile: this answer and this notice are not theirs.
+				if (!session.isSignedIn || session.email !== email) return;
 				if (fresh !== null) session.mfaEnrolled = fresh;
 			}
 			notify(session.mfaEnrolled === true);
