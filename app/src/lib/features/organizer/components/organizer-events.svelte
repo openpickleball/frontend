@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import ClockIcon from '@lucide/svelte/icons/clock';
@@ -21,6 +22,7 @@
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import {
 		BACK_TO_NEWEST,
+		EVENT_CREATED,
 		LIST_EMPTY_TEXT,
 		LIST_EMPTY_TITLE,
 		LIST_ERROR,
@@ -117,6 +119,8 @@
 	 */
 	function saved(event: OrganizerEvent) {
 		if (editing?.code !== event.code) {
+			// The new Event may belong on another page, so say it was created wherever it lands.
+			toast(EVENT_CREATED, { description: event.name });
 			void load(pageOffset());
 			return;
 		}

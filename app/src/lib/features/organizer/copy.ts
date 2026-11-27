@@ -8,6 +8,7 @@ import { session } from '#lib/features/auth/index.js';
 export const PAGE_TITLE = 'Events';
 export const NEW_EVENT = 'New Event';
 export const EDIT_EVENT = 'Edit Event';
+export const EVENT_CREATED = 'Event created';
 
 export const waitingForVerification = (name: string) =>
 	`${name} is waiting for verification. You can create Events once OPEN verifies it.`;
