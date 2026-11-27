@@ -32,27 +32,39 @@ export type Rating = {
 export type Visibility = OpenComponents['schemas']['Visibility'];
 
 /**
- * The profile details that have a privacy setting. The display name has none. `home_club` stays
- * while `PrivacyOut` still has `home_club_visibility`. `rating` is `rating_visibility`: who sees
- * the current ratings. It has its own rules, so it is not a plain switch (`SwitchKey`).
+ * How the name other players see shows the last name: in full ("First Last") or as an initial
+ * ("First L."). The backend's `NameFormat`. The backend builds the name: the app never does.
  */
-export type PrivacyKey =
+export type NameFormat = OpenComponents['schemas']['NameFormat'];
+
+/**
+ * The profile details that have a visibility setting. The name has none: it is always shown, in
+ * the player's `NameFormat`. `home_club` stays while `PrivacyOut` still has
+ * `home_club_visibility`. `rating` is `rating_visibility`: who sees the current ratings. It has
+ * its own rules, so it is not a plain switch (`SwitchKey`).
+ */
+export type VisibilityKey =
 	'match_history' | 'stats' | 'rating_history' | 'home_club' | 'city_region' | 'rating';
 
 /** The settings a player can switch either way at any time. */
-export type SwitchKey = Exclude<PrivacyKey, 'rating'>;
+export type SwitchKey = Exclude<VisibilityKey, 'rating'>;
 
-export type Privacy = Record<PrivacyKey, Visibility>;
+/** The privacy settings: who sees each detail, and `name`, the backend's `name_format`. */
+export type Privacy = Record<VisibilityKey, Visibility> & { name: NameFormat };
+
+export type PrivacyKey = keyof Privacy;
 
 /** What the player can change on their own profile, from `GET me/player` (backend#124). */
 export type MySettings = {
+	/** The name other players see, as the backend built it. */
 	displayName: string;
+	/** True while the name must stay "First L." (13 to 17). The backend decides. */
+	nameLocked: boolean;
 	privacy: Privacy;
 };
 
 /** A change to send. Only what changes. */
 export type MySettingsChange = {
-	displayName?: string;
 	privacy?: Partial<Privacy>;
 };
 
