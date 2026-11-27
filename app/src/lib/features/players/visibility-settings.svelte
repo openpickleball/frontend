@@ -20,10 +20,11 @@
 
 	async function change<K extends PrivacyKey>(settings: SettingsStore, key: K, value: Privacy[K]) {
 		// The settings belong to the player whose code the gate holds now. The answer may arrive
-		// after a sign-out, so the name goes only to that player.
+		// after a sign-out, so the name goes only to that player. Only an applied name answer
+		// carries a name the backend just built.
 		const code = myCode.code;
-		if ((await settings.setPrivacy(key, value)) && code)
-			myCode.showName(code, settings.displayName);
+		const applied = await settings.setPrivacy(key, value);
+		if (applied && key === 'name' && code) myCode.showName(code, settings.displayName);
 	}
 </script>
 

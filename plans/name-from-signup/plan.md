@@ -57,9 +57,8 @@ A player's name comes only from the first and last name given at signup, and pla
 
 ## Risks
 
-- Found in review and fixed: overlapping privacy saves can answer out of order. The store applies an answer only when no newer call's answer was applied, and a stale one returns false so no stale name reaches `myCode` (`settings-store.test.ts`).
+- Found in review and fixed: overlapping privacy saves can answer out of order, and the backend may handle saves of different settings in either order. Each answer is the authority only for the setting it saved: the store tracks the newest applied call per setting, takes only that setting from an answer, and takes the name and its lock only from a `name` answer. An answer older than one already applied for the same setting is stale and returns false, so no stale name reaches `myCode`; the page calls `myCode.showName` only for an applied `name` answer (`settings-store.test.ts`, `settings-store-order.test.ts`).
 - Found in review and fixed: a save still in flight when the page unmounts and the account changes would show the previous account's name. `myCode.showName(code, name)` applies only for the player whose code the page held when the change started (`my-code.test.ts`, `settings-pages.svelte.test.ts`).
-
 - Contract drift: if backend#354's final names differ from `name_format` / `name_format_locked`, follow the generated types and update this plan.
 - The locked switch must not look like a broken control: disabled with a reason in its description, and `aria-describedby` points at it.
 - The optimistic switch shows the old name until the response arrives. Show the name from the response, never a guess.

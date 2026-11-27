@@ -48,8 +48,11 @@ export class SettingsStore {
 	/** The newest change in flight for each setting. */
 	#latest: Partial<Record<PrivacyKey, number>> = {};
 	#calls = 0;
-	/** The newest call whose answer was applied. An older answer arriving later is stale. */
-	#applied = 0;
+	/**
+	 * For each setting, the newest call whose answer was applied. An older answer for the same
+	 * setting arriving later is stale.
+	 */
+	#applied: Partial<Record<PrivacyKey, number>> = {};
 
 	constructor(deps: Partial<SettingsDeps> = {}) {
 		this.#deps = {
@@ -78,11 +81,14 @@ export class SettingsStore {
 
 	/**
 	 * Change one privacy setting: who may see a detail, or how the name is shown. Only that
-	 * setting is sent. The switch moves at once. When the backend answers, every switch shows
-	 * what it holds, except one the player has changed again since, and the name is the one it
-	 * built. If the save fails, the switch goes back to what the backend last said. An answer
-	 * older than one already applied is stale: it changes nothing, and the result is false, so the
-	 * caller shows no name from it.
+	 * setting is sent. The switch moves at once. If the save fails, the switch goes back to what
+	 * the backend last said.
+	 *
+	 * The backend may handle overlapping saves of different settings in either order, so an
+	 * answer is the authority only for the setting it saved. Only that setting is taken from it,
+	 * and for `name` also the name the backend built and its lock. An answer older than one
+	 * already applied for the same setting is stale: it changes nothing, and the result is false,
+	 * so the caller shows no name from it. Other settings come from their own answers or the load.
 	 */
 	async setPrivacy<K extends PrivacyKey>(key: K, value: Privacy[K]): Promise<boolean> {
 		const privacy = this.privacy;
@@ -95,11 +101,13 @@ export class SettingsStore {
 		this.privacy = { ...privacy, [key]: value };
 		try {
 			const settings = await this.#deps.updateMySettings({ privacy: { [key]: value } });
-			if (run !== this.#run || call < this.#applied) return false;
-			this.#applied = call;
-			this.#confirmed = { ...settings.privacy };
-			this.displayName = settings.displayName;
-			this.nameLocked = settings.nameLocked;
+			if (run !== this.#run || call < (this.#applied[key] ?? 0)) return false;
+			this.#applied[key] = call;
+			if (this.#confirmed) this.#confirmed = { ...this.#confirmed, [key]: settings.privacy[key] };
+			if (key === 'name') {
+				this.displayName = settings.displayName;
+				this.nameLocked = settings.nameLocked;
+			}
 			return true;
 		} catch (error) {
 			if (run !== this.#run) return false;
@@ -130,6 +138,7 @@ export class SettingsStore {
 		this.nameLocked = settings.nameLocked;
 		this.#confirmed = { ...settings.privacy };
 		this.#latest = {};
+		this.#applied = {};
 		this.privacy = { ...settings.privacy };
 	}
 }
