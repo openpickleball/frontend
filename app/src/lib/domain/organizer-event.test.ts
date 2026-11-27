@@ -126,6 +126,11 @@ describe('eventInputSchema', () => {
 		expect(result.end_date).toEqual(['Enter the end date.']);
 	});
 
+	it('checks the date order even when another field fails', () => {
+		const result = errors({ ...valid, name: '', end_date: '2026-10-03' });
+		expect(Object.keys(result).sort()).toEqual(['end_date', 'name']);
+	});
+
 	it('refuses an end date before the start date, on the end date', () => {
 		expect(errors({ ...valid, end_date: '2026-10-03' }).end_date).toEqual([
 			'The end date cannot be before the start date.'

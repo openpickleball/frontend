@@ -432,7 +432,12 @@ export const eventInputSchema = z
 	})
 	.refine((input) => !input.start_date || !input.end_date || input.end_date >= input.start_date, {
 		path: ['end_date'],
-		message: 'The end date cannot be before the start date.'
+		message: 'The end date cannot be before the start date.',
+		// Check the order even when another field failed, so every problem shows at once.
+		when: ({ value }) => {
+			const dates = (value ?? {}) as Record<string, unknown>;
+			return typeof dates.start_date === 'string' && typeof dates.end_date === 'string';
+		}
 	});
 
 export type EventInput = z.input<typeof eventInputSchema>;
