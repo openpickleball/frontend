@@ -38,6 +38,7 @@ A player's name comes only from the first and last name given at signup, and pla
 - `app/src/lib/mocks/store.ts`, `player-rules.ts`, `handlers/open.ts`, `fixtures.ts`: criterion 7. Fixtures use made-up names only.
 - Tests: `settings-pages.svelte.test.ts`, `settings-store.test.ts`, `my-code.test.ts`, `settings.test.ts`, `services.test.ts`, `player-details-form.svelte.test.ts`, `integration.test.ts`, `handlers/index.test.ts`, `routes.test.ts`, `profile-page.test.ts`, `auth/guard.test.ts`, `e2e/profile.spec.ts`, `e2e/a11y.test.ts`.
 - `plans/name-from-signup/plan.md`: this file.
+- Added in implementation: `app/src/lib/domain/schemas.ts` (exports `playerNamesSchema`, signup's name rules, for `checkDetails`); `app/src/lib/mocks/handlers/allauth.ts` (signup's name check moved to `player-rules.ts`, shared with the create's body path); `fixtures.test.ts` (snapshot reset and built names); `own-code-gate.svelte` and its test (the details form intro says "first and last name"); `routes/long-names.svelte.test.ts` (the Profile Name row now shows the name, so a long one must wrap there); `app/README.md` (the create asks for first and last name).
 
 ## Order of work
 
@@ -90,3 +91,8 @@ A player's name comes only from the first and last name given at signup, and pla
 - Adults: "First Last" by default, with a switch for "First L." (project owner, 2026-11-27).
 - 13 to 17: always "First L.", the switch shown locked; nothing changes at 18 (project owner, 2026-11-27).
 - The switch lives on Profile > Privacy, first row, since it decides what other players see.
+- `Privacy` gains `name` and `setVisibility` becomes `setPrivacy(key, value)`, so the name switch shares the optimistic save, overlap handling and revert. `myCode.rename` becomes `myCode.showName`, called after any saved privacy change with the name the backend returned.
+- The switch's visible label is "Show my last name as an initial" (its accessible name); "Last name" above means the row, not a second label.
+- The Profile Name row shows the name under the "Name" title, then the line "From your sign-up. It can't be changed.", so a long name wraps inside the row instead of pushing the page sideways.
+- The Home greeting shows only the first word of the name ("Hi, Tamsin"), so it reads the same in both formats. It still follows `myCode.displayName`; changing the greeting is out of scope.
+- Regenerating from backend#354's `openapi/openapi.json` also brought in backend changes already on that branch that this plan does not use (two-factor reauthentication notes in descriptions). No app code depends on them.
