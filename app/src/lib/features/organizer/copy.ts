@@ -15,6 +15,8 @@ export const waitingForVerification = (name: string) =>
 
 export const LIST_EMPTY_TITLE = 'No Events yet';
 export const LIST_EMPTY_TEXT = 'Events your organizers create show here.';
+export const PAST_THE_END_TITLE = 'There are no Events on this page';
+export const BACK_TO_NEWEST = 'Back to the newest';
 export const LIST_ERROR = "We couldn't load your Events.";
 export const LIST_LABEL = 'Your Events';
 

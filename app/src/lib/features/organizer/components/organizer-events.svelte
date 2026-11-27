@@ -11,14 +11,22 @@
 	import { Alert, AlertAction, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
-	import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '#lib/ui/empty/index.js';
+	import {
+		Empty,
+		EmptyContent,
+		EmptyDescription,
+		EmptyHeader,
+		EmptyTitle
+	} from '#lib/ui/empty/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import {
+		BACK_TO_NEWEST,
 		LIST_EMPTY_TEXT,
 		LIST_EMPTY_TITLE,
 		LIST_ERROR,
 		LIST_LABEL,
 		NEW_EVENT,
+		PAST_THE_END_TITLE,
 		TWO_FACTOR_LINK,
 		waitingForVerification
 	} from '../copy.js';
@@ -171,15 +179,22 @@
 	{/if}
 {:else if status === 'loading'}
 	<LoadingState label="Loading your Events…" variant="line" class="mt-8" />
-{:else if count === 0 || items.length === 0}
+{:else if count === 0}
 	<Empty class="mt-8">
 		<EmptyHeader>
 			<EmptyTitle>{LIST_EMPTY_TITLE}</EmptyTitle>
 			<EmptyDescription>{LIST_EMPTY_TEXT}</EmptyDescription>
 		</EmptyHeader>
-		{#if count > 0}
-			<Button href={pageHref(1)} variant="outline">Back to the newest</Button>
-		{/if}
+	</Empty>
+{:else if items.length === 0}
+	<!-- A page past the end, such as an old link or the last row of a later page deleted. -->
+	<Empty class="mt-8">
+		<EmptyHeader>
+			<EmptyTitle>{PAST_THE_END_TITLE}</EmptyTitle>
+		</EmptyHeader>
+		<EmptyContent>
+			<Button href={pageHref(1)} variant="outline">{BACK_TO_NEWEST}</Button>
+		</EmptyContent>
 	</Empty>
 {:else}
 	<section class="mt-8" aria-label="Page {current} of {Math.ceil(count / EVENTS_PAGE_SIZE)}">
