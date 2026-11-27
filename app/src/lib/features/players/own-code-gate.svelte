@@ -100,8 +100,8 @@
 	<Section title="Finish your player profile" headingId="details-heading" class={fallbackClass}>
 		<div class="grid gap-8">
 			<p class="max-w-md text-muted">
-				We need your birth month and year, gender and a display name again. This can happen if you
-				confirmed your email on another device.
+				We need your birth month and year, gender and your first and last name again. This can
+				happen if you confirmed your email on another device.
 			</p>
 			<PlayerDetailsForm
 				errors={myCode.detailErrors}

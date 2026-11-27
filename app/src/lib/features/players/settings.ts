@@ -1,8 +1,5 @@
-import { birthYearSchema } from '#lib/domain/index.js';
+import { birthYearSchema, playerNamesSchema } from '#lib/domain/index.js';
 import type { SwitchKey } from './types.js';
-
-/** The backend's `Player.display_name` max_length, counted after trimming. */
-export const DISPLAY_NAME_MAX = 64;
 
 /**
  * The privacy settings a player can switch either way, in the order the profile lists them,
@@ -16,28 +13,13 @@ export const PRIVACY_ROWS: readonly { key: SwitchKey; label: string }[] = [
 	{ key: 'city_region', label: 'City and region' }
 ];
 
-export type NameCheck = { ok: true; value: string } | { ok: false; message: string };
-
-/**
- * A quick check before saving, so the player hears about an empty or long name at once.
- * The backend checks the name again and has more rules; its message wins.
- */
-export function checkDisplayName(raw: string): NameCheck {
-	const value = raw.trim();
-	if (value === '') return { ok: false, message: 'Enter a display name.' };
-	// Count code points, as the backend does, not UTF-16 units.
-	if ([...value].length > DISPLAY_NAME_MAX) {
-		return { ok: false, message: `Use ${DISPLAY_NAME_MAX} characters or fewer.` };
-	}
-	return { ok: true, value };
-}
-
 /** The details form's values, as typed. Each one is a form field name, as the backend names it. */
 export type DetailValues = {
 	birth_month: string;
 	birth_year: string;
 	gender_division: string;
-	display_name: string;
+	first_name: string;
+	last_name: string;
 };
 
 /** The body `POST me/player` takes when the backend holds no sign-up details. */
@@ -45,7 +27,8 @@ export type DetailBody = {
 	birth_month: number;
 	birth_year: number;
 	gender_division: string;
-	display_name: string;
+	first_name: string;
+	last_name: string;
 };
 
 export type DetailsCheck =
@@ -64,16 +47,28 @@ export function checkDetails(values: DetailValues): DetailsCheck {
 	const year = birthYearSchema.safeParse(values.birth_year);
 	if (!year.success) errors.birth_year = year.error.issues[0]?.message ?? 'Enter your birth year.';
 	if (values.gender_division === '') errors.gender_division = 'Choose a gender division.';
-	const name = checkDisplayName(values.display_name);
-	if (!name.ok) errors.display_name = name.message;
-	if (Object.keys(errors).length > 0 || !name.ok || !year.success) return { ok: false, errors };
+	// Signup's name rules and messages: the backend checks the body's names with the same ones.
+	const names = playerNamesSchema.safeParse({
+		first_name: values.first_name,
+		last_name: values.last_name
+	});
+	if (!names.success) {
+		for (const issue of names.error.issues) {
+			const field = issue.path[0] as 'first_name' | 'last_name';
+			errors[field] ??= issue.message;
+		}
+	}
+	if (Object.keys(errors).length > 0 || !names.success || !year.success) {
+		return { ok: false, errors };
+	}
 	return {
 		ok: true,
 		value: {
 			birth_month: Number(values.birth_month),
 			birth_year: year.data,
 			gender_division: values.gender_division,
-			display_name: name.value
+			first_name: names.data.first_name,
+			last_name: names.data.last_name
 		}
 	};
 }

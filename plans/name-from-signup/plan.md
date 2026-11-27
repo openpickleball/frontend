@@ -80,7 +80,7 @@ A player's name comes only from the first and last name given at signup, and pla
 - [x] Store and myCode
 - [x] Privacy switch
 - [x] Display name page removed, Profile Name row
-- [ ] Create-player details form
+- [x] Create-player details form
 - [ ] e2e and a11y
 - [ ] Gate and live drive
 

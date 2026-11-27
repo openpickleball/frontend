@@ -101,11 +101,12 @@ describe('OwnCodeGate', () => {
 			await expect
 				.element(
 					page.getByText(
-						'We need your birth month and year, gender and a display name again. This can happen if you confirmed your email on another device.'
+						'We need your birth month and year, gender and your first and last name again. This can happen if you confirmed your email on another device.'
 					)
 				)
 				.toBeVisible();
-			await expect.element(page.getByLabelText('Display name')).toBeVisible();
+			await expect.element(page.getByLabelText('First name')).toBeVisible();
+			await expect.element(page.getByLabelText('Last name')).toBeVisible();
 		});
 
 		it('sends the details through myCode', async () => {
@@ -114,13 +115,15 @@ describe('OwnCodeGate', () => {
 			await page.getByLabelText('Month').selectOptions('June');
 			await page.getByLabelText('Year').fill('1990');
 			await page.getByRole('radio', { name: 'Man' }).click();
-			await page.getByLabelText('Display name').fill('Sam Rivera');
+			await page.getByLabelText('First name').fill('Sam');
+			await page.getByLabelText('Last name').fill('Rivera');
 			await page.getByRole('button', { name: 'Save and show my code' }).click();
 			expect(submit).toHaveBeenCalledWith({
 				birth_month: 6,
 				birth_year: 1990,
 				gender_division: 'mens',
-				display_name: 'Sam Rivera'
+				first_name: 'Sam',
+				last_name: 'Rivera'
 			});
 			submit.mockRestore();
 		});

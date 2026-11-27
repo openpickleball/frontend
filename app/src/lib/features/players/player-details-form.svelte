@@ -14,12 +14,7 @@
 	} from '#lib/ui/field/index.js';
 	import { RadioGroup, RadioGroupItem } from '#lib/ui/radio-group/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
-	import {
-		DISPLAY_NAME_MAX,
-		checkDetails,
-		type DetailBody,
-		type DetailValues
-	} from './settings.js';
+	import { checkDetails, type DetailBody, type DetailValues } from './settings.js';
 
 	let {
 		onsubmit,
@@ -41,7 +36,8 @@
 		birth_month: '',
 		birth_year: '',
 		gender_division: '',
-		display_name: ''
+		first_name: '',
+		last_name: ''
 	});
 	/** The client check's messages, from the last submit. */
 	let checked = $state<Partial<Record<keyof DetailValues, string>>>({});
@@ -131,14 +127,20 @@
 		{/if}
 	</FieldSet>
 	<TextField
-		id="{id}-display_name"
-		name="display_name"
-		label="Display name"
-		autocomplete="nickname"
-		maxlength={DISPLAY_NAME_MAX}
-		hint="Other players see this name, and can find you by it."
-		bind:value={values.display_name}
-		error={shown('display_name')}
+		id="{id}-first_name"
+		name="first_name"
+		label="First name"
+		autocomplete="given-name"
+		bind:value={values.first_name}
+		error={shown('first_name')}
+	/>
+	<TextField
+		id="{id}-last_name"
+		name="last_name"
+		label="Last name"
+		autocomplete="family-name"
+		bind:value={values.last_name}
+		error={shown('last_name')}
 	/>
 	<div class="grid gap-4">
 		<Button type="submit" aria-disabled={busy} aria-busy={busy} class="w-full">

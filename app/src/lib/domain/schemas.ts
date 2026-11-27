@@ -278,6 +278,14 @@ const namesTogether = {
 	}
 };
 
+/**
+ * A first and last name with signup's checks and messages. The create's body takes them when
+ * the backend holds no sign-up details (backend `PlayerNamesForm`), so the rules are the same.
+ */
+export const playerNamesSchema = z
+	.object({ first_name: firstNameSchema, last_name: lastNameSchema })
+	.refine(namesFit, namesTogether);
+
 /** What the form holds for the optional city: the typed text and the suggestion picked, if any. */
 export type CityInput = { text: string; chosen: { city: string; region: string } | null };
 
