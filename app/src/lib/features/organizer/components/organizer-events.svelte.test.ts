@@ -154,8 +154,10 @@ describe('OrganizerEvents callouts', () => {
 });
 
 describe('OrganizerEvents delete', () => {
-	it('asks first, naming the Event, then removes the row', async () => {
-		mocked.listOrganizerEvents.mockResolvedValue({ items: [event()], count: 1 });
+	it('asks first, naming the Event, then reads the page without it', async () => {
+		mocked.listOrganizerEvents
+			.mockResolvedValueOnce({ items: [event()], count: 1 })
+			.mockResolvedValueOnce({ items: [], count: 0 });
 		mocked.deleteOrganizerEvent.mockResolvedValue();
 		await render(OrganizerEvents, { page: 1 });
 		await page.getByRole('button', { name: 'Delete Larkspur Winter League' }).click();

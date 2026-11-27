@@ -103,7 +103,15 @@
 	/** Newest start date first, as the API orders them. */
 	const byStart = (a: OrganizerEvent, b: OrganizerEvent) => b.startDate.localeCompare(a.startDate);
 
+	/**
+	 * A new Event can belong on any page, and moves the others along, so the page is read again.
+	 * An edit replaces its row.
+	 */
 	function saved(event: OrganizerEvent) {
+		if (editing?.code !== event.code) {
+			void load(offset);
+			return;
+		}
 		const at = items.findIndex((e) => e.code === event.code);
 		if (at >= 0) {
 			items[at] = event;
@@ -113,9 +121,9 @@
 		}
 	}
 
-	function deleted(code: string) {
-		items = items.filter((e) => e.code !== code);
-		count = Math.max(0, count - 1);
+	/** A delete moves the next Event up from a later page, so the page is read again. */
+	function deleted() {
+		void load(offset);
 	}
 
 	/** A change or delete got 404: read the list again. The memberships were read again too. */
