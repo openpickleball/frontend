@@ -13,7 +13,7 @@ import type { MyPlayer } from './types.js';
  * - `loading`: asking the backend.
  * - `ready`: `code` is set.
  * - `needs-details`: the account has no player, and the backend needs the details it holds from
- *   sign-up (birth month and year, gender division, display name). Show the details form.
+ *   sign-up (birth month and year, gender division, first and last name). Show the details form.
  * - `refused`: the backend refused the age. It holds for the session: show no form and no prompt.
  * - `unverified`: the account's email is not verified yet (a 403 from the create).
  * - `not-created`: the create on load was refused for its values (a 422 with nothing missing).
@@ -44,7 +44,13 @@ export type MyCodeDeps = {
 };
 
 /** The fields of the details form. A 422 on any other field is shown as `detailProblem`. */
-export const DETAIL_FIELDS = ['birth_month', 'birth_year', 'gender_division', 'display_name'];
+export const DETAIL_FIELDS = [
+	'birth_month',
+	'birth_year',
+	'gender_division',
+	'first_name',
+	'last_name'
+];
 
 const SUBMIT_FAILED = 'Something went wrong on our side. Wait a moment, then try again.';
 
@@ -164,8 +170,8 @@ export class MyCode {
 		this.status = 'idle';
 	}
 
-	/** Show a display name the player just saved. */
-	rename(displayName: string): void {
+	/** Show the name the backend returned after the player changed how it is shown. */
+	showName(displayName: string): void {
 		if (this.status === 'ready') this.displayName = displayName;
 	}
 
