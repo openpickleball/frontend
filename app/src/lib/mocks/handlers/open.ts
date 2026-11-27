@@ -9,7 +9,9 @@ import {
 	duplicateMatch,
 	ninjaError,
 	notFound,
+	reauthenticationRequiredOpen,
 	stateConflict,
+	throttled,
 	unauthorized,
 	validationError
 } from '../responses';
@@ -175,6 +177,25 @@ export function createOpenHandlers(store: MockStore) {
 			const email = guard(request, cookies);
 			if (typeof email !== 'string') return response.untyped(email);
 			return response(200).json({ email });
+		}),
+
+		// `delete_current_account`, after the `mfa_required` catch-all above and `guard`. The
+		// throttle counts every attempt of the session and comes first, so repeated tries end in
+		// 429 even when each was refused. Then a recent reauthentication, then staff (409).
+		http.delete('/api/v1/accounts/me', ({ request, cookies, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			if (store.deleteAttemptThrottled()) return response.untyped(throttled());
+			if (!store.recentlyReauthenticated()) {
+				return response.untyped(reauthenticationRequiredOpen());
+			}
+			if (store.accountByEmail(email)?.staff) {
+				return response.untyped(
+					ninjaError(409, 'conflict', 'A staff account cannot be deleted here.')
+				);
+			}
+			store.deleteAccount(email);
+			return response(204).empty();
 		}),
 
 		http.post('/api/v1/matches/', async ({ request, cookies, response }) => {

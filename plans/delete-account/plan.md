@@ -83,7 +83,7 @@ Chosen not to do:
 
 ## Steps
 
-- [ ] Mocks
+- [x] Mocks
 - [ ] Session flag and end-of-account
 - [ ] Delete service
 - [ ] Login notice

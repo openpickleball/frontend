@@ -106,6 +106,8 @@ export type MockAccount = {
 	organizers?: FixtureMembership[];
 	/** Must have two-factor: stands in for staff and moderators (ADR 0043). */
 	mfaRequired?: boolean;
+	/** A staff account: `DELETE accounts/me` answers 409. */
+	staff?: boolean;
 };
 
 /**
@@ -119,10 +121,15 @@ export type MockSession = {
 	stage: 'mfa' | null;
 	mfaAt: number | null;
 	reauthAt: number | null;
+	/** `DELETE accounts/me` attempts this session made. Older snapshots have none. */
+	deleteAttempts?: number;
 };
 
 /** allauth's `ACCOUNT_REAUTHENTICATION_TIMEOUT`: a reauthentication counts for 300 seconds. */
 export const REAUTHENTICATION_SECONDS = 300;
+
+/** `DELETE accounts/me` attempts a session may make before it is throttled (a 429). */
+export const DELETE_ACCOUNT_ATTEMPTS = 5;
 
 /** The authenticator types this backend supports (`MFA_SUPPORTED_TYPES`). */
 export const MFA_TYPES = ['totp', 'recovery_codes'] as const;
@@ -771,6 +778,32 @@ export function createMockStore() {
 			const stage = account.totp ? 'mfa' : null;
 			state.session = { email: account.email, at: now(), stage, mfaAt: null, reauthAt: null };
 			return stage ? 'mfa' : 'ok';
+		},
+
+		/**
+		 * Count a `DELETE accounts/me` attempt of this session and say whether it is over the limit.
+		 * Every attempt counts, refused ones too, as a rate limit would.
+		 */
+		deleteAttemptThrottled(): boolean {
+			const session = state.session;
+			if (!session) return false;
+			session.deleteAttempts = (session.deleteAttempts ?? 0) + 1;
+			return session.deleteAttempts > DELETE_ACCOUNT_ATTEMPTS;
+		},
+
+		/**
+		 * `DELETE accounts/me`: the account goes, its session ends and its organizer memberships go
+		 * with it. Its player stays, unlinked, so it shows as a private player like one of an
+		 * inactive account, and the same address can sign up again.
+		 */
+		deleteAccount(email: string): void {
+			state.accounts = state.accounts.filter((a) => a.email !== email);
+			for (const player of state.players) {
+				if (player.accountEmail === email) player.accountEmail = null;
+			}
+			if (state.session?.email === email) state.session = null;
+			if (state.pendingEmail === email) state.pendingEmail = null;
+			if (state.signupHold?.email === email) state.signupHold = null;
 		},
 
 		/** Logging out flushes the session: the hold goes, the refusal flag stays (ADR 0017). */

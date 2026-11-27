@@ -16,7 +16,9 @@
  * - `twofactor@example.com`: two-factor on. Sign in with `MOCK_TOTP_CODE` or a recovery code.
  * - `moderator@example.com`: must have two-factor (as staff and moderators must) and has none,
  *   so the OPEN API answers 403 `mfa_required`.
- * These four have no player yet.
+ * - `staff@example.com`: staff, with two-factor on (sign in with `MOCK_TOTP_CODE`). Deleting
+ *   the account is refused with 409.
+ * These five have no player yet.
  */
 import { ALPHABET, buildCode } from '../domain/codes';
 import type { components } from '../api/generated/open';
@@ -46,6 +48,7 @@ export const ORGANIZER_EMAIL = 'organizer@example.com';
 export const TWO_FACTOR_EMAIL = 'twofactor@example.com';
 export const MFA_REQUIRED_EMAIL = 'moderator@example.com';
 export const MANAGER_EMAIL = 'manager@example.com';
+export const STAFF_EMAIL = 'staff@example.com';
 
 /**
  * MOCK ONLY. The mock accepts this as the current code of every authenticator app, at any time.
@@ -192,6 +195,8 @@ export type FixtureAccount = {
 	organizers?: FixtureMembership[];
 	/** Must have two-factor, as staff and moderators must (ADR 0043). */
 	mfaRequired?: boolean;
+	/** A staff account: the backend refuses to delete it from the app. */
+	staff?: boolean;
 };
 
 export type FixturePlayer = {
@@ -330,6 +335,15 @@ export const ACCOUNTS: readonly FixtureAccount[] = [
 		verified: true,
 		active: true,
 		mfaRequired: true
+	},
+	{
+		email: STAFF_EMAIL,
+		password: MOCK_PASSWORD,
+		verified: true,
+		active: true,
+		twoFactor: true,
+		mfaRequired: true,
+		staff: true
 	}
 ];
 
