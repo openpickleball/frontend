@@ -10,6 +10,7 @@ const ROUTES = [
 	'/record',
 	'/matches',
 	'/matches/M-7QK2-H9WD-3NFA',
+	'/ratings',
 	'/profile',
 	'/profile/two-factor',
 	'/does-not-exist',
@@ -26,6 +27,7 @@ const SIGNED_IN_ROUTES = new Set([
 	'/record',
 	'/matches',
 	'/matches/M-7QK2-H9WD-3NFA',
+	'/ratings',
 	'/profile',
 	'/profile/two-factor',
 	'/does-not-exist'

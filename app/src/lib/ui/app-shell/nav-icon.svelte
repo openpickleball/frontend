@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
+	import ChartLineIcon from '@lucide/svelte/icons/chart-line';
 	import CirclePlusIcon from '@lucide/svelte/icons/circle-plus';
 	import HouseIcon from '@lucide/svelte/icons/house';
 	import ListIcon from '@lucide/svelte/icons/list';
@@ -15,6 +16,8 @@
 	<CirclePlusIcon class={className} aria-hidden="true" />
 {:else if name === 'matches'}
 	<ListIcon class={className} aria-hidden="true" />
+{:else if name === 'ratings'}
+	<ChartLineIcon class={className} aria-hidden="true" />
 {:else if name === 'events'}
 	<CalendarDaysIcon class={className} aria-hidden="true" />
 {:else}

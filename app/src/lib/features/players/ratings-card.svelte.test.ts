@@ -48,11 +48,45 @@ describe('RatingsCard', () => {
 		expect(second.textContent).toContain('Reliability: 65 out of 100');
 	});
 
-	it('links to the rating history page', async () => {
-		const screen = await render(RatingsCard, { ratings: RATINGS });
+	it('links to the Ratings page with Details, as Home asks', async () => {
+		const screen = await render(RatingsCard, { ratings: RATINGS, details: true });
 		await expect
-			.element(screen.getByRole('link', { name: 'Rating history' }))
-			.toHaveAttribute('href', '/profile/ratings');
+			.element(screen.getByRole('link', { name: 'Details' }))
+			.toHaveAttribute('href', '/ratings');
+	});
+
+	it('has no Details link on the Ratings page itself', async () => {
+		const screen = await render(RatingsCard, { ratings: RATINGS });
+		await expect.element(screen.getByRole('link')).not.toBeInTheDocument();
+	});
+
+	it('takes another section title', async () => {
+		const screen = await render(RatingsCard, { ratings: RATINGS, title: 'Current ratings' });
+		await expect
+			.element(screen.getByRole('heading', { level: 2, name: 'Current ratings' }))
+			.toBeVisible();
+	});
+
+	it('puts the demonstration sentence in a boxed notice when asked to', async () => {
+		const screen = await render(RatingsCard, { ratings: RATINGS, prominent: true });
+		const notice = screen.getByTestId('demonstration-notice');
+		await expect.element(notice).toHaveAttribute('role', 'status');
+		await expect.element(notice.getByText('Demonstration numbers')).toBeVisible();
+		await expect
+			.element(
+				notice.getByText('These are demonstration numbers while the rating method is being built.')
+			)
+			.toBeVisible();
+		// The badges stay on every tile too.
+		expect(screen.getByText('Demonstration', { exact: true }).elements()).toHaveLength(2);
+	});
+
+	it('shows no notice without ratings, even when asked to', async () => {
+		const screen = await render(RatingsCard, {
+			ratings: { demonstration: true, ratings: [] },
+			prominent: true
+		});
+		await expect.element(screen.getByTestId('demonstration-notice')).not.toBeInTheDocument();
 	});
 
 	it('shows every rating with its reliability and a demonstration label', async () => {

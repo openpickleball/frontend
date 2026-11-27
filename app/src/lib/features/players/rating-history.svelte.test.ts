@@ -78,6 +78,16 @@ describe('RatingHistory', () => {
 		expect(screen.container.textContent).not.toMatch(/OPEN rating|replay|engine/i);
 	});
 
+	it('keeps its top line on its own, and drops it right under a section title', async () => {
+		const { screen } = await shown(pages(CHANGES));
+		expect(screen.getByTestId('rating-history').element().classList).toContain('border-t');
+		screen.unmount();
+		const history = new RatingHistoryView(pages(CHANGES));
+		await history.load(CODE);
+		const under = await render(RatingHistory, { history, onpage: () => {}, underTitle: true });
+		expect(under.getByTestId('rating-history').element().classList).not.toContain('border-t');
+	});
+
 	it('says in plain words what a recount and a removal mean', async () => {
 		const { screen } = await shown(pages(CHANGES));
 		await expect.element(screen.getByText('Recounted', { exact: true })).toBeVisible();

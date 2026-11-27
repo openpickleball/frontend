@@ -8,7 +8,9 @@ describe('isGuardedPath', () => {
 			'/record',
 			'/matches',
 			'/matches/M-7QK2-H9WD-3NFA',
+			'/ratings',
 			'/profile',
+			'/profile/ratings',
 			'/organizer'
 		]) {
 			expect(isGuardedPath(path), path).toBe(true);
@@ -21,6 +23,7 @@ describe('isGuardedPath', () => {
 			'/account/signup',
 			'/recording',
 			'/profiles',
+			'/ratingsx',
 			'/organizers',
 			'/x'
 		]) {

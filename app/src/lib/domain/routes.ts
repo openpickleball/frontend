@@ -9,7 +9,7 @@ export const ROUTES = {
 	matches: '/matches',
 	profile: '/profile',
 	twoFactor: '/profile/two-factor',
-	ratingHistory: '/profile/ratings',
+	ratings: '/ratings',
 	organizer: '/organizer',
 	account: '/account',
 	login: '/account/login',

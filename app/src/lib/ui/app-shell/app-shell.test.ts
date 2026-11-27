@@ -16,7 +16,7 @@ function navs(body: string): string[] {
 }
 
 describe('isCurrent', () => {
-	const [home, record, matches, profile] = NAV_ITEMS;
+	const [home, record, matches, ratings, profile] = NAV_ITEMS;
 
 	it('matches Home only on /', () => {
 		expect(isCurrent(home, '/')).toBe(true);
@@ -28,6 +28,8 @@ describe('isCurrent', () => {
 		expect(isCurrent(matches, '/matches/M-7QK2-H9WD-3NFA')).toBe(true);
 		expect(isCurrent(record, '/matches')).toBe(false);
 		expect(isCurrent(profile, '/profiles')).toBe(false);
+		expect(isCurrent(ratings, '/ratings')).toBe(true);
+		expect(isCurrent(profile, '/ratings')).toBe(false);
 	});
 
 	it('matches nothing on account pages', () => {
@@ -36,12 +38,14 @@ describe('isCurrent', () => {
 });
 
 describe('AppShell', () => {
-	it('lists Home, Record, Matches and Profile in the tab bar and the side nav', () => {
+	it('lists Home, Record, Matches, Ratings and Profile in the tab bar and the side nav', () => {
 		const [side, tabs] = [shell('/')].flatMap(navs);
 		for (const nav of [side, tabs]) {
 			const hrefs = [...nav.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
-			expect(hrefs).toEqual(['/', '/record', '/matches', '/profile']);
+			expect(hrefs).toEqual(['/', '/record', '/matches', '/ratings', '/profile']);
 		}
+		expect(tabs).toMatch(/>Ratings(<!--[^>]*-->)*<\/a>/);
+		expect(tabs).toContain('lucide-chart-line');
 		expect(tabs).toMatch(/>Home(<!--[^>]*-->)*<\/a>/);
 		expect(tabs).toMatch(/>Record(<!--[^>]*-->)*<\/a>/);
 		expect(tabs).toMatch(/>Matches(<!--[^>]*-->)*<\/a>/);
@@ -240,18 +244,25 @@ describe('the Events entry, for organizer members only', () => {
 	it('is in both navs for a member, before Profile', () => {
 		const [side, tabs] = navs(shell('/', true));
 		for (const nav of [side, tabs]) {
-			expect(hrefsOf(nav)).toEqual(['/', '/record', '/matches', '/organizer', '/profile']);
+			expect(hrefsOf(nav)).toEqual([
+				'/',
+				'/record',
+				'/matches',
+				'/ratings',
+				'/organizer',
+				'/profile'
+			]);
 		}
 		expect(tabs).toMatch(/>Events(<!--[^>]*-->)*<\/a>/);
 	});
 
 	it('lays the tab bar out in as many columns as it has entries', () => {
-		const [, four] = navs(shell('/'));
-		const [, five] = navs(shell('/', true));
-		expect(four).toContain('grid-cols-4');
-		expect(four).not.toContain('grid-cols-5');
+		const [, five] = navs(shell('/'));
+		const [, six] = navs(shell('/', true));
 		expect(five).toContain('grid-cols-5');
-		expect(five).not.toContain('grid-cols-4');
+		expect(five).not.toContain('grid-cols-6');
+		expect(six).toContain('grid-cols-6');
+		expect(six).not.toContain('grid-cols-5');
 	});
 
 	it('marks Events current on the organizer page', () => {
@@ -266,6 +277,7 @@ describe('the Events entry, for organizer members only', () => {
 			'/',
 			'/record',
 			'/matches',
+			'/ratings',
 			'/organizer',
 			'/profile'
 		]);
