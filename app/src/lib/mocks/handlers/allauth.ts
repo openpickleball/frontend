@@ -515,12 +515,10 @@ export function createAllauthHandlers(store: MockStore) {
 			const codes = guard.account.recoveryCodes;
 			if (!codes) return response.untyped(allauthStatus(store, 404));
 			const { unused, ...out } = recoveryCodesOut(guard.account);
-			// Shown once: after that the list is empty, though the count stays.
-			const shown = codes.viewed ? [] : unused;
+			// Shown once: after that allauth leaves `unused_codes` out, though the count stays.
+			const shown = codes.viewed ? {} : { unused_codes: unused };
 			codes.viewed = true;
-			return response.untyped(
-				allauthJson(store, 200, { status: 200, data: { ...out, unused_codes: shown } })
-			);
+			return response.untyped(allauthJson(store, 200, { status: 200, data: { ...out, ...shown } }));
 		}),
 
 		http.post(

@@ -208,7 +208,7 @@ describe('with TOTP on', () => {
 		const first = await api.allauth.GET(path, { params: allauthParams });
 		expect(first.data?.data.unused_codes).toEqual([...MOCK_RECOVERY_CODES]);
 		const second = await api.allauth.GET(path, { params: allauthParams });
-		expect(second.data?.data.unused_codes).toEqual([]);
+		expect(second.data?.data.unused_codes).toBeUndefined();
 		expect(second.data?.data.unused_code_count).toBe(MOCK_RECOVERY_CODES.length);
 	});
 
