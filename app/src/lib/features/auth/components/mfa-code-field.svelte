@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { TextField } from '#lib/ui/field/index.js';
-	import type { CodeKind } from '../forms.js';
+	import { TOTP_INPUT_MAX_LENGTH, type CodeKind } from '../forms.js';
 
 	/**
 	 * The code field of the two-factor steps: 6 digits from the authenticator app (a numeric
@@ -22,7 +22,7 @@
 		label="Code from your app"
 		inputmode="numeric"
 		autocomplete="one-time-code"
-		maxlength={6}
+		maxlength={TOTP_INPUT_MAX_LENGTH}
 		bind:value
 		{error}
 	/>

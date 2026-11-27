@@ -50,6 +50,12 @@ export function isThrottled(error: AppError): boolean {
 	return error.kind === 'throttled';
 }
 
+/**
+ * The longest code from the app the field takes: 6 digits, plus the one space apps show in the
+ * middle (`123 456`), which `parseMfaCode` drops.
+ */
+export const TOTP_INPUT_MAX_LENGTH = 7;
+
 /** Which code the player types: from the authenticator app, or a recovery code. */
 export type CodeKind = 'totp' | 'recovery';
 
