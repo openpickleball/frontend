@@ -7,9 +7,17 @@
 	let { data }: PageProps = $props();
 
 	// A read of the memberships (after a refusal, say) that finds none takes the page away: the
-	// load runs again and answers not found.
+	// load runs again and answers not found. Once per loss: the load may retry a failed read, and
+	// a retry that fails too writes another empty list, which must not run the load yet again.
+	// Membership coming back arms it again.
+	let reloaded = false;
 	$effect(() => {
-		if (session.organizers?.length === 0) void invalidateAll();
+		if (session.isOrganizer) {
+			reloaded = false;
+		} else if (session.organizers !== null && !reloaded) {
+			reloaded = true;
+			void invalidateAll();
+		}
 	});
 </script>
 
