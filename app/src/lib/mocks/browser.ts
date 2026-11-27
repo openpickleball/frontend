@@ -4,6 +4,8 @@
  *
  * `window.__openMock` helps with manual testing and e2e: `mail()` lists the messages the
  * backend would have emailed (with their keys), and `reset()` returns to the seed data.
+ * `turnOnTwoFactor(email)` and `removeMembership(email, organizer)` change an account as if it
+ * had enrolled earlier, or an admin had taken it out of an organizer.
  */
 import { HttpResponse, http } from 'msw';
 import { setupWorker } from 'msw/browser';
@@ -12,13 +14,15 @@ import type { MockMode } from './mode';
 import { mockStore } from './store';
 
 /** Bump the suffix when the shape of the mock state changes. */
-const STORAGE_KEY = 'open-mock-state-v2';
+const STORAGE_KEY = 'open-mock-state-v3';
 
 declare global {
 	interface Window {
 		__openMock?: {
 			mail: () => typeof mockStore.state.outbox;
 			reset: () => void;
+			turnOnTwoFactor: (email: string) => void;
+			removeMembership: (email: string, organizer: string) => void;
 		};
 	}
 }
@@ -64,6 +68,14 @@ export async function startMocks(
 		mail: () => mockStore.state.outbox,
 		reset: () => {
 			mockStore.reset();
+			save();
+		},
+		turnOnTwoFactor: (email) => {
+			mockStore.turnOnTwoFactor(email);
+			save();
+		},
+		removeMembership: (email, organizer) => {
+			mockStore.removeMembership(email, organizer);
 			save();
 		}
 	};

@@ -9,6 +9,8 @@ import {
 	SCORING_TYPES
 } from '../domain/models';
 import {
+	EVENTS_MAX_PAGE_SIZE,
+	EVENTS_PAGE_SIZE,
 	HISTORY_MAX_PAGE_SIZE,
 	HISTORY_PAGE_SIZE,
 	MAX_GAME_ENTRIES,
@@ -51,5 +53,12 @@ describe('schema/open.json against the domain and the mock', () => {
 		const limit = params.find((p) => p.name === 'limit')?.schema;
 		expect(limit?.default).toBe(HISTORY_PAGE_SIZE);
 		expect(limit?.maximum).toBe(HISTORY_MAX_PAGE_SIZE);
+	});
+
+	it('pages the organizer Events as the mock does', () => {
+		const params = doc.paths['/api/v1/organizer/events'].get?.parameters ?? [];
+		const limit = params.find((p) => p.name === 'limit')?.schema;
+		expect(limit?.default).toBe(EVENTS_PAGE_SIZE);
+		expect(limit?.maximum).toBe(EVENTS_MAX_PAGE_SIZE);
 	});
 });

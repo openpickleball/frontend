@@ -16,6 +16,8 @@
  * - `apps/players/api.py` and `schemas.py` for `me/player` and the public profile. The
  *   create reads the hold when there is one, and its body otherwise.
  *
+ * - `apps/events/api.py` and `apps/clubs/api.py` for the organizer's Events and club grants.
+ *
  * State is plain data (no Maps, no classes), so `snapshot` and `restore` can keep it in
  * `sessionStorage` across a page reload in the browser.
  */
@@ -26,16 +28,20 @@ import { validateMatch, type Issue } from '../domain/scores';
 import { PRIVATE_PLAYER_NAME } from '../domain/mappers';
 import {
 	ACCOUNTS,
+	CLUBS,
+	EVENTS,
 	MATCHES,
 	MOCK_KEYS,
 	MOCK_RECOVERY_CODES,
 	MOCK_TOTP_CODE,
 	MOCK_TOTP_SECRET,
+	ORGANIZERS,
 	PLAYERS,
 	RATINGS,
 	RATING_HISTORY,
 	UNVERIFIED_EMAIL,
 	VERIFIED_EMAIL,
+	type FixtureEvent,
 	type FixtureMembership,
 	type PlayerKey,
 	type RatingsByFormat
@@ -63,6 +69,13 @@ type PlayerProfileOut = Schemas['PlayerProfileOut'];
 type PrivacyOut = Schemas['PrivacyOut'];
 type PlayerRatingsOut = Schemas['PlayerRatingsOut'];
 type PagedRatingHistoryItemOut = Schemas['PagedRatingHistoryItemOut'];
+type EventOut = Schemas['EventOut'];
+type EventCreateIn = Schemas['EventCreateIn'];
+type EventUpdateIn = Schemas['EventUpdateIn'];
+type OrganizerClubGrantOut = Schemas['OrganizerClubGrantOut'];
+
+/** An Event in the store: the fixture's shape, with its creation order for the tie-break. */
+export type MockEvent = FixtureEvent & { seq: number };
 
 /** The backend's default `OPEN_PUBLIC_PROFILE_URL`: `profile_url` is this and the code. */
 const PUBLIC_PROFILE_URL = 'https://openpb.org/players/';
@@ -215,6 +228,9 @@ export type MockState = {
 	outbox: MockMail[];
 	csrfToken: string;
 	counter: number;
+	events: MockEvent[];
+	/** Counts the Events created, for their made-up codes (`E-MOCK-0001` and on). */
+	eventCounter: number;
 };
 
 const CSRF_TOKEN = 'mock-csrf-token-0123456789abcdefghijklmnopqrstuvwxyz-ABCDEFGHIJKL';
@@ -337,7 +353,10 @@ function seed(): MockState {
 		],
 		outbox: [],
 		csrfToken: CSRF_TOKEN,
-		counter: 0
+		counter: 0,
+		// Fixtures list newest first, so the oldest gets the lowest `seq`.
+		events: EVENTS.map((e, index) => ({ ...e, seq: EVENTS.length - index })),
+		eventCounter: 0
 	};
 }
 
@@ -371,6 +390,45 @@ export type ListResult =
 	{ ok: true; items: MockMatch[]; count: number } | { ok: false; kind: 'not_found' };
 
 export type LoginResult = 'ok' | 'mismatch' | 'unverified' | 'mfa';
+
+/** Results of the Event operations. `forbidden` is the create's 403; change and delete use 404. */
+export type EventResult =
+	| { ok: true; event: MockEvent }
+	| { ok: false; kind: 'forbidden' | 'not_found' | 'conflict' }
+	| { ok: false; kind: 'validation'; issues: FieldIssue[] };
+
+/** An OPEN code compared as the backend compares it: any case, with or without hyphens. */
+const looseCode = (code: string): string => code.toUpperCase().replaceAll('-', '');
+
+/** Django's `full_clean` of an Event, after the name is stripped: name, dates and club grant. */
+function eventCleanIssues(event: MockEvent): FieldIssue[] {
+	const issues: FieldIssue[] = [];
+	if (event.name === '') {
+		issues.push({ field: 'body.name', code: 'blank', message: 'This field cannot be blank.' });
+	} else if (event.name.length > 200) {
+		issues.push({
+			field: 'body.name',
+			code: 'max_length',
+			message: 'Ensure this value has at most 200 characters.'
+		});
+	}
+	if (event.endDate < event.startDate) {
+		issues.push({
+			field: 'body.end_date',
+			code: 'invalid',
+			message: 'The end date cannot be before the start date.'
+		});
+	}
+	const organizer = ORGANIZERS.find((o) => o.code === event.organizer);
+	if (event.club && !organizer?.clubGrants.some((g) => g.club === event.club)) {
+		issues.push({
+			field: 'body.club',
+			code: 'invalid',
+			message: 'This club has not allowed the organizer to name it.'
+		});
+	}
+	return issues;
+}
 
 /** A management view's check before it reads any input (backend `_GuardsMFAChanges`). */
 export type MfaGuard =
@@ -510,6 +568,7 @@ export function createMockStore() {
 				if (parsed.session !== null && typeof parsed.session?.stage === 'undefined') return false;
 				// A snapshot from older fixtures would show stale data: drop it.
 				if (parsed.matches.length < fresh.matches.length) return false;
+				if (!Array.isArray(parsed.events) || typeof parsed.eventCounter !== 'number') return false;
 				state = parsed;
 				return true;
 			} catch {
@@ -1369,7 +1428,160 @@ export function createMockStore() {
 		},
 
 		/** Whether a code is a well-formed player code (a malformed one is a 404 in the API). */
-		parsePlayerCode
+		parsePlayerCode,
+
+		// Organizer Events (`apps/events/api.py`)
+
+		/** Newest start date first, then the newest created, over every organizer the account is in. */
+		organizerEvents(email: string): MockEvent[] {
+			const mine = new Set(accountByEmail(email)?.organizers?.map((m) => m.organizer) ?? []);
+			return state.events
+				.filter((e) => mine.has(e.organizer))
+				.sort((a, b) => b.startDate.localeCompare(a.startDate) || b.seq - a.seq);
+		},
+
+		/**
+		 * `can_manage_events`: a member (either role) of the organizer while it is verified, on an
+		 * account with two-factor. Returns the organizer's stored code.
+		 */
+		managedOrganizer(email: string, organizer: string): string | null {
+			const account = accountByEmail(email);
+			const membership = account?.organizers?.find(
+				(m) => looseCode(m.organizer) === looseCode(organizer)
+			);
+			return membership?.verified && account?.totp ? membership.organizer : null;
+		},
+
+		eventOut(event: MockEvent): EventOut {
+			return {
+				code: event.code,
+				name: event.name,
+				kind: event.kind,
+				organizer: event.organizer,
+				club: event.club,
+				start_date: event.startDate,
+				end_date: event.endDate
+			};
+		},
+
+		/** `create_organizer_event`: 403 first, then an unknown club, then the model's checks. */
+		createEvent(email: string, body: EventCreateIn): EventResult {
+			const organizer = this.managedOrganizer(email, body.organizer);
+			if (!organizer) return { ok: false, kind: 'forbidden' };
+			let club: string | null = null;
+			if (body.club != null) {
+				const found = CLUBS.find((c) => looseCode(c.code) === looseCode(body.club as string));
+				if (!found) {
+					const message = 'Choose an existing club.';
+					return {
+						ok: false,
+						kind: 'validation',
+						issues: [{ field: 'body.club', code: 'invalid', message }]
+					};
+				}
+				club = found.code;
+			}
+			const event: MockEvent = {
+				code: `E-MOCK-${String(state.eventCounter + 1).padStart(4, '0')}`,
+				name: body.name.trim(),
+				kind: body.kind,
+				organizer,
+				club,
+				startDate: body.start_date,
+				endDate: body.end_date,
+				hasMatches: false,
+				hasUploads: false,
+				seq: Math.max(0, ...state.events.map((e) => e.seq)) + 1
+			};
+			const issues = eventCleanIssues(event);
+			if (issues.length > 0) return { ok: false, kind: 'validation', issues };
+			state.eventCounter += 1;
+			state.events.push(event);
+			return { ok: true, event };
+		},
+
+		/** The Event, when the account may manage it. Anyone else gets the same 404. */
+		managedEvent(email: string, code: string): MockEvent | undefined {
+			const event = state.events.find((e) => looseCode(e.code) === looseCode(code));
+			return event && this.managedOrganizer(email, event.organizer) ? event : undefined;
+		},
+
+		/**
+		 * `update_organizer_event`: only the fields sent change. A new name or date on an Event a
+		 * match names is a 409; the stored value sent again is not a change.
+		 */
+		updateEvent(email: string, code: string, body: EventUpdateIn): EventResult {
+			const event = this.managedEvent(email, code);
+			if (!event) return { ok: false, kind: 'not_found' };
+			const next: MockEvent = {
+				...event,
+				...(body.name !== undefined ? { name: body.name.trim() } : {}),
+				...(body.kind !== undefined ? { kind: body.kind } : {}),
+				...(body.start_date !== undefined ? { startDate: body.start_date } : {}),
+				...(body.end_date !== undefined ? { endDate: body.end_date } : {})
+			};
+			const issues = eventCleanIssues(next);
+			if (issues.length > 0) return { ok: false, kind: 'validation', issues };
+			const changed =
+				next.name !== event.name ||
+				next.startDate !== event.startDate ||
+				next.endDate !== event.endDate;
+			if (changed && event.hasMatches) return { ok: false, kind: 'conflict' };
+			Object.assign(event, next);
+			return { ok: true, event };
+		},
+
+		/** `delete_organizer_event`: 409 when a match or a results file names it. */
+		deleteEvent(email: string, code: string): EventResult {
+			const event = this.managedEvent(email, code);
+			if (!event) return { ok: false, kind: 'not_found' };
+			if (event.hasMatches || event.hasUploads) return { ok: false, kind: 'conflict' };
+			state.events = state.events.filter((e) => e !== event);
+			return { ok: true, event };
+		},
+
+		/**
+		 * `list_organizer_club_grants`, after the two-factor check: an admin member only, by club
+		 * code. Null for an unknown organizer or anyone else (404).
+		 */
+		clubGrants(email: string, organizer: string): OrganizerClubGrantOut[] | null {
+			const membership = accountByEmail(email)?.organizers?.find(
+				(m) => looseCode(m.organizer) === looseCode(organizer)
+			);
+			const found = ORGANIZERS.find((o) => o.code === membership?.organizer);
+			if (!found || membership?.role !== 'admin') return null;
+			return found.clubGrants
+				.map((grant) => {
+					const club = CLUBS.find((c) => c.code === grant.club);
+					return {
+						club: grant.club,
+						name: club?.name ?? '',
+						city: club?.city ?? '',
+						region: club?.region ?? '',
+						created_at: grant.createdAt
+					};
+				})
+				.sort((a, b) => a.club.localeCompare(b.club));
+		},
+
+		// Helpers for manual testing and e2e (`window.__openMock`)
+
+		/** Turns two-factor on for an account, as if it had enrolled earlier. */
+		turnOnTwoFactor(email: string): void {
+			const account = accountByEmail(email);
+			if (!account || account.totp) return;
+			account.totp = { secret: MOCK_TOTP_SECRET, createdAt: now() };
+			account.recoveryCodes = this.newRecoveryCodes();
+		},
+
+		/** Takes an account out of an organizer, as an admin removing it would. */
+		removeMembership(email: string, organizer: string): void {
+			const account = accountByEmail(email);
+			if (!account?.organizers) return;
+			account.organizers = account.organizers.filter(
+				(m) => looseCode(m.organizer) !== looseCode(organizer)
+			);
+		}
 	};
 }
 

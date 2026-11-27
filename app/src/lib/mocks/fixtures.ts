@@ -10,11 +10,13 @@
  * - `unverified@example.com`: has not verified its email and has no player yet.
  * - `<first name>@example.com` for the other players, so you can sign in as the
  *   other side of a match and confirm it.
- * - `organizer@example.com`: a member of a made-up verified organizer, with no two-factor yet.
+ * - `organizer@example.com`: an admin of a made-up verified organizer, with no two-factor yet.
+ * - `manager@example.com`: a match manager of the same organizer and a member of a made-up
+ *   unverified one, with two-factor on. Sign in with `MOCK_TOTP_CODE`.
  * - `twofactor@example.com`: two-factor on. Sign in with `MOCK_TOTP_CODE` or a recovery code.
  * - `moderator@example.com`: must have two-factor (as staff and moderators must) and has none,
  *   so the OPEN API answers 403 `mfa_required`.
- * These three have no player yet.
+ * These four have no player yet.
  */
 import { ALPHABET, buildCode } from '../domain/codes';
 import type { components } from '../api/generated/open';
@@ -43,6 +45,7 @@ export const UNVERIFIED_EMAIL = 'unverified@example.com';
 export const ORGANIZER_EMAIL = 'organizer@example.com';
 export const TWO_FACTOR_EMAIL = 'twofactor@example.com';
 export const MFA_REQUIRED_EMAIL = 'moderator@example.com';
+export const MANAGER_EMAIL = 'manager@example.com';
 
 /**
  * MOCK ONLY. The mock accepts this as the current code of every authenticator app, at any time.
@@ -77,6 +80,103 @@ export type FixtureMembership = {
 	verified: boolean;
 	verification_requested: boolean;
 };
+
+/** A made-up club, which may allow organizers to name it on their Events. */
+export type FixtureClub = { code: string; name: string; city: string; region: string };
+
+/** Made-up club codes. The app does not parse club codes. */
+export const GRANTED_CLUB = 'C-JNPR-4CRT';
+export const UNGRANTED_CLUB = 'C-MRSH-7WLK';
+
+export const CLUBS: readonly FixtureClub[] = [
+	{ code: GRANTED_CLUB, name: 'Juniper Court Club', city: 'Brindlequay', region: 'North Fen' },
+	{ code: UNGRANTED_CLUB, name: 'Marshwalk Racquet Club', city: 'Oxley Mead', region: 'North Fen' }
+];
+
+/** A made-up organizer, and the clubs that allow it to name them (`ClubOrganizerGrant`). */
+export type FixtureOrganizer = {
+	code: string;
+	name: string;
+	verified: boolean;
+	clubGrants: readonly { club: string; createdAt: string }[];
+};
+
+/** Made-up organizer codes. The app does not parse organizer codes. */
+export const LARKSPUR = 'G-K7MQ-2RD4';
+export const THISTLE_BAY = 'G-WN3P-8TQX';
+
+export const ORGANIZERS: readonly FixtureOrganizer[] = [
+	{
+		code: LARKSPUR,
+		name: 'Larkspur Paddle League',
+		verified: true,
+		clubGrants: [{ club: GRANTED_CLUB, createdAt: '2026-09-01T12:00:00Z' }]
+	},
+	{ code: THISTLE_BAY, name: 'Thistle Bay Social', verified: false, clubGrants: [] }
+];
+
+function membership(code: string, role: FixtureMembership['role']): FixtureMembership {
+	const organizer = ORGANIZERS.find((o) => o.code === code) as FixtureOrganizer;
+	return {
+		organizer: organizer.code,
+		name: organizer.name,
+		role,
+		verified: organizer.verified,
+		verification_requested: false
+	};
+}
+
+/**
+ * A made-up Event. `hasMatches` stands for a match that names it, which locks its name and dates
+ * and blocks a delete. `hasUploads` stands for a results file, which blocks a delete too.
+ */
+export type FixtureEvent = {
+	code: string;
+	name: string;
+	kind: 'tournament' | 'league' | 'rec_verified';
+	organizer: string;
+	club: string | null;
+	startDate: string;
+	endDate: string;
+	hasMatches: boolean;
+	hasUploads: boolean;
+};
+
+export const EVENTS: readonly FixtureEvent[] = [
+	{
+		code: 'E-SEED-0001',
+		name: 'Larkspur Winter League',
+		kind: 'league',
+		organizer: LARKSPUR,
+		club: GRANTED_CLUB,
+		startDate: '2026-11-02',
+		endDate: '2026-12-14',
+		hasMatches: true,
+		hasUploads: false
+	},
+	{
+		code: 'E-SEED-0002',
+		name: 'Larkspur Fall Classic',
+		kind: 'tournament',
+		organizer: LARKSPUR,
+		club: null,
+		startDate: '2026-10-10',
+		endDate: '2026-10-11',
+		hasMatches: false,
+		hasUploads: false
+	},
+	{
+		code: 'E-SEED-0003',
+		name: 'Larkspur Rec Night',
+		kind: 'rec_verified',
+		organizer: LARKSPUR,
+		club: null,
+		startDate: '2026-09-03',
+		endDate: '2026-09-03',
+		hasMatches: false,
+		hasUploads: true
+	}
+];
 
 export type PlayerKey = 'tamsin' | 'oren' | 'bea' | 'kit' | 'rosa' | 'idris' | 'nell' | 'saul';
 
@@ -199,16 +299,15 @@ export const ACCOUNTS: readonly FixtureAccount[] = [
 		password: MOCK_PASSWORD,
 		verified: true,
 		active: true,
-		organizers: [
-			{
-				// A made-up organizer code. The app does not parse organizer codes.
-				organizer: 'G-K7MQ-2RD4',
-				name: 'Larkspur Paddle League',
-				role: 'admin',
-				verified: true,
-				verification_requested: false
-			}
-		]
+		organizers: [membership(LARKSPUR, 'admin')]
+	},
+	{
+		email: MANAGER_EMAIL,
+		password: MOCK_PASSWORD,
+		verified: true,
+		active: true,
+		twoFactor: true,
+		organizers: [membership(LARKSPUR, 'match_manager'), membership(THISTLE_BAY, 'admin')]
 	},
 	{
 		email: TWO_FACTOR_EMAIL,
