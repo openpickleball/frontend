@@ -18,10 +18,6 @@
 </script>
 
 <div class="grid gap-4">
-	<p class="max-w-md text-base text-muted">
-		Choose what other signed-in players can see. Your display name is always shown to them.
-	</p>
-
 	{#if error}
 		<Alert variant="destructive" class="max-w-md">
 			<AlertDescription>{error}</AlertDescription>
@@ -31,17 +27,27 @@
 	<ul class="grid max-w-md divide-y divide-line border-y border-line">
 		{#each PRIVACY_ROWS as row (row.key)}
 			{@const shown = privacy[row.key] === 'signed_in'}
+			<!-- Match history says which matches others see, which the Matches page used to say. -->
+			{@const note =
+				shown && row.key === 'match_history'
+					? 'Other signed-in players see your confirmed matches.'
+					: null}
 			<li class="flex items-center justify-between gap-4 py-3">
 				<Field class="gap-0.5">
 					<FieldLabel for="privacy-{row.key}" class="font-semibold">{row.label}</FieldLabel>
 					<FieldDescription id="privacy-{row.key}-state">
 						{shown ? 'Signed-in players' : 'Only me'}
 					</FieldDescription>
+					{#if note}
+						<FieldDescription id="privacy-{row.key}-note">{note}</FieldDescription>
+					{/if}
 				</Field>
 				<Switch
 					id="privacy-{row.key}"
 					checked={shown}
-					aria-describedby="privacy-{row.key}-state"
+					aria-describedby={note
+						? `privacy-${row.key}-state privacy-${row.key}-note`
+						: `privacy-${row.key}-state`}
 					onCheckedChange={(on) => onchange(row.key, on ? 'signed_in' : 'private')}
 				/>
 			</li>

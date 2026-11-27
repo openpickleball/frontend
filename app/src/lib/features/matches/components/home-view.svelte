@@ -188,10 +188,14 @@
 						{#snippet aside()}
 							<span class="text-base text-muted">{matchCountLabel(needs.length + moreNeeds)}</span>
 						{/snippet}
-						<p class="mb-4 text-base text-muted">
-							Check the score. Confirm it if it's right, or dispute it if it's wrong.
-						</p>
-						<MatchList matches={needs} {you} label="Needs your confirmation" inSection />
+						<MatchList
+							matches={needs}
+							{you}
+							label="Needs your confirmation"
+							listOf="needs-you"
+							underTitle
+							inSection
+						/>
 						{#if moreNeeds > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-needs">
 								{moreNeeds === 1 ? '1 more match is' : `${moreNeeds} more matches are`} waiting for you.
@@ -240,11 +244,14 @@
 								{matchCountLabel(disputes.length + moreDisputes)}
 							</span>
 						{/snippet}
-						<p class="mb-4 text-base text-muted">
-							A player said these scores are wrong. They don't count while they are disputed. Open a
-							match to see how its dispute can end.
-						</p>
-						<MatchList matches={disputes} {you} label="Disputed matches" inSection />
+						<MatchList
+							matches={disputes}
+							{you}
+							label="Disputed matches"
+							listOf="disputed"
+							underTitle
+							inSection
+						/>
 						{#if moreDisputes > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-disputes">
 								{moreDisputes === 1
@@ -293,11 +300,14 @@
 						{#snippet aside()}
 							<span class="text-base text-muted">{matchCountLabel(holds.length + moreHolds)}</span>
 						{/snippet}
-						<p class="mb-4 text-base text-muted">
-							Each of these has the same teams and date as another match on OPEN, but other scores.
-							They don't count until each one is vouched for. Open a match to vouch for it.
-						</p>
-						<MatchList matches={holds} {you} label="Matches on hold" inSection />
+						<MatchList
+							matches={holds}
+							{you}
+							label="Matches on hold"
+							listOf="on-hold"
+							underTitle
+							inSection
+						/>
 						{#if moreHolds > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-holds">
 								{moreHolds === 1
@@ -320,11 +330,14 @@
 						{#snippet aside()}
 							<span class="text-base text-muted">{matchCountLabel(waitingShown.length)}</span>
 						{/snippet}
-						<p class="mb-4 text-base text-muted">
-							Your team confirmed these scores. A match counts once a player on the other team
-							confirms it too.
-						</p>
-						<MatchList matches={waitingShown} {you} label="Waiting for the other team" inSection />
+						<MatchList
+							matches={waitingShown}
+							{you}
+							label="Waiting for the other team"
+							listOf="waiting"
+							underTitle
+							inSection
+						/>
 					</Section>
 				{/if}
 

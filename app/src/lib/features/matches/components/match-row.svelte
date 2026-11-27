@@ -20,14 +20,21 @@
 		viewpoint
 	} from '../format.js';
 	import { matchCache } from '../cache.svelte.js';
+	import type { RowList } from './row-list.js';
 
 	let {
 		match,
-		you
+		you,
+		listOf
 	}: {
 		match: Match;
 		/** The signed-in player's code. The row reads the match from their team's side. */
 		you: PlayerCode;
+		/**
+		 * The list the row sits in, when its title already says something the note would repeat.
+		 * The note then leaves that part out.
+		 */
+		listOf?: RowList;
 	} = $props();
 
 	const mine = $derived(viewpoint(match));
@@ -46,21 +53,27 @@
 	const showHold = $derived(hold !== undefined && match.status !== 'disputed');
 	const games = $derived(match.games.length === 1 ? '1 game' : `${match.games.length} games`);
 	// What the player can do about a pending match, from what the API says about their team, and
-	// whose dispute a disputed match waits on.
+	// whose dispute a disputed match waits on. In a list whose title says it already, the note
+	// keeps only what the title doesn't say.
 	const note = $derived.by(() => {
 		if (match.status === 'disputed' && match.viewerDecision === 'dispute') {
 			return 'You disputed this score.';
 		}
 		if (hold) {
+			if (listOf === 'on-hold') return hold.vouched ? 'Your team has vouched for it.' : null;
 			return hold.vouched
 				? "On hold. It doesn't count yet. Your team has vouched for it."
 				: "On hold. It doesn't count yet. Open it to vouch for it.";
 		}
-		if (needsViewerConfirmation(match)) return 'Needs your confirmation.';
+		if (needsViewerConfirmation(match)) {
+			return listOf === 'needs-you' ? null : 'Needs your confirmation.';
+		}
 		if (waitingOnOtherTeam(match)) {
-			return match.viewerDecision === 'confirm'
-				? 'You confirmed this score. Waiting for the other team.'
-				: 'Your team confirmed this score. Waiting for the other team.';
+			const who =
+				match.viewerDecision === 'confirm'
+					? 'You confirmed this score.'
+					: 'Your team confirmed this score.';
+			return listOf === 'waiting' ? who : `${who} Waiting for the other team.`;
 		}
 		return null;
 	});

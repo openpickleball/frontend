@@ -256,9 +256,6 @@ describe('HomeView disputed matches', () => {
 		const screen = await render(HomeView);
 
 		await expect.element(heading('Disputed matches')).toBeVisible();
-		await expect
-			.element(page.getByText(/A player said these scores are wrong\. They don't count/))
-			.toBeVisible();
 		const list = page.getByRole('list', { name: 'Disputed matches' });
 		expect(list.getByTestId('match-row').elements()).toHaveLength(2);
 		await expect.element(list.getByText('You disputed this score.')).toBeVisible();
@@ -333,7 +330,7 @@ describe('HomeView disputed matches', () => {
 });
 
 describe('HomeView matches on hold', () => {
-	it('lists held matches after disputes, says why, and lists none again below', async () => {
+	it('lists held matches after disputes, and lists none again below', async () => {
 		serve([needs, myDispute, held, heldToo, done], [needs]);
 		serveDisputes([myDispute]);
 		serveHolds([
@@ -343,17 +340,11 @@ describe('HomeView matches on hold', () => {
 		const screen = await render(HomeView);
 
 		await expect.element(heading('Matches on hold')).toBeVisible();
-		await expect
-			.element(page.getByText(/same teams and date as another match on OPEN, but other scores/))
-			.toBeVisible();
 		const list = page.getByRole('list', { name: 'Matches on hold' });
 		expect(list.getByTestId('match-row').elements()).toHaveLength(2);
-		await expect
-			.element(list.getByText("On hold. It doesn't count yet. Open it to vouch for it."))
-			.toBeVisible();
-		await expect
-			.element(list.getByText("On hold. It doesn't count yet. Your team has vouched for it."))
-			.toBeVisible();
+		// The title says On hold, so a row only says whether the player's side vouched.
+		await expect.element(list.getByText('Your team has vouched for it.')).toBeVisible();
+		await expect.element(list.getByText(/On hold\. It doesn't count yet/)).not.toBeInTheDocument();
 
 		// heldToo waits on the other team too, but it is listed once, under Matches on hold.
 		const titles = [...screen.container.querySelectorAll('h2')].map((h) => h.textContent?.trim());
@@ -385,9 +376,7 @@ describe('HomeView matches on hold', () => {
 		await expect.poll(() => list.getByTestId('match-row').elements()).toHaveLength(2);
 
 		matchCache.markVouched(HELD_TOO);
-		await expect
-			.element(list.getByText("On hold. It doesn't count yet. Your team has vouched for it."))
-			.toBeVisible();
+		await expect.element(list.getByText('Your team has vouched for it.')).toBeVisible();
 		matchCache.endHold(HELD);
 		await expect.poll(() => list.getByTestId('match-row').elements()).toHaveLength(1);
 	});

@@ -62,3 +62,48 @@ describe('MatchRow', () => {
 		await expect.element(page.getByText('Disputed', { exact: true })).toBeVisible();
 	});
 });
+
+describe('MatchRow note under a list title', () => {
+	it('leaves out Needs your confirmation in a list that says it', async () => {
+		const match = viewerMatch({ b: true });
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'needs-you' });
+		await expect.element(page.getByTestId('match-row')).toBeVisible();
+		await expect.element(page.getByText('Needs your confirmation.')).not.toBeInTheDocument();
+	});
+
+	it('says Needs your confirmation in any other list', async () => {
+		await render(MatchRow, { match: viewerMatch({ b: true }), you: TAMSIN });
+		await expect.element(page.getByText('Needs your confirmation.')).toBeVisible();
+	});
+
+	it('keeps who confirmed in the waiting list, without Waiting for the other team', async () => {
+		const match = viewerMatch({ a: true, decision: 'confirm' });
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'waiting' });
+		await expect
+			.element(page.getByText('You confirmed this score.', { exact: true }))
+			.toBeVisible();
+	});
+
+	it('says only that the team vouched in the on-hold list', async () => {
+		const match = viewerMatch({}, { status: 'confirmed' });
+		matchCache.rememberHolds([{ match, vouched: true }]);
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'on-hold' });
+		await expect
+			.element(page.getByText('Your team has vouched for it.', { exact: true }))
+			.toBeVisible();
+	});
+
+	it('has no note for an unvouched match in the on-hold list', async () => {
+		const match = viewerMatch({}, { status: 'confirmed' });
+		matchCache.rememberHolds([{ match, vouched: false }]);
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'on-hold' });
+		await expect.element(page.getByTestId('match-row')).toBeVisible();
+		expect(page.getByTestId('match-row').element().querySelector('p')).toBeNull();
+	});
+
+	it('keeps You disputed this score in the disputed list', async () => {
+		const match = viewerMatch({ decision: 'dispute' }, { status: 'disputed' });
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'disputed' });
+		await expect.element(page.getByText('You disputed this score.')).toBeVisible();
+	});
+});

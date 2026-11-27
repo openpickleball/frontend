@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { ROUTES } from '#lib/domain/index.js';
-	import { SettingsStore, myCode, type SettingsDeps } from '#lib/features/players/index.js';
+	import { myCode } from '#lib/features/players/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from '#lib/ui/empty/index.js';
 	import { Label } from '#lib/ui/label/index.js';
@@ -17,7 +17,7 @@
 		matchesQuery,
 		type MatchFilter
 	} from '../filter.js';
-	import { rangeLabel, matchCountLabel } from '../format.js';
+	import { rangeLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
 	import { PAGE_SIZE, listMyHolds } from '../services.js';
 	import CodeGate from './code-gate.svelte';
@@ -27,18 +27,10 @@
 
 	/**
 	 * `page` is 1 for the newest matches, 2 for the next 20, and so on. `show` is the filter, from
-	 * `?show=` in the address, and paging stays within it.
+	 * `?show=` in the address, and paging stays within it. The paging range ("1–20 of 26") gives
+	 * the count, so the page has no count line of its own.
 	 */
-	let {
-		page = 1,
-		show = 'all',
-		settingsDeps = {}
-	}: {
-		page?: number;
-		show?: MatchFilter;
-		/** For tests. The page uses the real services. */
-		settingsDeps?: Partial<SettingsDeps>;
-	} = $props();
+	let { page = 1, show = 'all' }: { page?: number; show?: MatchFilter } = $props();
 
 	// One list per filter, each from its own backend list. Switching filters keeps this component, so
 	// each list keeps its own late-answer guard.
@@ -47,21 +39,6 @@
 	) as Record<MatchFilter, MatchListView>;
 	const view = $derived(views[show]);
 	onDestroy(() => Object.values(views).forEach((list) => list.cancel()));
-
-	// Who sees the matches is the Match history setting. The profile reads it from the same
-	// `me/player`, with the same store. Until it has loaded, or when it fails, the page says
-	// nothing about it rather than guess.
-	const settings = untrack(() => new SettingsStore(settingsDeps));
-	let settingsFor: string | null = null;
-	$effect(() => {
-		const code = myCode.status === 'ready' ? myCode.code : null;
-		if (code === null || code === settingsFor) return;
-		settingsFor = code;
-		untrack(() => void settings.load());
-	});
-	const visibility = $derived(
-		settings.status === 'ready' && settings.privacy ? settings.privacy.match_history : null
-	);
 
 	$effect(() => {
 		const code = myCode.code;
@@ -137,23 +114,6 @@
 			</NativeSelect>
 		</div>
 
-		{#if view.status === 'ready' && view.count > 0}
-			<!-- A filter shows the count alone. Who sees the matches is said once, under All. -->
-			<p class="mt-4 max-w-md text-muted">
-				{matchCountLabel(view.count)}, newest first.
-				{#if show === 'all' && visibility === 'private'}
-					Only you can see your matches.
-				{:else if show === 'all' && visibility === 'signed_in'}
-					Other signed-in players see your confirmed matches.
-				{/if}
-				{#if show === 'all' && visibility !== null}
-					<a href="{resolve(ROUTES.profile)}#settings-heading" class="underline">
-						Change who sees them
-					</a>
-				{/if}
-			</p>
-		{/if}
-
 		{#if view.status === 'error'}
 			<div class="mt-8">
 				<LoadError kind={view.errorKind} onretry={() => view.load(you, (page - 1) * PAGE_SIZE)} />
@@ -192,6 +152,7 @@
 					matches={view.matches}
 					{you}
 					label={show === 'all' ? 'Your matches' : `Your matches, ${filterLabel(show)}`}
+					listOf={show === 'all' ? undefined : show}
 				/>
 				<nav class="mt-4 flex flex-wrap items-center justify-between gap-3" aria-label="Pages">
 					<span class="text-base text-muted" data-testid="range">

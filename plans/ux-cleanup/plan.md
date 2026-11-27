@@ -23,7 +23,7 @@ Wave 2
 
 Wave 3
 
-- [ ] #284 Remove helper text that repeats headings and buttons
+- [x] #284 Remove helper text that repeats headings and buttons
 
 Wave 4
 
@@ -48,10 +48,10 @@ Three heading levels:
 
 One section pattern: a line above, the title, then the content. `mt-12 border-t border-line pt-4` on the section (`sectionClass`), and `4` from the title to the content.
 
-- `Section` in `app/src/lib/ui/section/` renders the `<section>`, the `h2` and `aria-labelledby`. The heading id is generated unless the page needs a fixed one (`settings-heading`, which Matches links to, and `details-heading`). An optional `aside` snippet sits next to the title, for a count or a link.
+- `Section` in `app/src/lib/ui/section/` renders the `<section>`, the `h2` and `aria-labelledby`. The heading id is generated unless the page needs a fixed one (`settings-heading`, kept for #276, and `details-heading`). An optional `aside` snippet sits next to the title, for a count or a link.
 - Record a match and the correction: each fieldset uses `sectionClass` with a `FieldLegend`, whose legend variant uses `section-title`.
 - A list right under a section title drops its own top border. A list in a section drops its bottom border, because the next section's line closes it. `MatchList` takes `underTitle` and `inSection` for these, and the scoreboard drops its bottom border too.
-- When #284 removes the Home intros, the lists there will sit right under their titles and should take `underTitle`.
+- Home's lists sit right under their titles since #284 removed the intros, so they all take `underTitle`.
 - Status panels and alerts stay boxed callouts, not sections.
 
 Where it applies:
@@ -61,6 +61,19 @@ Where it applies:
 - Record a match and the correction: Match, Players, Scoring and Games, then the submit block with the same line and spacing.
 - Profile: Your OPEN code, Matches, Ratings, Rating history, Name and privacy, Your data and Account.
 - Match page: Score (the scoreboard) and Details (Games to, Scoring).
+
+## Copy for #285
+
+#284 removed these explanations. #285 can reuse them in the info popovers.
+
+- Needs your confirmation: "Check the score. Confirm it if it's right, or dispute it if it's wrong."
+- Disputed: "A player said these scores are wrong. They don't count while they are disputed. Open a match to see how its dispute can end."
+- On hold: "Each of these has the same teams and date as another match on OPEN, but other scores. They don't count until each one is vouched for. Open a match to vouch for it." A row outside the on-hold list still says "On hold. It doesn't count yet."
+- Waiting for the other team: "Your team confirmed these scores. A match counts once a player on the other team confirms it too."
+- Record a match: "Enter the final score. Once it's saved, the other team can confirm it or dispute it." and "This confirms the score for your team. The match stays pending until a player on the other team confirms it too."
+- Players: "Type a player's name to find them, or enter their OPEN code. They can find theirs on their Profile page."
+- Your OPEN code: "Share it with the people you play. They need it to add you to a match."
+- Privacy: "Choose what other signed-in players can see. Your display name is always shown to them."
 
 ## Home (#290)
 
@@ -80,4 +93,9 @@ To be filled in by #290.
 - #283: the Ratings and Rating history blocks on Profile use `Section` instead of the shadcn Card, which is meant for boxed panels. Card stays for the auth forms.
 - #283: "Finish your player profile", shown when a player has to give their details again, is a `Section` too.
 - #283: empty states keep their own centered title. They stand in for a page's content, not a section of it.
-- #289: a filter shows only the count line ("2 matches, newest first."), with no explanation sentence. #284 removes helper text and #285 moves the disputed and on-hold explanations into info popovers. The empty states stay.
+- #289 (since replaced by #284): a filter shows only the count line ("2 matches, newest first."), with no explanation sentence. #284 removes helper text and #285 moves the disputed and on-hold explanations into info popovers. The empty states stay.
+- #284: Matches has no count line. The paging range ("1–20 of 26") already gives the count, for every filter.
+- #284: a row note leaves out what its list title says. `MatchList` and `MatchRow` take `listOf` (`needs-you`, `disputed`, `on-hold` or `waiting`), set by Home's sections and by a Matches filter. Under Needs your confirmation the row has no note. Under Matches on hold it says only "Your team has vouched for it." when that is true. Under Waiting for the other team it says only "You confirmed this score." or "Your team confirmed this score." "You disputed this score." stays everywhere. In All and Recent matches the notes are unchanged.
+- #284: "Other signed-in players see your confirmed matches." is a second line on the Match history switch, shown while it is on. Matches no longer reads the settings or links to them. The `settings-heading` id stays, for the move to Settings in #276.
+- #284: the correction page keeps its intro and its Players note (a correction keeps the same players), which the issue did not list. The warning under Save the correction is two sentences: it voids the match with a new match code, and it confirms the score for your team.
+- #284: the demonstration sentence on Ratings is already one sentence and stays as it is.
