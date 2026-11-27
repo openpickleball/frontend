@@ -5,7 +5,7 @@
  *
  * How this backend behaves:
  * - `GET account/authenticators/totp` answers 404 with a new setup key while TOTP is off.
- * - Recovery codes are shown once: after that, `GET recovery-codes` lists no unused codes,
+ * - Recovery codes are shown once: after that, `GET recovery-codes` leaves `unused_codes` out,
  *   though it still counts them.
  * - Making new codes answers allauth's recovery codes body, which the schema leaves untyped, so
  *   it is checked here.
@@ -59,7 +59,8 @@ const recoveryCodesSchema = z.object({
 	data: z.object({
 		total_code_count: z.number(),
 		unused_code_count: z.number(),
-		unused_codes: z.array(z.string())
+		// Left out altogether once the codes were shown (allauth's `_authenticator_data`).
+		unused_codes: z.array(z.string()).default([])
 	})
 });
 
