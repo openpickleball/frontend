@@ -387,7 +387,7 @@
 			{#if hold && match.status !== 'voided'}
 				<Badge>On hold</Badge>
 			{/if}
-			<span class="font-display text-base text-muted">
+			<span class="open-code text-base text-muted">
 				<span class="sr-only">Match code </span>{match.code}
 			</span>
 			<Button variant="outline" size="sm" onclick={() => copyCode(match.code)}>

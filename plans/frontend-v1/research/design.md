@@ -45,7 +45,7 @@ No accent color is shipped. The only green on the site is the ball in the ivory 
 | Wordmark (header) | Krona One | 400 | 17px | same | `idx:92` |
 | Wordmark (footer) | Krona One | 400 | 14px (`text-sm`, inherited) | same | `idx:303` |
 | Wordmark (404) | Krona One | 400 | `clamp(42px, 5.6vw, 80px)` | same | `404.html:37` |
-| Label / kicker (`label` utility) | Krona One | 400 | 11px, uppercase | `letter-spacing: 0.14em`, color `muted` | `css:161-167` |
+| Label / kicker (`label` utility) | Krona One (Instrument Sans since frontend#280) | 400 | 11px, uppercase | `letter-spacing: 0.14em`, color `muted` | `css:161-167` |
 | Hero headline (h1) | Instrument Sans, `--font-body` | 400 | `clamp(20px, 1.7vw, 24px)` | `leading-[1.3]`, `text-balance`, `mt-7` | `idx:232` |
 | "Learn more" | Instrument Sans | 400 | 15px | `tracking-[0.02em]`, shimmer | `idx:238` |
 | Section h2 | Instrument Sans | 500 (`font-medium`) | `clamp(30px, 3.6vw, 48px)` | `leading-[1.08]`, `tracking-[-0.015em]`, `max-w-[20ch]`, `text-balance` | `idx:250, 278` |
@@ -110,6 +110,7 @@ Font loading:
 
 - **Monochrome and quiet.** Black or ivory, one gray ramp, no accent color and no shadows. The single picture is a rendered pickleball rising out of black like a planet, and ivory mode turns that ball green.
 - **Wide-tracked caps for identity, plain sans for everything else.** Krona One shows up only in OPEN (tracking 0.1em), the wordmark, and 11px numbered kickers (`01 · What we stand for`). Instrument Sans carries the rest at weights 400 to 600.
+  - Decision (frontend#280): Krona One is now for the `OPEN` wordmark only, in the site and the app. In the app the `label` utility is Instrument Sans semibold, OPEN codes use the `open-code` utility (Instrument Sans medium, `tracking-wide`, `tabular-nums`), and the headline rating number is Instrument Sans semibold with `tabular-nums`. Codes are not monospace: the code alphabet already leaves out I, L, O and U, the system monospace differs per platform, and it reads as developer text.
 - **Literal and honest copy.** Plain words for a wide age range, no wordplay, and "will" rather than "is" for what does not exist yet. It never names competing rating systems and never shows the 2.0-8.0 scale or the rating method, and "Only say what is true today" is a rule in `site/AGENTS.md`.
 - **Generous, calm layout.** Large clamp-based whitespace, hairline top rules instead of cards, pill-shaped CTAs, one-column text blocks capped at 54 to 56ch.
 - **Motion that reads as physical.** The ball sinks and dims as you scroll, sections rise 32px into place, and "Learn more" shimmers slowly. Every effect has a reduced-motion fallback and the page still works without it.

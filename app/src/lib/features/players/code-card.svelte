@@ -37,7 +37,7 @@
 	<h2 id="code-title" class="label">Your OPEN code</h2>
 	<!-- eslint-disable local/no-arbitrary-tailwind-values -- fluid size so the code fits one line on narrow phones, no default -->
 	<p
-		class="font-display text-[clamp(26px,8vw,40px)] leading-tight tracking-wide break-words text-secondary"
+		class="open-code text-[clamp(26px,8vw,40px)] leading-tight break-words text-secondary"
 		data-testid="my-code"
 	>
 		{code}

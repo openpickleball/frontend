@@ -131,14 +131,21 @@
 	mask: url('../lib/assets/mark.svg') center / contain no-repeat;
 }
 
-/* Small spaced capitals in the wordmark face: section labels and kickers. */
+/* Small spaced capitals: section labels and kickers. The wordmark face is for the logo only. */
 @utility label {
-	font-family: var(--font-display);
+	font-family: var(--font-body);
+	font-weight: 600;
 	font-size: 11px;
 	line-height: 1.4;
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
 	color: var(--color-muted);
+}
+
+/* OPEN codes, for players and matches. Not monospace: the code alphabet already leaves out
+   lookalike letters, and the system monospace differs per platform. */
+@utility open-code {
+	@apply font-body font-medium tracking-wide tabular-nums;
 }
 
 /* Dialogs, sheets and the overlay behind them fade in. Reduced motion skips it. */

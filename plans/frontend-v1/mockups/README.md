@@ -53,7 +53,7 @@ Each screen has a dashed "mockup states" bar at the top. The URL hash picks the 
 | `Button`, variant `ghost` / `link` (`.btn--ghost`, `.text-link`, `.inline-link`) | + Add a game, All matches →, Forgot your password?, Create an account | `.inline-link` is underlined for links inside sentences. |
 | `Badge` (`.badge--pending/confirmed/disputed/voided`) | Match rows, match detail header | Outline pill with a dot. Pending is dashed with a hollow dot, so status never depends on color alone. Text always names the status. |
 | `Card` (`.card`, `.status-panel`) | Rating (today), rating preview, match status panel | No radius and no shadow, `surface` fill, `line` border. The status panel adds a 3px left rule in the status color. The preview card is dashed and hatched. |
-| `Input` (`.input`, `.input--code`, `.input--score`) | Email, password, date, OPEN codes, game scores | Pill, 48px, border `--color-field` (see token additions). Code inputs use Krona One uppercase. Score inputs are 64px, centered, `inputmode="numeric"`. Invalid: `aria-invalid` plus a danger border and a message tied by `aria-describedby`. |
+| `Input` (`.input`, `.input--code`, `.input--score`) | Email, password, date, OPEN codes, game scores | Pill, 48px, border `--color-field` (see token additions). Code inputs use the `open-code` utility (Instrument Sans medium, `tracking-wide`, `tabular-nums`). Score inputs are 64px, centered, `inputmode="numeric"`. Invalid: `aria-invalid` plus a danger border and a message tied by `aria-describedby`. |
 | `Label` + form field (`.field`, `.field-label`, `.field-hint`, `.field-error`) | All forms | Error text starts with a filled "!" so it doesn't rely on color. Maps to formsnap `Field`/`Control`/`Description`/`FieldErrors`. |
 | `ToggleGroup` (single) or `RadioGroup` styled as segments (`.seg`) | Format (singles/doubles), Games to (11/15/21), Scoring (side-out/rally) | Real radio inputs in the mockup. Selected segment is the solid button style. Shadcn `Tabs` would also fit, but these pick a value, they don't switch panels. |
 | Chip (custom on `Badge` + `Button`, `.chip`) | OPEN codes in Record a match | A code turns into a chip on Enter or blur once it matches the format. The remove button is labelled "Remove P-…". The chip shows only the code, since there's no player lookup (see backend gaps). An error chip shows a server `unknown_player` error. |
@@ -64,7 +64,7 @@ Each screen has a dashed "mockup states" bar at the top. The URL hash picks the 
 | Scoreboard (custom, `.scoreboard`) | Match detail | Teams down, games across, plus a visually hidden `<table>` for screen readers. The winning team gets a "Won 2–1" tag, not just bold. |
 | `Pagination` (`.pagination`) | Matches | Newer/Older plus a "1–20 of 47" range. Matches the API's `limit`/`offset` and `count`. |
 | Empty state (custom, `.empty`) | Home, Matches | Faded mark, one heading, a plain sentence, the next action. |
-| Code display (`.code`, `.code--lg`) | Home strip, Profile, match detail | OPEN codes are set in Krona One, the wordmark face, because players read them out to each other. |
+| Code display (`.code`, `.code--lg`) | Home strip, Profile, match detail | OPEN codes use the `open-code` utility: Instrument Sans medium, `tracking-wide`, `tabular-nums`. Not monospace (see open question 4). |
 | App shell: top bar, `Sidebar`/side nav, bottom tab bar | Every signed-in screen | Built by `mockup.js` from `data-page`. `aria-current="page"` on the active item. |
 | Theme toggle | Top bar, side nav, Profile | Copied from the site: sun in black, moon in ivory, view-transition crossfade, `localStorage.theme`. |
 | `Skeleton` | Not drawn | Rows would use the match-row layout with `line`-colored bars. |
@@ -132,7 +132,10 @@ workaround.
    than any border on the site.
 4. **Krona One for OPEN codes.** It extends the "Krona One only for identity" rule to codes. It's
    wide, so long codes may need care at 320px (it fits at 390px).
-5. **The `label` kicker** (Krona One 11px caps) is used for the date on match detail and for
+   Decided in frontend#280: Krona One is for the `OPEN` wordmark only. Codes, the `label` kicker
+   and the rating number use Instrument Sans. Codes are not monospace: the code alphabet already
+   leaves out I, L, O and U, and the system monospace differs per platform.
+5. **The `label` kicker** (11px caps, Instrument Sans semibold since frontend#280) is used for the date on match detail and for
    Profile section names. It's not numbered here, since these aren't sequences.
 6. **Rating preview number.** The site never shows the 2.0–8.0 scale. The preview shows "3.87"
    with no scale and no method, and is labeled as sample data. If even a sample number is too

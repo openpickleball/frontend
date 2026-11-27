@@ -68,7 +68,7 @@
 								{player.displayName}{you && player.code === you ? ' (you)' : ''}
 							</span>
 							{#if player.code}
-								<span class="font-display text-sm text-muted">{player.code}</span>
+								<span class="open-code text-sm text-muted">{player.code}</span>
 							{/if}
 						</div>
 					{/each}
