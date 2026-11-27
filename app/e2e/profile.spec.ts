@@ -66,6 +66,7 @@ test.describe('an account that has a player (me/player exists)', () => {
 			'Name and privacy',
 			'Two-factor authentication',
 			'Your data',
+			'Feedback',
 			'Account'
 		]);
 		// No separate name line: the display name field shows the name.
