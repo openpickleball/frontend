@@ -1,6 +1,6 @@
 <script lang="ts">
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { MFA_REQUIRED } from '#lib/api/index.js';
@@ -51,12 +51,14 @@
 	let unsent = $state(0);
 	const matches = $derived(typed.trim().toLowerCase() === WORD);
 
-	// Each time it opens: an empty field, no error, and the unsent count as it is now.
+	// Each time it opens: an empty field, no error, and the unsent count as it is now. The count's
+	// source reads reactive state (the offline queue), so it is untracked: a queue change while the
+	// dialog is open must not run this reset again.
 	$effect.pre(() => {
 		if (!open) return;
 		typed = '';
 		problem = null;
-		unsent = unsentMatches();
+		unsent = untrack(unsentMatches);
 	});
 
 	function problemOf(cause: unknown): Problem {
@@ -151,6 +153,7 @@
 			autocomplete="off"
 			autocapitalize="off"
 			spellcheck="false"
+			disabled={busy}
 		/>
 		{#if problem}
 			<Alert variant="destructive">
