@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MatchCache } from './cache.svelte.js';
+import { MatchCache, matchCache } from './cache.svelte.js';
 import {
 	fetcherFor,
 	filterFromSearch,
@@ -7,8 +7,9 @@ import {
 	matchesQuery,
 	MATCH_FILTERS
 } from './filter.js';
+import { needsYou } from './needs-you.svelte.js';
 import * as services from './services.js';
-import { TAMSIN, sampleMatch } from './testing.js';
+import { TAMSIN, sampleMatch, viewerMatch } from './testing.js';
 
 vi.mock('./services.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('./services.js')>()),
@@ -81,13 +82,35 @@ describe('fetcherFor', () => {
 		expect(mocked.listMatches).toHaveBeenCalledWith(TAMSIN, 20, options);
 	});
 
-	it('reads the awaiting-confirmation list for needs-you, with paging', async () => {
-		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [match], count: 21 });
-		expect(await fetcherFor('needs-you')(TAMSIN, 20, options)).toEqual({
-			items: [match],
-			count: 21
+	it('pages through the app-wide Needs you list for needs-you', async () => {
+		matchCache.reset();
+		needsYou.reset();
+		matchCache.setOwnerSource(() => TAMSIN);
+		const older = viewerMatch({}, { playedOn: '2026-11-01' });
+		mocked.listAwaitingConfirmation.mockImplementation(async (_offset, { cache } = {}) => {
+			cache?.rememberAll([older]);
+			return { items: [older], count: 1 };
 		});
-		expect(mocked.listAwaitingConfirmation).toHaveBeenCalledWith(20, options);
+		mocked.listMyHolds.mockResolvedValue({ items: [], count: 0 });
+		expect(await fetcherFor('needs-you')(TAMSIN, 0, options)).toEqual({
+			items: [older],
+			count: 1
+		});
+		expect(await fetcherFor('needs-you')(TAMSIN, 20, options)).toEqual({ items: [], count: 1 });
+		// The app-wide cache, not the one passed in, so the count is the nav badge's count.
+		expect(mocked.listAwaitingConfirmation).toHaveBeenCalledWith(0, {
+			limit: 100,
+			cache: matchCache
+		});
+		matchCache.reset();
+	});
+
+	it('throws the Needs you failure, so the page can say it', async () => {
+		needsYou.reset();
+		const down = new Error('down');
+		mocked.listAwaitingConfirmation.mockRejectedValue(down);
+		mocked.listMyHolds.mockResolvedValue({ items: [], count: 0 });
+		await expect(fetcherFor('needs-you')(TAMSIN, 0, options)).rejects.toBe(down);
 	});
 
 	it('reads the disputes list for disputed', async () => {

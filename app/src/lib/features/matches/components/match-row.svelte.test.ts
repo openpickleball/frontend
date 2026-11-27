@@ -64,24 +64,40 @@ describe('MatchRow', () => {
 });
 
 describe('MatchRow note under a list title', () => {
-	it('leaves out Needs your confirmation in a list that says it', async () => {
+	it('says what the player can do in the Needs you list', async () => {
 		const match = viewerMatch({ b: true });
 		await render(MatchRow, { match, you: TAMSIN, listOf: 'needs-you' });
-		await expect.element(page.getByTestId('match-row')).toBeVisible();
+		await expect
+			.element(page.getByText('Confirm or dispute the score.', { exact: true }))
+			.toBeVisible();
 		await expect.element(page.getByText('Needs your confirmation.')).not.toBeInTheDocument();
+	});
+
+	it('asks for a vouch in the Needs you list when the match is held and not vouched for', async () => {
+		const match = viewerMatch({ a: true, decision: 'confirm' }, { status: 'disputed' });
+		matchCache.rememberHolds([{ match, vouched: false }]);
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'needs-you' });
+		await expect
+			.element(page.getByText("Vouch for it. It's on hold.", { exact: true }))
+			.toBeVisible();
+	});
+
+	it('names both actions in the Needs you list when the match needs both', async () => {
+		const match = viewerMatch({ b: true });
+		matchCache.rememberHolds([{ match, vouched: false }]);
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'needs-you' });
+		await expect
+			.element(
+				page.getByText("Confirm or dispute the score, and vouch for it. It's on hold.", {
+					exact: true
+				})
+			)
+			.toBeVisible();
 	});
 
 	it('says Needs your confirmation in any other list', async () => {
 		await render(MatchRow, { match: viewerMatch({ b: true }), you: TAMSIN });
 		await expect.element(page.getByText('Needs your confirmation.')).toBeVisible();
-	});
-
-	it('keeps who confirmed in the waiting list, without Waiting for the other team', async () => {
-		const match = viewerMatch({ a: true, decision: 'confirm' });
-		await render(MatchRow, { match, you: TAMSIN, listOf: 'waiting' });
-		await expect
-			.element(page.getByText('You confirmed this score.', { exact: true }))
-			.toBeVisible();
 	});
 
 	it('says only that the team vouched in the on-hold list', async () => {

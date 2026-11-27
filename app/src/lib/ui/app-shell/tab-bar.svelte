@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import NavBadge from './nav-badge.svelte';
 	import NavIcon from './nav-icon.svelte';
-	import { NAV_ITEMS, isCurrent } from './nav.js';
+	import { NAV_ITEMS, isCurrent, needsYouName } from './nav.js';
 
-	let { pathname }: { pathname: string } = $props();
+	let { pathname, needsYou = 0 }: { pathname: string; needsYou?: number } = $props();
 </script>
 
 <!-- Mobile only: from 1024px the side nav takes over. -->
@@ -13,13 +14,25 @@
 >
 	{#each NAV_ITEMS as item (item.href)}
 		{@const current = isCurrent(item, pathname)}
+		{@const name = needsYouName(item, item.label, needsYou)}
 		<a
 			href={resolve(item.href)}
 			aria-current={current ? 'page' : undefined}
 			class="flex flex-col items-center justify-center gap-1 text-xs tracking-wide text-muted hover:text-secondary focus-visible:-outline-offset-6 aria-[current=page]:font-semibold aria-[current=page]:text-secondary"
 		>
-			<NavIcon name={item.icon} class={current ? 'size-5 stroke-2' : 'size-5'} />
-			{item.label}
+			<span class="relative">
+				<NavIcon name={item.icon} class={current ? 'size-5 stroke-2' : 'size-5'} />
+				{#if item.href === '/' && needsYou > 0}
+					<!-- Over the icon's top right corner. -->
+					<NavBadge count={needsYou} class="absolute -top-2 left-3" />
+				{/if}
+			</span>
+			{#if name}
+				<span aria-hidden="true">{item.label}</span>
+				<span class="sr-only">{name}</span>
+			{:else}
+				{item.label}
+			{/if}
 		</a>
 	{/each}
 </nav>

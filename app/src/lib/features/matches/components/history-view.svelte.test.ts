@@ -4,7 +4,9 @@ import { page, userEvent } from 'vitest/browser';
 import { goto } from '$app/navigation';
 import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
+import { buildCode, type MatchCode } from '#lib/domain/index.js';
 import { matchCache } from '../cache.svelte.js';
+import { needsYou } from '../needs-you.svelte.js';
 import * as services from '../services.js';
 import type { MatchFilter } from '../filter.js';
 import { TAMSIN, viewerMatch } from '../testing.js';
@@ -24,6 +26,7 @@ const renderView = (props: { page: number; show?: MatchFilter }) => render(Histo
 beforeEach(() => {
 	vi.resetAllMocks();
 	matchCache.reset();
+	needsYou.reset();
 	myCode.reset();
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
 	myCode.code = TAMSIN;
@@ -101,12 +104,38 @@ describe('HistoryView count', () => {
 });
 
 describe('HistoryView filter', () => {
-	it('lists the matches that need the player, from their own list, with paging', async () => {
-		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [viewerMatch()], count: 21 });
+	it('lists what needs the player, to confirm or to vouch for, oldest first, with paging', async () => {
+		matchCache.setOwnerSource(() => myCode.code);
+		// 20 to confirm, played on 1 to 20 November, and one held to vouch for, played earlier.
+		const toConfirm = Array.from({ length: 20 }, (_, index) =>
+			viewerMatch(
+				{ b: true },
+				{
+					code: buildCode('match', String(index + 1).padStart(11, '0')) as MatchCode,
+					playedOn: `2026-11-${String(index + 1).padStart(2, '0')}`
+				}
+			)
+		);
+		const held = viewerMatch(
+			{ a: true, decision: 'confirm' },
+			{ code: buildCode('match', 'H2ZA6TQN4CJ') as MatchCode, playedOn: '2026-10-30' }
+		);
+		mocked.listAwaitingConfirmation.mockImplementation(async (_offset, options) => {
+			options?.cache?.rememberAll(toConfirm);
+			return { items: toConfirm, count: 20 };
+		});
+		mocked.listMyHolds.mockImplementation(async (_offset, options) => {
+			const holds = [{ match: held, vouched: false }];
+			(options?.cache ?? matchCache).rememberHolds(holds);
+			return { items: holds, count: 1 };
+		});
 		await renderView({ page: 2, show: 'needs-you' });
 
+		// Oldest first, so the 21st is the newest one to confirm.
 		await expect.element(page.getByTestId('range')).toHaveTextContent('21–21 of 21');
-		expect(mocked.listAwaitingConfirmation).toHaveBeenCalledWith(20, expect.anything());
+		await expect
+			.element(page.getByTestId('match-row'))
+			.toHaveAttribute('href', `/matches/${toConfirm[19].code}`);
 		expect(mocked.listMatches).not.toHaveBeenCalled();
 		await expect.element(page.getByLabelText('Show')).toHaveValue('needs-you');
 		await expect.element(page.getByRole('list', { name: 'Your matches, Needs you' })).toBeVisible();
@@ -116,6 +145,30 @@ describe('HistoryView filter', () => {
 		await vi.waitFor(() =>
 			expect(document.title).toBe('Matches, Needs you, page 2 of 2 · OPEN Pickleball')
 		);
+	});
+
+	it('puts a held match to vouch for first when it is the oldest', async () => {
+		matchCache.setOwnerSource(() => myCode.code);
+		const toConfirm = viewerMatch({ b: true });
+		const held = viewerMatch(
+			{ a: true, decision: 'confirm' },
+			{ code: buildCode('match', 'H2ZA6TQN4CJ') as MatchCode, playedOn: '2026-10-30' }
+		);
+		mocked.listAwaitingConfirmation.mockImplementation(async (_offset, options) => {
+			options?.cache?.rememberAll([toConfirm]);
+			return { items: [toConfirm], count: 1 };
+		});
+		mocked.listMyHolds.mockImplementation(async (_offset, options) => {
+			const holds = [{ match: held, vouched: false }];
+			(options?.cache ?? matchCache).rememberHolds(holds);
+			return { items: holds, count: 1 };
+		});
+		await renderView({ page: 1, show: 'needs-you' });
+
+		await expect.element(page.getByTestId('range')).toHaveTextContent('1–2 of 2');
+		const rows = page.getByTestId('match-row');
+		await expect.element(rows.first().getByText("Vouch for it. It's on hold.")).toBeVisible();
+		await expect.element(rows.nth(1).getByText('Confirm or dispute the score.')).toBeVisible();
 	});
 
 	it('pages within the filter', async () => {

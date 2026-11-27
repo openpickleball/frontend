@@ -70,7 +70,7 @@
 
 	/** What an empty filter says. */
 	const NONE: Record<Exclude<MatchFilter, 'all'>, string> = {
-		'needs-you': 'No matches need your confirmation',
+		'needs-you': 'No matches need you',
 		disputed: 'You have no disputed matches',
 		'on-hold': 'You have no matches on hold'
 	};
