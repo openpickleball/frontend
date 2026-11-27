@@ -147,18 +147,19 @@
 	}
 </script>
 
-<!-- The section pattern (plans/ux-cleanup #283): a line, the title, then the content. -->
 <div aria-busy={busy}>
+	<!-- The fallbacks sit 8 below the page title or notice (app/AGENTS.md). -->
 	{#if view.status === 'loading'}
-		<LoadingState label="Loading your two-factor settings…" />
+		<LoadingState label="Loading your two-factor settings…" class="mt-8" />
 	{:else if view.status === 'error'}
-		<div>
+		<div class="mt-8">
 			<p class="max-w-md text-base text-muted">
 				We can't load your two-factor settings right now. Check your connection and try again.
 			</p>
 			<Button variant="outline" size="sm" class="mt-4" onclick={() => load()}>Try again</Button>
 		</div>
 	{:else if view.status === 'off'}
+		<!-- The section pattern (plans/ux-cleanup #283): a line, the title, then the content. -->
 		<Section title="Authenticator app">
 			<div class="grid gap-8">
 				<div class="grid gap-4">
