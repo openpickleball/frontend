@@ -17,6 +17,7 @@
 		title,
 		headingId,
 		aside,
+		info,
 		class: className,
 		children,
 		...restProps
@@ -27,6 +28,8 @@
 		headingId?: string;
 		/** Something next to the title, such as a count or a link. */
 		aside?: Snippet;
+		/** An info button right after the title, such as an InfoPopover. */
+		info?: Snippet;
 	} = $props();
 
 	const generatedId = $props.id();
@@ -40,13 +43,23 @@
 	aria-labelledby={id}
 	{...restProps}
 >
+	{#snippet heading()}
+		{#if info}
+			<div class="flex items-center">
+				<h2 {id} class="section-title">{title}</h2>
+				{@render info()}
+			</div>
+		{:else}
+			<h2 {id} class="section-title">{title}</h2>
+		{/if}
+	{/snippet}
 	{#if aside}
 		<div class="flex flex-wrap items-baseline justify-between gap-x-4">
-			<h2 {id} class="section-title">{title}</h2>
+			{@render heading()}
 			{@render aside()}
 		</div>
 	{:else}
-		<h2 {id} class="section-title">{title}</h2>
+		{@render heading()}
 	{/if}
 	<div class="mt-4">
 		{@render children?.()}

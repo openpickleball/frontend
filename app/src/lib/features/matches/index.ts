@@ -93,12 +93,20 @@ export {
 	VOIDED_CORRECTED,
 	canCorrect,
 	DISPUTE_ENDS,
+	DISPUTED_MEANS,
+	HOLD_COUNTS,
 	HOLD_ENDS,
 	HOLD_WHY,
+	ON_HOLD_MEANS,
+	VOUCH_MEANS,
+	VOUCH_MEANS_ORGANIZER,
 	hasActions,
 	matchStatusCopy,
+	progressInfo,
+	statusInfo,
 	type MatchStatusCopy,
-	type PanelAction
+	type PanelAction,
+	type StatusInfo
 } from './status.js';
 export {
 	MATCH_FILTERS,

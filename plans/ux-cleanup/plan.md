@@ -1,6 +1,6 @@
 # UX clean-up
 
-**Status:** active
+**Status:** done
 
 ## Goal
 
@@ -34,7 +34,7 @@ Wave 4
 
 Wave 5
 
-- [ ] #285 Explain dispute, on hold, vouch and reliability in info popovers
+- [x] #285 Explain dispute, on hold, vouch and reliability in info popovers
 
 ## Heading and section pattern (#283)
 
@@ -142,3 +142,15 @@ One list, `needsYou` in `app/src/lib/features/matches/needs-you.svelte.ts`, feed
 - #287: the `label` kicker is gone from the match page. The correction page keeps its own, since #287 covers only the match page.
 - #287: the match code sits in Details under Games to and Scoring on a phone, and beside them from `lg`. Its Copy button is the small outline button with the visible text "Copy" and the name "Copy match code".
 - #287: without the sentence headline, the scoreboard starts with a sentence for screen readers only, such as "You and Oren Quill beat Bea Marlowe and Kit Ashdown, 11-7, 9-11, 11-4.", before its table. The table alone named the winners but not the result in words.
+- #285: the info button is our own thin wrapper, `InfoPopover` in `app/src/lib/ui/info-popover/`, around shadcn-svelte's Popover (Bits UI), restyled to our tokens: a `bg-surface` panel with a `border-field` edge, like the combobox list, fading in like the dialogs. The button is a 44px tap target (`size-11`) around a 20px Lucide `info` icon, with negative margins so the title line keeps its height. It opens on tap, click, Enter or Space, never on hover. Escape or a tap outside closes it, and focus goes back to the button. The popover is a `dialog` named like the button.
+- #285: each popover lists its terms, each in bold with a sentence or two, and only the terms the screen shows. Its button's name lists them: "What does disputed mean?", "What do on hold and vouch mean?".
+- #285: on the match page the button sits after the status panel title. The panel's sentence already says what happened, so the popover says what comes next: how a dispute ends (`DISPUTE_ENDS`), why a held match doesn't count and how a hold ends (`HOLD_COUNTS`), and, while the panel asks for one, what a vouch is (`VOUCH_MEANS`, or `VOUCH_MEANS_ORGANIZER` for a member of the organizer). `statusInfo` in `status.ts` builds it.
+- #285: on Home the one button sits after the In progress title, not on the Needs you rows. The counts line names both terms, and a button on each row would repeat on every held row. A held match to vouch for is always counted under "on hold", so the on-hold text says what a vouch is for, and the match page explains the vouch in full.
+- #285: on Profile one button sits after the Ratings title, shown when there are tiles. It explains reliability and, when a tile shows them, reliability from an external rating, "Early estimate." and "May still change." (`RATING_TERMS` in `ratings.ts`).
+- #285: `DISPUTE_ENDS` is now two sentences, as the issue asks: "A dispute ends when every player who disputed the score withdraws, or, for a match played at an event, when the event's organizer settles it. If no one settles it in time, the match is voided and doesn't count." The event part stays, because only an event match has an organizer to settle it.
+- #285: the reliability copy says only what reliability is ("How sure a rating is, from 0 to 100.", and "How sure the external rating it started from is, from 0 to 100."), not where it comes from. No rating method is published and the numbers are demonstration ones, so the app can't truthfully say what reliability is based on. Early estimate and May still change keep their text.
+- #285: every info popover opens below its button (`side="bottom"`), over the content it explains rather than the page heading. When there is no room below, the popover first scrolls the page up just enough, keeping the button below the top bar. Bits UI flips it above only when the page can't scroll that far.
+- #285: `Section` takes an `info` snippet, drawn right after the title. The `aside` stays on the right.
+- #285: the shadcn-svelte CLI also added `@internationalized/date` to `package.json`. It was left out: Bits UI already brings it, and the popover doesn't use it.
+- #285: CSP: Bits UI positions the popover the same way as the combobox list, and the e2e checks, which fail on any policy violation, see none with a popover open. No allowance was added.
+

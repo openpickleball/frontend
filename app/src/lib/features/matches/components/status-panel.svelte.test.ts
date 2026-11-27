@@ -1,9 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { page } from 'vitest/browser';
+import { DISPUTE_ENDS, HOLD_COUNTS, VOUCH_MEANS, VOUCH_MEANS_ORGANIZER } from '../status.js';
 import { sampleMatch, viewerMatch } from '../testing.js';
 import StatusPanel from './status-panel.svelte';
 
 const handlers = () => ({ onconfirm: vi.fn(), ondispute: vi.fn() });
+
+type Screen = Awaited<ReturnType<typeof render>>;
+
+/** The panel's action buttons, in order. The info button by the title is not one. */
+const actions = (screen: Screen) =>
+	screen
+		.getByRole('button')
+		.elements()
+		.filter((button) => !button.matches('[data-slot="info-button"]'))
+		.map((button) => button.textContent?.trim());
 
 describe('StatusPanel', () => {
 	it('says the player just recorded the match, only when told to', async () => {
@@ -112,7 +124,7 @@ describe('StatusPanel', () => {
 				.element(screen.getByRole('heading', { name: 'Waiting for the other team' }))
 				.toBeVisible();
 			await expect.element(screen.getByText(/You confirmed this score/)).toBeVisible();
-			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+			expect(actions(screen)).toEqual([]);
 		});
 
 		it('says a teammate confirmed when the player did not', async () => {
@@ -124,7 +136,7 @@ describe('StatusPanel', () => {
 				.element(screen.getByText(/A player on your team confirmed this score/))
 				.toBeVisible();
 			await expect.element(screen.getByText(/You confirmed/)).not.toBeInTheDocument();
-			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+			expect(actions(screen)).toEqual([]);
 		});
 	});
 
@@ -140,7 +152,7 @@ describe('StatusPanel', () => {
 			await expect
 				.element(screen.getByRole('heading', { name: 'Waiting for the other team' }))
 				.not.toBeInTheDocument();
-			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+			expect(actions(screen)).toEqual([]);
 		});
 	});
 
@@ -150,7 +162,7 @@ describe('StatusPanel', () => {
 			await expect
 				.element(screen.getByRole('heading', { name: 'Waiting for confirmation' }))
 				.toBeVisible();
-			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+			expect(actions(screen)).toEqual([]);
 		});
 	});
 
@@ -166,7 +178,7 @@ describe('StatusPanel', () => {
 			});
 			await expect.element(screen.getByRole('heading', { name: title })).toBeVisible();
 			await expect.element(screen.getByText(text)).toBeVisible();
-			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+			expect(actions(screen)).toEqual([]);
 		});
 	}
 
@@ -177,7 +189,7 @@ describe('StatusPanel', () => {
 			...handlers()
 		});
 		await expect.element(screen.getByRole('heading', { name: 'Confirmed' })).toBeVisible();
-		await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+		expect(actions(screen)).toEqual([]);
 	});
 
 	it('shows the player their own decision on a confirmed or disputed match', async () => {
@@ -270,7 +282,7 @@ describe('StatusPanel', () => {
 			await expect
 				.element(screen.getByText(/You said this score is wrong/))
 				.not.toBeInTheDocument();
-			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+			expect(actions(screen)).toEqual([]);
 		});
 
 		it('reads a confirmed match as confirmed, not as their confirmation or dispute', async () => {
@@ -347,7 +359,7 @@ describe('StatusPanel', () => {
 				...handlers()
 			});
 			await expect.element(screen.getByText(/Your team vouched for this match/)).toBeVisible();
-			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+			expect(actions(screen)).toEqual([]);
 		});
 
 		it('keeps Confirm first on a pending match the player has to confirm', async () => {
@@ -356,12 +368,7 @@ describe('StatusPanel', () => {
 				hold: { vouched: false },
 				...handlers()
 			});
-			const buttons = screen.getByRole('button').elements();
-			expect(buttons.map((button) => button.textContent?.trim())).toEqual([
-				'Confirm score',
-				'Dispute',
-				'This match really happened'
-			]);
+			expect(actions(screen)).toEqual(['Confirm score', 'Dispute', 'This match really happened']);
 		});
 
 		it('waits while the vouch is in flight', async () => {
@@ -387,7 +394,7 @@ describe('StatusPanel', () => {
 				...handlers()
 			});
 			await expect.element(screen.getByRole('heading', { name: 'Voided' })).toBeVisible();
-			await expect.element(screen.getByRole('button')).not.toBeInTheDocument();
+			expect(actions(screen)).toEqual([]);
 		});
 	});
 
@@ -471,6 +478,76 @@ describe('StatusPanel', () => {
 			await expect
 				.element(screen.getByRole('link', { name: 'See the corrected match' }))
 				.toHaveAttribute('href', '/matches/M-FXD0-0000-0001');
+		});
+	});
+
+	describe('the info button by the title', () => {
+		it('explains how a dispute ends, on a disputed match', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({ decision: 'dispute' }, { status: 'disputed' }),
+				...handlers()
+			});
+			await screen.getByRole('button', { name: 'What does disputed mean?' }).click();
+			const popover = page.getByRole('dialog', { name: 'What does disputed mean?' });
+			await expect.element(popover.getByText(DISPUTE_ENDS)).toBeVisible();
+		});
+
+		it('explains on hold and vouch while the panel asks for a vouch', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({}, { status: 'confirmed' }),
+				hold: { vouched: false },
+				...handlers()
+			});
+			await screen.getByRole('button', { name: 'What do on hold and vouch mean?' }).click();
+			const popover = page.getByRole('dialog', { name: 'What do on hold and vouch mean?' });
+			await expect.element(popover.getByText(HOLD_COUNTS)).toBeVisible();
+			await expect.element(popover.getByText(VOUCH_MEANS)).toBeVisible();
+		});
+
+		it('words the vouch for a member of the organizer', async () => {
+			const screen = await render(StatusPanel, {
+				match: sampleMatch({ status: 'confirmed' }),
+				hold: { vouched: false },
+				...handlers()
+			});
+			await screen.getByRole('button', { name: 'What do on hold and vouch mean?' }).click();
+			await expect.element(page.getByText(VOUCH_MEANS_ORGANIZER)).toBeVisible();
+		});
+
+		it('explains only on hold once the team has vouched', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({}, { status: 'confirmed' }),
+				hold: { vouched: true },
+				...handlers()
+			});
+			await expect
+				.element(screen.getByRole('button', { name: 'What does on hold mean?' }))
+				.toBeVisible();
+		});
+
+		it('explains both on a disputed match on hold', async () => {
+			const screen = await render(StatusPanel, {
+				match: viewerMatch({}, { status: 'disputed' }),
+				hold: { vouched: false },
+				...handlers()
+			});
+			await expect
+				.element(screen.getByRole('button', { name: 'What do disputed, on hold and vouch mean?' }))
+				.toBeVisible();
+		});
+
+		it('is left out where nothing needs explaining', async () => {
+			for (const match of [
+				viewerMatch(),
+				viewerMatch({ a: true, decision: 'confirm' }),
+				viewerMatch({}, { status: 'confirmed' }),
+				viewerMatch({}, { status: 'voided' })
+			]) {
+				const screen = await render(StatusPanel, { match, ...handlers() });
+				await expect.element(screen.getByTestId('status-panel')).toBeVisible();
+				expect(screen.container.querySelector('[data-slot="info-button"]')).toBeNull();
+				screen.unmount();
+			}
 		});
 	});
 });

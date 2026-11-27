@@ -47,6 +47,26 @@ export function toPlayerRatings(dto: PlayerRatingsOut): PlayerRatings {
 	return { ratings, demonstration: dto.demonstration };
 }
 
+/**
+ * What the lines on a rating tile mean, for the Ratings info popover (frontend#285). The tiles
+ * keep them short ("Early estimate.", "May still change."), so the longer meaning is here.
+ */
+export const RATING_TERMS = {
+	reliability: {
+		term: 'Reliability',
+		text: 'How sure a rating is, from 0 to 100.'
+	},
+	imported: {
+		term: 'Reliability from an external rating',
+		text: 'How sure the external rating it started from is, from 0 to 100.'
+	},
+	early: { term: 'Early estimate', text: "The rating doesn't rest on enough matches yet." },
+	provisional: {
+		term: 'May still change',
+		text: 'The rating may change when ratings are next recounted.'
+	}
+} as const;
+
 /** Ratings to two decimals. */
 export function formatRating(value: number): string {
 	return value.toFixed(2);
