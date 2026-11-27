@@ -7,6 +7,7 @@
 		TwoFactorStatus,
 		session
 	} from '#lib/features/auth/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 </script>
 
 <svelte:head>
@@ -19,12 +20,11 @@
 		<OrganizerMfaPrompt link />
 		<TwoFactorStatus />
 		<!-- From 1024px the side nav foot has Sign out, so it is not shown twice. -->
-		<section class="border-t border-line pt-6 lg:hidden" aria-labelledby="account-heading">
-			<h2 id="account-heading" class="label">Account</h2>
-			<div class="mt-4 flex items-center justify-between gap-4">
+		<Section title="Account" class="lg:hidden">
+			<div class="flex items-center justify-between gap-4">
 				<span class="text-base text-muted">Sign out of OPEN on this device.</span>
 				<SignOutButton />
 			</div>
-		</section>
+		</Section>
 	{/if}
 </ProfileView>

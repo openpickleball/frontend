@@ -26,13 +26,15 @@ test('the tab bar navigates to each tab and aria-current follows', async ({ page
 	const tabBar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
 
 	for (const { name, path } of TABS) {
-		await tabBar.getByRole('link', { name, exact: true }).click();
+		// Home's name ends with how many matches need the player, such as "Home, 3 need you".
+		const link = tabBar.getByRole('link', {
+			name: name === 'Home' ? /^Home(, \d+ needs? you)?$/ : name,
+			exact: true
+		});
+		await link.click();
 		await expect(page).toHaveURL(path);
 		await expect(tabBar.locator('[aria-current="page"]')).toHaveCount(1);
-		await expect(tabBar.getByRole('link', { name, exact: true })).toHaveAttribute(
-			'aria-current',
-			'page'
-		);
+		await expect(link).toHaveAttribute('aria-current', 'page');
 	}
 });
 

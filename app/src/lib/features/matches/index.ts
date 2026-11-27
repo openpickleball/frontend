@@ -39,7 +39,7 @@
  *
  * How to use it
  *
- * - Pages: `HomeView`, `HistoryView` (pass `page`, from 1) and `MatchView` (pass the `code` from
+ * - Pages: `HomeView`, `HistoryView` (pass `page`, from 1, and `show`, the filter) and `MatchView` (pass the `code` from
  *   the address). Each waits for `myCode` and asks for it when needed.
  * - `rememberMatch(match)`: call it after `POST matches/` succeeds, before going to
  *   `/matches/{code}`. It puts the new match in the cache, so the detail page shows it at
@@ -52,6 +52,15 @@
  *   `listMyDisputes(offset)`, `listMyHolds(offset)`, `findHold(code)`, `getMatch(code)`,
  *   `confirmMatch(code)`, `disputeMatch(code)`, `withdrawDispute(code)` and `vouchForMatch(code)`
  *   are the services. They throw an `AppError` when a call fails.
+ * - `needsYou`: the matches that need the player (to confirm, or held and not vouched for by
+ *   their side), oldest first. Home, the nav badge (`needsYou.count`) and the Needs you filter
+ *   read it. The backend has no such list, so `needsYou.load()` reads the awaiting-confirmation
+ *   and holds lists in full and merges them. The root layout loads it once the player's code is
+ *   known, for the badge.
+ * - `filter.ts` has the Matches filters (`MATCH_FILTERS`): All, Needs you, Disputed and On hold,
+ *   in the address as `?show=`. `filterFromSearch` reads it, `matchesQuery(filter, page)` builds
+ *   it, so Home can link straight to a filter. There is no "Waiting for the other team" filter
+ *   until the backend serves that list.
  * - `format.ts` helpers (`scoreLine`, `teamNames`, `formatDate`, ...) are exported for other
  *   screens that show a match.
  */
@@ -91,7 +100,21 @@ export {
 	type MatchStatusCopy,
 	type PanelAction
 } from './status.js';
+export {
+	MATCH_FILTERS,
+	fetcherFor,
+	filterFromSearch,
+	filterLabel,
+	matchesQuery,
+	type MatchFilter
+} from './filter.js';
 export { MatchListView, type ListStatus, type PageFetcher } from './list-view.svelte.js';
+export {
+	NeedsYouView,
+	needsYou,
+	needsYouActions,
+	type NeedsYouAction
+} from './needs-you.svelte.js';
 export {
 	STATUS_LABELS,
 	formatDate,

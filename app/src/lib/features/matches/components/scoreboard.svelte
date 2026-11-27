@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { winner, type Match, type PlayerCode } from '#lib/domain/index.js';
-	import { sideScores, teamNames, viewpoint, wonTag } from '../format.js';
+	import { Section } from '#lib/ui/section/index.js';
+	import { matchHeadline, scoreLine, sideScores, teamNames, viewpoint, wonTag } from '../format.js';
 
 	let { match, you }: { match: Match; you: PlayerCode } = $props();
 
@@ -20,9 +21,13 @@
 	const columns = $derived(`1fr repeat(${match.games.length}, 40px)`);
 </script>
 
-<section class="mt-8 border-t border-line" aria-label="Score">
-	<!-- The table is for screen readers. The grid below is the same data, drawn for the eye. -->
+<Section title="Score">
+	<!-- The sentence and the table are for screen readers. The grid below is the same data, drawn
+	     for the eye. The page title says only the format and date, so the sentence gives the result. -->
 	<div class="sr-only">
+		<p data-testid="scoreboard-result">
+			{matchHeadline(match, you)}, {scoreLine(match, first)}.
+		</p>
 		<table>
 			<caption>Score by game</caption>
 			<thead>
@@ -47,7 +52,7 @@
 	</div>
 	<div aria-hidden="true">
 		<div
-			class="grid items-center gap-x-1.5 pt-3 pb-2 text-right text-sm text-muted"
+			class="grid items-center gap-x-1.5 pb-2 text-right text-sm text-muted"
 			style:grid-template-columns={columns}
 		>
 			<span class="text-left">Team</span>
@@ -57,20 +62,16 @@
 		</div>
 		{#each teams as row (row.side)}
 			<div
-				class="grid items-start gap-x-1.5 border-t border-line py-5 last:border-b"
+				class="grid items-start gap-x-1.5 border-t border-line py-5"
 				style:grid-template-columns={columns}
 				data-testid="scoreboard-team"
 			>
 				<div class="grid min-w-0 gap-1.5">
 					{#each row.team.players as player, index (index)}
-						<div class="grid gap-0.5">
-							<span class="text-lg wrap-anywhere {row.won ? 'font-semibold' : ''}">
-								{player.displayName}{you && player.code === you ? ' (you)' : ''}
-							</span>
-							{#if player.code}
-								<span class="font-display text-sm text-muted">{player.code}</span>
-							{/if}
-						</div>
+						<!-- Names only: player codes don't help on a match you played. -->
+						<span class="text-lg wrap-anywhere {row.won ? 'font-semibold' : ''}">
+							{player.displayName}{you && player.code === you ? ' (you)' : ''}
+						</span>
 					{/each}
 					{#if row.won}
 						<span class="mt-0.5 text-sm font-semibold text-secondary">
@@ -90,4 +91,4 @@
 			</div>
 		{/each}
 	</div>
-</section>
+</Section>

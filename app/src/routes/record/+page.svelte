@@ -42,13 +42,11 @@
 
 <div class="pt-4">
 	<h1 class="page-title">Record a match</h1>
-	<p class="mt-4 max-w-md text-muted">
-		Enter the final score. Once it's saved, the other team can confirm it or dispute it.
-	</p>
 </div>
 
-<div class="mt-8 max-w-2xl">
-	<OwnCodeGate reloadOnOpen signedOut="Sign in to record a match.">
+<!-- The form starts with a section, which brings its own space above. -->
+<div class="max-w-2xl">
+	<OwnCodeGate reloadOnOpen fallbackClass="mt-8" signedOut="Sign in to record a match.">
 		{#snippet children(own)}
 			{#key `${own}|${fixing?.id ?? ''}`}
 				<RecordMatchForm

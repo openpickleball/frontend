@@ -16,7 +16,7 @@
 		watchMfaRequired,
 		watchSessionExpiry
 	} from '#lib/features/auth/index.js';
-	import { matchCache, ownerKey, rememberMatch } from '#lib/features/matches/index.js';
+	import { matchCache, needsYou, ownerKey, rememberMatch } from '#lib/features/matches/index.js';
 	import {
 		QueueNotice,
 		offlineQueue,
@@ -47,9 +47,18 @@
 			untrack(() => {
 				myCode.reset();
 				matchCache.reset();
+				needsYou.reset();
 			});
 		}
 		lastAccount = account;
+	});
+
+	// The Home badge counts what needs the player. Read it once their code is known. Home and the
+	// Needs you filter read it again, and a confirm or vouch updates it through the cache.
+	$effect(() => {
+		if (session.isSignedIn && myCode.status === 'ready' && myCode.code) {
+			untrack(() => void needsYou.load());
+		}
 	});
 
 	// The offline queue belongs to the signed-in account, and sends when it is set (frontend#33).
@@ -66,6 +75,7 @@
 	onDestroy(
 		onSignOut(() => {
 			myCode.reset();
+			needsYou.reset();
 			void offlineQueue.forget();
 		})
 	);
@@ -132,6 +142,7 @@
 	pathname={page.url.pathname}
 	bare={isAccountPath(page.url.pathname)}
 	account={session.isSignedIn ? signOut : undefined}
+	needsYou={session.isSignedIn ? needsYou.count : 0}
 >
 	{#if session.isSignedIn && !isAccountPath(page.url.pathname)}
 		<QueueNotice onfix={fix} />

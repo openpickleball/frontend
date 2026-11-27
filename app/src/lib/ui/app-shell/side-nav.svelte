@@ -3,11 +3,16 @@
 	import { resolve } from '$app/paths';
 	import * as Sidebar from '#lib/ui/sidebar/index.js';
 	import { ThemeToggle } from '#lib/ui/theme-toggle/index.js';
+	import NavBadge from './nav-badge.svelte';
 	import NavIcon from './nav-icon.svelte';
 	import Wordmark from './wordmark.svelte';
-	import { NAV_ITEMS, isCurrent } from './nav.js';
+	import { NAV_ITEMS, isCurrent, needsYouName } from './nav.js';
 
-	let { pathname, account }: { pathname: string; account?: Snippet } = $props();
+	let {
+		pathname,
+		account,
+		needsYou = 0
+	}: { pathname: string; account?: Snippet; needsYou?: number } = $props();
 </script>
 
 <!-- From 1024px. Below that, the top bar and the tab bar take over. The banner landmark from 1024px. -->
@@ -23,6 +28,7 @@
 				<Sidebar.Menu class="-ml-3.5 w-auto gap-1">
 					{#each NAV_ITEMS as item (item.href)}
 						{@const current = isCurrent(item, pathname)}
+						{@const name = needsYouName(item, item.sideLabel, needsYou)}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton isActive={current}>
 								{#snippet child({ props })}
@@ -32,7 +38,15 @@
 										aria-current={current ? 'page' : undefined}
 									>
 										<NavIcon name={item.icon} />
-										{item.sideLabel}
+										{#if name}
+											<span aria-hidden="true">{item.sideLabel}</span>
+											<span class="sr-only">{name}</span>
+										{:else}
+											{item.sideLabel}
+										{/if}
+										{#if item.href === '/' && needsYou > 0}
+											<NavBadge count={needsYou} class="ml-auto" />
+										{/if}
 									</a>
 								{/snippet}
 							</Sidebar.MenuButton>

@@ -57,7 +57,12 @@ describe('ProfileSettings', () => {
 		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
 		const matches = screen.getByRole('switch', { name: 'Match history' });
 		await expect.element(matches).toBeChecked();
-		await expect.element(matches).toHaveAccessibleDescription('Signed-in players');
+		// Match history says which matches are shown, which the Matches page used to say.
+		await expect
+			.element(matches)
+			.toHaveAccessibleDescription(
+				'Signed-in players Other signed-in players see your confirmed matches.'
+			);
 		const club = screen.getByRole('switch', { name: 'Home club' });
 		await expect.element(club).not.toBeChecked();
 		await expect.element(club).toHaveAccessibleDescription('Only me');

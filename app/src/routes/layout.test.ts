@@ -9,6 +9,11 @@ import themeScript from '../../static/theme.js?raw';
 // Vite lists the files that exist, so the test needs no file system access.
 // Glob keys are relative to this file and url() values to layout.css, so both must share a folder.
 const assetFiles = import.meta.glob('../lib/assets/**/*', { query: '?url', eager: true });
+const svelteSources = import.meta.glob<string>(['../lib/**/*.svelte', './**/*.svelte'], {
+	query: '?raw',
+	import: 'default',
+	eager: true
+});
 
 const candidates = [
 	'bg-primary',
@@ -33,7 +38,9 @@ const candidates = [
 	'light:hidden',
 	'mark',
 	'label',
-	'page-title'
+	'open-code',
+	'page-title',
+	'section-title'
 ];
 
 const tokens: Record<string, string> = {
@@ -127,6 +134,19 @@ describe('layout.css', () => {
 		for (const [selector, declaration] of utilities) {
 			expect(ruleBody(css, selector), selector).toContain(declaration);
 		}
+		// Krona One is for the wordmark only. Labels and OPEN codes use the body face.
+		expect(ruleBody(css, '.label')).toContain('font-family: var(--font-body)');
+		expect(ruleBody(css, '.label')).not.toContain('--font-display');
+		const openCode = ruleBody(css, '.open-code');
+		expect(openCode).toContain('font-family: var(--font-body)');
+		expect(openCode).toContain('font-weight: var(--font-weight-medium)');
+		expect(openCode).toContain('letter-spacing: var(--tracking-wide)');
+		expect(openCode).toContain('tabular-nums');
+		expect(openCode).not.toContain('monospace');
+		const sectionTitle = ruleBody(css, '.section-title');
+		expect(sectionTitle).toContain('font-size: var(--text-xl)');
+		expect(sectionTitle).toContain('font-weight: var(--font-weight-semibold)');
+		expect(sectionTitle).toContain('color: var(--color-secondary)');
 		expect(ruleBody(css, ':root')).toContain('color-scheme: light dark;');
 		expect(ruleBody(css, ':root[data-theme="light"]')).toContain('color-scheme: light;');
 		expect(ruleBody(css, ':root[data-theme="dark"]')).toContain('color-scheme: dark;');
@@ -142,6 +162,13 @@ describe('layout.css', () => {
 		expect(instrument).toContain('font-weight: 400 700;');
 		expect(instrument).toContain('font-style: normal;');
 		expect(instrument).toContain('font-display: swap;');
+	});
+
+	it('uses the display font on the wordmark only', () => {
+		const users = Object.entries(svelteSources)
+			.filter(([, source]) => /\bfont-display\b/.test(source))
+			.map(([path]) => path);
+		expect(users).toEqual(['../lib/ui/app-shell/wordmark.svelte']);
 	});
 
 	it('keeps the color-scheme rules inside @layer base', () => {

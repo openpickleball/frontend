@@ -1,9 +1,13 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+	import { ROUTES } from '#lib/domain/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
-	import { Card, CardContent, CardDescription, CardHeader } from '#lib/ui/card/index.js';
+	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
-	import { FORMAT_LABELS, formatRating, formatReliability, headlineRating } from './ratings.js';
-	import type { PlayerRatings, Rating } from './types.js';
+	import { Section } from '#lib/ui/section/index.js';
+	import { FORMAT_LABELS, formatRating, formatReliability } from './ratings.js';
+	import type { PlayerRatings } from './types.js';
 
 	let {
 		ratings = null,
@@ -17,54 +21,27 @@
 		failed?: boolean;
 	} = $props();
 
-	// The backend's numbers as they are. Picking the one with the highest reliability to show
-	// first only compares them.
-	const headline = $derived(ratings ? headlineRating(ratings.ratings) : null);
-	const others = $derived(
-		ratings && headline ? ratings.ratings.filter((rating) => rating !== headline) : []
-	);
+	// Each format is its own rating, so every one gets the same tile. The numbers are the
+	// backend's, as they are.
+	const list = $derived(ratings?.ratings ?? []);
 	const demonstration = $derived(
-		ratings !== null &&
-			(ratings.demonstration || ratings.ratings.some((rating) => rating.demonstration))
+		ratings !== null && (ratings.demonstration || list.some((rating) => rating.demonstration))
 	);
 </script>
 
-{#snippet name(rating: Rating)}
-	<span class="flex flex-wrap items-center gap-3">
-		<span class="font-medium text-secondary">{FORMAT_LABELS[rating.format]}</span>
-		{#if rating.demonstration}
-			<Badge variant="outline">Demonstration</Badge>
-		{/if}
-	</span>
-{/snippet}
-
-{#snippet details(rating: Rating)}
-	<span class="grid gap-1 text-sm text-muted">
-		<span>Reliability: {formatReliability(rating.reliability)}</span>
-		{#if rating.importedReliability !== null}
-			<span>
-				Reliability from an external rating: {formatReliability(rating.importedReliability)}
-			</span>
-		{/if}
-		{#if !rating.established}
-			<span>Early estimate: not enough matches yet.</span>
-		{/if}
-		{#if rating.provisional}
-			<span>It may change when ratings are next recounted.</span>
-		{/if}
-	</span>
-{/snippet}
-
-<Card aria-labelledby="rating-title" class="gap-4 border-t border-line pt-6">
-	<CardHeader class="gap-2">
-		<h2 id="rating-title" class="label">Ratings</h2>
-		{#if headline && demonstration}
-			<CardDescription>
+<Section title="Ratings">
+	{#snippet aside()}
+		<Button href={resolve(ROUTES.ratingHistory)} variant="link">
+			Rating history
+			<ArrowRightIcon aria-hidden="true" />
+		</Button>
+	{/snippet}
+	<div class="grid gap-4">
+		{#if list.length > 0 && demonstration}
+			<p class="max-w-md text-muted">
 				These are demonstration numbers while the rating method is being built.
-			</CardDescription>
+			</p>
 		{/if}
-	</CardHeader>
-	<CardContent>
 		{#if loading}
 			<LoadingState label="Loading your ratings…" />
 		{:else if failed}
@@ -73,31 +50,40 @@
 			</p>
 		{:else if !ratings}
 			<p class="max-w-md text-muted">There are no ratings to show.</p>
-		{:else if !headline}
+		{:else if list.length === 0}
 			<p class="max-w-md text-muted">
 				You don't have a rating yet. Ratings come from your confirmed matches.
 			</p>
 		{:else}
-			<div class="grid gap-2" data-testid="headline-rating">
-				{@render name(headline)}
-				<span class="font-display text-5xl tracking-tight text-secondary tabular-nums">
-					{formatRating(headline.value)}
-				</span>
-				{@render details(headline)}
-			</div>
-			{#if others.length > 0}
-				<ul class="grid divide-y divide-line border-t border-line">
-					{#each others as rating (rating.format)}
-						<li class="grid gap-1 py-4">
-							<span class="flex items-baseline justify-between gap-4">
-								{@render name(rating)}
-								<span class="text-secondary tabular-nums">{formatRating(rating.value)}</span>
-							</span>
-							{@render details(rating)}
-						</li>
-					{/each}
-				</ul>
-			{/if}
+			<ul class="grid grid-cols-2 gap-4 sm:grid-cols-3" data-testid="ratings">
+				{#each list as rating (rating.format)}
+					<li class="grid content-start gap-2 rounded-lg border border-line p-4">
+						<span class="font-medium text-secondary">{FORMAT_LABELS[rating.format]}</span>
+						<span class="text-3xl font-semibold tracking-tight text-secondary tabular-nums">
+							{formatRating(rating.value)}
+						</span>
+						<span class="grid gap-1 text-sm text-muted">
+							<span>Reliability: {formatReliability(rating.reliability)}</span>
+							{#if rating.importedReliability !== null}
+								<span>
+									Reliability from an external rating: {formatReliability(
+										rating.importedReliability
+									)}
+								</span>
+							{/if}
+							{#if !rating.established}
+								<span>Early estimate.</span>
+							{/if}
+							{#if rating.provisional}
+								<span>May still change.</span>
+							{/if}
+						</span>
+						{#if rating.demonstration}
+							<span><Badge variant="outline">Demonstration</Badge></span>
+						{/if}
+					</li>
+				{/each}
+			</ul>
 		{/if}
-	</CardContent>
-</Card>
+	</div>
+</Section>

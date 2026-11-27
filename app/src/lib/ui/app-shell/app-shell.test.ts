@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import AppShell from './app-shell.svelte';
-import { NAV_ITEMS, isCurrent } from './nav.js';
+import { NAV_ITEMS, isCurrent, needsYouName } from './nav.js';
 
 const children = createRawSnippet(() => ({ render: () => '<h1>Stub</h1>' }));
 
@@ -42,10 +42,10 @@ describe('AppShell', () => {
 			const hrefs = [...nav.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
 			expect(hrefs).toEqual(['/', '/record', '/matches', '/profile']);
 		}
-		expect(tabs).toMatch(/\sHome<\/a>/);
-		expect(tabs).toMatch(/\sRecord<\/a>/);
-		expect(tabs).toMatch(/\sMatches<\/a>/);
-		expect(tabs).toMatch(/\sProfile<\/a>/);
+		expect(tabs).toMatch(/>Home(<!--[^>]*-->)*<\/a>/);
+		expect(tabs).toMatch(/>Record(<!--[^>]*-->)*<\/a>/);
+		expect(tabs).toMatch(/>Matches(<!--[^>]*-->)*<\/a>/);
+		expect(tabs).toMatch(/>Profile(<!--[^>]*-->)*<\/a>/);
 		expect(side).toContain('Record a match');
 	});
 
@@ -184,5 +184,45 @@ describe('AppShell', () => {
 	it('has a theme toggle in the top bar and in the side nav', () => {
 		const body = shell('/');
 		expect(body.match(/aria-label="Switch to (ivory|black) theme"/g)).toHaveLength(2);
+	});
+});
+
+describe('AppShell Needs you badge', () => {
+	const homeLink = (nav: string) =>
+		nav
+			.split('<a ')
+			.find((link) => link.includes('href="/"'))!
+			.split('</a>')[0];
+
+	it('shows the count on Home in the tab bar and the side nav, with the count in its name', () => {
+		const body = render(AppShell, { props: { pathname: '/matches', children, needsYou: 2 } }).body;
+		for (const nav of navs(body)) {
+			const home = homeLink(nav);
+			expect(home).toMatch(
+				/aria-hidden="true"[^>]*data-testid="needs-you-badge"[^>]*>\s*2\s*<\/span>/
+			);
+			expect(home).toContain('<span aria-hidden="true">Home</span>');
+			expect(home).toContain('<span class="sr-only">Home, 2 need you</span>');
+			expect(nav.match(/needs-you-badge/g)).toHaveLength(1);
+		}
+	});
+
+	it('shows no badge when nothing needs the player', () => {
+		expect(shell('/')).not.toContain('needs-you-badge');
+		expect(shell('/')).not.toContain('need you');
+	});
+});
+
+describe('needsYouName', () => {
+	const [home, record] = NAV_ITEMS;
+
+	it('names the Home link with the count, starting with its label', () => {
+		expect(needsYouName(home, 'Home', 1)).toBe('Home, 1 needs you');
+		expect(needsYouName(home, 'Home', 12)).toBe('Home, 12 need you');
+	});
+
+	it('leaves the name to the label for no count, or any other item', () => {
+		expect(needsYouName(home, 'Home', 0)).toBeNull();
+		expect(needsYouName(record, 'Record', 3)).toBeNull();
 	});
 });

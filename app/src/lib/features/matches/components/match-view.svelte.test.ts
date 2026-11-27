@@ -72,20 +72,34 @@ afterEach(() => {
 const code = () => sampleMatch().code;
 
 describe('MatchView', () => {
-	it('makes the result the heading, with the score under it', async () => {
-		await render(MatchView, { code: code() });
+	it('makes the format and date the heading, with the status badge next to it', async () => {
+		const screen = await render(MatchView, { code: code() });
 
 		await expect
-			.element(
-				page.getByRole('heading', {
-					level: 1,
-					name: 'You and Oren Quill beat Bea Marlowe and Kit Ashdown'
-				})
-			)
+			.element(page.getByRole('heading', { level: 1, name: 'Doubles · Sat 14 Nov' }))
 			.toBeVisible();
-		await expect.element(page.getByText('11-7, 9-11, 11-4')).toBeVisible();
-		// The date and format are said once, not again in a details list.
-		await expect.element(page.getByText('Played', { exact: true })).not.toBeInTheDocument();
+		await expect.element(page.getByText('Pending', { exact: true })).toBeVisible();
+		const title = screen.container.querySelector('h1')!;
+		// The header has no sentence headline and no score line: the scoreboard says those.
+		expect(title.parentElement!.textContent).not.toMatch(/beat|11-7/);
+		const badge = screen.container.querySelector('[data-slot="badge"]')!;
+		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
+		expect(title.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(badge.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
+	it('names the browser tab by format and date', async () => {
+		await render(MatchView, { code: code() });
+		await expect.poll(() => document.title).toBe('Doubles, 14 Nov · OPEN Pickleball');
+	});
+
+	it('shows the match code in Details, next to Games to and Scoring', async () => {
+		const screen = await render(MatchView, { code: code() });
+		const details = screen.getByRole('region', { name: 'Details' });
+		await expect.element(details.getByText('Match code')).toBeVisible();
+		await expect.element(details.getByText(code(), { exact: true })).toBeVisible();
+		await expect.element(details.getByText('Games to')).toBeVisible();
+		await expect.element(details.getByText('Scoring')).toBeVisible();
 	});
 
 	it('says once that the player just recorded the match', async () => {
@@ -101,25 +115,36 @@ describe('MatchView', () => {
 		// The toast has no Toaster in this test, so only the copy is checked.
 		const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 		await render(MatchView, { code: code() });
-		await page.getByRole('button', { name: 'Copy code' }).click();
+		await page.getByRole('button', { name: 'Copy match code' }).click();
 		expect(write).toHaveBeenCalledWith(code());
 	});
 
 	it('puts the status panel before the score when the player has to confirm', async () => {
 		const screen = await render(MatchView, { code: code() });
 		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
-		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		const board = screen.getByRole('region', { name: 'Score' }).element();
 		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
-	it('keeps the score before the status panel when there is nothing to do', async () => {
+	it('puts the status panel before the score on a disputed match with nothing to do', async () => {
+		const disputed = viewerMatch({ decision: 'none' }, { status: 'disputed' });
+		matchCache.remember(disputed);
+		mocked.getMatch.mockResolvedValue(disputed);
+		const screen = await render(MatchView, { code: code() });
+		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toBeVisible();
+		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
+		const board = screen.getByRole('region', { name: 'Score' }).element();
+		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
+	it('drops the status panel on a confirmed match that is not on hold', async () => {
 		const confirmed = viewerMatch({ a: true, b: true }, { status: 'confirmed' });
 		matchCache.remember(confirmed);
 		mocked.getMatch.mockResolvedValue(confirmed);
 		const screen = await render(MatchView, { code: code() });
-		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
-		const board = screen.container.querySelector('[aria-label="Score"]')!;
-		expect(board.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		await expect.element(screen.getByRole('region', { name: 'Score' })).toBeVisible();
+		await expect.element(page.getByText('Confirmed', { exact: true })).toBeVisible();
+		expect(screen.container.querySelector('[data-testid="status-panel"]')).toBeNull();
 	});
 
 	it('puts focus back on the Dispute button when the dispute fails', async () => {
@@ -145,6 +170,23 @@ describe('MatchView', () => {
 		await page.getByRole('button', { name: 'Dispute score' }).click();
 
 		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toHaveFocus();
+	});
+
+	it('moves focus to the page title when a confirm makes the match count and the panel goes', async () => {
+		mocked.confirmMatch.mockImplementation(async () => {
+			const confirmed = viewerMatch(
+				{ a: true, b: true, decision: 'confirm' },
+				{ status: 'confirmed' }
+			);
+			matchCache.remember(confirmed);
+			return confirmed;
+		});
+		await render(MatchView, { code: code() });
+
+		await page.getByRole('button', { name: 'Confirm score' }).click();
+
+		await expect.element(page.getByTestId('status-panel')).not.toBeInTheDocument();
+		await expect.element(page.getByRole('heading', { level: 1 })).toHaveFocus();
 	});
 
 	it('reads the match again after a 409 and shows the new status', async () => {
@@ -249,7 +291,7 @@ describe('MatchView', () => {
 		fail(notFound);
 
 		await expect.element(page.getByTestId('status-panel')).toBeVisible();
-		await expect.poll(() => document.title).toContain(other.code);
+		await expect.element(page.getByText(other.code, { exact: true })).toBeVisible();
 		await expect.element(page.getByText("We couldn't find this match")).not.toBeInTheDocument();
 	});
 
@@ -296,7 +338,7 @@ describe('MatchView', () => {
 		let answer: (match: ReturnType<typeof viewerMatch>) => void = () => {};
 		mocked.getMatch.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
 		await render(MatchView, { code: code() });
-		const copy = page.getByRole('button', { name: 'Copy code' });
+		const copy = page.getByRole('button', { name: 'Copy match code' });
 		await copy.element().focus();
 		answer(viewerMatch({}, { status: 'disputed' }));
 		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toBeVisible();
@@ -511,7 +553,7 @@ describe('MatchView withdraw', () => {
 		const screen = await render(MatchView, { code: code() });
 		await expect.element(page.getByRole('button', { name: 'Withdraw my dispute' })).toBeVisible();
 		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
-		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		const board = screen.getByRole('region', { name: 'Score' }).element();
 		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
@@ -552,7 +594,7 @@ describe('MatchView withdraw', () => {
 
 		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toHaveFocus();
 		await expect
-			.element(page.getByText(/You withdrew your dispute\. Another player in this match/))
+			.element(page.getByText(/You withdrew your dispute, but another player still says/))
 			.toBeVisible();
 		await expect
 			.element(page.getByRole('button', { name: 'Withdraw my dispute' }))
@@ -694,7 +736,7 @@ describe('MatchView vouch', () => {
 		const badges = [...screen.container.querySelectorAll('[data-slot="badge"]')];
 		expect(badges.map((badge) => badge.textContent?.trim())).toEqual(['Confirmed', 'On hold']);
 		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
-		const board = screen.container.querySelector('[aria-label="Score"]')!;
+		const board = screen.getByRole('region', { name: 'Score' }).element();
 		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
@@ -725,7 +767,7 @@ describe('MatchView vouch', () => {
 		await render(MatchView, { code: code() });
 		await expect.element(page.getByRole('heading', { name: 'On hold' })).toBeVisible();
 		await expect
-			.element(page.getByText(/vouch for it as a member of the event's organizer/))
+			.element(page.getByRole('button', { name: 'This match really happened' }))
 			.toBeVisible();
 		await expect
 			.element(page.getByRole('heading', { name: "We couldn't find this match" }))
@@ -747,7 +789,7 @@ describe('MatchView vouch', () => {
 
 		expect(mocked.vouchForMatch).toHaveBeenCalledExactlyOnceWith(code());
 		await expect.element(page.getByRole('heading', { name: 'On hold' })).toHaveFocus();
-		await expect.element(page.getByText(/Your team has vouched for this match/)).toBeVisible();
+		await expect.element(page.getByText(/Your team vouched for this match/)).toBeVisible();
 		expect(toast).toHaveBeenCalledWith('Vouched. The hold ends once the others vouch too.');
 		await expect
 			.element(page.getByRole('button', { name: 'This match really happened' }))
@@ -766,7 +808,9 @@ describe('MatchView vouch', () => {
 
 		await vouch();
 
-		await expect.element(page.getByRole('heading', { name: 'Confirmed' })).toHaveFocus();
+		// A confirmed match with no hold drops the panel, so the page title takes focus.
+		await expect.element(page.getByRole('heading', { level: 1 })).toHaveFocus();
+		await expect.element(page.getByTestId('status-panel')).not.toBeInTheDocument();
 		expect(toast).toHaveBeenCalledWith('Vouched. The hold has ended and the match now counts.');
 		await expect.element(page.getByText('On hold', { exact: true })).not.toBeInTheDocument();
 	});

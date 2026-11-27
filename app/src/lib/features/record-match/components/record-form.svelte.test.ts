@@ -244,12 +244,14 @@ describe('RecordForm', () => {
 		});
 	});
 
-	it('says the button confirms the score for the player team', async () => {
+	it('says on the button that it confirms the score, with no note under it', async () => {
 		const { screen } = await setup();
+		const button = screen.getByRole('button', { name: 'Record and confirm score' });
+		await expect.element(button).toBeVisible();
+		expect(button.element().hasAttribute('aria-describedby')).toBe(false);
 		await expect
-			.element(screen.getByRole('button', { name: 'Record and confirm score' }))
-			.toBeVisible();
-		await expect.element(screen.getByText(/confirms the score for your team/)).toBeVisible();
+			.element(screen.getByText(/confirms the score for your team/))
+			.not.toBeInTheDocument();
 	});
 
 	it('puts server errors on the same fields, grouping game errors under the game', async () => {
@@ -639,8 +641,13 @@ describe('RecordForm correcting a match', () => {
 		await expect.element(screen.getByLabelText('Date played')).toHaveValue('2024-06-01');
 		await expect.element(screen.getByLabelText("Game 2, your team's points")).toHaveValue('6');
 		await expect.element(screen.getByText(/A correction keeps the same players/)).toBeVisible();
-		await expect.element(screen.getByRole('button', { name: 'Save the correction' })).toBeVisible();
-		await expect.element(screen.getByText(/with a new match code/)).toBeVisible();
+		const save = screen.getByRole('button', { name: 'Save the correction' });
+		await expect.element(save).toBeVisible();
+		await expect
+			.element(save)
+			.toHaveAccessibleDescription(
+				'This voids the match and records the corrected one with a new match code. It confirms the score for your team.'
+			);
 	});
 
 	it('sends the edited scores with the same players, and keeps no draft', async () => {

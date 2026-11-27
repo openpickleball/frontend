@@ -45,6 +45,10 @@
 	--color-disputed: light-dark(#a3301b, #ff8b73); /* disputed status */
 	--color-danger: light-dark(#a3301b, #ff8b73); /* errors and destructive actions */
 	--color-pending: var(--color-muted); /* pending stays neutral on purpose */
+	--color-warning: light-dark(
+		#b45309,
+		#fbbf24
+	); /* on hold edge; Tailwind amber-700 and amber-400 */
 	--color-voided: var(--color-faint);
 	--color-field: var(--color-faint); /* input borders: 3:1 or better, unlike line */
 	--color-confirmed-wash: light-dark(#e9ecd2, #141a06); /* success banner background */
@@ -131,14 +135,22 @@
 	mask: url('../lib/assets/mark.svg') center / contain no-repeat;
 }
 
-/* Small spaced capitals in the wordmark face: section labels and kickers. */
+/* Small spaced capitals for kickers and captions, such as the format and date above a match.
+   Never a heading: section headings use section-title. The wordmark face is for the logo only. */
 @utility label {
-	font-family: var(--font-display);
+	font-family: var(--font-body);
+	font-weight: 600;
 	font-size: 11px;
 	line-height: 1.4;
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
 	color: var(--color-muted);
+}
+
+/* OPEN codes, for players and matches. Not monospace: the code alphabet already leaves out
+   lookalike letters, and the system monospace differs per platform. */
+@utility open-code {
+	@apply font-body font-medium tracking-wide tabular-nums;
 }
 
 /* Dialogs, sheets and the overlay behind them fade in. Reduced motion skips it. */
@@ -162,4 +174,10 @@
 	text-wrap: balance;
 	/* A long name with no spaces breaks inside the column instead of widening the page. */
 	@apply wrap-anywhere;
+}
+
+/* The heading of each page section (the Section component and the FieldLegend legend variant).
+   One step below page-title. Group labels inside a section use text-base font-semibold. */
+@utility section-title {
+	@apply text-xl font-semibold text-secondary;
 }

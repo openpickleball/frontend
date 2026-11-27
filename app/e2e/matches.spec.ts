@@ -53,42 +53,45 @@ function rowFor(page: Page, code: string) {
 }
 
 test.describe('home', () => {
-	test('lists what needs her, then what waits on the other team, then recent matches', async ({
+	test('lists what needs her, then what is in progress, then recent matches and her code', async ({
 		page
 	}) => {
 		await expect(page).toHaveTitle('OPEN Pickleball');
+		await expect(page.getByRole('heading', { level: 2 })).toHaveText([
+			'Needs you',
+			'In progress',
+			'Recent matches'
+		]);
+
+		// Oldest first, each row saying what she can do: vouch for the held match, confirm the rest.
+		const needsList = page.getByRole('list', { name: 'Needs you' });
+		await expect(needsList.getByTestId('match-row')).toHaveCount(3);
+		const hrefs = await needsList
+			.getByTestId('match-row')
+			.evaluateAll((rows) => rows.map((row) => row.getAttribute('href')));
+		expect(hrefs).toEqual([
+			`/matches/${HELD}`,
+			`/matches/${WAITING_ON_ME_TOO}`,
+			`/matches/${WAITING_ON_ME}`
+		]);
+		await expect(needsList.locator(`a[href$="/matches/${HELD}"]`)).toContainText(
+			"Vouch for it. It's on hold."
+		);
+		await expect(needsList.locator(`a[href$="/matches/${WAITING_ON_ME}"]`)).toContainText(
+			'Confirm or dispute the score.'
+		);
+		// All three fit, so there is no See all.
+		await expect(page.getByTestId('see-all-needs')).toHaveCount(0);
+
+		// Both disputes, the one she can withdraw too, and both holds. No waiting count.
+		await expect(page.getByTestId('in-progress')).toHaveText('2 disputed · 2 on hold');
+
+		const recent = page.getByRole('list', { name: 'Recent matches' });
+		await expect(recent.getByTestId('match-row')).toHaveCount(3);
+		await expect(recent.locator(`a[href$="/matches/${HELD}"]`)).toHaveCount(0);
+
 		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 		await expect(page.getByRole('link', { name: 'Record a match' })).toBeVisible();
-
-		const needs = page.getByRole('heading', { level: 2, name: 'Needs your confirmation' });
-		const waiting = page.getByRole('heading', { level: 2, name: 'Waiting for the other team' });
-		const recent = page.getByRole('heading', { level: 2, name: 'Recent matches' });
-		await expect(needs).toBeVisible();
-		await expect(waiting).toBeVisible();
-		await expect(recent).toBeVisible();
-		const [needsBox, waitingBox, recentBox] = [
-			await needs.boundingBox(),
-			await waiting.boundingBox(),
-			await recent.boundingBox()
-		];
-		expect(needsBox!.y).toBeLessThan(waitingBox!.y);
-		expect(waitingBox!.y).toBeLessThan(recentBox!.y);
-		await expect(page.getByRole('heading', { name: 'Pending matches' })).toHaveCount(0);
-
-		const needsList = page.getByRole('list', { name: 'Needs your confirmation' });
-		await expect(needsList.getByTestId('match-row')).toHaveCount(2);
-		await expect(rowFor(page, WAITING_ON_ME)).toContainText('Needs your confirmation.');
-		await expect(rowFor(page, WAITING_ON_ME_TOO)).toBeVisible();
-		await expect(page.getByTestId('more-needs')).toHaveCount(0);
-
-		const waitingList = page.getByRole('list', { name: 'Waiting for the other team' });
-		await expect(waitingList.getByTestId('match-row')).toHaveCount(1);
-		await expect(
-			waitingList.locator(`a[href$="/matches/${ALREADY_CONFIRMED_BY_ME}"]`)
-		).toContainText('You confirmed this score. Waiting for the other team.');
-		await expect(
-			page.getByRole('list', { name: 'Recent matches' }).getByTestId('match-row')
-		).toHaveCount(5);
 
 		await page.getByRole('link', { name: 'All matches' }).click();
 		await expect(page).toHaveURL(/\/matches$/);
@@ -101,31 +104,98 @@ test.describe('home', () => {
 		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(tamsin.code);
 	});
 
-	test('has no WCAG 2.1 AA violations', async ({ page }) => {
-		await expect(page.getByRole('heading', { name: 'Needs your confirmation' })).toBeVisible();
-		await expectNoAxeViolations(page);
+	test('has no WCAG 2.1 AA violations, in either theme', async ({ page }) => {
+		for (const scheme of ['dark', 'light'] as const) {
+			await page.emulateMedia({ colorScheme: scheme });
+			await page.goto('/');
+			await expect(page.getByRole('list', { name: 'Needs you' })).toBeVisible();
+			await expectNoAxeViolations(page);
+		}
+	});
+});
+
+test.describe('home needs you count', () => {
+	test('shows the same count on the Home tab, on Home and in the Needs you filter', async ({
+		page
+	}) => {
+		const tabBar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
+		await expect(tabBar.getByRole('link', { name: 'Home, 3 need you', exact: true })).toBeVisible();
+		await expect(tabBar.getByTestId('needs-you-badge')).toHaveText('3');
+		await expect(page.getByRole('region', { name: 'Needs you' })).toContainText('3 matches');
+
+		await page.goto('/matches?show=needs-you');
+		await expect(page.getByTestId('range')).toHaveText('1–3 of 3');
+		await expect(page.getByTestId('match-row').first()).toContainText(
+			"Vouch for it. It's on hold."
+		);
+
+		// The side nav from 1024px carries the same badge.
+		await page.setViewportSize({ width: 1280, height: 800 });
+		const side = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
+		await expect(side.getByRole('link', { name: 'Home, 3 need you', exact: true })).toBeVisible();
+		await expect(side.getByTestId('needs-you-badge')).toHaveText('3');
+	});
+
+	test('drops the count when she confirms a match, and clears it when nothing is left', async ({
+		page
+	}) => {
+		const tabBar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
+		await expect(tabBar.getByTestId('needs-you-badge')).toHaveText('3');
+
+		await rowFor(page, WAITING_ON_ME_TOO).click();
+		await page.getByRole('button', { name: 'Confirm score' }).click();
+		await expect(page.getByText('Confirmed. The match now counts.')).toBeVisible();
+		await expect(tabBar.getByRole('link', { name: 'Home, 2 need you', exact: true })).toBeVisible();
+
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		await page.getByRole('button', { name: 'Confirm score' }).click();
+		await expect(page.getByText('Confirmed. The match now counts.')).toBeVisible();
+		await expect(
+			tabBar.getByRole('link', { name: 'Home, 1 needs you', exact: true })
+		).toBeVisible();
+
+		await page.goto(`/matches/${HELD}`);
+		await page.getByRole('button', { name: 'This match really happened' }).click();
+		await page
+			.getByRole('alertdialog', { name: 'Vouch for this match?' })
+			.getByRole('button', { name: 'Vouch for match' })
+			.click();
+		await expect(page.getByText(/^Vouched\./)).toBeVisible();
+		await expect(tabBar.getByTestId('needs-you-badge')).toHaveCount(0);
+		await expect(tabBar.getByRole('link', { name: 'Home', exact: true })).toBeVisible();
+
+		await tabBar.getByRole('link', { name: 'Home', exact: true }).click();
+		await expect(page.getByText("You're all caught up.")).toBeVisible();
+	});
+
+	test('follows the In progress counts into the matching filters', async ({ page }) => {
+		const line = page.getByTestId('in-progress');
+		await line.getByRole('link', { name: '2 on hold' }).click();
+		await expect(page).toHaveURL(/\/matches\?show=on-hold$/);
+		await expect(page.getByLabel('Show')).toHaveValue('on-hold');
+		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+
+		await page.goBack();
+		await line.getByRole('link', { name: '2 disputed' }).click();
+		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
+		await expect(page.getByLabel('Show')).toHaveValue('disputed');
+		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
 	});
 });
 
 test.describe('match history', () => {
-	test('says who sees the matches, following the Match history setting', async ({ page }) => {
-		await page.goto('/matches');
-		await expect(
-			page.getByText('Other signed-in players see your confirmed matches.')
-		).toBeVisible();
-
+	test('says who sees the matches on the Match history switch', async ({ page }) => {
 		await page.goto('/profile');
 		const setting = page.getByRole('switch', { name: 'Match history' });
 		await expect(setting).toBeChecked();
+		await expect(page.locator('#privacy-match_history-note')).toHaveText(
+			'Other signed-in players see your confirmed matches.'
+		);
 		await setting.click();
 		await expect(setting).not.toBeChecked();
 		await expect(page.locator('#privacy-match_history-state')).toHaveText('Only me');
-
-		await page.goto('/matches');
-		await expect(page.getByText('Only you can see your matches.')).toBeVisible();
 		await expect(page.getByText(/Other signed-in players see/)).toHaveCount(0);
-		await page.getByRole('link', { name: 'Change who sees them' }).click();
-		await expect(page).toHaveURL(/\/profile#settings-heading$/);
 	});
 
 	test('pages forward and back', async ({ page }) => {
@@ -168,12 +238,70 @@ test.describe('match history', () => {
 	});
 });
 
+test.describe('matches filter', () => {
+	test('opens a filter from a link, and a reload keeps it', async ({ page }) => {
+		await page.goto('/matches?show=disputed');
+		const show = page.getByLabel('Show');
+		await expect(show).toHaveValue('disputed');
+		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
+		await expect(rowFor(page, STILL_DISPUTED)).toBeVisible();
+		await expect(page).toHaveTitle('Matches, Disputed, page 1 of 1 · OPEN Pickleball');
+
+		await page.reload();
+		await expect(show).toHaveValue('disputed');
+		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+	});
+
+	test('switches filters from the menu and keeps each in the address', async ({ page }) => {
+		await page.goto('/matches?page=2');
+		await expect(page.getByTestId('range')).toHaveText('21–26 of 26');
+
+		const show = page.getByLabel('Show');
+		await show.focus();
+		await show.selectOption('Needs you');
+		await expect(page).toHaveURL(/\/matches\?show=needs-you$/);
+		await expect(show).toBeFocused();
+		// To confirm, and the held match her team has not vouched for.
+		await expect(page.getByTestId('range')).toHaveText('1–3 of 3');
+		await expect(rowFor(page, WAITING_ON_ME)).toBeVisible();
+		await expect(rowFor(page, WAITING_ON_ME_TOO)).toBeVisible();
+		await expect(rowFor(page, HELD)).toBeVisible();
+		await expect(rowFor(page, ALREADY_CONFIRMED_BY_ME)).toHaveCount(0);
+
+		await show.selectOption('On hold');
+		await expect(page).toHaveURL(/\/matches\?show=on-hold$/);
+		await expect(rowFor(page, HELD)).toBeVisible();
+		await expect(rowFor(page, HELD_VOUCHED)).toBeVisible();
+		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+
+		await show.selectOption('All');
+		await expect(page).toHaveURL(/\/matches$/);
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+	});
+
+	test('shows every match for an unknown filter', async ({ page }) => {
+		await page.goto('/matches?show=waiting');
+		await expect(page.getByLabel('Show')).toHaveValue('all');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+	});
+
+	test('has no WCAG 2.1 AA violations with a filter, in either theme', async ({ page }) => {
+		for (const scheme of ['dark', 'light'] as const) {
+			await page.emulateMedia({ colorScheme: scheme });
+			await page.goto('/matches?show=needs-you');
+			await expect(page.getByTestId('range')).toBeVisible();
+			await expectNoAxeViolations(page);
+		}
+	});
+});
+
 test.describe('match detail', () => {
 	test('confirms a match and shows the new status', async ({ page }) => {
 		await rowFor(page, WAITING_ON_ME_TOO).click();
 		await expect(page).toHaveURL(new RegExp(`/matches/${WAITING_ON_ME_TOO}$`));
 		await expect(
-			page.getByRole('heading', { level: 1, name: /^You (beat|lost to) / })
+			page.getByRole('heading', { level: 1, name: /^(Singles|Doubles) · \w{3} \d{1,2} \w{3}$/ })
 		).toBeVisible();
 		await expect(page.getByText('Pending', { exact: true })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Is this the right score?' })).toBeVisible();
@@ -182,17 +310,19 @@ test.describe('match detail', () => {
 
 		// Rosa had confirmed already, so Tamsin's confirmation makes it count.
 		await expect(page.getByText('Confirmed. The match now counts.')).toBeVisible();
-		const panel = page.getByTestId('status-panel');
-		await expect(panel).toHaveAttribute('data-status', 'confirmed');
-		await expect(panel.getByRole('heading', { name: 'Confirmed' })).toBeFocused();
+		// A confirmed match with nothing else to say drops the panel. The badge says it, and the
+		// page title takes focus.
+		await expect(page.getByTestId('status-panel')).toHaveCount(0);
+		await expect(page.getByText('Confirmed', { exact: true })).toBeVisible();
+		await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Dispute' })).toHaveCount(0);
 
 		// The home list no longer asks for it.
-		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
+		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
 		await expect(
-			page.getByRole('list', { name: 'Needs your confirmation' }).getByTestId('match-row')
-		).toHaveCount(1);
+			page.getByRole('list', { name: 'Needs you' }).getByTestId('match-row')
+		).toHaveCount(2);
 		await page.getByRole('link', { name: 'All matches' }).click();
 		await expect(
 			rowFor(page, WAITING_ON_ME_TOO).getByText('Confirmed', { exact: true })
@@ -204,7 +334,7 @@ test.describe('match detail', () => {
 	}) => {
 		await rowFor(page, WAITING_ON_ME).click();
 		// Bea's team confirmed it, Tamsin's has not.
-		await expect(page.getByText(/The other team has confirmed this score/)).toBeVisible();
+		await expect(page.getByText(/The other team confirmed this score/)).toBeVisible();
 		await page.getByRole('button', { name: 'Confirm score' }).click();
 		await expect(page.getByText('Confirmed. The match now counts.')).toBeVisible();
 	});
@@ -215,7 +345,7 @@ test.describe('match detail', () => {
 		await rowFor(page, ALREADY_CONFIRMED_BY_ME).click();
 		// The API says her team confirmed, so there is nothing to press.
 		await expect(page.getByRole('heading', { name: 'Waiting for the other team' })).toBeVisible();
-		await expect(page.getByText('You confirmed this score.')).toBeVisible();
+		await expect(page.getByText(/^You confirmed this score,/)).toBeVisible();
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'pending');
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Dispute' })).toHaveCount(0);
@@ -229,11 +359,11 @@ test.describe('match detail', () => {
 			.getByRole('button', { name: 'Dispute score' })
 			.click();
 		await expect(page.getByText(/You said this score is wrong/)).toBeVisible();
-		// It leaves "Needs your confirmation" on home.
-		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
+		// It leaves "Needs you" on home.
+		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
 		await expect(
-			page.getByRole('list', { name: 'Needs your confirmation' }).getByTestId('match-row')
-		).toHaveCount(1);
+			page.getByRole('list', { name: 'Needs you' }).getByTestId('match-row')
+		).toHaveCount(2);
 	});
 
 	test('disputes a match through the dialog, with Cancel focused first', async ({ page }) => {
@@ -262,9 +392,10 @@ test.describe('match detail', () => {
 		page
 	}) => {
 		await page.goto(`/matches/${WAITING_ON_ME}`);
-		const copy = page.getByRole('button', { name: 'Copy code' });
-		await copy.focus();
-		// Confirm and Dispute come right after the code, before the scoreboard.
+		const back = page.locator('#main').getByRole('link', { name: 'Matches', exact: true });
+		await back.focus();
+		// Confirm and Dispute come right after the header, before the scoreboard.
+		// The header's title and badges have no stop of their own.
 		await page.keyboard.press('Tab');
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toBeFocused();
 		await page.keyboard.press('Tab');
@@ -287,8 +418,8 @@ test.describe('match detail', () => {
 	test('opens a match from its URL on a fresh page load, with nothing cached', async ({ page }) => {
 		const code = matchCode(oldest.random);
 		await page.goto(`/matches/${code}`);
-		await expect(page.getByRole('heading', { level: 1 })).toContainText(/ (beat|lost to|played) /);
-		await expect(page.getByText(code)).toBeVisible();
+		await expect(page.getByRole('heading', { level: 1 })).toContainText(/^(Singles|Doubles) · /);
+		await expect(page.getByRole('region', { name: 'Details' }).getByText(code)).toBeVisible();
 		await expect(page.getByRole('table', { name: 'Score by game' })).toBeAttached();
 		await expectNoAxeViolations(page);
 	});
@@ -344,38 +475,24 @@ test.describe('match detail', () => {
 });
 
 test.describe('disputes', () => {
-	test('lists her disputed matches on home, after what needs her', async ({ page }) => {
-		const disputed = page.getByRole('heading', { level: 2, name: 'Disputed matches' });
-		const needs = page.getByRole('heading', { level: 2, name: 'Needs your confirmation' });
-		const waiting = page.getByRole('heading', { level: 2, name: 'Waiting for the other team' });
-		await expect(disputed).toBeVisible();
-		expect((await needs.boundingBox())!.y).toBeLessThan((await disputed.boundingBox())!.y);
-		expect((await disputed.boundingBox())!.y).toBeLessThan((await waiting.boundingBox())!.y);
-
-		const list = page.getByRole('list', { name: 'Disputed matches' });
+	test('counts her disputed matches under In progress on home, the one she can withdraw too', async ({
+		page
+	}) => {
+		await expect(page.getByTestId('in-progress')).toContainText('2 disputed');
+		await page.getByTestId('in-progress').getByRole('link', { name: '2 disputed' }).click();
+		const list = page.getByRole('list', { name: 'Your matches, Disputed' });
 		await expect(list.getByTestId('match-row')).toHaveCount(2);
 		await expect(list.locator(`a[href$="/matches/${MY_DISPUTE}"]`)).toContainText(
 			'You disputed this score.'
 		);
 		await expect(list.locator(`a[href$="/matches/${STILL_DISPUTED}"]`)).toBeVisible();
-		// A disputed match is not listed again under recent matches.
-		await expect(
-			page
-				.getByRole('list', { name: 'Recent matches' })
-				.locator(`a[href$="/matches/${STILL_DISPUTED}"]`)
-		).toHaveCount(0);
 	});
 
 	test('withdraws her dispute, then offers Confirm and no second dispute', async ({ page }) => {
-		await page
-			.getByRole('list', { name: 'Disputed matches' })
-			.locator(`a[href$="/matches/${MY_DISPUTE}"]`)
-			.click();
-		await expect(page).toHaveURL(new RegExp(`/matches/${MY_DISPUTE}$`));
+		await page.goto(`/matches/${MY_DISPUTE}`);
 		const panel = page.getByTestId('status-panel');
 		await expect(panel).toHaveAttribute('data-status', 'disputed');
 		await expect(panel.getByText(/You said this score is wrong/)).toBeVisible();
-		await expect(panel.getByText(/every player who disputed the score withdraws/)).toBeVisible();
 		await expect(page.getByText(/moderator/i)).toHaveCount(0);
 
 		await page.getByRole('button', { name: 'Withdraw my dispute' }).click();
@@ -393,15 +510,11 @@ test.describe('disputes', () => {
 		await expect(page.getByRole('button', { name: 'Dispute', exact: true })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Withdraw my dispute' })).toHaveCount(0);
 
-		// Home: it left the disputed list and now needs her confirmation.
-		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
+		// Home: it left the disputed count and now needs her confirmation.
+		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
+		await expect(page.getByTestId('in-progress')).toContainText('1 disputed');
 		await expect(
-			page.getByRole('list', { name: 'Disputed matches' }).getByTestId('match-row')
-		).toHaveCount(1);
-		await expect(
-			page
-				.getByRole('list', { name: 'Needs your confirmation' })
-				.locator(`a[href$="/matches/${MY_DISPUTE}"]`)
+			page.getByRole('list', { name: 'Needs you' }).locator(`a[href$="/matches/${MY_DISPUTE}"]`)
 		).toBeVisible();
 	});
 
@@ -412,9 +525,8 @@ test.describe('disputes', () => {
 		const panel = page.getByTestId('status-panel');
 		await expect(panel).toHaveAttribute('data-status', 'disputed');
 		await expect(
-			panel.getByText(/You withdrew your dispute\. Another player in this match still says/)
+			panel.getByText(/You withdrew your dispute, but another player still says/)
 		).toBeVisible();
-		await expect(panel.getByText(/the match is voided/)).toBeVisible();
 		await expect(panel.getByRole('button')).toHaveCount(0);
 	});
 
@@ -424,7 +536,7 @@ test.describe('disputes', () => {
 		for (const scheme of ['dark', 'light'] as const) {
 			await page.emulateMedia({ colorScheme: scheme });
 			await page.goto('/');
-			await expect(page.getByRole('heading', { name: 'Disputed matches' })).toBeVisible();
+			await expect(page.getByTestId('in-progress')).toBeVisible();
 			await expectNoAxeViolations(page);
 
 			await page.goto(`/matches/${MY_DISPUTE}`);
@@ -446,46 +558,37 @@ test.describe('disputes', () => {
 });
 
 test.describe('holds', () => {
-	test('lists her held matches on home, after disputes and before what waits on the other team', async ({
+	test('lists the held match she can vouch for under Needs you, and counts both holds', async ({
 		page
 	}) => {
-		const disputed = page.getByRole('heading', { level: 2, name: 'Disputed matches' });
-		const held = page.getByRole('heading', { level: 2, name: 'Matches on hold' });
-		const waiting = page.getByRole('heading', { level: 2, name: 'Waiting for the other team' });
-		await expect(held).toBeVisible();
-		expect((await disputed.boundingBox())!.y).toBeLessThan((await held.boundingBox())!.y);
-		expect((await held.boundingBox())!.y).toBeLessThan((await waiting.boundingBox())!.y);
+		const needsList = page.getByRole('list', { name: 'Needs you' });
+		const heldRow = needsList.locator(`a[href$="/matches/${HELD}"]`);
+		await expect(heldRow).toContainText("Vouch for it. It's on hold.");
+		// A held confirmed match reads On hold, not Confirmed.
+		await expect(heldRow.getByText('On hold', { exact: true })).toBeVisible();
+		await expect(heldRow.getByText('Confirmed', { exact: true })).toHaveCount(0);
+		// Her team vouched for the other one, so it doesn't need her.
+		await expect(needsList.locator(`a[href$="/matches/${HELD_VOUCHED}"]`)).toHaveCount(0);
+		await expect(page.getByTestId('in-progress')).toContainText('2 on hold');
 
-		const list = page.getByRole('list', { name: 'Matches on hold' });
-		await expect(list.getByTestId('match-row')).toHaveCount(2);
-		await expect(list.locator(`a[href$="/matches/${HELD}"]`)).toContainText(
-			"On hold. It doesn't count yet. Open it to vouch for it."
-		);
+		await page.getByTestId('in-progress').getByRole('link', { name: '2 on hold' }).click();
+		const list = page.getByRole('list', { name: 'Your matches, On hold' });
+		await expect(list.locator(`a[href$="/matches/${HELD}"]`)).not.toContainText("doesn't count");
 		await expect(list.locator(`a[href$="/matches/${HELD_VOUCHED}"]`)).toContainText(
 			'Your team has vouched for it.'
 		);
-		// A held confirmed match reads On hold, not Confirmed, beside its note.
-		const heldRow = list.locator(`a[href$="/matches/${HELD}"]`);
-		await expect(heldRow.getByText('On hold', { exact: true })).toBeVisible();
-		await expect(heldRow.getByText('Confirmed', { exact: true })).toHaveCount(0);
-		await expect(
-			page.getByRole('list', { name: 'Recent matches' }).locator(`a[href$="/matches/${HELD}"]`)
-		).toHaveCount(0);
 	});
 
 	test('vouches for a held match through the dialog, and the hold ends', async ({ page }) => {
 		await page
-			.getByRole('list', { name: 'Matches on hold' })
+			.getByRole('list', { name: 'Needs you' })
 			.locator(`a[href$="/matches/${HELD}"]`)
 			.click();
 		await expect(page).toHaveURL(new RegExp(`/matches/${HELD}$`));
 		const panel = page.getByTestId('status-panel');
 		await expect(panel).toHaveAttribute('data-held', 'true');
 		await expect(panel.getByRole('heading', { name: 'On hold' })).toBeVisible();
-		await expect(
-			panel.getByText(/Another match on OPEN has the same teams and date/)
-		).toBeVisible();
-		await expect(panel.getByText(/One player from each team needs to vouch/)).toBeVisible();
+		await expect(panel.getByText(/Another match has the same teams and date/)).toBeVisible();
 		await expect(page.getByText(/moderator/i)).toHaveCount(0);
 
 		await page.getByRole('button', { name: 'This match really happened' }).click();
@@ -498,15 +601,17 @@ test.describe('holds', () => {
 		await expect(
 			page.getByText('Vouched. The hold has ended and the match now counts.')
 		).toBeVisible();
-		await expect(panel).not.toHaveAttribute('data-held');
-		await expect(page.getByRole('heading', { name: 'Confirmed' })).toBeFocused();
+		// It is confirmed and no longer held, so the panel goes and the page title takes focus.
+		await expect(panel).toHaveCount(0);
+		await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
 		await expect(page.getByRole('button', { name: 'This match really happened' })).toHaveCount(0);
 
-		// Home: it left the held list.
-		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
+		// Home: it left Needs you and the held count.
+		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
 		await expect(
-			page.getByRole('list', { name: 'Matches on hold' }).getByTestId('match-row')
-		).toHaveCount(1);
+			page.getByRole('list', { name: 'Needs you' }).locator(`a[href$="/matches/${HELD}"]`)
+		).toHaveCount(0);
+		await expect(page.getByTestId('in-progress')).toContainText('1 on hold');
 	});
 
 	test('says her team vouched already and offers nothing, from a link with nothing cached', async ({
@@ -515,7 +620,7 @@ test.describe('holds', () => {
 		await page.goto(`/matches/${HELD_VOUCHED}`);
 		const panel = page.getByTestId('status-panel');
 		await expect(panel.getByRole('heading', { name: 'On hold' })).toBeVisible();
-		await expect(panel.getByText(/Your team has vouched for this match/)).toBeVisible();
+		await expect(panel.getByText(/Your team vouched for this match/)).toBeVisible();
 		await expect(panel.getByRole('button')).toHaveCount(0);
 	});
 
@@ -525,7 +630,7 @@ test.describe('holds', () => {
 		for (const scheme of ['dark', 'light'] as const) {
 			await page.emulateMedia({ colorScheme: scheme });
 			await page.goto('/');
-			await expect(page.getByRole('heading', { name: 'Matches on hold' })).toBeVisible();
+			await expect(page.getByRole('list', { name: 'Needs you' })).toBeVisible();
 			await expectNoAxeViolations(page);
 
 			await page.goto(`/matches/${HELD}`);
@@ -577,7 +682,6 @@ test.describe('corrections', () => {
 		await page.getByRole('link', { name: 'Matches', exact: true }).first().click();
 		await rowFor(page, WAITING_ON_ME_TOO).first().click();
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'voided');
-		await expect(page.getByText(/If a player corrected this match/)).toBeVisible();
 		await expect(page.getByRole('link', { name: 'See the corrected match' })).toHaveAttribute(
 			'href',
 			corrected
@@ -588,10 +692,7 @@ test.describe('corrections', () => {
 		page
 	}) => {
 		await page.goto(`/matches/${MY_DISPUTE}`);
-		const panel = page.getByTestId('status-panel');
-		await expect(
-			panel.getByText(/Only the organizer can change a match an organizer recorded/)
-		).toBeVisible();
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'disputed');
 		await page.getByRole('link', { name: 'Correct the score' }).click();
 		await page.getByLabel("Game 3, your team's points").fill('11');
 		await page.getByLabel("Game 3, opponents' points").fill('9');
@@ -599,14 +700,9 @@ test.describe('corrections', () => {
 		await expect(page).toHaveURL(/\/matches\/M-FXD/);
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'pending');
 
-		// Home: the old match left the disputed list.
-		await page.getByRole('link', { name: 'Home' }).filter({ visible: true }).first().click();
-		await expect(page.getByRole('heading', { name: 'Disputed matches' })).toBeVisible();
-		await expect(
-			page
-				.getByRole('list', { name: 'Disputed matches' })
-				.locator(`a[href$="/matches/${MY_DISPUTE}"]`)
-		).toHaveCount(0);
+		// Home: the old match left the disputed count.
+		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
+		await expect(page.getByTestId('in-progress')).toContainText('1 disputed');
 	});
 
 	test('says the old match is voided when its correction page is opened again', async ({
@@ -674,5 +770,78 @@ test.describe('corrections', () => {
 			);
 			await expectNoAxeViolations(page);
 		}
+	});
+});
+
+test.describe('match page status panel', () => {
+	/** True when the status panel comes before the scoreboard in the page. */
+	async function panelBeforeScore(page: Page): Promise<boolean> {
+		const panel = page.getByTestId('status-panel');
+		const board = page.getByRole('region', { name: 'Score', exact: true });
+		await expect(panel).toBeVisible();
+		await expect(board).toBeVisible();
+		return panel.evaluate(
+			(el, other) => !!(el.compareDocumentPosition(other!) & Node.DOCUMENT_POSITION_FOLLOWING),
+			await board.elementHandle()
+		);
+	}
+
+	test('sits above the scoreboard when she has to confirm', async ({ page }) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		await expect(page.getByRole('button', { name: 'Confirm score' })).toBeVisible();
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-tone', 'action');
+		expect(await panelBeforeScore(page)).toBe(true);
+	});
+
+	test('sits above the scoreboard on a disputed match with nothing for her to do', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${STILL_DISPUTED}`);
+		await expect(page.getByTestId('status-panel').getByRole('button')).toHaveCount(0);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-tone', 'disputed');
+		expect(await panelBeforeScore(page)).toBe(true);
+	});
+
+	test('sits above the scoreboard on a held match, with the warning edge', async ({ page }) => {
+		await page.goto(`/matches/${HELD_VOUCHED}`);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-tone', 'held');
+		expect(await panelBeforeScore(page)).toBe(true);
+	});
+});
+
+test.describe('match page header', () => {
+	test('is the format and date with the badge, and names the tab the same way', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		const title = page.getByRole('heading', { level: 1 });
+		await expect(title).toHaveText(/^(Singles|Doubles) · \w{3} \d{1,2} \w{3}$/);
+		const [format, date] = (await title.innerText()).split(' · ');
+		await expect(page).toHaveTitle(
+			`${format}, ${date.split(' ').slice(1).join(' ')} · OPEN Pickleball`
+		);
+		await expect(title.locator('..')).not.toContainText(/ (beat|lost to) /);
+	});
+
+	test('copies the match code from Details', async ({ page, context }) => {
+		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		const details = page.getByRole('region', { name: 'Details' });
+		await expect(details.getByText(WAITING_ON_ME, { exact: true })).toBeVisible();
+		await details.getByRole('button', { name: 'Copy match code' }).click();
+		await expect(page.getByText('Match code copied')).toBeVisible();
+		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(WAITING_ON_ME);
+	});
+
+	test('shows names on the scoreboard with no player codes, and says the result to screen readers', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		const score = page.getByRole('region', { name: 'Score', exact: true });
+		await expect(score.getByText(`${tamsin.displayName} (you)`, { exact: true })).toBeVisible();
+		await expect(score.getByText(/^P-/)).toHaveCount(0);
+		await expect(score.getByTestId('scoreboard-result')).toHaveText(
+			/^You and .+ (beat|lost to) .+, \d+-\d+(, \d+-\d+)*\.$/
+		);
 	});
 });

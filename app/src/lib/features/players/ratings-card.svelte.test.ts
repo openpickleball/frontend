@@ -32,15 +32,25 @@ const RATINGS: PlayerRatings = {
 };
 
 describe('RatingsCard', () => {
-	it('shows the most reliable rating first, with its reliability', async () => {
+	it('shows every format in a tile of the same size', async () => {
 		const screen = await render(RatingsCard, { ratings: RATINGS });
-		const headline = screen.getByTestId('headline-rating');
-		await expect.element(headline).toBeVisible();
-		const text = headline.element().textContent ?? '';
-		expect(text).toContain("Women's doubles");
-		expect(text).toContain('3.31');
-		expect(text).toContain('Reliability: 65 out of 100');
-		expect(text).not.toContain('3.42');
+		const tiles = screen.getByTestId('ratings').getByRole('listitem');
+		expect(tiles.elements()).toHaveLength(2);
+		// No tile is singled out: each has the same classes, name, number and reliability.
+		const [first, second] = tiles.elements();
+		expect(first.className).toBe(second.className);
+		expect(first.textContent).toContain('Mixed doubles');
+		expect(first.textContent).toContain('3.42');
+		expect(second.textContent).toContain("Women's doubles");
+		expect(second.textContent).toContain('3.31');
+		expect(second.textContent).toContain('Reliability: 65 out of 100');
+	});
+
+	it('links to the rating history page', async () => {
+		const screen = await render(RatingsCard, { ratings: RATINGS });
+		await expect
+			.element(screen.getByRole('link', { name: 'Rating history' }))
+			.toHaveAttribute('href', '/profile/ratings');
 	});
 
 	it('shows every rating with its reliability and a demonstration label', async () => {
@@ -58,10 +68,8 @@ describe('RatingsCard', () => {
 
 	it('names an early estimate, a rating that can still change and imported reliability', async () => {
 		const screen = await render(RatingsCard, { ratings: RATINGS });
-		await expect.element(screen.getByText(/Early estimate/)).toBeVisible();
-		await expect
-			.element(screen.getByText(/may change when ratings are next recounted/))
-			.toBeVisible();
+		await expect.element(screen.getByText('Early estimate.')).toBeVisible();
+		await expect.element(screen.getByText('May still change.')).toBeVisible();
 		await expect
 			.element(screen.getByText('Reliability from an external rating: 30 out of 100'))
 			.toBeVisible();

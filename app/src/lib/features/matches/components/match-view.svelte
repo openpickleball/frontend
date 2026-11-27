@@ -12,6 +12,7 @@
 	import { myCode } from '#lib/features/players/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import {
 		Empty,
@@ -25,12 +26,10 @@
 	import { matchCache, type HoldState, type MatchAction } from '../cache.svelte.js';
 	import {
 		STATUS_LABELS,
-		formatLongDate,
+		formatDayMonth,
 		formatName,
-		matchHeadline,
-		scoreLine,
-		scoringName,
-		viewpoint
+		formatShortDate,
+		scoringName
 	} from '../format.js';
 	import {
 		confirmMatch,
@@ -40,7 +39,7 @@
 		vouchForMatch,
 		withdrawDispute
 	} from '../services.js';
-	import { hasActions } from '../status.js';
+	import { panelIsQuiet } from '../status.js';
 	import CodeGate from './code-gate.svelte';
 	import DisputeDialog from './dispute-dialog.svelte';
 	import Scoreboard from './scoreboard.svelte';
@@ -80,7 +79,12 @@
 	// `MatchOut` has no hold field, so the holds list says whether the match is held. The cache
 	// keeps what the home list or this page's own lookup found.
 	const hold = $derived(match && code ? matchCache.holdOf(code) : undefined);
-	const title = $derived(code ? `Match ${code} · OPEN Pickleball` : 'Match · OPEN Pickleball');
+	// "Doubles, 14 Nov". The match code is in Details, not in the tab.
+	const title = $derived(
+		match
+			? `${formatName(match.format)}, ${formatDayMonth(match.playedOn)} · OPEN Pickleball`
+			: 'Match · OPEN Pickleball'
+	);
 
 	// Counts reads and actions. A read that finishes after a newer one started, or after the player
 	// confirmed or disputed, is ignored, so it can't bring back an older state.
@@ -93,10 +97,15 @@
 		if (result.code === found.code) result.fetched = found;
 	}
 
+	/** The status heading, or the page title when a confirmed match shows no status panel. */
+	function statusTarget(): HTMLElement | null {
+		return document.getElementById('status-heading') ?? document.getElementById('match-title');
+	}
+
 	/** Move focus to the status heading, but only when the page lost it (it was on a control that is gone). */
 	function rescueFocus() {
 		if (!document.activeElement || document.activeElement === document.body) {
-			document.getElementById('status-heading')?.focus();
+			statusTarget()?.focus();
 		}
 	}
 
@@ -234,7 +243,7 @@
 		await tick();
 		await dialogGone;
 		// The button may be gone after a fresh read, so the status heading takes focus then.
-		(document.getElementById(id) ?? document.getElementById('status-heading'))?.focus();
+		(document.getElementById(id) ?? statusTarget())?.focus();
 	}
 
 	/**
@@ -349,29 +358,22 @@
 			</Button>
 		</div>
 	{/if}
-	<div class="pt-4">
-		<p class="label">{formatName(match.format)} · {formatLongDate(match.playedOn)}</p>
-		<h1 class="page-title mt-2">{matchHeadline(match, you)}</h1>
-		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match))}</p>
-		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+	<!-- The header is the title and the badges. The scoreboard below says who played and the score. -->
+	<div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-4">
+		<h1 id="match-title" tabindex="-1" class="page-title outline-none">
+			{formatName(match.format)} · {formatShortDate(match.playedOn)}
+		</h1>
+		<div class="flex flex-wrap items-center gap-x-3 gap-y-2">
 			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
 			{#if hold && match.status !== 'voided'}
 				<Badge>On hold</Badge>
 			{/if}
-			<span class="font-display text-base text-muted">
-				<span class="sr-only">Match code </span>{match.code}
-			</span>
-			<Button variant="outline" size="sm" onclick={() => copyCode(match.code)}>
-				<CopyIcon aria-hidden="true" />
-				Copy code
-			</Button>
 		</div>
 	</div>
 
-	{#snippet score()}
-		<Scoreboard {match} {you} />
-	{/snippet}
-	{#snippet status()}
+	<!-- The status panel always comes first, so it is in the same place for every state and viewer.
+	     A confirmed match with nothing else to say drops it, and the badge says where it stands. -->
+	{#if !panelIsQuiet(match, hold) || justRecorded || justCorrected || error}
 		<StatusPanel
 			{match}
 			{hold}
@@ -386,27 +388,32 @@
 			onwithdraw={() => openDialog('withdraw')}
 			onvouch={() => openDialog('vouch')}
 		/>
-	{/snippet}
-
-	<!-- When the player has something to do, the buttons come before the scoreboard. -->
-	{#if hasActions(match, hold)}
-		{@render status()}
-		{@render score()}
-	{:else}
-		{@render score()}
-		{@render status()}
 	{/if}
+	<Scoreboard {match} {you} />
 
-	<dl class="mt-8 grid grid-cols-2 gap-x-6">
-		<div>
-			<dt class="text-sm text-muted">Games to</dt>
-			<dd class="mt-0.5">{match.gameTarget}</dd>
-		</div>
-		<div>
-			<dt class="text-sm text-muted">Scoring</dt>
-			<dd class="mt-0.5">{scoringName(match.scoringType)}</dd>
-		</div>
-	</dl>
+	<Section title="Details">
+		<dl class="grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-3">
+			<div>
+				<dt class="text-sm text-muted">Games to</dt>
+				<dd class="mt-0.5">{match.gameTarget}</dd>
+			</div>
+			<div>
+				<dt class="text-sm text-muted">Scoring</dt>
+				<dd class="mt-0.5">{scoringName(match.scoringType)}</dd>
+			</div>
+			<!-- The address uses the code, a correction gets a new one, and organizers ask for it. -->
+			<div class="col-span-2 lg:col-span-1">
+				<dt class="text-sm text-muted">Match code</dt>
+				<dd class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+					<span class="open-code">{match.code}</span>
+					<Button variant="outline" size="sm" onclick={() => copyCode(match.code)}>
+						<CopyIcon aria-hidden="true" />
+						Copy <span class="sr-only">match code</span>
+					</Button>
+				</dd>
+			</div>
+		</dl>
+	</Section>
 
 	<DisputeDialog
 		bind:open={disputeOpen}

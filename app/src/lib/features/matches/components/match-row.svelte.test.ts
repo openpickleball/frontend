@@ -62,3 +62,64 @@ describe('MatchRow', () => {
 		await expect.element(page.getByText('Disputed', { exact: true })).toBeVisible();
 	});
 });
+
+describe('MatchRow note under a list title', () => {
+	it('says what the player can do in the Needs you list', async () => {
+		const match = viewerMatch({ b: true });
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'needs-you' });
+		await expect
+			.element(page.getByText('Confirm or dispute the score.', { exact: true }))
+			.toBeVisible();
+		await expect.element(page.getByText('Needs your confirmation.')).not.toBeInTheDocument();
+	});
+
+	it('asks for a vouch in the Needs you list when the match is held and not vouched for', async () => {
+		const match = viewerMatch({ a: true, decision: 'confirm' }, { status: 'disputed' });
+		matchCache.rememberHolds([{ match, vouched: false }]);
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'needs-you' });
+		await expect
+			.element(page.getByText("Vouch for it. It's on hold.", { exact: true }))
+			.toBeVisible();
+	});
+
+	it('names both actions in the Needs you list when the match needs both', async () => {
+		const match = viewerMatch({ b: true });
+		matchCache.rememberHolds([{ match, vouched: false }]);
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'needs-you' });
+		await expect
+			.element(
+				page.getByText("Confirm or dispute the score, and vouch for it. It's on hold.", {
+					exact: true
+				})
+			)
+			.toBeVisible();
+	});
+
+	it('says Needs your confirmation in any other list', async () => {
+		await render(MatchRow, { match: viewerMatch({ b: true }), you: TAMSIN });
+		await expect.element(page.getByText('Needs your confirmation.')).toBeVisible();
+	});
+
+	it('says only that the team vouched in the on-hold list', async () => {
+		const match = viewerMatch({}, { status: 'confirmed' });
+		matchCache.rememberHolds([{ match, vouched: true }]);
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'on-hold' });
+		await expect
+			.element(page.getByText('Your team has vouched for it.', { exact: true }))
+			.toBeVisible();
+	});
+
+	it('has no note for an unvouched match in the on-hold list', async () => {
+		const match = viewerMatch({}, { status: 'confirmed' });
+		matchCache.rememberHolds([{ match, vouched: false }]);
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'on-hold' });
+		await expect.element(page.getByTestId('match-row')).toBeVisible();
+		expect(page.getByTestId('match-row').element().querySelector('p')).toBeNull();
+	});
+
+	it('keeps You disputed this score in the disputed list', async () => {
+		const match = viewerMatch({ decision: 'dispute' }, { status: 'disputed' });
+		await render(MatchRow, { match, you: TAMSIN, listOf: 'disputed' });
+		await expect.element(page.getByText('You disputed this score.')).toBeVisible();
+	});
+});

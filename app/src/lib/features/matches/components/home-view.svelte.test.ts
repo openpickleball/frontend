@@ -6,6 +6,7 @@ import { buildCode, type Match, type MatchCode } from '#lib/domain/index.js';
 import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
 import { matchCache } from '../cache.svelte.js';
+import { needsYou } from '../needs-you.svelte.js';
 import * as services from '../services.js';
 import { TAMSIN, viewerMatch } from '../testing.js';
 import HomeView from './home-view.svelte';
@@ -27,7 +28,10 @@ const WAITING = code('X4NC2GHJ9VQ');
 const RECENT = code('D9PW5KXE7RM');
 const DISPUTED = code('R5GK9WBD2XF');
 const DISPUTED_TOO = code('6YEM3HNV8QT');
+const HELD = code('H2ZA6TQN4CJ');
+const HELD_TOO = code('N3QH7DFR5KZ');
 
+// To confirm: one played on 14 November, one on 12 November.
 const needs = viewerMatch({ b: true }, { code: NEEDS });
 const needsToo = viewerMatch({}, { code: NEEDS_TOO, playedOn: '2026-11-12' });
 const waiting = viewerMatch(
@@ -39,7 +43,7 @@ const done = viewerMatch(
 	{ code: RECENT, status: 'confirmed', playedOn: '2026-11-08' }
 );
 
-// Tamsin disputed this one. Another player disputed the second, which she confirmed.
+// Tamsin disputed this one, so she can withdraw it. Another player disputed the second.
 const myDispute = viewerMatch(
 	{ decision: 'dispute' },
 	{ code: DISPUTED, status: 'disputed', playedOn: '2026-11-03' }
@@ -49,8 +53,7 @@ const theirDispute = viewerMatch(
 	{ code: DISPUTED_TOO, status: 'disputed', playedOn: '2026-11-01' }
 );
 
-const HELD = code('H2ZA6TQN4CJ');
-const HELD_TOO = code('N3QH7DFR5KZ');
+// Held. Tamsin's side has not vouched for the first, and has for the second.
 const held = viewerMatch(
 	{ a: true, b: true, decision: 'confirm' },
 	{ code: HELD, status: 'confirmed', playedOn: '2026-11-07' }
@@ -60,11 +63,17 @@ const heldToo = viewerMatch(
 	{ code: HELD_TOO, playedOn: '2026-10-27' }
 );
 
-function serveHolds(holds: { match: Match; vouched: boolean }[], count = holds.length) {
-	mocked.listMyHolds.mockImplementation(async (_offset, options) => {
-		options?.cache?.rememberHolds(holds);
-		return { items: holds, count };
-	});
+/** A paged list: each call answers with the slice its offset and limit ask for. */
+function paged<T>(items: T[], remember: (items: T[]) => void) {
+	return async (offset = 0, options?: { limit?: number }) => {
+		const slice = items.slice(offset, offset + (options?.limit ?? 20));
+		remember(slice);
+		return { items: slice, count: items.length };
+	};
+}
+
+function serveHolds(holds: { match: Match; vouched: boolean }[]) {
+	mocked.listMyHolds.mockImplementation(paged(holds, (page) => matchCache.rememberHolds(page)));
 }
 
 function serveDisputes(disputes: Match[], count = disputes.length) {
@@ -74,15 +83,31 @@ function serveDisputes(disputes: Match[], count = disputes.length) {
 	});
 }
 
-function serve(history: Match[], awaiting: Match[], awaitingCount = awaiting.length) {
+function serveAwaiting(awaiting: Match[]) {
+	mocked.listAwaitingConfirmation.mockImplementation(
+		paged(awaiting, (page) => matchCache.rememberAll(page))
+	);
+}
+
+function serve(history: Match[], awaiting: Match[] = []) {
 	mocked.listMatches.mockImplementation(async (_player, _offset, options) => {
 		options?.cache?.rememberAll(history);
 		return { items: history, count: history.length };
 	});
-	mocked.listAwaitingConfirmation.mockImplementation(async (_offset, options) => {
-		options?.cache?.rememberAll(awaiting);
-		return { items: awaiting, count: awaitingCount };
-	});
+	serveAwaiting(awaiting);
+}
+
+/** `count` matches to confirm, made up, played on 1, 2, 3 ... November. */
+function manyToConfirm(count: number): Match[] {
+	return Array.from({ length: count }, (_, index) =>
+		viewerMatch(
+			{ b: true },
+			{
+				code: code(String(index + 1).padStart(11, '0')),
+				playedOn: `2026-11-${String(index + 1).padStart(2, '0')}`
+			}
+		)
+	);
 }
 
 // State is reset before each test, not after: the rendered view is still mounted when afterEach
@@ -90,6 +115,7 @@ function serve(history: Match[], awaiting: Match[], awaitingCount = awaiting.len
 beforeEach(() => {
 	vi.resetAllMocks();
 	matchCache.reset();
+	needsYou.reset();
 	myCode.reset();
 	matchCache.setOwnerSource(() => myCode.code);
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
@@ -104,103 +130,211 @@ afterEach(() => {
 });
 
 const heading = (name: string) => page.getByRole('heading', { level: 2, name });
+const needsList = () => page.getByRole('list', { name: 'Needs you' });
+const titles = (container: HTMLElement) =>
+	[...container.querySelectorAll('h2')].map((h) => h.textContent?.trim());
 
-describe('HomeView', () => {
-	it('shows what needs the player, what waits on the other team, then recent matches', async () => {
+describe('HomeView Needs you', () => {
+	it('lists what to confirm and what to vouch for, oldest first, each with its action', async () => {
 		serve([needs, needsToo, waiting, done], [needs, needsToo]);
+		serveHolds([{ match: held, vouched: false }]);
+		const screen = await render(HomeView);
+
+		await expect.element(heading('Needs you')).toBeVisible();
+		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(3);
+		const rows = needsList().getByTestId('match-row').elements();
+		expect(rows.map((row) => row.getAttribute('href'))).toEqual([
+			`/matches/${HELD}`,
+			`/matches/${NEEDS_TOO}`,
+			`/matches/${NEEDS}`
+		]);
+		expect(rows[0].textContent).toContain("Vouch for it. It's on hold.");
+		expect(rows[1].textContent).toContain('Confirm or dispute the score.');
+		await expect.element(page.getByText('3 matches')).toBeVisible();
+		expect(titles(screen.container)).toEqual(['Needs you', 'In progress', 'Recent matches']);
+	});
+
+	it('shows 3, then See all with the total, which opens the Needs you filter', async () => {
+		serve([done], manyToConfirm(5));
+		serveHolds([{ match: heldToo, vouched: false }]);
 		await render(HomeView);
 
-		await expect.element(heading('Needs your confirmation')).toBeVisible();
-		await expect.element(heading('Waiting for the other team')).toBeVisible();
+		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(3);
+		await expect
+			.element(page.getByRole('link', { name: 'See all 6' }))
+			.toHaveAttribute('href', '/matches?show=needs-you');
+		await expect.element(page.getByText('6 matches')).toBeVisible();
+		// The oldest first: the held match played on 27 October.
+		await expect
+			.element(needsList().getByTestId('match-row').first())
+			.toHaveAttribute('href', `/matches/${HELD_TOO}`);
+	});
+
+	it('reads the awaiting-confirmation list to its end, past the first page', async () => {
+		serve([done], manyToConfirm(130));
+		await render(HomeView);
+		await expect.element(page.getByRole('link', { name: 'See all 130' })).toBeVisible();
+		expect(mocked.listAwaitingConfirmation).toHaveBeenCalledWith(0, expect.anything());
+		expect(mocked.listAwaitingConfirmation).toHaveBeenCalledWith(100, expect.anything());
+	});
+
+	it('has no See all when everything fits', async () => {
+		serve([needs, done], [needs]);
+		await render(HomeView);
+		await expect.element(heading('Needs you')).toBeVisible();
+		await expect.element(page.getByTestId('see-all-needs')).not.toBeInTheDocument();
+	});
+
+	it("says You're all caught up when nothing needs the player", async () => {
+		serve([waiting, done], []);
+		serveHolds([{ match: heldToo, vouched: true }]);
+		await render(HomeView);
+		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
+		await expect.element(needsList()).not.toBeInTheDocument();
+	});
+
+	it('drops a match once its cached copy is confirmed, and a held one once its side vouches', async () => {
+		serve([done], [needs]);
+		serveHolds([{ match: held, vouched: false }]);
+		await render(HomeView);
+		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(2);
+
+		matchCache.remember(
+			viewerMatch({ a: true, b: true, decision: 'confirm' }, { code: NEEDS, status: 'confirmed' })
+		);
+		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(1);
+		matchCache.markVouched(HELD);
+		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
+	});
+
+	it('still shows the rest, with a notice and Try again, when Needs you fails', async () => {
+		serve([waiting, done]);
+		mocked.listAwaitingConfirmation.mockRejectedValueOnce(new Error('down'));
+		await render(HomeView);
+		await expect.element(page.getByTestId('needs-error')).toBeVisible();
+		await expect.element(page.getByText("We couldn't check what needs you.")).toBeVisible();
+		await expect.element(heading('Recent matches')).toBeVisible();
+		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
+
+		serveAwaiting([needs]);
+		await page.getByTestId('needs-error').getByRole('button', { name: 'Try again' }).click();
+		await expect.element(heading('Needs you')).toBeVisible();
+		await expect.element(page.getByTestId('needs-error')).not.toBeInTheDocument();
+	});
+});
+
+describe('HomeView In progress', () => {
+	it('counts disputed and held matches in one line that links to each filter', async () => {
+		serve([needs, myDispute, theirDispute, held, heldToo, done], [needs]);
+		serveDisputes([myDispute, theirDispute]);
+		serveHolds([
+			{ match: held, vouched: false },
+			{ match: heldToo, vouched: true }
+		]);
+		await render(HomeView);
+
+		const line = page.getByTestId('in-progress');
+		await expect.element(line).toHaveTextContent('2 disputed · 2 on hold');
+		await expect
+			.element(line.getByRole('link', { name: '2 disputed' }))
+			.toHaveAttribute('href', '/matches?show=disputed');
+		await expect
+			.element(line.getByRole('link', { name: '2 on hold' }))
+			.toHaveAttribute('href', '/matches?show=on-hold');
+		// No count of what waits on the other team: there is no list or filter for it.
+		await expect.element(line.getByText(/waiting/)).not.toBeInTheDocument();
+	});
+
+	it('keeps counting a dispute the player can withdraw, and drops one that ended', async () => {
+		serve([done]);
+		serveDisputes([myDispute, theirDispute], 3);
+		await render(HomeView);
+		const line = page.getByTestId('in-progress');
+		await expect.element(line).toHaveTextContent('3 disputed');
+
+		// She withdrew, and no one else disputes it: it is pending again.
+		matchCache.remember(viewerMatch({ decision: 'withdraw' }, { code: DISPUTED }));
+		await expect.element(line).toHaveTextContent('2 disputed');
+	});
+
+	it('is left out when nothing is disputed or on hold', async () => {
+		serve([waiting, done]);
+		await render(HomeView);
+		await expect.element(heading('Recent matches')).toBeVisible();
+		await expect.element(heading('In progress')).not.toBeInTheDocument();
+	});
+
+	it('still shows the rest, with a notice and Try again, when the disputed list fails', async () => {
+		serve([waiting, done]);
+		mocked.listMyDisputes.mockRejectedValueOnce(new Error('down'));
+		await render(HomeView);
+		await expect.element(page.getByTestId('disputes-error')).toBeVisible();
+		await expect.element(page.getByText("We couldn't check your disputed matches.")).toBeVisible();
 		await expect.element(heading('Recent matches')).toBeVisible();
 
-		const needing = page.getByRole('list', { name: 'Needs your confirmation' });
-		await expect.element(needing.getByTestId('match-row').first()).toBeVisible();
-		expect(needing.getByTestId('match-row').elements()).toHaveLength(2);
-		const waitingList = page.getByRole('list', { name: 'Waiting for the other team' });
-		expect(waitingList.getByTestId('match-row').elements()).toHaveLength(1);
-		// A match shows once: the recent list holds only the match that is in neither section.
+		serveDisputes([myDispute]);
+		await page.getByTestId('disputes-error').getByRole('button', { name: 'Try again' }).click();
+		await expect.element(page.getByTestId('in-progress')).toHaveTextContent('1 disputed');
+		await expect.element(page.getByTestId('disputes-error')).not.toBeInTheDocument();
+	});
+});
+
+describe('HomeView recent matches, code and Record a match', () => {
+	it('shows 3 recent matches, leaving out what needs the player, and links to all matches', async () => {
+		serve([needs, waiting, myDispute, held, heldToo, done], [needs]);
+		await render(HomeView);
+
 		const recent = page.getByRole('list', { name: 'Recent matches' });
-		expect(recent.getByTestId('match-row').elements()).toHaveLength(1);
+		await expect.poll(() => recent.getByTestId('match-row').elements()).toHaveLength(3);
+		expect(
+			recent
+				.getByTestId('match-row')
+				.elements()
+				.map((row) => row.getAttribute('href'))
+		).toEqual([`/matches/${WAITING}`, `/matches/${DISPUTED}`, `/matches/${HELD}`]);
+		await expect
+			.element(page.getByRole('link', { name: 'All matches' }))
+			.toHaveAttribute('href', '/matches');
+	});
+
+	it('puts the code strip, then Record a match, below the sections', async () => {
+		serve([needs, done], [needs]);
+		const screen = await render(HomeView);
+		await expect.element(page.getByTestId('my-code')).toHaveTextContent(TAMSIN);
+		const record = page.getByRole('link', { name: 'Record a match' });
+		await expect.element(record).toHaveAttribute('href', '/record');
+		const sections = screen.container.querySelectorAll('section');
+		const last = sections[sections.length - 1];
+		const strip = page.getByTestId('my-code').element();
+		expect(last.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(
+			strip.compareDocumentPosition(record.element()) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
 	});
 
 	it('does not say "pending matches" or hedge about who confirmed', async () => {
 		serve([needs, waiting], [needs]);
 		await render(HomeView);
-		await expect.element(heading('Needs your confirmation')).toBeVisible();
+		await expect.element(heading('Needs you')).toBeVisible();
 		await expect.element(page.getByText(/pending matches/i)).not.toBeInTheDocument();
 		await expect.element(page.getByText(/If you already confirmed/)).not.toBeInTheDocument();
 	});
 
-	it('leaves out a section with nothing in it', async () => {
-		serve([done], []);
-		await render(HomeView);
-		await expect.element(heading('Recent matches')).toBeVisible();
-		await expect.element(heading('Needs your confirmation')).not.toBeInTheDocument();
-		await expect.element(heading('Waiting for the other team')).not.toBeInTheDocument();
-	});
-
-	it('shows a match that needs the player even when it is not on the first history page', async () => {
-		serve([done], [needs]);
-		await render(HomeView);
-		await expect.element(heading('Needs your confirmation')).toBeVisible();
-		const needing = page.getByRole('list', { name: 'Needs your confirmation' });
-		expect(needing.getByTestId('match-row').elements()).toHaveLength(1);
-	});
-
-	it('says how many more need the player when the first page leaves some out', async () => {
-		serve([needs, done], [needs], 4);
-		await render(HomeView);
-		await expect
-			.element(page.getByTestId('more-needs'))
-			.toHaveTextContent('3 more matches are waiting for you. See all matches.');
-		await expect.element(page.getByRole('link', { name: 'See all matches' })).toBeVisible();
-		await expect.element(page.getByText('4 matches')).toBeVisible();
-	});
-
-	it('shows no "more" line when everything fits', async () => {
-		serve([needs], [needs]);
-		await render(HomeView);
-		await expect.element(heading('Needs your confirmation')).toBeVisible();
-		await expect.element(page.getByTestId('more-needs')).not.toBeInTheDocument();
-	});
-
-	it('drops a match from "Needs your confirmation" once its cached copy shows the team confirmed', async () => {
-		serve([needs], [needs]);
-		await render(HomeView);
-		await expect.element(heading('Needs your confirmation')).toBeVisible();
-		matchCache.remember(
-			viewerMatch({ a: true, b: true, decision: 'confirm' }, { code: NEEDS, status: 'confirmed' })
-		);
-		await expect.element(heading('Needs your confirmation')).not.toBeInTheDocument();
-	});
-
-	it('shows the empty state when the player has no matches', async () => {
+	it('shows the empty state, with one Record a match, when the player has no matches', async () => {
 		serve([], []);
 		await render(HomeView);
-		await expect.element(page.getByText('Loading your matches…')).not.toBeInTheDocument();
-		await expect.element(heading('Needs your confirmation')).not.toBeInTheDocument();
+		await expect.element(page.getByText('No matches yet')).toBeVisible();
+		await expect.element(heading('Needs you')).not.toBeInTheDocument();
 		await expect.element(heading('Recent matches')).not.toBeInTheDocument();
+		expect(page.getByRole('link', { name: 'Record a match' }).elements()).toHaveLength(1);
+		await expect.element(page.getByTestId('my-code')).toBeVisible();
 	});
+});
 
-	it('still shows the history, with a notice and Try again, when only the awaiting list fails', async () => {
-		mocked.listMatches.mockResolvedValue({ items: [waiting, done], count: 2 });
-		mocked.listAwaitingConfirmation.mockRejectedValueOnce(new Error('down'));
-		await render(HomeView);
-		await expect.element(page.getByTestId('needs-error')).toBeVisible();
-		await expect.element(heading('Waiting for the other team')).toBeVisible();
-		await expect.element(heading('Recent matches')).toBeVisible();
-		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
-
-		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [needs], count: 1 });
-		await page.getByTestId('needs-error').getByRole('button', { name: 'Try again' }).click();
-		await expect.element(heading('Needs your confirmation')).toBeVisible();
-		await expect.element(page.getByTestId('needs-error')).not.toBeInTheDocument();
-	});
-
+describe('HomeView history errors', () => {
 	it('shows one page-wide error with Try again when the history fails', async () => {
 		mocked.listMatches.mockRejectedValue(new Error('down'));
-		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [needs], count: 1 });
+		serveAwaiting([needs]);
 		await render(HomeView);
 		await expect.element(page.getByText("Your matches didn't load.")).toBeVisible();
 		await expect.element(page.getByText(/went wrong on our side/)).toBeVisible();
@@ -213,7 +347,7 @@ describe('HomeView', () => {
 
 	it('says the player is offline only for a lost connection', async () => {
 		mocked.listMatches.mockRejectedValue(failure('network'));
-		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [], count: 0 });
+		serveAwaiting([]);
 		await render(HomeView);
 		await expect.element(page.getByText("You're offline.")).toBeVisible();
 		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
@@ -221,7 +355,7 @@ describe('HomeView', () => {
 
 	it('asks the player to wait, with Try again, when there were too many requests', async () => {
 		mocked.listMatches.mockRejectedValue(failure('throttled'));
-		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [], count: 0 });
+		serveAwaiting([]);
 		await render(HomeView);
 		await expect.element(page.getByText("Your matches didn't load.")).toBeVisible();
 		await expect.element(page.getByText(/Wait a minute, then try again/)).toBeVisible();
@@ -246,168 +380,3 @@ describe('HomeView', () => {
 function failure(kind: AppErrorKind): AppError {
 	return new AppError({ kind, status: null, code: kind, message: 'Backend text', fields: {} });
 }
-
-describe('HomeView disputed matches', () => {
-	it('lists the disputed matches after what needs the player, and not again under recent', async () => {
-		serve([needs, waiting, myDispute, theirDispute, done], [needs]);
-		serveDisputes([myDispute, theirDispute]);
-		const screen = await render(HomeView);
-
-		await expect.element(heading('Disputed matches')).toBeVisible();
-		await expect
-			.element(page.getByText(/A player said these scores are wrong\. They don't count/))
-			.toBeVisible();
-		const list = page.getByRole('list', { name: 'Disputed matches' });
-		expect(list.getByTestId('match-row').elements()).toHaveLength(2);
-		await expect.element(list.getByText('You disputed this score.')).toBeVisible();
-		await expect.element(page.getByText('2 matches')).toBeVisible();
-
-		// The order: Needs your confirmation, Disputed matches, Waiting for the other team.
-		const titles = [...screen.container.querySelectorAll('h2')].map((h) => h.textContent?.trim());
-		expect(titles).toEqual([
-			'Needs your confirmation',
-			'Disputed matches',
-			'Waiting for the other team',
-			'Recent matches'
-		]);
-		const recent = page.getByRole('list', { name: 'Recent matches' });
-		expect(recent.getByTestId('match-row').elements()).toHaveLength(1);
-	});
-
-	it('leaves the section out when nothing is disputed', async () => {
-		serve([done], []);
-		await render(HomeView);
-		await expect.element(heading('Recent matches')).toBeVisible();
-		await expect.element(heading('Disputed matches')).not.toBeInTheDocument();
-	});
-
-	it('drops a match once its cached copy is no longer disputed, and keeps one still disputed', async () => {
-		serve([done], []);
-		serveDisputes([myDispute, theirDispute]);
-		await render(HomeView);
-		const list = page.getByRole('list', { name: 'Disputed matches' });
-		await expect.element(list.getByTestId('match-row').first()).toBeVisible();
-
-		// She withdrew, and no one else disputes it: it is pending again.
-		matchCache.remember(viewerMatch({ decision: 'withdraw' }, { code: DISPUTED }));
-		await expect.poll(() => list.getByTestId('match-row').elements()).toHaveLength(1);
-		await expect.element(heading('Disputed matches')).toBeVisible();
-
-		// She withdrew, but another player still disputes it: it stays.
-		matchCache.remember(
-			viewerMatch({ a: true, decision: 'withdraw' }, { code: DISPUTED_TOO, status: 'disputed' })
-		);
-		await new Promise((done) => setTimeout(done, 50));
-		expect(list.getByTestId('match-row').elements()).toHaveLength(1);
-	});
-
-	it('says how many more are disputed when the first page leaves some out', async () => {
-		serve([done], []);
-		serveDisputes([myDispute], 3);
-		await render(HomeView);
-		await expect
-			.element(page.getByTestId('more-disputes'))
-			.toHaveTextContent('2 more disputed matches are in your history. See all matches.');
-		await expect.element(page.getByText('3 matches')).toBeVisible();
-	});
-
-	it('still shows the history, with a notice and Try again, when only the disputed list fails', async () => {
-		serve([waiting, done], []);
-		mocked.listMyDisputes.mockRejectedValueOnce(new Error('down'));
-		await render(HomeView);
-		await expect.element(page.getByTestId('disputes-error')).toBeVisible();
-		await expect.element(page.getByText("We couldn't check your disputed matches.")).toBeVisible();
-		await expect.element(heading('Recent matches')).toBeVisible();
-		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
-
-		serveDisputes([myDispute]);
-		await page.getByTestId('disputes-error').getByRole('button', { name: 'Try again' }).click();
-		await expect.element(heading('Disputed matches')).toBeVisible();
-		await expect.element(page.getByTestId('disputes-error')).not.toBeInTheDocument();
-	});
-});
-
-describe('HomeView matches on hold', () => {
-	it('lists held matches after disputes, says why, and lists none again below', async () => {
-		serve([needs, myDispute, held, heldToo, done], [needs]);
-		serveDisputes([myDispute]);
-		serveHolds([
-			{ match: held, vouched: false },
-			{ match: heldToo, vouched: true }
-		]);
-		const screen = await render(HomeView);
-
-		await expect.element(heading('Matches on hold')).toBeVisible();
-		await expect
-			.element(page.getByText(/same teams and date as another match on OPEN, but other scores/))
-			.toBeVisible();
-		const list = page.getByRole('list', { name: 'Matches on hold' });
-		expect(list.getByTestId('match-row').elements()).toHaveLength(2);
-		await expect
-			.element(list.getByText("On hold. It doesn't count yet. Open it to vouch for it."))
-			.toBeVisible();
-		await expect
-			.element(list.getByText("On hold. It doesn't count yet. Your team has vouched for it."))
-			.toBeVisible();
-
-		// heldToo waits on the other team too, but it is listed once, under Matches on hold.
-		const titles = [...screen.container.querySelectorAll('h2')].map((h) => h.textContent?.trim());
-		expect(titles).toEqual([
-			'Needs your confirmation',
-			'Disputed matches',
-			'Matches on hold',
-			'Recent matches'
-		]);
-		const recent = page.getByRole('list', { name: 'Recent matches' });
-		expect(recent.getByTestId('match-row').elements()).toHaveLength(1);
-	});
-
-	it('leaves the section out when nothing is held', async () => {
-		serve([done], []);
-		await render(HomeView);
-		await expect.element(heading('Recent matches')).toBeVisible();
-		await expect.element(heading('Matches on hold')).not.toBeInTheDocument();
-	});
-
-	it('drops a match once its hold ends, and keeps one whose side vouched', async () => {
-		serve([done], []);
-		serveHolds([
-			{ match: held, vouched: false },
-			{ match: heldToo, vouched: false }
-		]);
-		await render(HomeView);
-		const list = page.getByRole('list', { name: 'Matches on hold' });
-		await expect.poll(() => list.getByTestId('match-row').elements()).toHaveLength(2);
-
-		matchCache.markVouched(HELD_TOO);
-		await expect
-			.element(list.getByText("On hold. It doesn't count yet. Your team has vouched for it."))
-			.toBeVisible();
-		matchCache.endHold(HELD);
-		await expect.poll(() => list.getByTestId('match-row').elements()).toHaveLength(1);
-	});
-
-	it('says how many more are on hold when the first page leaves some out', async () => {
-		serve([done], []);
-		serveHolds([{ match: held, vouched: false }], 3);
-		await render(HomeView);
-		await expect
-			.element(page.getByTestId('more-holds'))
-			.toHaveTextContent('2 more matches are on hold. See all matches.');
-		await expect.element(page.getByText('3 matches')).toBeVisible();
-	});
-
-	it('still shows the history, with a notice and Try again, when only the holds list fails', async () => {
-		serve([waiting, done], []);
-		mocked.listMyHolds.mockRejectedValueOnce(new Error('down'));
-		await render(HomeView);
-		await expect.element(page.getByTestId('holds-error')).toBeVisible();
-		await expect.element(page.getByText("We couldn't check your matches on hold.")).toBeVisible();
-		await expect.element(heading('Recent matches')).toBeVisible();
-
-		serveHolds([{ match: held, vouched: false }]);
-		await page.getByTestId('holds-error').getByRole('button', { name: 'Try again' }).click();
-		await expect.element(heading('Matches on hold')).toBeVisible();
-		await expect.element(page.getByTestId('holds-error')).not.toBeInTheDocument();
-	});
-});

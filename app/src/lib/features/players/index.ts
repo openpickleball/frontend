@@ -30,15 +30,15 @@
  * - `myCode.status === 'signed-out'` means nobody is signed in. The route guard owns that.
  * - Ratings: `fetchRatings(code)` reads `GET players/{code}/ratings` (backend#53) and returns
  *   `null` on its 404. `RatingsCard` shows what the backend sent: every rating with its
- *   reliability and a Demonstration label, the most reliable one first. It computes nothing
- *   about a rating, and never calls a number an OPEN rating.
+ *   reliability and a Demonstration label, each format in a tile of the same size. It computes
+ *   nothing about a rating, and never calls a number an OPEN rating.
  * - Rating history: `fetchRatingHistory(code, offset)` reads one page of 5 from
  *   `GET players/{code}/rating-history` (`list_player_rating_history`), newest first, and returns
  *   `null` on its 404 (an unknown code, an inactive account, or history kept private by
  *   `rating_history_visibility`; the player always sees their own). `RatingHistoryView` holds the
- *   page and drops late answers, and `RatingHistory` lists it under the ratings card with Newer
- *   and Older. Each change shows its format, the value, its reliability, the day and what caused
- *   it (`CHANGE_KINDS`: after a match, a recount, or removed by a recount). The API gives no
+ *   page and drops late answers, and `RatingHistory` lists it with Newer and Older.
+ *   `RatingHistoryPage` is the page at `ROUTES.ratingHistory`, linked from the ratings card.
+ *   Each change shows its format, the value, its reliability, the day and what caused it (`CHANGE_KINDS`: after a match, a recount, or removed by a recount). The API gives no
  *   change amount, and the app works none out.
  *
  * - `ProfileSettings` is the "Name and privacy" and "Your data" sections. It reads
@@ -58,5 +58,6 @@ export { myCode } from './my-code.svelte.js';
 export { default as OwnCodeGate } from './own-code-gate.svelte';
 export { default as ProfileView } from './profile-view.svelte';
 export { default as ProfileSettings } from './profile-settings.svelte';
+export { default as RatingHistoryPage } from './rating-history-page.svelte';
 export { SettingsStore, type SettingsDeps } from './settings-store.svelte.js';
 export type { MySettings, Visibility } from './types.js';

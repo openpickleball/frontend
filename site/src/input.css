@@ -158,9 +158,9 @@
   padding-inline: var(--spacing-gutter);
 }
 
-/* Small spaced capitals in the wordmark face: section labels and kickers. */
+/* Small spaced capitals in the body face: footer headings. */
 @utility label {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;

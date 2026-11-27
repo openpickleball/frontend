@@ -62,7 +62,7 @@ test('opening Record with no connection keeps the code from this visit', async (
 	await openRecord(page);
 	// Leave the page and come back with the connection gone. The page asks for the code again,
 	// gets no answer and keeps the one it has (frontend#249).
-	await page.getByRole('link', { name: 'Home', exact: true }).filter({ visible: true }).click();
+	await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).click();
 	await page.context().setOffline(true);
 	await page.getByRole('link', { name: 'Record', exact: true }).filter({ visible: true }).click();
 	await expect(page.getByTestId('chip')).toHaveText(codeOf('tamsin'));
