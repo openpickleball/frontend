@@ -201,6 +201,8 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(page).toHaveTitle('Rating history · OPEN Pickleball');
 		await expect(page.getByRole('heading', { level: 1, name: 'Rating history' })).toBeVisible();
 		const history = page.getByRole('main');
+		// No intro line that restates the title.
+		await expect(history.getByText(/newest first/)).toHaveCount(0);
 		const list = history.getByTestId('rating-history');
 		await expect(list.getByRole('listitem')).toHaveCount(5);
 		const first = list.getByRole('listitem').first();

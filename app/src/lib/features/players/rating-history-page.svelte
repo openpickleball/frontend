@@ -28,7 +28,6 @@
 
 <div class="pt-4">
 	<h1 class="page-title">Rating history</h1>
-	<p class="mt-2 max-w-md text-muted">Every change to your ratings, newest first.</p>
 </div>
 
 <div class="mt-8">
