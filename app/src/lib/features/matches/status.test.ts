@@ -340,7 +340,8 @@ describe('statusInfo', () => {
 	});
 
 	it('keeps the correction page reasons to two sentences at most, in plain words', () => {
-		// The pending Club-only reason is the two shown together, as the correction page shows them.
+		// When the status panel offers Dispute, the correction page shows the Club-only reason and
+		// the dispute advice together, so they are checked together too.
 		for (const text of [
 			CORRECT_EVENT_NOTE,
 			CORRECT_CLUB_NOTE,

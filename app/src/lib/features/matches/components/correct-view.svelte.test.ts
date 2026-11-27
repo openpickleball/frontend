@@ -109,7 +109,8 @@ describe('CorrectView', () => {
 		}
 
 		// Any player in a match may correct it, whoever recorded it. The backend refuses a Club-only
-		// match because it has a Club, so the reason says that, and points a pending one to a dispute.
+		// match because it has a Club, so the reason says that. It points to a dispute only when the
+		// status panel offers this player Dispute.
 		const CLUB_REASON = "A match recorded for a club can't be corrected by its players.";
 		const DISPUTE_INSTEAD = 'If the score is wrong, dispute the match instead.';
 		const reason = () => page.getByTestId('cannot-correct').getByText(/club/);
