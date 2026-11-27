@@ -778,6 +778,45 @@ test.describe('corrections', () => {
 		await expect(page.getByRole('link', { name: 'Correct the score' })).toHaveCount(0);
 	});
 
+	test("names an event match's Event and Club, offers no correction, and says who settles it", async ({
+		page
+	}) => {
+		await page.goto(`/matches/${EVENT_DISPUTE}`);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'disputed');
+		const details = page.getByRole('region', { name: 'Details' });
+		await expect(details.getByText('Larkspur Winter League', { exact: true })).toBeVisible();
+		await expect(details.getByText('Juniper Court Club', { exact: true })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Correct the score' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'What does disputed mean?' }).click();
+		await expect(
+			page.getByRole('dialog', { name: 'What does disputed mean?' }).getByText(/organizer/)
+		).toBeVisible();
+
+		// Opened directly, the correction page says why instead of showing the form.
+		await page.goto(`/matches/${EVENT_DISPUTE}/correct`);
+		await expect(page.getByTestId('cannot-correct')).toContainText("event's organizer");
+		await expect(page.getByRole('button', { name: 'Save the correction' })).toHaveCount(0);
+	});
+
+	test('names a Club-only match its Club, offers no correction, and leaves organizers out', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${CLUB_DISPUTE}`);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'disputed');
+		const details = page.getByRole('region', { name: 'Details' });
+		await expect(details.getByText('Marshwalk Racquet Club', { exact: true })).toBeVisible();
+		await expect(details.getByText('Event', { exact: true })).toHaveCount(0);
+		await expect(page.getByRole('link', { name: 'Correct the score' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'What does disputed mean?' }).click();
+		const popover = page.getByRole('dialog', { name: 'What does disputed mean?' });
+		await expect(popover.getByText(/every player who disputed/)).toBeVisible();
+		await expect(popover.getByText(/organizer/)).toHaveCount(0);
+
+		await page.goto(`/matches/${CLUB_DISPUTE}/correct`);
+		await expect(page.getByTestId('cannot-correct')).toContainText('recorded themselves');
+		await expect(page.getByRole('button', { name: 'Save the correction' })).toHaveCount(0);
+	});
+
 	test('has no WCAG 2.1 AA violations on a pending match and its correction, in either theme', async ({
 		page
 	}) => {
