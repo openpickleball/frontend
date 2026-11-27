@@ -395,9 +395,10 @@ export async function checkSignupPassword(
 const signOutListeners = new Set<(email: string | null) => void>();
 
 /**
- * Run `listener` when the player signs out on purpose (not when a session expires), before the
- * session ends, with the account's email. Other features use it to delete what they keep on
- * this device. A throwing listener never stops the sign out. Returns a function that removes it.
+ * Run `listener` when the player signs out on purpose or deletes their account (not when a
+ * session expires), before the session ends, with the account's email. Other features use it to
+ * delete what they keep on this device. A throwing listener never stops the sign out. Returns a
+ * function that removes it.
  */
 export function onSignOut(listener: (email: string | null) => void): () => void {
 	signOutListeners.add(listener);
@@ -427,9 +428,31 @@ export function signOutWarning(): string | null {
 	}
 }
 
-/** Sign out. The backend answers 401, which is the signed-out session. */
-export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
-	const email = session.email;
+let unsentMatchesSource: () => number = () => 0;
+
+/**
+ * Say how many matches on this device have not reached the backend, so deleting the account can
+ * warn that it deletes them too. The root layout sets it once (the offline queue). Returns a
+ * function that removes it.
+ */
+export function setUnsentMatchesSource(source: () => number): () => void {
+	unsentMatchesSource = source;
+	return () => {
+		if (unsentMatchesSource === source) unsentMatchesSource = () => 0;
+	};
+}
+
+/** How many matches on this device have not been sent. 0 when unknown. */
+export function unsentMatches(): number {
+	try {
+		return unsentMatchesSource();
+	} catch {
+		return 0;
+	}
+}
+
+/** Tell every `onSignOut` listener, before the session changes. */
+function runSignOutListeners(email: string | null): void {
 	for (const listener of signOutListeners) {
 		try {
 			listener(email);
@@ -437,6 +460,11 @@ export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
 			// Cleaning up must never keep a player signed in.
 		}
 	}
+}
+
+/** Sign out. The backend answers 401, which is the signed-out session. */
+export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
+	runSignOutListeners(session.email);
 	try {
 		const result = await settle(
 			api.allauth.DELETE('/_allauth/{client}/v1/auth/session', { params: allauthParams })
@@ -446,6 +474,29 @@ export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
 		// Even if the call failed, this device should not look signed in.
 		session.apply({ status: 'signed_out' });
 	}
+}
+
+/**
+ * Delete the signed-in account (`DELETE /api/v1/accounts/me`). On 204 the backend has ended every
+ * session of the account, so this ends it here too (`endDeletedAccount`) before it resolves. No
+ * code that waits on it sees a signed-in session, so a later 401 can't make it look expired.
+ * Anything else is an `AppError`, such as 403 `reauthentication_required` (run it through
+ * `withReauth`), 403 `mfa_required`, 409 `conflict` for a staff account, or `throttled`.
+ */
+export async function deleteAccount({ api = appApi }: ApiOption = {}): Promise<void> {
+	const result = await settle(api.open.DELETE('/api/v1/accounts/me'));
+	if (result.response.status !== 204) fail(result);
+	endDeletedAccount();
+}
+
+/**
+ * The account is gone: delete what this device keeps for it (the `onSignOut` listeners, with its
+ * email, while it still looks signed in), then sign out and set `session.accountDeleted`.
+ * `deleteAccount` calls it on 204, so callers don't.
+ */
+export function endDeletedAccount(): void {
+	runSignOutListeners(session.email);
+	session.markDeleted();
 }
 
 /**

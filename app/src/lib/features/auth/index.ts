@@ -15,9 +15,14 @@
  *   the API: the layout's own guard may not have redirected yet.
  * - `SignOutButton`: a sign out button. The side nav and the profile page show it.
  * - `onSignOut(listener)`: the root layout calls it once, so the player's code is cleared as soon
- *   as the player signs out on purpose.
+ *   as the player signs out on purpose or deletes their account.
  * - `setSignOutWarning(source)`: what a sign out would delete from this device, such as unsent
  *   matches. Every `SignOutButton` asks first when `source` returns a warning.
+ * - `setUnsentMatchesSource(source)` and `unsentMatches()`: how many matches on this device are
+ *   unsent. The root layout sets the source once, and deleting the account warns with it.
+ * - `deleteAccount()`: delete the signed-in account. Run it through `withReauth`. On 204 it calls
+ *   `endDeletedAccount()`, which runs the `onSignOut` listeners, signs out and sets
+ *   `session.accountDeleted`, so sign-in can say the account was deleted.
  * - `goAfterSignIn(searchParams)`: go to `next`, or home, once signed in. The sign-in and
  *   sign-up pages call it.
  * - `watchSessionExpiry(onExpired)`: the root layout calls it once. The first 401 from the API
@@ -61,7 +66,11 @@ export {
 	watchMfaRequired,
 	watchSessionExpiry,
 	onSignOut,
-	setSignOutWarning
+	setSignOutWarning,
+	deleteAccount,
+	endDeletedAccount,
+	setUnsentMatchesSource,
+	unsentMatches
 } from './services.js';
 export { isAccountPath, safeNext } from './guard.js';
 export { goAfterSignIn } from './navigation.js';

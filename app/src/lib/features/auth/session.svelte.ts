@@ -41,6 +41,8 @@ class Session {
 	email = $state<string | null>(null);
 	/** True when the session ended while the app was open, so sign-in can say why it is back. */
 	expired = $state(false);
+	/** True when the player deleted their account here, so sign-in can say it was deleted. */
+	accountDeleted = $state(false);
 	/** True when a login's two-factor step ran out, so sign-in can say why the password is back. */
 	mfaTimedOut = $state(false);
 	/** With `pending_mfa`: the kinds of code the backend accepts. Empty otherwise. */
@@ -106,6 +108,7 @@ class Session {
 			this.status === 'signed_in' && state.status === 'signed_in' && this.email === state.email;
 		this.status = state.status;
 		this.expired = false;
+		this.accountDeleted = false;
 		this.mfaTimedOut = false;
 		this.mfaTypes = state.status === 'pending_mfa' ? state.types : [];
 		if (!sameAccount) {
@@ -125,6 +128,12 @@ class Session {
 		this.expired = true;
 	}
 
+	/** The backend deleted the account and ended its sessions. This device is signed out now. */
+	markDeleted(): void {
+		this.apply({ status: 'signed_out' });
+		this.accountDeleted = true;
+	}
+
 	/** Forget a pending verification on this device, such as "Use a different email". */
 	clearPending(): void {
 		if (this.status === 'pending_verification') this.apply({ status: 'signed_out' });
@@ -135,6 +144,7 @@ class Session {
 		this.status = 'unknown';
 		this.email = null;
 		this.expired = false;
+		this.accountDeleted = false;
 		this.mfaTimedOut = false;
 		this.mfaTypes = [];
 		this.organizers = null;

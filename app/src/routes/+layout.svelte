@@ -13,6 +13,7 @@
 		requestReauth,
 		session,
 		setSignOutWarning,
+		setUnsentMatchesSource,
 		watchMfaRequired,
 		watchSessionExpiry
 	} from '#lib/features/auth/index.js';
@@ -80,6 +81,7 @@
 		})
 	);
 	onDestroy(setSignOutWarning(() => signOutWarning(offlineQueue.unsent)));
+	onDestroy(setUnsentMatchesSource(() => offlineQueue.unsent));
 
 	// Say when queued matches reach the backend, and hand new ones to the match cache.
 	onDestroy(offlineQueue.onSent(announceSent));

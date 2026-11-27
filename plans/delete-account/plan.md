@@ -34,11 +34,12 @@ A player can delete their account from the profile. The app explains what goes a
 
 ## Files that change
 
-- `app/src/lib/features/auth/services.ts`: `deleteAccount({ api })` sends the DELETE and throws `toAppError` on a non-2xx. `endDeletedAccount()` runs the sign-out listeners, applies `signed_out` and sets `accountDeleted`. Extract the listener loop from `logout()` into one private `runSignOutListeners(email)` used by both.
+- `app/src/lib/features/auth/services.ts`: `deleteAccount({ api })` sends the DELETE and throws `toAppError` on a non-2xx. `endDeletedAccount()` runs the sign-out listeners, applies `signed_out` and sets `accountDeleted`. Extract the listener loop from `logout()` into one private `runSignOutListeners(email)` used by both. `deleteAccount` calls `endDeletedAccount()` itself on 204 (see Decisions). `setUnsentMatchesSource(source)` and `unsentMatches()`, the same pattern as `setSignOutWarning`, give the dialog the unsent count.
 - `app/src/lib/features/auth/session.svelte.ts`: `accountDeleted` flag, cleared by `apply()` and `reset()`, set by a new `markDeleted()` after the signed-out apply (the same shape as `expire()`).
 - `app/src/lib/features/auth/components/delete-account-dialog.svelte` (new): the AlertDialog, its trigger row content, copy, the typed-word field, the error alerts, and the busy hold (follow `features/organizer/components/delete-event-dialog.svelte`).
 - `app/src/lib/features/auth/index.ts`: export the dialog and the services.
 - `app/src/lib/features/auth/components/login-form.svelte`: the "Your account was deleted." alert (not destructive), shown when `session.accountDeleted`.
+- `app/src/routes/+layout.svelte`: `setUnsentMatchesSource(() => offlineQueue.unsent)` next to the sign-out warning.
 - `app/src/routes/profile/+page.svelte`: the new row in "Your data", rendered like the Send feedback button row.
 - `app/src/lib/mocks/handlers/open.ts`, `app/src/lib/mocks/store.ts`, `app/src/lib/mocks/responses.ts`, `app/src/lib/mocks/fixtures.ts`: the DELETE handler, `deleteAccount` and attempt counting in the store, `reauthenticationRequiredOpen()` and `throttled()` helpers, a `staff@example.com` fixture with `staff: true` (and `MockAccount.staff?`). Bump the mock state storage key only if the stored shape changes incompatibly.
 - Tests (new or extended): `services` delete tests against the mocks, `session` flag tests, `delete-account-dialog.svelte.test.ts`, login form test, `routes/profile/profile-page.test.ts`, mock handler tests, `e2e/delete-account.spec.ts`.
@@ -50,7 +51,7 @@ A player can delete their account from the profile. The app explains what goes a
 2. `session.accountDeleted` and `endDeletedAccount()`, with tests that the listeners run before signed out, the flag is set, and a 401 after it does not expire the session.
 3. `deleteAccount()` service tests against the mocks for each status.
 4. Login form notice and its test.
-5. The dialog and its component tests (typed word, reauth retry, cancel, each refusal, busy hold, unsent-matches warning, success calls `endDeletedAccount` then goes to login).
+5. The dialog and its component tests (typed word, reauth retry, cancel, each refusal, busy hold, unsent-matches warning, success goes to login once `deleteAccount` has ended the account).
 6. The profile row and the route test.
 7. The e2e happy path.
 8. Full gate, then a live drive in the dev server with mocks.
@@ -84,8 +85,8 @@ Chosen not to do:
 ## Steps
 
 - [x] Mocks
-- [ ] Session flag and end-of-account
-- [ ] Delete service
+- [x] Session flag and end-of-account
+- [x] Delete service
 - [ ] Login notice
 - [ ] Dialog
 - [ ] Profile row
@@ -97,3 +98,5 @@ Chosen not to do:
 - Typed word `delete`, case-insensitive and trimmed: short, plain, and the same word as the action.
 - After deletion, the sign-in page with a notice rather than a new page.
 - Reuse `onSignOut` listeners for the device cleanup, so sign out and deletion can't drift apart.
+- `deleteAccount()` calls `endDeletedAccount()` itself, synchronously, as soon as it sees the 204, and the dialog does not call it again. Ending the account in the caller's next line leaves microtask hops (the service's resolve, `withReauth`'s `return await`, the dialog's await) where other callbacks, such as a 401 from a request that raced the delete, could still see a signed-in session and mark it expired. `endDeletedAccount()` stays exported. The service test "has ended the account before any code that waits on it runs" shows it.
+- The dialog gets the unsent count from `setUnsentMatchesSource(source)` and `unsentMatches()` in `features/auth`, which the root layout sets from `offlineQueue.unsent`, the same pattern as `setSignOutWarning`. The dialog writes its own warning, because the sign-out warning says "signing out deletes". This keeps `features/auth` from importing `features/offline`.
