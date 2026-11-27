@@ -17,6 +17,8 @@ import { signIn, submitSignIn } from './helpers';
 
 const NOT_FOUND = "We couldn't find this page";
 
+const eventList = (page: Page) => page.getByRole('list', { name: 'Your Events' });
+
 type MockHelpers = {
 	turnOnTwoFactor: (email: string) => void;
 	removeMembership: (email: string, organizer: string) => void;
@@ -119,7 +121,8 @@ test('a match manager creates, changes and deletes an Event', async ({ page }) =
 	await dialog.getByLabel('Club code').fill(GRANTED_CLUB);
 	await dialog.getByRole('button', { name: 'Create Event' }).click();
 	await expect(dialog).toBeHidden();
-	const row = page.getByRole('listitem').filter({ hasText: 'Made-up Spring Open' });
+	await expect(page.getByText('Event created')).toBeVisible();
+	const row = eventList(page).getByRole('listitem').filter({ hasText: 'Made-up Spring Open' });
 	await expect(row.getByText('Tournament')).toBeVisible();
 
 	await page.getByRole('button', { name: 'Edit Made-up Spring Open' }).click();
@@ -142,7 +145,7 @@ test('a match manager creates, changes and deletes an Event', async ({ page }) =
 	const confirm = page.getByRole('alertdialog', { name: 'Delete Made-up Spring Open?' });
 	await confirm.getByRole('button', { name: 'Delete' }).click();
 	await expect(confirm).toBeHidden();
-	await expect(page.getByText('Made-up Spring Open')).toHaveCount(0);
+	await expect(eventList(page).getByText('Made-up Spring Open')).toHaveCount(0);
 });
 
 test('an admin with two-factor picks a club from the granted clubs', async ({ page }) => {
@@ -157,7 +160,7 @@ test('an admin with two-factor picks a club from the granted clubs', async ({ pa
 		.selectOption({ label: 'Juniper Court Club (Brindlequay)' });
 	await dialog.getByRole('button', { name: 'Create Event' }).click();
 	await expect(dialog).toBeHidden();
-	await expect(page.getByText('Made-up Club Night', { exact: true })).toBeVisible();
+	await expect(eventList(page).getByText('Made-up Club Night', { exact: true })).toBeVisible();
 });
 
 test('a member taken out of every organizer loses the area on the next load', async ({ page }) => {
