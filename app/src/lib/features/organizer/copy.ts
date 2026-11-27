@@ -1,6 +1,6 @@
 /**
  * Every string the organizer Event screens show, so the components and the tests share them.
- * Plain words: "Event", "organizer", "player". Never "user", and nothing is an OPEN rating.
+ * Plain words: "Event", "organizer" and "player".
  */
 import { isAppError, type AppError } from '#lib/api/index.js';
 import { session } from '#lib/features/auth/index.js';
