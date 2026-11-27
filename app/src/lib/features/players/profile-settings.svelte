@@ -3,6 +3,7 @@
 	import type { PlayerCode } from '#lib/domain/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import DisplayNameForm from './display-name-form.svelte';
 	import { myCode } from './my-code.svelte.js';
 	import PrivacySettings from './privacy-settings.svelte';
@@ -47,9 +48,8 @@
 </script>
 
 {#if shown}
-	<section class="border-t border-line pt-6" aria-labelledby="settings-heading">
-		<h2 id="settings-heading" class="label">Name and privacy</h2>
-		<div class="mt-4">
+	<Section title="Name and privacy" headingId="settings-heading">
+		<div>
 			{#if settings.status === 'ready' && settings.privacy}
 				<div class="grid gap-8">
 					<DisplayNameForm name={settings.displayName} onsave={saveName} />
@@ -74,15 +74,14 @@
 				<LoadingState label="Loading your settings…" />
 			{/if}
 		</div>
-	</section>
+	</Section>
 {/if}
 
-<section class="border-t border-line pt-6" aria-labelledby="data-heading">
-	<h2 id="data-heading" class="label">Your data</h2>
-	<p class="mt-4 max-w-md text-base text-muted">
+<Section title="Your data">
+	<p class="max-w-md text-base text-muted">
 		You can always get a copy of your data. A download in the app is not ready yet. Until then,
 		email
 		<Button variant="link" size="inline" href="mailto:info@openpb.org">info@openpb.org</Button>
 		to ask for it.
 	</p>
-</section>
+</Section>

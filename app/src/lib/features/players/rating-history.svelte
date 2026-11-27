@@ -4,8 +4,8 @@
 	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
-	import { Card, CardContent, CardDescription, CardHeader } from '#lib/ui/card/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import {
 		CHANGE_KINDS,
 		FORMAT_LABELS,
@@ -32,14 +32,11 @@
 	const hasOlder = $derived(history.offset + history.items.length < history.count);
 </script>
 
-<Card aria-labelledby="rating-history-title" class="gap-4 border-t border-line pt-6">
-	<CardHeader class="gap-2">
-		<h2 id="rating-history-title" class="label">Rating history</h2>
+<Section title="Rating history">
+	<div class="grid gap-4">
 		{#if history.items.length > 0}
-			<CardDescription>Every change to your ratings, newest first.</CardDescription>
+			<p class="max-w-md text-muted">Every change to your ratings, newest first.</p>
 		{/if}
-	</CardHeader>
-	<CardContent>
 		{#if history.status === 'error'}
 			<Alert variant={history.errorKind === 'network' ? 'default' : 'destructive'}>
 				{#if history.errorKind === 'network'}
@@ -135,5 +132,5 @@
 				</nav>
 			{/if}
 		{/if}
-	</CardContent>
-</Card>
+	</div>
+</Section>

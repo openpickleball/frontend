@@ -9,6 +9,7 @@
 	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import { matchCountLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
 	import { matchCache } from '../cache.svelte.js';
@@ -183,17 +184,14 @@
 						</Alert>
 					</div>
 				{:else if needs.length > 0}
-					<section class="mt-12" aria-labelledby="needs-title">
-						<div class="flex items-baseline justify-between gap-4">
-							<h2 id="needs-title" class="text-2xl font-semibold tracking-tight">
-								Needs your confirmation
-							</h2>
+					<Section title="Needs your confirmation">
+						{#snippet aside()}
 							<span class="text-base text-muted">{matchCountLabel(needs.length + moreNeeds)}</span>
-						</div>
-						<p class="mt-2 mb-4 text-base text-muted">
+						{/snippet}
+						<p class="mb-4 text-base text-muted">
 							Check the score. Confirm it if it's right, or dispute it if it's wrong.
 						</p>
-						<MatchList matches={needs} {you} label="Needs your confirmation" />
+						<MatchList matches={needs} {you} label="Needs your confirmation" inSection />
 						{#if moreNeeds > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-needs">
 								{moreNeeds === 1 ? '1 more match is' : `${moreNeeds} more matches are`} waiting for you.
@@ -206,7 +204,7 @@
 								</Button>.
 							</p>
 						{/if}
-					</section>
+					</Section>
 				{/if}
 
 				{#if disputedFailed}
@@ -236,20 +234,17 @@
 						</Alert>
 					</div>
 				{:else if disputes.length > 0}
-					<section class="mt-12" aria-labelledby="disputes-title">
-						<div class="flex items-baseline justify-between gap-4">
-							<h2 id="disputes-title" class="text-2xl font-semibold tracking-tight">
-								Disputed matches
-							</h2>
+					<Section title="Disputed matches">
+						{#snippet aside()}
 							<span class="text-base text-muted">
 								{matchCountLabel(disputes.length + moreDisputes)}
 							</span>
-						</div>
-						<p class="mt-2 mb-4 text-base text-muted">
+						{/snippet}
+						<p class="mb-4 text-base text-muted">
 							A player said these scores are wrong. They don't count while they are disputed. Open a
 							match to see how its dispute can end.
 						</p>
-						<MatchList matches={disputes} {you} label="Disputed matches" />
+						<MatchList matches={disputes} {you} label="Disputed matches" inSection />
 						{#if moreDisputes > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-disputes">
 								{moreDisputes === 1
@@ -264,7 +259,7 @@
 								</Button>.
 							</p>
 						{/if}
-					</section>
+					</Section>
 				{/if}
 
 				{#if heldFailed}
@@ -294,18 +289,15 @@
 						</Alert>
 					</div>
 				{:else if holds.length > 0}
-					<section class="mt-12" aria-labelledby="holds-title">
-						<div class="flex items-baseline justify-between gap-4">
-							<h2 id="holds-title" class="text-2xl font-semibold tracking-tight">
-								Matches on hold
-							</h2>
+					<Section title="Matches on hold">
+						{#snippet aside()}
 							<span class="text-base text-muted">{matchCountLabel(holds.length + moreHolds)}</span>
-						</div>
-						<p class="mt-2 mb-4 text-base text-muted">
+						{/snippet}
+						<p class="mb-4 text-base text-muted">
 							Each of these has the same teams and date as another match on OPEN, but other scores.
 							They don't count until each one is vouched for. Open a match to vouch for it.
 						</p>
-						<MatchList matches={holds} {you} label="Matches on hold" />
+						<MatchList matches={holds} {you} label="Matches on hold" inSection />
 						{#if moreHolds > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-holds">
 								{moreHolds === 1
@@ -320,41 +312,35 @@
 								</Button>.
 							</p>
 						{/if}
-					</section>
+					</Section>
 				{/if}
 
 				{#if waitingShown.length > 0}
-					<section class="mt-12" aria-labelledby="waiting-title">
-						<div class="flex items-baseline justify-between gap-4">
-							<h2 id="waiting-title" class="text-2xl font-semibold tracking-tight">
-								Waiting for the other team
-							</h2>
+					<Section title="Waiting for the other team">
+						{#snippet aside()}
 							<span class="text-base text-muted">{matchCountLabel(waitingShown.length)}</span>
-						</div>
-						<p class="mt-2 mb-4 text-base text-muted">
+						{/snippet}
+						<p class="mb-4 text-base text-muted">
 							Your team confirmed these scores. A match counts once a player on the other team
 							confirms it too.
 						</p>
-						<MatchList matches={waitingShown} {you} label="Waiting for the other team" />
-					</section>
+						<MatchList matches={waitingShown} {you} label="Waiting for the other team" inSection />
+					</Section>
 				{/if}
 
-				<section class="mt-12" aria-labelledby="recent-title">
-					<div class="flex items-baseline justify-between gap-4">
-						<h2 id="recent-title" class="text-2xl font-semibold tracking-tight">Recent matches</h2>
+				<Section title="Recent matches">
+					{#snippet aside()}
 						<Button href={resolve(ROUTES.matches)} variant="link">
 							All matches
 							<ArrowRightIcon aria-hidden="true" />
 						</Button>
-					</div>
-					<div class="mt-4">
-						{#if recent.length > 0}
-							<MatchList matches={recent} {you} label="Recent matches" />
-						{:else}
-							<p class="text-muted">Your other matches show up here.</p>
-						{/if}
-					</div>
-				</section>
+					{/snippet}
+					{#if recent.length > 0}
+						<MatchList matches={recent} {you} label="Recent matches" underTitle inSection />
+					{:else}
+						<p class="text-muted">Your other matches show up here.</p>
+					{/if}
+				</Section>
 			{/if}
 		{/if}
 	{/snippet}

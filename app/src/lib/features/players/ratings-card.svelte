@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Badge } from '#lib/ui/badge/index.js';
-	import { Card, CardContent, CardDescription, CardHeader } from '#lib/ui/card/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
+	import { Section } from '#lib/ui/section/index.js';
 	import { FORMAT_LABELS, formatRating, formatReliability, headlineRating } from './ratings.js';
 	import type { PlayerRatings, Rating } from './types.js';
 
@@ -55,16 +55,13 @@
 	</span>
 {/snippet}
 
-<Card aria-labelledby="rating-title" class="gap-4 border-t border-line pt-6">
-	<CardHeader class="gap-2">
-		<h2 id="rating-title" class="label">Ratings</h2>
+<Section title="Ratings">
+	<div class="grid gap-4">
 		{#if headline && demonstration}
-			<CardDescription>
+			<p class="max-w-md text-muted">
 				These are demonstration numbers while the rating method is being built.
-			</CardDescription>
+			</p>
 		{/if}
-	</CardHeader>
-	<CardContent>
 		{#if loading}
 			<LoadingState label="Loading your ratings…" />
 		{:else if failed}
@@ -99,5 +96,5 @@
 				</ul>
 			{/if}
 		{/if}
-	</CardContent>
-</Card>
+	</div>
+</Section>
