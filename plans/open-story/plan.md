@@ -91,15 +91,24 @@ No automated tests cover `site/`. Each criterion is proven as follows:
 - Criterion 5: the diff of `plans/site-content-v2/plan.md`.
 - Criterion 8: `pnpm build` output.
 
+Run on this branch:
+
+- Before the edit, a check script (`grep` on whitespace-collapsed `site/public/index.html` for each new line, the new grid classes, two `opencollective.com` links and two `mailto:` links) failed 13 checks. After the edit all 15 pass (two wrapped-text checks became one).
+- `pnpm build` in `site/`: Tailwind v4.3.5, "Done", exit 0. A grep for the em dash character in the added lines of `site/public/index.html` (against `origin/main`) prints nothing, and no added line in either changed file has an en dash, em dash or emoji.
+- Live drive (Chrome DevTools, `site/public/` on port 4173), black and ivory at 320, 375, 768, 1024 and 1440: `scrollWidth` never exceeds the window, no pillar overlaps another, nothing in About or Get involved sits outside the window, and the only clipped elements are the `sr-only` labels. The pillar grid has 1 column at 320 and 375, 2 at 768, and 4 at 1024 and 1440. At 1024 each pillar is 202px wide, "Community-driven" stays on one line and no word breaks, so the four-column step stays at `lg`. The button and the email sit side by side from 768 and stack below it.
+- Reduced motion (375, black): no running animations, and every `.reveal` in About and Get involved is at opacity 1 with no transform before any scroll.
+- The Open Collective link goes to `https://opencollective.com/open-pickleball` with `target="_blank" rel="noopener"`, the email link is `mailto:info@openpb.org`, and clicking "Get involved" opens the Tally popup (`tally.so/popup/Kp50eD`, `hideTitle=1`) on the page.
+
 ## Steps
 
-- [ ] About vision line and intro
-- [ ] Pillars: copy, fourth pillar, grid
-- [ ] Get involved rewrite with email
-- [ ] Decisions in `plans/site-content-v2/plan.md`
-- [ ] Build and live drive
+- [x] About vision line and intro
+- [x] Pillars: copy, fourth pillar, grid
+- [x] Get involved rewrite with email
+- [x] Decisions in `plans/site-content-v2/plan.md`
+- [x] Build and live drive
 - [ ] Tally form updated (maintainer, outside the repo)
 
 ## Decisions
 
 - This plan lives in `plans/open-story/` because the repo has no `.claude/work-issue.md` and keeps plans under `plans/`.
+- The Tally link's `mt-9` moved to the new flex row that holds the button and the email, so the row keeps the same space above it. The link is otherwise unchanged.
