@@ -24,7 +24,7 @@ Who settles what, from backend ADR 0034:
 4. `/matches/<code>/correct` for a pending or disputed match with an Event or a Club shows a reason instead of the form. With an Event: only the Event's organizer can change it. With only a Club: players can only correct a match they recorded themselves. Neither reason names the Organizer.
 5. `correctMatch` and the form keep mapping a 404 to the organizer message (`ORGANIZER_ONLY_MESSAGE` and the record-form copy) as a fallback. Their tests still pass unchanged.
 6. The "Disputed" popover text depends on the match. With no Event (a Club only, or neither): a dispute ends when every player who disputed withdraws, and the text has no "organizer". With an Event: the players withdraw, or the event's organizer settles it. Both end with the void after a set time.
-7. The "Vouch" popover text depends on the match and the viewer. A player in a match with no Event keeps `VOUCH_MEANS` (one player from each team). A player in a match with an Event is told the event's organizer vouches for this match, not the players. An organizer member keeps `VOUCH_MEANS_ORGANIZER`.
+7. The Vouch popover text is unchanged: the holds list only gives a hold to a viewer who may vouch (a player in a match with no Event, or an organizer member who played in no match of it), so the existing two texts are already true.
 8. The copy rules in `status.test.ts` hold for every new string: no em dash, no "moderator", no "OPEN rating", no digits in the dispute copy, at most two sentences per popover term.
 9. Mock fixtures include a made-up Event match and a made-up Club-only match the signed-in mock player played in, both pending or disputed, using the existing made-up Event `E-SEED-0001` "Larkspur Winter League" (Club `GRANTED_CLUB` "Juniper Court Club") and Club `UNGRANTED_CLUB` "Marshwalk Racquet Club". `matchOut` sends their real `event` and `club`. The mock's `correctMatch` still answers 404 for either.
 10. Tests cover an Event match, a Club match and a match with neither, for the mapper, `canCorrect`, `statusInfo`, the match page and the correction page. An e2e test opens the Event match and sees the Event name and no "Correct the score".
@@ -42,7 +42,7 @@ All paths are under `app/` unless noted.
 - `src/lib/features/matches/status.ts`:
   - `canCorrect` adds `match.event === null && match.club === null`. Update its doc comment.
   - Split `DISPUTE_ENDS` into `DISPUTE_ENDS` (no Event: players only) and `DISPUTE_ENDS_EVENT` (players or the event's organizer). `statusInfo` picks by `match.event`.
-  - Add `VOUCH_MEANS_EVENT` for a player in an Event match. `statusInfo` picks it when `match.viewerSide !== null && match.event !== null`.
+  - The vouch text stays as it is (criterion 7). An earlier `VOUCH_MEANS_EVENT` was removed: no viewer could ever see it.
   - Replace the stale comments above `DISPUTE_ENDS` and `CORRECT_EVENT_NOTE`. Either use `CORRECT_EVENT_NOTE` in the correction page (criterion 4) or remove it if nothing uses it. Don't keep an unused export.
 - `src/lib/features/matches/index.ts`: export the new strings, update the module doc (lines about Correct and frontend#264).
 - `src/lib/features/matches/status.test.ts`: tests for criteria 3, 6, 7, 8. Extend the copy rule tests to the new strings.
@@ -80,7 +80,7 @@ All paths are under `app/` unless noted.
 ## Decisions
 
 - **Match rows stay as they are.** The top line already holds the date, format, games and one badge, and a second item wraps the date on a phone (the comment in `match-row.svelte`). The note line is for status notes. An Event name would crowd either, so it shows on the match page only.
-- **A Club-only match is settled by its players.** ADR 0034: a legacy club-only match has no Organizer level. So it gets the no-Event dispute copy and the players' vouch copy. It still can't be corrected by a player (the backend answers 404 for a match with a Club).
+- **A dispute on a Club-only match is settled by its players.** ADR 0034: a legacy club-only match has no Organizer level. So it gets the no-Event dispute copy. Nobody vouches for a held Club-only match: the holds list never lists one, and a hold against it ends only when a match is voided or the hold period ends (the `list_my_holds` and `vouch_for_match` contract). It still can't be corrected by a player (the backend answers 404 for a match with a Club).
 - **The frontend can't tell whether an Event's Organizer is still verified.** The Event copy says the organizer can settle it, which is the normal case. The backend decides.
 - **Keep the 404 fallback.** `correctMatch` still maps a 404 to the organizer message, as the issue asks.
 - **Two correction reasons, two constants.** `CORRECT_EVENT_NOTE` now reads "Only the event's organizer can change a match played at an event." and the new `CORRECT_CLUB_NOTE` gives the Club-only reason. `correct-view.svelte` uses both, so neither is an unused export.

@@ -260,16 +260,9 @@ export type StatusInfo = {
 /** Why a held match doesn't count, once the panel's sentence has said there is another match. */
 export const HOLD_COUNTS = `Both matches are on hold and don't count until each one is vouched for. ${HOLD_ENDS}`;
 
-/** What a vouch says, for a player in a match with no Event, a Club-only match included. */
+/** What a vouch says, for a player in the match. */
 export const VOUCH_MEANS =
 	"To vouch is to say this is a separate match, not a repeat of the other one. One player from each team needs to vouch, and you can't undo a vouch.";
-
-/**
- * What a vouch says, for a player in a match with an Event: the Event's organizer vouches for it
- * (backend ADR 0034).
- */
-export const VOUCH_MEANS_EVENT =
-	"To vouch is to say this is a separate match, not a repeat of the other one. For a match played at an event, the event's organizer vouches for this match, not the players.";
 
 /** What a vouch says, for a member of the event's organizer, who did not play in it. */
 export const VOUCH_MEANS_ORGANIZER =
@@ -310,12 +303,7 @@ export function statusInfo(match: Match, hold?: HoldState): StatusInfo | null {
 		if (!hold.vouched) {
 			terms.push({
 				term: 'Vouch',
-				text:
-					match.viewerSide === null
-						? VOUCH_MEANS_ORGANIZER
-						: match.event === null
-							? VOUCH_MEANS
-							: VOUCH_MEANS_EVENT
+				text: match.viewerSide === null ? VOUCH_MEANS_ORGANIZER : VOUCH_MEANS
 			});
 		}
 	}

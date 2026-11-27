@@ -36,9 +36,11 @@
  *   correction in this visit.
  * - `MatchOut` sends the match's Event (code, name and its organizer's code) and Club (code and
  *   name), each null when there is none (backend#302). The match page names them in Details.
- *   Match rows don't. The organizer is never named. Who settles a dispute or a hold depends on
- *   the Event (backend ADR 0034), so the popovers pick `DISPUTE_ENDS` or `DISPUTE_ENDS_EVENT`,
- *   and `VOUCH_MEANS` or `VOUCH_MEANS_EVENT`. A Club-only match is settled by its players.
+ *   Match rows don't. The organizer is never named. Who settles a dispute depends on the Event
+ *   (backend ADR 0034), so the Disputed popover picks `DISPUTE_ENDS` or `DISPUTE_ENDS_EVENT`. A
+ *   dispute on a Club-only match is settled by its players. The vouch text needs no such pick:
+ *   the holds list only gives a hold to a viewer who may vouch, and nobody vouches for a held
+ *   Club-only match.
  * - `status.ts` (`matchStatusCopy`) says how each status and decision reads and which buttons
  *   the status panel offers. Add a new status or action there.
  *
@@ -106,7 +108,6 @@ export {
 	HOLD_WHY,
 	ON_HOLD_MEANS,
 	VOUCH_MEANS,
-	VOUCH_MEANS_EVENT,
 	VOUCH_MEANS_ORGANIZER,
 	hasActions,
 	matchStatusCopy,
