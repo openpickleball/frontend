@@ -28,7 +28,7 @@ The Terms of Service say how a match is settled today: by its players, by its ev
    b. a player can correct a match not from an event while it waits for confirmation or is disputed, keeping the same teams, and the correction counts once the other team confirms it;
    c. the event's verified organizer settles a dispute on an event match, by confirming, voiding or correcting it;
    d. a dispute nobody settles in 30 days voids the match;
-   e. a possible duplicate holds both matches until each is marked as a real, separate match (vouched for by a player on each team, or the event's organizer), or until either match is voided, and the earlier match then can count; if neither happens within 14 days and the earlier match is confirmed, the newer one is voided and the earlier one can count;
+   e. a possible duplicate holds both matches until each is marked as a real, separate match (vouched for by a player on each team, or the event's organizer), or until either match is voided; if neither happens within 14 days and the earlier match is confirmed, the newer one is voided and the earlier one can count;
    f. a player can report an event's organizer to OPEN, and a report changes no match by itself;
    g. OPEN's moderators can remove an organizer's verified status and void at once the matches a person or app submitted.
    The old line "OPEN's moderators can void the matches of a submitter that broke these terms." is gone.
