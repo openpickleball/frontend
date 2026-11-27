@@ -47,16 +47,6 @@ export function toPlayerRatings(dto: PlayerRatingsOut): PlayerRatings {
 	return { ratings, demonstration: dto.demonstration };
 }
 
-/**
- * The rating to show first: the one with the highest reliability, so the big number is the
- * steadier one. A tie keeps the format order. It only compares what the backend sent.
- */
-export function headlineRating(ratings: readonly Rating[]): Rating | null {
-	let best: Rating | null = null;
-	for (const rating of ratings) if (!best || rating.reliability > best.reliability) best = rating;
-	return best;
-}
-
 /** Ratings to two decimals. */
 export function formatRating(value: number): string {
 	return value.toFixed(2);
@@ -67,7 +57,7 @@ export function formatReliability(value: number): string {
 	return `${Math.round(value)} out of 100`;
 }
 
-/** Rating history pages hold 5 changes, so the list on the profile stays short. */
+/** Rating history pages hold 5 changes. */
 export const HISTORY_PAGE_SIZE = 5;
 
 function isKnownFormat(format: string): format is RatingFormat {
