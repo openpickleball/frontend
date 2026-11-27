@@ -1111,3 +1111,113 @@ test.describe('match page back link', () => {
 		await expect(page.getByRole('list', { name: 'Needs you' })).toBeVisible();
 	});
 });
+
+test.describe('scroll position on the way back', () => {
+	// The restored position can be a few pixels off, where a row's height rounds.
+	const TOLERANCE = 8;
+
+	function backLink(page: Page, name: 'Home' | 'Matches') {
+		return page.locator('#main').getByRole('link', { name, exact: true });
+	}
+
+	function tab(page: Page, name: 'Home' | 'Matches') {
+		return page
+			.getByRole('navigation', { name: 'Main' })
+			.filter({ visible: true })
+			.getByRole('link', { name: new RegExp(`^${name}`) });
+	}
+
+	const scrollY = (page: Page) => page.evaluate(() => window.scrollY);
+
+	/** Scroll down to the last row and open it. Returns where the page was scrolled to. */
+	async function openLastRow(page: Page, rows: Locator): Promise<number> {
+		const last = rows.last();
+		await last.scrollIntoViewIfNeeded();
+		await page.evaluate(() => window.scrollBy(0, 200));
+		const y = await scrollY(page);
+		await last.click();
+		await expect(page).toHaveURL(/\/matches\/M-/);
+		return y;
+	}
+
+	async function expectScrolledTo(page: Page, y: number) {
+		await expect.poll(() => scrollY(page)).toBeGreaterThan(y - TOLERANCE);
+		expect(Math.abs((await scrollY(page)) - y)).toBeLessThanOrEqual(TOLERANCE);
+	}
+
+	for (const [where, path, range] of [
+		['Matches', '/matches', '1–20 of 28'],
+		['the second page of Matches', '/matches?page=2', '21–28 of 28'],
+		['a filter on Matches', '/matches?show=disputed', '1–4 of 4']
+	] as const) {
+		test(`returns to the same place on ${where}, by the back link and the back button`, async ({
+			page
+		}) => {
+			await page.goto(path);
+			await expect(page.getByTestId('range')).toHaveText(range);
+			const rows = page.getByTestId('match-row');
+
+			const y = await openLastRow(page, rows);
+			expect(y).toBeGreaterThan(0);
+			await backLink(page, 'Matches').click();
+			await expect(page.getByTestId('range')).toHaveText(range);
+			await expectScrolledTo(page, y);
+
+			const again = await openLastRow(page, rows);
+			await page.goBack();
+			await expect(page.getByTestId('range')).toHaveText(range);
+			await expectScrolledTo(page, again);
+		});
+	}
+
+	test('returns to the same place on Home, by the back link and the back button', async ({
+		page
+	}) => {
+		const rows = page.getByRole('list', { name: 'Needs you' }).getByRole('link');
+		await expect(rows.first()).toBeVisible();
+
+		const y = await openLastRow(page, rows);
+		expect(y).toBeGreaterThan(0);
+		await backLink(page, 'Home').click();
+		await expect(rows.first()).toBeVisible();
+		await expectScrolledTo(page, y);
+
+		const again = await openLastRow(page, rows);
+		await page.goBack();
+		await expect(rows.first()).toBeVisible();
+		await expectScrolledTo(page, again);
+	});
+
+	test.describe('on a desktop', () => {
+		test.use({ viewport: { width: 1280, height: 800 } });
+
+		test('returns to the same place on Matches by the back link', async ({ page }) => {
+			await page.goto('/matches');
+			await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
+			const y = await openLastRow(page, page.getByTestId('match-row'));
+			expect(y).toBeGreaterThan(0);
+			await backLink(page, 'Matches').click();
+			await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
+			await expectScrolledTo(page, y);
+		});
+	});
+
+	test('starts at the top after a tap on the nav', async ({ page }) => {
+		await page.goto('/matches');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
+		expect(await openLastRow(page, page.getByTestId('match-row'))).toBeGreaterThan(0);
+		await tab(page, 'Matches').click();
+		await expect(page).toHaveURL(/\/matches$/);
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
+		expect(await scrollY(page)).toBe(0);
+
+		await page.goto('/');
+		const rows = page.getByRole('list', { name: 'Needs you' }).getByRole('link');
+		await expect(rows.first()).toBeVisible();
+		expect(await openLastRow(page, rows)).toBeGreaterThan(0);
+		await tab(page, 'Home').click();
+		await expect(page).toHaveURL(/\/$/);
+		await expect(rows.first()).toBeVisible();
+		expect(await scrollY(page)).toBe(0);
+	});
+});

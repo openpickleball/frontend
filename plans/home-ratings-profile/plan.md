@@ -12,6 +12,7 @@ A player opens the app to see their code, their ratings and what is happening wi
 - [ ] #271 Turn Profile into the settings groups (Account, Privacy, Your data, Help and about, Sign out) with Item rows
 - [ ] #276 Move the privacy switches into Profile > Privacy and add the name, search and age choices with their backend support
 - [ ] #305 One Home list of every pending match, those needing the player first. Blocked by openpickleball/backend#338, which adds the list of matches waiting for the other team.
+- [x] #319 Keep the scroll position when going back to Home or Matches
 
 ## Decisions
 
@@ -30,3 +31,6 @@ A player opens the app to see their code, their ratings and what is happening wi
 - #307: `ProfileStats` became `MyRatings`, which loads only the current ratings, for Home and the Ratings tab. `HomeView` takes it as an optional prop, so its tests pass a stand-in without importing another feature's services.
 - #307: five tabs fit a 320px phone: each label on one line, each tab at least 44px wide and tall, and Home's badge inside its tab. An e2e test checks this at 320 and 375. An organizer member has six (Events before Profile, `grid-cols-6`). At 320px those six still fit on one line each, about 53px a tab, with the labels close together.
 - #307: a Demonstration badge (about 123px) is wider than half a 320px phone's row, so even compact tiles spilled over their edge there. The tile grid is now a container (`@container`) and takes one column below Tailwind's `@xs` (320px of room), two from there and three from `sm`. So at 320px the tiles stack, on Home and on the Ratings tab, and nothing reaches a tile's edge. From 375px they sit two to a row, as before. This settles the tight tiles from #288, so there is no follow-up.
+- #319: Home and Matches keep their scroll position with SvelteKit's `snapshot` helper from `$app/navigation` (`keepScroll` in `features/matches`). The position goes into the history entry when the player leaves, and on a back or forward visit the page scrolls there again once its list has rendered. SvelteKit restores the scroll at once, while the list is still loading, so on its own it lands near the top. Rendering from the cache at once was the other choice, but each screen loads several lists, and the cache keeps matches by code, not pages, so it would need a page cache as well.
+- #319: Home waits for its matches and its ratings before it scrolls back, because the rating tiles sit above In progress and change its height. Matches waits for the list of the filter and page in the address.
+- #319: a new history entry, such as a nav tap, a link, or Newer and Older, has nothing to restore and starts at the top as before. The helper replaces `export const snapshot` from a page, which this SvelteKit version marks deprecated.
