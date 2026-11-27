@@ -11,7 +11,7 @@ The app and site read as one calm system. Krona One marks only the logo. Every a
 Merged in waves, so that agents working at the same time never edit the same files.
 
 Wave 1
-- [ ] #280 Keep Krona One for the logo only (app)
+- [x] #280 Keep Krona One for the logo only (app)
 - [x] #280 Keep Krona One for the logo only (site), with #281 Drop the numbered kickers and call the nav link About
 - [x] #282 Put the Record a match line above each section heading
 - [ ] #289 Filter the Matches list by status
@@ -42,3 +42,6 @@ To be filled in by #290.
 ## Decisions
 
 - #289: the backend has no list of matches waiting for the other team. It lists matches awaiting your confirmation, your disputes and your holds. So the Matches filter leaves out "Waiting for the other team" until the backend offers it.
+- #280 (app): the `label` utility is Instrument Sans semibold (600), so the 11px caps stay as easy to read as they were in the heavier Krona One.
+- #280 (app): OPEN codes use Instrument Sans medium, not semibold, because the same style applies to names typed into the code input.
+- #280 (app): the code style is one utility, `open-code` in `app/src/routes/layout.css`, because it repeats in 8 places.
