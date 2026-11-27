@@ -101,7 +101,7 @@ test('turns two-factor on as an organizer member, then may act for the organizer
 
 	await page.goto('/profile');
 	await expect(page.getByText('Organizer actions need two-factor authentication.')).toBeVisible();
-	await page.getByRole('link', { name: 'Set up two-factor' }).first().click();
+	await page.getByRole('link', { name: 'Set up two-factor' }).click();
 	await expect(page).toHaveURL(/\/profile\/two-factor$/);
 	await expect(page.getByRole('img', { name: 'QR code for your authenticator app' })).toBeVisible();
 
