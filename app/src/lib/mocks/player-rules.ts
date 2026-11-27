@@ -147,6 +147,19 @@ export function isOldEnough(year: number, month: number, now = new Date()): bool
 	return ageOn(year, month, now) >= 13;
 }
 
+/**
+ * The backend's `is_name_format_locked` (`apps/players/services.py`): true while the player is
+ * 13 to 17, and also when the birth year or month is missing, not a whole number or the month
+ * is outside 1 to 12, so it fails closed. A new player whose format is locked starts with
+ * `first_last_initial` (`_starting_name_format`).
+ */
+export function isNameFormatLocked(year: unknown, month: unknown, now = new Date()): boolean {
+	if (!Number.isInteger(year) || !Number.isInteger(month)) return true;
+	const [y, m] = [year as number, month as number];
+	if (m < 1 || m > 12) return true;
+	return isMinor(y, m, now);
+}
+
 /** `is_minor`: 13 to 17, counted the same way as `isOldEnough`. */
 export function isMinor(year: number, month: number, now = new Date()): boolean {
 	const age = ageOn(year, month, now);

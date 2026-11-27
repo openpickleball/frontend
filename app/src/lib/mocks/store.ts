@@ -51,6 +51,7 @@ import {
 	displayNameFor,
 	isFutureMonth,
 	isMinor,
+	isNameFormatLocked,
 	isOldEnough,
 	missingIssues,
 	nameFormatIssues,
@@ -481,13 +482,13 @@ export type CreatePlayerResult =
 	| { ok: false; kind: 'validation'; issues: FieldIssue[] };
 
 /**
- * `create_player`: every setting signed_in and the full name for an adult, every setting private
- * and "First L." for a player aged 13 to 17.
+ * `create_player`: every setting signed_in for an adult, private for a player aged 13 to 17.
+ * The full name only when the name format is not locked (`isNameFormatLocked`), else "First L.".
  */
-function startingPrivacy(minor: boolean): PrivacyOut {
+function startingPrivacy(minor: boolean, nameLocked: boolean): PrivacyOut {
 	const visibility = minor ? 'private' : 'signed_in';
 	return {
-		name_format: minor ? 'first_last_initial' : 'full',
+		name_format: nameLocked ? 'first_last_initial' : 'full',
 		city_region_visibility: visibility,
 		match_history_visibility: visibility,
 		rating_history_visibility: visibility,
@@ -871,7 +872,7 @@ export function createMockStore() {
 				city: player.city,
 				region: player.region,
 				privacy: { ...player.privacy },
-				name_format_locked: isMinor(player.birthYear, player.birthMonth)
+				name_format_locked: isNameFormatLocked(player.birthYear, player.birthMonth)
 			};
 		},
 
@@ -934,7 +935,7 @@ export function createMockStore() {
 			}
 			if (nameIssues.length > 0) return { ok: false, kind: 'validation', issues: nameIssues };
 			const minor = datable && isMinor(year, month);
-			const privacy = startingPrivacy(minor);
+			const privacy = startingPrivacy(minor, isNameFormatLocked(year, month));
 			// `create_player` builds the legal name and the display name from the names.
 			values.display_name = displayNameFor(first, last, privacy.name_format);
 			values.legal_name = `${first} ${last}`;
@@ -975,7 +976,7 @@ export function createMockStore() {
 			if (ratingIssues.length > 0) return ratingIssues;
 			const formatIssues = nameFormatIssues(
 				player.privacy.name_format,
-				isMinor(player.birthYear, player.birthMonth),
+				isNameFormatLocked(player.birthYear, player.birthMonth),
 				privacy
 			);
 			if (formatIssues.length > 0) return formatIssues;
