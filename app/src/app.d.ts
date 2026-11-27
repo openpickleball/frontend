@@ -8,7 +8,10 @@ declare global {
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
-		// interface PageState {}
+		interface PageState {
+			/** Where a match or correction page's back link goes (`features/matches/back-link.ts`). */
+			backTo?: { href: string; label: string; back: boolean };
+		}
 		// interface Platform {}
 	}
 }

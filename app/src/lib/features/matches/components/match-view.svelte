@@ -23,6 +23,8 @@
 		EmptyTitle
 	} from '#lib/ui/empty/index.js';
 	import { actionProblem } from '../action-problem.js';
+	import { matchBackTarget } from '../back-link.js';
+	import { backLink, rememberedOrigin } from '../back-link.svelte.js';
 	import { matchCache, type HoldState, type MatchAction } from '../cache.svelte.js';
 	import {
 		STATUS_LABELS,
@@ -52,6 +54,15 @@
 
 	const parsed = $derived(parseMatchCode(raw));
 	const code = $derived(parsed.ok ? parsed.value : null);
+
+	// Back to where the player came from: Home, or Matches with its filter and page. A shared link
+	// has no page before it, so it goes to Matches.
+	const paths = { home: resolve(ROUTES.home), matches: resolve(ROUTES.matches) };
+	const back = backLink(
+		() => ({ href: paths.matches, label: 'Matches', back: false }),
+		(arrival) => matchBackTarget(arrival, paths, rememberedOrigin),
+		() => code
+	);
 
 	// Reading the match from the API. A cached copy shows meanwhile, and the response replaces it.
 	// `missing` is a 404: the API says the same for a match the player was not in and an unknown
@@ -345,10 +356,11 @@
 	{@const you = myCode.code}
 	<Button
 		variant="link"
-		href={resolve(ROUTES.matches)}
+		href={back.current.href}
+		onclick={back.follow}
 		class="mt-2 min-h-10 px-0 text-base font-normal text-muted"
 	>
-		<ArrowLeftIcon class="size-4" aria-hidden="true" />Matches
+		<ArrowLeftIcon class="size-4" aria-hidden="true" />{back.current.label}
 	</Button>
 	{#if lookup === 'error' || retrying}
 		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-base text-muted">

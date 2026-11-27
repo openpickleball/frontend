@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import { goto } from '$app/navigation';
+import { afterNavigate, goto } from '$app/navigation';
 import { toast } from 'svelte-sonner';
 import { AppError } from '#lib/api/index.js';
 import { buildCode, type MatchCode } from '#lib/domain/index.js';
@@ -28,13 +28,16 @@ vi.mock('../services.js', async (importOriginal) => ({
 }));
 const mocked = vi.mocked(services);
 vi.mock('svelte-sonner', () => ({ toast: vi.fn() }));
-vi.mock('$app/navigation', () => ({ goto: vi.fn(async () => {}) }));
+type AfterNavigate = Parameters<Parameters<typeof afterNavigate>[0]>[0];
+vi.mock('$app/navigation', () => ({ afterNavigate: vi.fn(), goto: vi.fn(async () => {}) }));
+let arrive: (navigation: AfterNavigate) => void = () => {};
 
 const code = () => sampleMatch().code;
 const NEW = buildCode('match', 'FXD00000001') as MatchCode;
 
 beforeEach(() => {
 	vi.resetAllMocks();
+	vi.mocked(afterNavigate).mockImplementation((callback) => (arrive = callback));
 	matchCache.reset();
 	myCode.reset();
 	matchCache.setOwnerSource(() => myCode.code);
@@ -60,6 +63,32 @@ describe('CorrectView', () => {
 			.element(page.getByRole('link', { name: 'Back to the match' }))
 			.toHaveAttribute('href', `/matches/${code()}`);
 		expect(mocked.getMatch).toHaveBeenCalledWith(code());
+	});
+
+	it("goes back in history to the match when the player came from the match's page", async () => {
+		const historyBack = vi.spyOn(history, 'back').mockImplementation(() => {});
+		try {
+			await render(CorrectView, { code: code() });
+			arrive({
+				type: 'link',
+				shallow: false,
+				willUnload: false,
+				complete: Promise.resolve(),
+				from: {
+					url: new URL(`/matches/${code()}`, location.origin),
+					route: { id: '/matches/[code]' },
+					params: { code: code() },
+					scroll: null
+				},
+				to: { url: new URL(location.href), route: null, params: null, scroll: null }
+			} as unknown as AfterNavigate);
+			const back = page.getByRole('link', { name: 'Back to the match' });
+			await expect.element(back).toHaveAttribute('href', `/matches/${code()}`);
+			await back.click();
+			expect(historyBack).toHaveBeenCalledOnce();
+		} finally {
+			historyBack.mockRestore();
+		}
 	});
 
 	it('saves the correction, tells the cache, and opens the new match', async () => {

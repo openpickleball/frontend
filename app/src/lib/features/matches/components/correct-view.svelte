@@ -16,6 +16,8 @@
 	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
+	import { cameFromMatch } from '../back-link.js';
+	import { backLink } from '../back-link.svelte.js';
 	import { formatLongDate, formatName, matchHeadline } from '../format.js';
 	import { getMatch, rememberCorrection } from '../services.js';
 	import {
@@ -39,6 +41,18 @@
 
 	const parsed = $derived(parseMatchCode(raw));
 	const code = $derived(parsed.ok ? parsed.value : null);
+
+	// Back to the match. From the match's own page that is a step back in history, so the match
+	// page keeps where its own back link goes.
+	const matchHref = $derived(code ? resolve('/matches/[code]', { code }) : '');
+	const back = backLink(
+		() => ({ href: matchHref, label: 'Back to the match', back: false }),
+		(arrival) => ({
+			href: matchHref,
+			label: 'Back to the match',
+			back: code ? cameFromMatch(arrival, code) : false
+		})
+	);
 
 	// The match as the API has it now. The form starts from it, so it is always read fresh: a
 	// cached copy may be out of date, and a match that was confirmed meanwhile can't be corrected.
@@ -109,10 +123,11 @@
 {#if code}
 	<Button
 		variant="link"
-		href={resolve('/matches/[code]', { code })}
+		href={back.current.href}
+		onclick={back.follow}
 		class="mt-2 min-h-10 px-0 text-base font-normal text-muted"
 	>
-		<ArrowLeftIcon class="size-4" aria-hidden="true" />Back to the match
+		<ArrowLeftIcon class="size-4" aria-hidden="true" />{back.current.label}
 	</Button>
 {/if}
 
