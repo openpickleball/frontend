@@ -168,6 +168,62 @@ test.describe('match history', () => {
 	});
 });
 
+test.describe('matches filter', () => {
+	test('opens a filter from a link, and a reload keeps it', async ({ page }) => {
+		await page.goto('/matches?show=disputed');
+		const show = page.getByLabel('Show');
+		await expect(show).toHaveValue('disputed');
+		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
+		await expect(rowFor(page, STILL_DISPUTED)).toBeVisible();
+		await expect(page).toHaveTitle('Matches, Disputed, page 1 of 1 · OPEN Pickleball');
+
+		await page.reload();
+		await expect(show).toHaveValue('disputed');
+		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+	});
+
+	test('switches filters from the menu and keeps each in the address', async ({ page }) => {
+		await page.goto('/matches?page=2');
+		await expect(page.getByTestId('range')).toHaveText('21–26 of 26');
+
+		const show = page.getByLabel('Show');
+		await show.focus();
+		await show.selectOption('Needs you');
+		await expect(page).toHaveURL(/\/matches\?show=needs-you$/);
+		await expect(show).toBeFocused();
+		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(rowFor(page, WAITING_ON_ME)).toBeVisible();
+		await expect(rowFor(page, WAITING_ON_ME_TOO)).toBeVisible();
+		await expect(rowFor(page, ALREADY_CONFIRMED_BY_ME)).toHaveCount(0);
+
+		await show.selectOption('On hold');
+		await expect(page).toHaveURL(/\/matches\?show=on-hold$/);
+		await expect(rowFor(page, HELD)).toBeVisible();
+		await expect(rowFor(page, HELD_VOUCHED)).toBeVisible();
+		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+
+		await show.selectOption('All');
+		await expect(page).toHaveURL(/\/matches$/);
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+	});
+
+	test('shows every match for an unknown filter', async ({ page }) => {
+		await page.goto('/matches?show=waiting');
+		await expect(page.getByLabel('Show')).toHaveValue('all');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+	});
+
+	test('has no WCAG 2.1 AA violations with a filter, in either theme', async ({ page }) => {
+		for (const scheme of ['dark', 'light'] as const) {
+			await page.emulateMedia({ colorScheme: scheme });
+			await page.goto('/matches?show=needs-you');
+			await expect(page.getByTestId('range')).toBeVisible();
+			await expectNoAxeViolations(page);
+		}
+	});
+});
+
 test.describe('match detail', () => {
 	test('confirms a match and shows the new status', async ({ page }) => {
 		await rowFor(page, WAITING_ON_ME_TOO).click();

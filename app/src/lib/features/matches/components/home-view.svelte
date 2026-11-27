@@ -12,6 +12,7 @@
 	import { matchCountLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
 	import { matchCache } from '../cache.svelte.js';
+	import { matchesQuery } from '../filter.js';
 	import { listAwaitingConfirmation, listMyDisputes, listMyHolds } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import CodeStrip from './code-strip.svelte';
@@ -196,8 +197,12 @@
 						{#if moreNeeds > 0}
 							<p class="mt-3 text-base text-muted" data-testid="more-needs">
 								{moreNeeds === 1 ? '1 more match is' : `${moreNeeds} more matches are`} waiting for you.
-								<Button variant="link" size="inline" href={resolve(ROUTES.matches)}>
-									See all matches
+								<Button
+									variant="link"
+									size="inline"
+									href={`${resolve(ROUTES.matches)}${matchesQuery('needs-you')}`}
+								>
+									See them all
 								</Button>.
 							</p>
 						{/if}
@@ -250,8 +255,12 @@
 								{moreDisputes === 1
 									? '1 more disputed match is'
 									: `${moreDisputes} more disputed matches are`} in your history.
-								<Button variant="link" size="inline" href={resolve(ROUTES.matches)}>
-									See all matches
+								<Button
+									variant="link"
+									size="inline"
+									href={`${resolve(ROUTES.matches)}${matchesQuery('disputed')}`}
+								>
+									See them all
 								</Button>.
 							</p>
 						{/if}
@@ -302,8 +311,12 @@
 								{moreHolds === 1
 									? '1 more match is on hold.'
 									: `${moreHolds} more matches are on hold.`}
-								<Button variant="link" size="inline" href={resolve(ROUTES.matches)}>
-									See all matches
+								<Button
+									variant="link"
+									size="inline"
+									href={`${resolve(ROUTES.matches)}${matchesQuery('on-hold')}`}
+								>
+									See them all
 								</Button>.
 							</p>
 						{/if}
