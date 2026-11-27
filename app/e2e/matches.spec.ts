@@ -955,3 +955,102 @@ test.describe('match page header', () => {
 		);
 	});
 });
+
+test.describe('match page back link', () => {
+	/** The back link above the match page's title. */
+	function backLink(page: Page, name: 'Home' | 'Matches') {
+		return page.locator('#main').getByRole('link', { name, exact: true });
+	}
+
+	function needsYouRow(page: Page, code: string) {
+		return page.getByRole('list', { name: 'Needs you' }).locator(`a[href$="/matches/${code}"]`);
+	}
+
+	test('returns to Home from the Needs you list, by going back in history', async ({ page }) => {
+		await needsYouRow(page, WAITING_ON_ME).click();
+		await expect(page).toHaveURL(new RegExp(`/matches/${WAITING_ON_ME}$`));
+		const back = backLink(page, 'Home');
+		await expect(back).toHaveAttribute('href', '/');
+
+		const entries = await page.evaluate(() => history.length);
+		await back.click();
+		await expect(page).toHaveURL(/\/$/);
+		await expect(page.getByRole('list', { name: 'Needs you' })).toBeVisible();
+		// Back in history, not a new entry.
+		expect(await page.evaluate(() => history.length)).toBe(entries);
+
+		// Forward to the match again: the link still says Home.
+		await page.goForward();
+		await expect(backLink(page, 'Home')).toHaveAttribute('href', '/');
+	});
+
+	test('returns to Matches with its filter', async ({ page }) => {
+		await page.goto('/matches?show=disputed');
+		await rowFor(page, STILL_DISPUTED).click();
+		const back = backLink(page, 'Matches');
+		await expect(back).toHaveAttribute('href', '/matches?show=disputed');
+		await back.click();
+		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
+		await expect(pill(page, 'Disputed')).toBeChecked();
+	});
+
+	test('returns to the page of Matches it came from', async ({ page }) => {
+		await page.goto('/matches?page=2');
+		await expect(page.getByTestId('range')).toHaveText('21–28 of 28');
+		await rowFor(page, matchCode(oldest.random)).click();
+		const back = backLink(page, 'Matches');
+		await expect(back).toHaveAttribute('href', '/matches?page=2');
+		const entries = await page.evaluate(() => history.length);
+		await back.click();
+		await expect(page).toHaveURL(/\/matches\?page=2$/);
+		await expect(page.getByTestId('range')).toHaveText('21–28 of 28');
+		expect(await page.evaluate(() => history.length)).toBe(entries);
+	});
+
+	test('opens its address in a new tab with a modifier click', async ({ page, context }) => {
+		await page.goto('/matches?show=disputed');
+		await rowFor(page, STILL_DISPUTED).click();
+		const [tab] = await Promise.all([
+			context.waitForEvent('page'),
+			backLink(page, 'Matches').click({ modifiers: ['ControlOrMeta'] })
+		]);
+		await expect(tab).toHaveURL(/\/matches\?show=disputed$/);
+		// The match stays open in the first tab.
+		await expect(page).toHaveURL(new RegExp(`/matches/${STILL_DISPUTED}$`));
+	});
+
+	test('goes to Matches from a shared link', async ({ page }) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		const back = backLink(page, 'Matches');
+		await expect(back).toHaveAttribute('href', '/matches');
+		await back.click();
+		await expect(page).toHaveURL(/\/matches$/);
+		await expect(page.getByRole('heading', { level: 1, name: 'Matches' })).toBeVisible();
+	});
+
+	test('keeps Home after a correction, without going back to the form', async ({ page }) => {
+		await needsYouRow(page, WAITING_ON_ME_TOO).click();
+		await expect(backLink(page, 'Home')).toBeVisible();
+		await page.getByRole('link', { name: 'Correct the score' }).click();
+
+		// The correction page goes back to the match, and the match still goes back to Home.
+		const toMatch = page.locator('#main').getByRole('link', { name: 'Back to the match' });
+		await expect(toMatch).toHaveAttribute('href', `/matches/${WAITING_ON_ME_TOO}`);
+		await toMatch.click();
+		await expect(page).toHaveURL(new RegExp(`/matches/${WAITING_ON_ME_TOO}$`));
+		await expect(backLink(page, 'Home')).toHaveAttribute('href', '/');
+
+		await page.getByRole('link', { name: 'Correct the score' }).click();
+		await page.getByLabel("Game 3, your team's points").fill('11');
+		await page.getByLabel("Game 3, opponents' points").fill('8');
+		await page.getByRole('button', { name: 'Save the correction' }).click();
+		await expect(page.getByText('Correction saved', { exact: true })).toBeVisible();
+		await expect(page).toHaveURL(/\/matches\/M-FXD/);
+
+		const back = backLink(page, 'Home');
+		await expect(back).toHaveAttribute('href', '/');
+		await back.click();
+		await expect(page).toHaveURL(/\/$/);
+		await expect(page.getByRole('list', { name: 'Needs you' })).toBeVisible();
+	});
+});
