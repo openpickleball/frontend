@@ -45,6 +45,8 @@ function makeMatch(overrides: Partial<Match> = {}): Match {
 		viewerDecision: 'none',
 		confirmedBySide: null,
 		createdAt: '2026-06-01T18:00:00Z',
+		event: null,
+		club: null,
 		...overrides
 	};
 }

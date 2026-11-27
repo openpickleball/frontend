@@ -95,7 +95,12 @@ export function toMatch(dto: MatchDto): Match {
 		viewerSide: dto.my_team === null ? null : dto.my_team === 'A' ? 'a' : 'b',
 		viewerDecision: dto.my_decision,
 		confirmedBySide: dto.confirmed_by_team,
-		createdAt: dto.created_at
+		createdAt: dto.created_at,
+		event:
+			dto.event === null
+				? null
+				: { code: dto.event.code, name: dto.event.name, organizer: dto.event.organizer },
+		club: dto.club === null ? null : { code: dto.club.code, name: dto.club.name }
 	};
 }
 

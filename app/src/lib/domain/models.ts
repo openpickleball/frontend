@@ -50,6 +50,22 @@ export type Game = {
 	teamB: number;
 };
 
+/**
+ * The Event a match was recorded under (`MatchEventOut`). `organizer` is the Event's organizer's
+ * OPEN code. The organizer's name is never sent, read or shown.
+ */
+export type MatchEvent = {
+	code: string;
+	name: string;
+	organizer: string;
+};
+
+/** The Club a match names (`MatchClubOut`). */
+export type MatchClub = {
+	code: string;
+	name: string;
+};
+
 export type Match = {
 	code: MatchCode;
 	status: MatchStatus;
@@ -79,6 +95,10 @@ export type Match = {
 	confirmedBySide: { a: boolean; b: boolean } | null;
 	/** When the match was submitted, an ISO time. */
 	createdAt: string;
+	/** The Event the match was recorded under, or null when it has none. */
+	event: MatchEvent | null;
+	/** The Club the match names, or null when it has none. */
+	club: MatchClub | null;
 };
 
 /**
