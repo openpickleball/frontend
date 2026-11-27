@@ -98,9 +98,10 @@ test.describe('home', () => {
 			'href',
 			'/ratings'
 		);
-		await expect(
-			ratings.getByRole('button', { name: /^What does reliability mean\?$/ })
-		).toBeVisible();
+		// Compact tiles: the format, the number and the badge. Reliability is on the Ratings tab.
+		await expect(ratings.getByText('Demonstration', { exact: true })).toHaveCount(2);
+		await expect(ratings.getByText(/Reliability/)).toHaveCount(0);
+		await expect(ratings.getByRole('button', { name: /reliability/ })).toHaveCount(0);
 
 		// Oldest first, each row saying what she can do: vouch for the held match, confirm the rest.
 		const needsList = page.getByRole('list', { name: 'Needs you' });
@@ -143,6 +144,25 @@ test.describe('home', () => {
 		const count = (await link.textContent())?.match(/\d+/)?.[0];
 		await link.click();
 		await expect(page.getByTestId('range')).toHaveText(new RegExp(`of ${count}$`));
+	});
+
+	test('keeps each rating tile, badge included, inside its edges on a 320px phone', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 320, height: 740 });
+		await page.reload();
+		const tiles = page.getByTestId('ratings').getByRole('listitem');
+		await expect(tiles).toHaveCount(2);
+		const fits = await tiles.evaluateAll((items) =>
+			items.map((tile) => {
+				const box = tile.getBoundingClientRect();
+				return [...tile.querySelectorAll('*')].every((child) => {
+					const inner = child.getBoundingClientRect();
+					return inner.left >= box.left && inner.right <= box.right;
+				});
+			})
+		);
+		expect(fits).toEqual([true, true]);
 	});
 
 	test('Details opens the Ratings tab', async ({ page }) => {

@@ -305,8 +305,8 @@ describe('HomeView In progress', () => {
 		await render(HomeView, home());
 		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
 		await expect.element(page.getByTestId('in-progress')).not.toBeInTheDocument();
-		// Only the Ratings section's info button is left.
-		expect(page.getByRole('button', { name: /mean\?/ }).elements()).toHaveLength(1);
+		// Home's compact rating tiles have no info button either.
+		expect(page.getByRole('button', { name: /mean\?/ }).elements()).toHaveLength(0);
 	});
 
 	it('still shows the rest, with a notice and Try again, when the disputed list fails', async () => {
@@ -372,9 +372,12 @@ describe('HomeView order, code, ratings and the match count', () => {
 		await expect
 			.element(page.getByRole('link', { name: 'Details' }))
 			.toHaveAttribute('href', '/ratings');
+		// Compact tiles: no reliability lines, and so no popover to explain them.
+		await expect.element(ratings.getByText('Demonstration', { exact: true })).toBeVisible();
+		await expect.element(ratings.getByText(/Reliability/)).not.toBeInTheDocument();
 		await expect
 			.element(page.getByRole('button', { name: 'What does reliability mean?' }))
-			.toBeVisible();
+			.not.toBeInTheDocument();
 		expect(fetchRatings).toHaveBeenCalledWith(TAMSIN);
 	});
 

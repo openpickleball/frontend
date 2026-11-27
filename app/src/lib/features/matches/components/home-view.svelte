@@ -125,6 +125,7 @@
 
 		<RatingsCard
 			details
+			compact
 			ratings={ratings.ratings}
 			loading={ratings.loading}
 			failed={ratings.failed}

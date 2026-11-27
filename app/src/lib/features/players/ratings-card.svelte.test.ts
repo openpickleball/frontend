@@ -122,6 +122,22 @@ describe('RatingsCard', () => {
 		}
 	});
 
+	it('shows only the format, the number and the badge in compact tiles, with no popover', async () => {
+		const screen = await render(RatingsCard, { ratings: RATINGS, compact: true, details: true });
+		const tiles = screen.getByTestId('ratings').getByRole('listitem');
+		expect(tiles.elements()).toHaveLength(2);
+		expect(tiles.first().element().textContent?.replace(/\s+/g, ' ').trim()).toBe(
+			'Mixed doubles 3.42 Demonstration'
+		);
+		await expect.element(screen.getByText(/Reliability/)).not.toBeInTheDocument();
+		await expect.element(screen.getByText('Early estimate.')).not.toBeInTheDocument();
+		await expect
+			.element(screen.getByRole('button', { name: 'What does reliability mean?' }))
+			.not.toBeInTheDocument();
+		await expect.element(screen.getByText(/demonstration numbers while/)).toBeVisible();
+		await expect.element(screen.getByRole('link', { name: 'Details' })).toBeVisible();
+	});
+
 	it('explains only the lines the tiles show', async () => {
 		const screen = await render(RatingsCard, {
 			ratings: { demonstration: true, ratings: [rating({})] }

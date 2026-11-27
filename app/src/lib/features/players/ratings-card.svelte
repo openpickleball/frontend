@@ -18,6 +18,7 @@
 		failed = false,
 		title = 'Ratings',
 		details = false,
+		compact = false,
 		prominent = false
 	}: {
 		/** What the backend sent, or `null` when it had none to show (a 404). */
@@ -29,6 +30,11 @@
 		title?: string;
 		/** Link to the Ratings page next to the title, as Home does. */
 		details?: boolean;
+		/**
+		 * Tiles with only the format, the number and the Demonstration badge, and no reliability
+		 * popover, as on Home. The Ratings page shows the reliability lines and explains them.
+		 */
+		compact?: boolean;
 		/**
 		 * Say that the numbers are demonstration ones in a boxed notice, not a plain line. The
 		 * Ratings page does, because a tab of its own makes the numbers look more official.
@@ -60,11 +66,12 @@
 
 <Section {title} aside={details ? detailsLink : undefined}>
 	{#snippet info()}
-		{#if list.length > 0}
+		{#if list.length > 0 && !compact}
 			<InfoPopover label="What does reliability mean?" {terms} />
 		{/if}
 	{/snippet}
-	<div class="grid gap-4">
+	<!-- A container, so the tiles count columns by the width they have, not the window's. -->
+	<div class="@container grid gap-4">
 		{#if list.length > 0 && demonstration}
 			{#if prominent}
 				<Alert data-testid="demonstration-notice">
@@ -93,29 +100,33 @@
 				You don't have a rating yet. Ratings come from your confirmed matches.
 			</p>
 		{:else}
-			<ul class="grid grid-cols-2 gap-4 sm:grid-cols-3" data-testid="ratings">
+			<!-- One column below 320px of room (a 320px phone), where a Demonstration badge is wider
+			than half the row. Two from there, three from sm. -->
+			<ul class="grid grid-cols-1 gap-4 @xs:grid-cols-2 sm:grid-cols-3" data-testid="ratings">
 				{#each list as rating (rating.format)}
 					<li class="grid content-start gap-2 rounded-lg border border-line p-4">
 						<span class="font-medium text-secondary">{FORMAT_LABELS[rating.format]}</span>
 						<span class="text-3xl font-semibold tracking-tight text-secondary tabular-nums">
 							{formatRating(rating.value)}
 						</span>
-						<span class="grid gap-1 text-sm text-muted">
-							<span>Reliability: {formatReliability(rating.reliability)}</span>
-							{#if rating.importedReliability !== null}
-								<span>
-									Reliability from an external rating: {formatReliability(
-										rating.importedReliability
-									)}
-								</span>
-							{/if}
-							{#if !rating.established}
-								<span>Early estimate.</span>
-							{/if}
-							{#if rating.provisional}
-								<span>May still change.</span>
-							{/if}
-						</span>
+						{#if !compact}
+							<span class="grid gap-1 text-sm text-muted">
+								<span>Reliability: {formatReliability(rating.reliability)}</span>
+								{#if rating.importedReliability !== null}
+									<span>
+										Reliability from an external rating: {formatReliability(
+											rating.importedReliability
+										)}
+									</span>
+								{/if}
+								{#if !rating.established}
+									<span>Early estimate.</span>
+								{/if}
+								{#if rating.provisional}
+									<span>May still change.</span>
+								{/if}
+							</span>
+						{/if}
 						{#if rating.demonstration}
 							<span><Badge variant="outline">Demonstration</Badge></span>
 						{/if}
