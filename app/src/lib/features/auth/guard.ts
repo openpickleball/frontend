@@ -7,7 +7,12 @@ import { ROUTES } from '#lib/domain/index.js';
 
 export const LOGIN_PATH = ROUTES.login;
 
-const GUARDED_BASES: readonly string[] = [ROUTES.record, ROUTES.matches, ROUTES.profile];
+const GUARDED_BASES: readonly string[] = [
+	ROUTES.record,
+	ROUTES.matches,
+	ROUTES.profile,
+	ROUTES.organizer
+];
 
 function under(pathname: string, base: string): boolean {
 	return pathname === base || pathname.startsWith(`${base}/`);
@@ -28,7 +33,7 @@ export function isSignedOutOnlyPath(pathname: string): boolean {
 	return SIGNED_OUT_ONLY.includes(pathname.replace(/\/+$/, ''));
 }
 
-/** Does this page need a signed-in player? Home, record, matches (and one match) and profile do. */
+/** Does this page need a signed-in player? Home, record, matches, profile and organizer do. */
 export function isGuardedPath(pathname: string): boolean {
 	return pathname === ROUTES.home || GUARDED_BASES.some((base) => under(pathname, base));
 }

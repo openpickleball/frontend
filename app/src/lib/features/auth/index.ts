@@ -33,6 +33,11 @@
  *   `session.mfaEnrolled` current. The code gate calls it when the value is unknown.
  * - `watchMfaRequired(notify)`: the root layout calls it once, and explains every 403
  *   `mfa_required` in one toast.
+ * - `session.isMemberOf(code)`: is the account a member of that organizer? Display only.
+ * - `organizerMemberships(url)`: for a `load` that depends on the memberships. Like
+ *   `requireSession`, then waits until the memberships are known. Empty for a non-member.
+ * - `loadAccountState()`: read the memberships and two-factor state again, such as after the
+ *   backend refused an organizer action.
  * - `OrganizerMfaPrompt`: tells an organizer member without two-factor that organizer actions
  *   need it. Display only.
  *
@@ -40,8 +45,9 @@
  */
 import { redirect } from '@sveltejs/kit';
 import { loginUrl, redirectFor } from './guard.js';
-import { session } from './session.svelte.js';
-import { bootstrap } from './services.js';
+import type { ApiOption } from '#lib/api/index.js';
+import { session, type OrganizerMembership } from './session.svelte.js';
+import { bootstrap, settledMemberships } from './services.js';
 
 export {
 	session,
@@ -51,6 +57,7 @@ export {
 } from './session.svelte.js';
 export {
 	checkMfaEnrolled,
+	loadAccountState,
 	watchMfaRequired,
 	watchSessionExpiry,
 	onSignOut,
@@ -86,10 +93,26 @@ export async function enforceGuard(url: Pick<URL, 'pathname' | 'search'>): Promi
  * Make sure a player is signed in. Resolves to their email. Otherwise it redirects to
  * the sign-in page with `next` set to this page, so they come back after signing in.
  */
-export async function requireSession(url: Pick<URL, 'pathname' | 'search'>): Promise<string> {
-	await bootstrap();
+export async function requireSession(
+	url: Pick<URL, 'pathname' | 'search'>,
+	options: ApiOption = {}
+): Promise<string> {
+	await bootstrap(options);
 	if (!session.isSignedIn || !session.email) {
 		redirect(307, loginUrl(url.pathname + url.search));
 	}
 	return session.email;
+}
+
+/**
+ * For a page only organizer members have: `requireSession`, then the account's memberships once
+ * they are known (it waits for the read sign-in started). Empty for a non-member and when the
+ * read failed. Display only: the backend decides what a member may do.
+ */
+export async function organizerMemberships(
+	url: Pick<URL, 'pathname' | 'search'>,
+	options: ApiOption = {}
+): Promise<OrganizerMembership[]> {
+	await requireSession(url, options);
+	return settledMemberships(options);
 }

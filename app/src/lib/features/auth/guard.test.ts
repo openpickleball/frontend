@@ -3,13 +3,27 @@ import { isAccountPath, isGuardedPath, loginUrl, redirectFor, safeNext } from '.
 
 describe('isGuardedPath', () => {
 	it('guards the signed-in routes and the pages under them', () => {
-		for (const path of ['/', '/record', '/matches', '/matches/M-7QK2-H9WD-3NFA', '/profile']) {
+		for (const path of [
+			'/',
+			'/record',
+			'/matches',
+			'/matches/M-7QK2-H9WD-3NFA',
+			'/profile',
+			'/organizer'
+		]) {
 			expect(isGuardedPath(path), path).toBe(true);
 		}
 	});
 
 	it('leaves the account pages and unknown paths open', () => {
-		for (const path of ['/account/login', '/account/signup', '/recording', '/profiles', '/x']) {
+		for (const path of [
+			'/account/login',
+			'/account/signup',
+			'/recording',
+			'/profiles',
+			'/organizers',
+			'/x'
+		]) {
 			expect(isGuardedPath(path), path).toBe(false);
 		}
 	});

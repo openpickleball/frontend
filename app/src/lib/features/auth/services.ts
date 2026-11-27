@@ -27,7 +27,12 @@ import {
 	type ApiOption,
 	type AppError
 } from '#lib/api/index.js';
-import { session, type MfaType, type SessionState } from './session.svelte.js';
+import {
+	session,
+	type MfaType,
+	type OrganizerMembership,
+	type SessionState
+} from './session.svelte.js';
 
 type Settled = { data?: unknown; error?: unknown; response: Response };
 
@@ -126,6 +131,17 @@ async function readEnrolled(api: Api): Promise<boolean | null> {
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * The signed-in account's organizer memberships, once known: it waits for any read in flight
+ * (sign-in starts one without waiting), and runs one when the list is still unknown. Empty when
+ * the read fails. Call it after the session is read.
+ */
+export async function settledMemberships(options: ApiOption = {}): Promise<OrganizerMembership[]> {
+	while (accountStateLoading) await accountStateLoading;
+	if (session.isSignedIn && session.organizers === null) await loadAccountState(options);
+	return session.organizers ?? [];
 }
 
 /** Counts the account state reads started, so only the newest one writes the organizer list. */
