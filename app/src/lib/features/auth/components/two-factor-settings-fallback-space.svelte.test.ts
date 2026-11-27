@@ -5,6 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import '../../../../routes/layout.css'; // eslint-disable-line boundaries/dependencies -- a layout test needs the app styles
 import { AppError } from '#lib/api/index.js';
 import { session } from '../session.svelte.js';
 import { listAuthenticators } from '../two-factor.js';
