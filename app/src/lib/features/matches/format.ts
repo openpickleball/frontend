@@ -55,6 +55,13 @@ export function formatShortDate(playedOn: string): string {
 	return `${WEEKDAYS[date.getUTCDay()].slice(0, 3)} ${date.getUTCDate()} ${MONTHS[date.getUTCMonth()].slice(0, 3)}`;
 }
 
+/** "14 Nov", for the match page's browser tab. Falls back to the text it was given. */
+export function formatDayMonth(playedOn: string): string {
+	const date = parseDay(playedOn);
+	if (!date) return playedOn;
+	return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()].slice(0, 3)}`;
+}
+
 /** "Saturday 14 November 2026". */
 export function formatLongDate(playedOn: string): string {
 	const date = parseDay(playedOn);

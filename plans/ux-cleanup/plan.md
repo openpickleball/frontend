@@ -28,7 +28,7 @@ Wave 3
 Wave 4
 
 - [x] #286 Show match status in one place above the scoreboard
-- [ ] #287 Trim the match page header and move the match code to the details
+- [x] #287 Trim the match page header and move the match code to the details
 - [x] #288 Show each rating format at the same size and move rating history to its own page
 - [ ] #290 Make Home a short list of what needs you
 
@@ -60,7 +60,7 @@ Where it applies:
 - Matches: the list has no section title, so nothing changes there. Its list keeps its top border, because no section line sits above it.
 - Record a match and the correction: Match, Players, Scoring and Games, then the submit block with the same line and spacing.
 - Profile: Your OPEN code, Matches, Ratings, Name and privacy, Your data and Account. Since #288, Rating history is its own page, linked from the Ratings section.
-- Match page: Score (the scoreboard) and Details (Games to, Scoring).
+- Match page: Score (the scoreboard) and Details (Games to, Scoring and, since #287, Match code).
 
 ## Copy for #285
 
@@ -123,3 +123,7 @@ To be filled in by #290.
 - #286: a confirmed match drops the panel unless it is on hold, the player just recorded or corrected it, or an action left an error to show. Focus after an action goes to the panel heading, or to the page title (`match-title`) when the panel has gone, for example after the last confirm or vouch.
 - #286: the one-visit lines "You just recorded this match." and "You just corrected this match, so it has a new code and the old match is voided." stay in the panel above its sentence. They are not explanations, and they show once.
 - #286: a held match keeps the buttons its status needs, such as Confirm and Dispute, under the On hold title, with no extra line about them.
+- #287: the match page title is the format and the short date, "Doubles · Sat 14 Nov", with no year, like the list rows. The tab reads "Doubles, 14 Nov · OPEN Pickleball", keeping the site name every other tab has. Until the match loads, the tab reads "Match · OPEN Pickleball".
+- #287: the `label` kicker is gone from the match page. The correction page keeps its own, since #287 covers only the match page.
+- #287: the match code sits in Details under Games to and Scoring on a phone, and beside them from `lg`. Its Copy button is the small outline button with the visible text "Copy" and the name "Copy match code".
+- #287: without the sentence headline, the scoreboard starts with a sentence for screen readers only, such as "You and Oren Quill beat Bea Marlowe and Kit Ashdown, 11-7, 9-11, 11-4.", before its table. The table alone named the winners but not the result in words.

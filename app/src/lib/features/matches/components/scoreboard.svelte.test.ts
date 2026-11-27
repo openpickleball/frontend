@@ -27,6 +27,21 @@ describe('Scoreboard', () => {
 			.toBeInTheDocument();
 	});
 
+	it('says the result in a sentence for screen readers', async () => {
+		const screen = await render(Scoreboard, { match: viewerMatch(), you: TAMSIN });
+		await expect
+			.element(screen.getByTestId('scoreboard-result'))
+			.toHaveTextContent('You and Oren Quill beat Bea Marlowe and Kit Ashdown, 11-7, 9-11, 11-4.');
+	});
+
+	it('shows names only, with no player codes', async () => {
+		const match = sampleMatch();
+		const screen = await render(Scoreboard, { match, you: TAMSIN });
+		for (const player of [...match.teamA.players, ...match.teamB.players]) {
+			expect(screen.container.textContent).not.toContain(player.code!);
+		}
+	});
+
 	it('names the winner in words, not only in bold', async () => {
 		const screen = await render(Scoreboard, { match: sampleMatch(), you: TAMSIN });
 		await expect.element(screen.getByText('Won 2–1')).toBeVisible();

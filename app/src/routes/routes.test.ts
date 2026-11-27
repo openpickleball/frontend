@@ -62,7 +62,7 @@ describe('route pages', () => {
 		});
 	}
 
-	it('puts the page number in the matches title, and the code in the match title', () => {
+	it('puts the page number in the matches title, and no code in the match title', () => {
 		const history = render(pages['./matches/+page.svelte'].default, {
 			props: propsFor('./matches/+page.svelte')
 		});
@@ -70,7 +70,9 @@ describe('route pages', () => {
 		const detail = render(pages['./matches/[code]/+page.svelte'].default, {
 			props: propsFor('./matches/[code]/+page.svelte')
 		});
-		expect(detail.head).toContain(`<title>Match ${MATCH_CODE} · OPEN Pickleball</title>`);
+		// The match isn't loaded yet. Once it is, the title is its format and date.
+		expect(detail.head).toContain('<title>Match · OPEN Pickleball</title>');
+		expect(detail.head).not.toContain(MATCH_CODE);
 	});
 
 	it('keeps copy plain: no em dashes in any page', () => {

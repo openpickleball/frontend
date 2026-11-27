@@ -72,20 +72,34 @@ afterEach(() => {
 const code = () => sampleMatch().code;
 
 describe('MatchView', () => {
-	it('makes the result the heading, with the score under it', async () => {
-		await render(MatchView, { code: code() });
+	it('makes the format and date the heading, with the status badge next to it', async () => {
+		const screen = await render(MatchView, { code: code() });
 
 		await expect
-			.element(
-				page.getByRole('heading', {
-					level: 1,
-					name: 'You and Oren Quill beat Bea Marlowe and Kit Ashdown'
-				})
-			)
+			.element(page.getByRole('heading', { level: 1, name: 'Doubles · Sat 14 Nov' }))
 			.toBeVisible();
-		await expect.element(page.getByText('11-7, 9-11, 11-4')).toBeVisible();
-		// The date and format are said once, not again in a details list.
-		await expect.element(page.getByText('Played', { exact: true })).not.toBeInTheDocument();
+		await expect.element(page.getByText('Pending', { exact: true })).toBeVisible();
+		const title = screen.container.querySelector('h1')!;
+		// The header has no sentence headline and no score line: the scoreboard says those.
+		expect(title.parentElement!.textContent).not.toMatch(/beat|11-7/);
+		const badge = screen.container.querySelector('[data-slot="badge"]')!;
+		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
+		expect(title.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(badge.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
+	it('names the browser tab by format and date', async () => {
+		await render(MatchView, { code: code() });
+		await expect.poll(() => document.title).toBe('Doubles, 14 Nov · OPEN Pickleball');
+	});
+
+	it('shows the match code in Details, next to Games to and Scoring', async () => {
+		const screen = await render(MatchView, { code: code() });
+		const details = screen.getByRole('region', { name: 'Details' });
+		await expect.element(details.getByText('Match code')).toBeVisible();
+		await expect.element(details.getByText(code(), { exact: true })).toBeVisible();
+		await expect.element(details.getByText('Games to')).toBeVisible();
+		await expect.element(details.getByText('Scoring')).toBeVisible();
 	});
 
 	it('says once that the player just recorded the match', async () => {
@@ -101,7 +115,7 @@ describe('MatchView', () => {
 		// The toast has no Toaster in this test, so only the copy is checked.
 		const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 		await render(MatchView, { code: code() });
-		await page.getByRole('button', { name: 'Copy code' }).click();
+		await page.getByRole('button', { name: 'Copy match code' }).click();
 		expect(write).toHaveBeenCalledWith(code());
 	});
 
@@ -277,7 +291,7 @@ describe('MatchView', () => {
 		fail(notFound);
 
 		await expect.element(page.getByTestId('status-panel')).toBeVisible();
-		await expect.poll(() => document.title).toContain(other.code);
+		await expect.element(page.getByText(other.code, { exact: true })).toBeVisible();
 		await expect.element(page.getByText("We couldn't find this match")).not.toBeInTheDocument();
 	});
 
@@ -324,7 +338,7 @@ describe('MatchView', () => {
 		let answer: (match: ReturnType<typeof viewerMatch>) => void = () => {};
 		mocked.getMatch.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
 		await render(MatchView, { code: code() });
-		const copy = page.getByRole('button', { name: 'Copy code' });
+		const copy = page.getByRole('button', { name: 'Copy match code' });
 		await copy.element().focus();
 		answer(viewerMatch({}, { status: 'disputed' }));
 		await expect.element(page.getByRole('heading', { name: 'Disputed' })).toBeVisible();
