@@ -85,7 +85,7 @@ describe('HistoryView holds', () => {
 		mocked.listMyHolds.mockRejectedValue(new Error('down'));
 		await renderView({ page: 1 });
 		await expect.element(page.getByTestId('match-row')).toBeVisible();
-		// The filter menu has an On hold option, so look in the row.
+		// The filter has an On hold pill, so look in the row.
 		await expect
 			.element(page.getByTestId('match-row').getByText(/On hold/))
 			.not.toBeInTheDocument();
@@ -137,7 +137,7 @@ describe('HistoryView filter', () => {
 			.element(page.getByTestId('match-row'))
 			.toHaveAttribute('href', `/matches/${toConfirm[19].code}`);
 		expect(mocked.listMatches).not.toHaveBeenCalled();
-		await expect.element(page.getByLabelText('Show')).toHaveValue('needs-you');
+		await expect.element(page.getByRole('radio', { name: 'Needs you' })).toBeChecked();
 		await expect.element(page.getByRole('list', { name: 'Your matches, Needs you' })).toBeVisible();
 		await expect
 			.element(page.getByRole('link', { name: 'Newer' }))
@@ -213,17 +213,34 @@ describe('HistoryView filter', () => {
 		await renderView({ page: 2 });
 
 		await expect.element(page.getByTestId('range')).toBeVisible();
-		await userEvent.selectOptions(page.getByLabelText('Show'), 'On hold');
+		const onHold = page.getByRole('radio', { name: 'On hold' });
+		await onHold.click();
 		expect(goto).toHaveBeenCalledWith('/matches?show=on-hold', { reset: false });
+		await expect.element(onHold).toBeChecked();
+		await expect.element(onHold).toHaveFocus();
+
+		// The arrow keys move along the pills and choose as they go.
+		await userEvent.keyboard('{ArrowLeft}');
+		const disputed = page.getByRole('radio', { name: 'Disputed' });
+		await expect.element(disputed).toHaveFocus();
+		expect(goto).toHaveBeenLastCalledWith('/matches?show=disputed', { reset: false });
+
+		await page.getByRole('radio', { name: 'All' }).click();
+		expect(goto).toHaveBeenLastCalledWith('/matches', { reset: false });
 	});
 
-	it('offers no Waiting for the other team, which the backend has no list for', async () => {
+	it('shows the filter as a group named Show, with one pill per filter', async () => {
 		mocked.listMatches.mockResolvedValue({ items: [viewerMatch()], count: 1 });
 		await renderView({ page: 1 });
 
-		const select = page.getByLabelText('Show');
-		await expect.element(select).toHaveValue('all');
-		const options = [...(select.element() as HTMLSelectElement).options].map((o) => o.text);
-		expect(options).toEqual(['All', 'Needs you', 'Disputed', 'On hold']);
+		const group = page.getByRole('group', { name: 'Show' });
+		await expect.element(group).toBeVisible();
+		await expect.element(group.getByRole('radio', { name: 'All' })).toBeChecked();
+		// No Waiting for the other team, which the backend has no list for.
+		const names = group
+			.getByRole('radio')
+			.elements()
+			.map((radio) => radio.textContent?.trim());
+		expect(names).toEqual(['All', 'Needs you', 'Disputed', 'On hold']);
 	});
 });

@@ -6,9 +6,8 @@
 	import { myCode } from '#lib/features/players/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from '#lib/ui/empty/index.js';
-	import { Label } from '#lib/ui/label/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
-	import { NativeSelect, NativeSelectOption } from '#lib/ui/native-select/index.js';
+	import { Segmented } from '#lib/ui/segmented/index.js';
 	import { matchCache } from '../cache.svelte.js';
 	import {
 		MATCH_FILTERS,
@@ -59,10 +58,15 @@
 		return `${resolve(ROUTES.matches)}${matchesQuery(filter, target)}`;
 	}
 
+	// The checked pill. It follows the address, and moves at once when a pill is chosen, before
+	// the navigation lands.
+	let chosen = $derived<string>(show);
+
 	// The filter changes the address, so a reload or a shared link keeps it. It starts again at
-	// the first page of the new list.
-	function choose(event: Event & { currentTarget: HTMLSelectElement }) {
-		const filter = event.currentTarget.value as MatchFilter;
+	// the first page of the new list. The page stays, so focus stays on the chosen pill.
+	function choose(value: string) {
+		chosen = value;
+		const filter = value as MatchFilter;
 		// The path is resolve(ROUTES.matches). Only the query is added, which resolve() doesn't take.
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- see the line above
 		void goto(`${resolve(ROUTES.matches)}${matchesQuery(filter)}`, { reset: false });
@@ -105,13 +109,17 @@
 
 <CodeGate>
 	{#snippet children(you)}
-		<div class="mt-4 grid max-w-md gap-2">
-			<Label for="matches-show">Show</Label>
-			<NativeSelect id="matches-show" value={show} onchange={choose}>
-				{#each MATCH_FILTERS as option (option.value)}
-					<NativeSelectOption value={option.value}>{option.label}</NativeSelectOption>
-				{/each}
-			</NativeSelect>
+		<!-- Four pills are wider than Record a match's. Below sm the pills are narrower, so they fit
+		on one line on most phones. On a narrower screen they wrap, and the track's corners are
+		rounded rather than round, so a second row still sits inside it. -->
+		<div class="mt-4">
+			<Segmented
+				class="flex-wrap rounded-3xl *:px-2.5 sm:*:px-4"
+				name="show"
+				label="Show"
+				options={MATCH_FILTERS}
+				bind:value={() => chosen, choose}
+			/>
 		</div>
 
 		{#if view.status === 'error'}

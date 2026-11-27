@@ -53,6 +53,11 @@ function actionButtons(panel: Locator) {
 	return panel.locator('button:not([data-slot="info-button"])');
 }
 
+/** A pill of the Show filter on Matches. */
+function pill(page: Page, name: 'All' | 'Needs you' | 'Disputed' | 'On hold') {
+	return page.getByRole('group', { name: 'Show' }).getByRole('radio', { name, exact: true });
+}
+
 function rowFor(page: Page, code: string) {
 	return page.locator(`a[href$="/matches/${code}"]`);
 }
@@ -177,13 +182,13 @@ test.describe('home needs you count', () => {
 		const line = page.getByTestId('in-progress');
 		await line.getByRole('link', { name: '2 on hold' }).click();
 		await expect(page).toHaveURL(/\/matches\?show=on-hold$/);
-		await expect(page.getByLabel('Show')).toHaveValue('on-hold');
+		await expect(pill(page, 'On hold')).toBeChecked();
 		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
 
 		await page.goBack();
 		await line.getByRole('link', { name: '2 disputed' }).click();
 		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
-		await expect(page.getByLabel('Show')).toHaveValue('disputed');
+		await expect(pill(page, 'Disputed')).toBeChecked();
 		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
 		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
 	});
@@ -246,27 +251,25 @@ test.describe('match history', () => {
 test.describe('matches filter', () => {
 	test('opens a filter from a link, and a reload keeps it', async ({ page }) => {
 		await page.goto('/matches?show=disputed');
-		const show = page.getByLabel('Show');
-		await expect(show).toHaveValue('disputed');
+		await expect(pill(page, 'Disputed')).toBeChecked();
 		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
 		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
 		await expect(rowFor(page, STILL_DISPUTED)).toBeVisible();
 		await expect(page).toHaveTitle('Matches, Disputed, page 1 of 1 · OPEN Pickleball');
 
 		await page.reload();
-		await expect(show).toHaveValue('disputed');
+		await expect(pill(page, 'Disputed')).toBeChecked();
 		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
 	});
 
-	test('switches filters from the menu and keeps each in the address', async ({ page }) => {
+	test('switches filters with the pills and keeps each in the address', async ({ page }) => {
 		await page.goto('/matches?page=2');
 		await expect(page.getByTestId('range')).toHaveText('21–26 of 26');
 
-		const show = page.getByLabel('Show');
-		await show.focus();
-		await show.selectOption('Needs you');
+		await pill(page, 'Needs you').click();
 		await expect(page).toHaveURL(/\/matches\?show=needs-you$/);
-		await expect(show).toBeFocused();
+		await expect(pill(page, 'Needs you')).toBeChecked();
+		await expect(pill(page, 'Needs you')).toBeFocused();
 		// To confirm, and the held match her team has not vouched for.
 		await expect(page.getByTestId('range')).toHaveText('1–3 of 3');
 		await expect(rowFor(page, WAITING_ON_ME)).toBeVisible();
@@ -274,20 +277,25 @@ test.describe('matches filter', () => {
 		await expect(rowFor(page, HELD)).toBeVisible();
 		await expect(rowFor(page, ALREADY_CONFIRMED_BY_ME)).toHaveCount(0);
 
-		await show.selectOption('On hold');
+		// The arrow keys move along the pills and choose as they go.
+		await page.keyboard.press('ArrowRight');
+		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
+		await expect(pill(page, 'Disputed')).toBeFocused();
+		await page.keyboard.press('ArrowRight');
 		await expect(page).toHaveURL(/\/matches\?show=on-hold$/);
+		await expect(pill(page, 'On hold')).toBeFocused();
 		await expect(rowFor(page, HELD)).toBeVisible();
 		await expect(rowFor(page, HELD_VOUCHED)).toBeVisible();
 		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
 
-		await show.selectOption('All');
+		await pill(page, 'All').click();
 		await expect(page).toHaveURL(/\/matches$/);
 		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
 	});
 
 	test('shows every match for an unknown filter', async ({ page }) => {
 		await page.goto('/matches?show=waiting');
-		await expect(page.getByLabel('Show')).toHaveValue('all');
+		await expect(pill(page, 'All')).toBeChecked();
 		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
 	});
 

@@ -16,6 +16,7 @@
 	import { Button } from '#lib/ui/button/index.js';
 	import { FieldError, FieldLegend, FieldSet, fieldA11y } from '#lib/ui/field/index.js';
 	import { sectionClass } from '#lib/ui/section/index.js';
+	import { Segmented } from '#lib/ui/segmented/index.js';
 	import { cn } from '#lib/ui/utils.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import { Input } from '#lib/ui/input/index.js';
@@ -32,7 +33,6 @@
 	import { searchPlayers, type SearchFn } from '../search.js';
 	import { correctMatch, queueMatch, submitMatch, type SubmitResult } from '../service.js';
 	import PlayerSlot from './player-slot.svelte';
-	import Segmented from './segmented.svelte';
 
 	let {
 		own,
