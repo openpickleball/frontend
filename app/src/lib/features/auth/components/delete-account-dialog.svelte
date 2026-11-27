@@ -197,7 +197,7 @@
 						<Button variant="link" size="inline" href="mailto:info@openpb.org">
 							info@openpb.org
 						</Button>
-						and we will delete it for you.
+						for help.
 					</AlertTitle>
 				{:else}
 					<AlertTitle>{problem.text}</AlertTitle>

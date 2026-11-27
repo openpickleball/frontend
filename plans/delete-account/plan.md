@@ -22,7 +22,7 @@ A player can delete their account from the profile. The app explains what goes a
 4. Confirming sends `DELETE /api/v1/accounts/me` through `withReauth`:
    - 403 `reauthentication_required` opens the existing "Confirm it's you" prompt (password, or a code when the account has two-factor), then sends the delete again. Cancel in the prompt leaves the dialog open with no error.
    - 403 `mfa_required`: when the account has two-factor (decided as `watchMfaRequired` does), the dialog says "Confirm with a code from your authenticator app, then press Delete account again." and offers an "Enter a code" button that opens the code prompt (`requestReauth(['code'])`). Otherwise it says the account must set up two-factor first and links to `/profile/two-factor`.
-   - 409: the dialog says a staff account can't be deleted here and to email info@openpb.org (a `mailto:` link).
+   - 409: the dialog says "A staff account can't be deleted here. Email info@openpb.org for help." (a `mailto:` link). It promises no deletion, because nothing backs one (criterion 9).
    - 429: the dialog shows the shared throttled message ("Too many attempts. Wait a moment and try again.").
    - No answer (a timeout or a dropped connection, kind `network`): the service asks allauth once whether the device is signed in (`refreshSession`). Signed out: it ends the account as maybe deleted (criterion 5) and the dialog goes to sign in (criterion 6). Still signed in, or the check fails: the dialog shows the network error.
    - Any other error: the dialog shows the error's app message.
