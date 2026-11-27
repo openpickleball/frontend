@@ -100,25 +100,18 @@
 		deleteOpen = true;
 	}
 
-	/** Newest start date first, as the API orders them. */
-	const byStart = (a: OrganizerEvent, b: OrganizerEvent) => b.startDate.localeCompare(a.startDate);
-
 	/**
 	 * A new Event can belong on any page, and moves the others along, so the page is read again.
-	 * An edit replaces its row.
+	 * An edit replaces its row, if it is on this page.
 	 */
 	function saved(event: OrganizerEvent) {
 		if (editing?.code !== event.code) {
 			void load(offset);
 			return;
 		}
+		// An Event no longer on this page stays where it is: nothing to replace here.
 		const at = items.findIndex((e) => e.code === event.code);
-		if (at >= 0) {
-			items[at] = event;
-		} else {
-			items = [event, ...items].sort(byStart);
-			count += 1;
-		}
+		if (at >= 0) items[at] = event;
 	}
 
 	/** A delete moves the next Event up from a later page, so the page is read again. */
