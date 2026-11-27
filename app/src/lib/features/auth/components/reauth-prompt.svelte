@@ -25,6 +25,9 @@
 	 * closes with the answer.
 	 */
 	const methods = $derived(reauthPrompt.request?.methods ?? []);
+	const offersRecovery = $derived(
+		reauthPrompt.request?.codeTypes.includes('recovery_codes') ?? false
+	);
 	let method = $state<ReauthMethod>('password');
 	let kind = $state<CodeKind>('totp');
 	let password = $state('');
@@ -137,13 +140,15 @@
 					/>
 				{:else}
 					<MfaCodeField id="reauth-code" {kind} bind:value={code} error={form.errors.code} />
-					<Button
-						variant="link"
-						onclick={toggleKind}
-						class="min-h-10 justify-self-start px-0 text-sm"
-					>
-						{kind === 'totp' ? 'Use a recovery code' : 'Use your authenticator app'}
-					</Button>
+					{#if offersRecovery}
+						<Button
+							variant="link"
+							onclick={toggleKind}
+							class="min-h-10 justify-self-start px-0 text-sm"
+						>
+							{kind === 'totp' ? 'Use a recovery code' : 'Use your authenticator app'}
+						</Button>
+					{/if}
 				{/if}
 				{#if methods.includes('password') && methods.includes('code')}
 					<Button

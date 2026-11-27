@@ -356,3 +356,22 @@ export function reauthFlowsOf(error: AppError): ReauthMethod[] | null {
 	if (ids.has('mfa_reauthenticate')) methods.push('code');
 	return methods.length > 0 ? methods : null;
 }
+
+/** A kind of two-factor code allauth takes: from the authenticator app, or a recovery code. */
+export type ReauthCodeType = 'totp' | 'recovery_codes';
+
+/**
+ * The kinds of code a request to reauthenticate takes, from the `types` of allauth's
+ * `mfa_reauthenticate` flow. A code from the app when the flow names none. The OPEN API's 403
+ * `reauthentication_required` names none either, and allauth's code step takes both.
+ */
+export function reauthCodeTypesOf(error: AppError): ReauthCodeType[] {
+	if (error.status === 403 && error.code === REAUTHENTICATION_REQUIRED) {
+		return ['totp', 'recovery_codes'];
+	}
+	const flow = error.flows?.find((item) => item.id === 'mfa_reauthenticate');
+	const types = (flow?.types ?? []).filter(
+		(type): type is ReauthCodeType => type === 'totp' || type === 'recovery_codes'
+	);
+	return types.length > 0 ? types : ['totp'];
+}

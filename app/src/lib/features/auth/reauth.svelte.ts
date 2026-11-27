@@ -5,7 +5,14 @@
  * `reauthentication_required`. `withReauth` catches that, opens the one prompt
  * (`ReauthPrompt`, in the root layout), and sends the call once more after the player confirms.
  */
-import { AppError, isAppError, reauthFlowsOf, type ReauthMethod } from '#lib/api/index.js';
+import {
+	AppError,
+	isAppError,
+	reauthCodeTypesOf,
+	reauthFlowsOf,
+	type ReauthCodeType,
+	type ReauthMethod
+} from '#lib/api/index.js';
 import { session } from './session.svelte.js';
 
 /** The player closed the prompt. Nothing changed, so callers show no error. */
@@ -18,20 +25,28 @@ export class ReauthCancelled extends Error {
 
 /** The prompt's state. `ReauthPrompt` shows it while `request` is set. */
 class ReauthPromptStore {
-	/** The open request: the ways the player may confirm, the first one shown first. */
-	request = $state<{ methods: ReauthMethod[] } | null>(null);
+	/**
+	 * The open request: the ways the player may confirm, the first one shown first, and the kinds
+	 * of code the code step takes.
+	 */
+	request = $state<{ methods: ReauthMethod[]; codeTypes: ReauthCodeType[] } | null>(null);
 	#pending: Promise<boolean> | null = null;
 	#resolve: ((ok: boolean) => void) | null = null;
 
 	/** Open the prompt, or join the one already open and add the ways this call offers. */
-	open(methods: ReauthMethod[]): Promise<boolean> {
+	open(methods: ReauthMethod[], codeTypes: ReauthCodeType[]): Promise<boolean> {
 		if (this.#pending && this.request) {
 			const all = new Set([...this.request.methods, ...methods]);
+			const types = new Set([...this.request.codeTypes, ...codeTypes]);
 			const order: ReauthMethod[] = ['password', 'code'];
-			this.request = { methods: order.filter((method) => all.has(method)) };
+			const typeOrder: ReauthCodeType[] = ['totp', 'recovery_codes'];
+			this.request = {
+				methods: order.filter((method) => all.has(method)),
+				codeTypes: typeOrder.filter((type) => types.has(type))
+			};
 			return this.#pending;
 		}
-		this.request = { methods };
+		this.request = { methods, codeTypes };
 		this.#pending = new Promise<boolean>((resolve) => (this.#resolve = resolve));
 		return this.#pending;
 	}
@@ -55,12 +70,16 @@ session.onLeaveSignedIn(() => {
 
 /**
  * Ask the player to confirm it is them. Resolves true after they did, false when they cancelled.
+ * `codeTypes` are the kinds of code the code step takes (both by default, as allauth's do).
  * A code is not offered to an account known to have no two-factor, unless it is the only way.
  */
-export function requestReauth(methods: ReauthMethod[]): Promise<boolean> {
+export function requestReauth(
+	methods: ReauthMethod[],
+	codeTypes: ReauthCodeType[] = ['totp', 'recovery_codes']
+): Promise<boolean> {
 	const usable =
 		session.mfaEnrolled === false ? methods.filter((method) => method !== 'code') : methods;
-	return reauthPrompt.open(usable.length > 0 ? usable : methods);
+	return reauthPrompt.open(usable.length > 0 ? usable : methods, codeTypes);
 }
 
 /**
@@ -74,7 +93,9 @@ export async function withReauth<T>(call: () => Promise<T>): Promise<T> {
 	} catch (error) {
 		const methods = isAppError(error) ? reauthFlowsOf(error) : null;
 		if (!methods) throw error;
-		if (!(await requestReauth(methods))) throw new ReauthCancelled();
+		if (!(await requestReauth(methods, reauthCodeTypesOf(error as AppError)))) {
+			throw new ReauthCancelled();
+		}
 	}
 	try {
 		return await call();

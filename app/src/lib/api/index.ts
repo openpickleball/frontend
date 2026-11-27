@@ -8,10 +8,17 @@ export {
 	isAppError,
 	isCsrfFailure,
 	reauthFlowsOf,
+	reauthCodeTypesOf,
 	MFA_REQUIRED,
 	REAUTHENTICATION_REQUIRED
 } from './errors';
-export type { AppErrorFields, AppErrorKind, AllauthFlow, ReauthMethod } from './errors';
+export type {
+	AppErrorFields,
+	AppErrorKind,
+	AllauthFlow,
+	ReauthCodeType,
+	ReauthMethod
+} from './errors';
 export { unwrap } from './unwrap';
 export type { components as OpenComponents, paths as OpenPaths } from './generated/open';
 export type { components as AllauthComponents, paths as AllauthPaths } from './generated/allauth';
