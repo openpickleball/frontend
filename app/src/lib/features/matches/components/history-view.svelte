@@ -9,6 +9,7 @@
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { Segmented } from '#lib/ui/segmented/index.js';
 	import { matchCache } from '../cache.svelte.js';
+	import { keepScroll } from '../keep-scroll.svelte.js';
 	import {
 		MATCH_FILTERS,
 		fetcherFor,
@@ -38,6 +39,8 @@
 	) as Record<MatchFilter, MatchListView>;
 	const view = $derived(views[show]);
 	onDestroy(() => Object.values(views).forEach((list) => list.cancel()));
+	// Back on Matches, the page is back where the player left it once the list has loaded.
+	keepScroll('matches', () => view.status !== 'loading');
 
 	$effect(() => {
 		const code = myCode.code;

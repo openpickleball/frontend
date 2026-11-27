@@ -14,6 +14,7 @@
 	import { matchCountLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
 	import { matchCache } from '../cache.svelte.js';
+	import { keepScroll } from '../keep-scroll.svelte.js';
 	import { matchesQuery, type MatchFilter } from '../filter.js';
 	import { needsYou } from '../needs-you.svelte.js';
 	import { listMyDisputes } from '../services.js';
@@ -75,6 +76,9 @@
 				? 'loading'
 				: 'ready'
 	);
+	// Back on Home, the page is back where the player left it once its matches and the ratings above
+	// them have loaded, so it has its full height.
+	keepScroll('home', () => status !== 'loading' && !ratings.loading);
 	const needsFailed = $derived(needsYou.status === 'error');
 	const disputedFailed = $derived(disputed.status === 'error');
 	const offline = $derived(
