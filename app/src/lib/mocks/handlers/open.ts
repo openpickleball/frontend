@@ -59,13 +59,13 @@ export function createOpenHandlers(store: MockStore) {
 
 	return [
 		// `config/auth.py`: an account that must have two-factor and has none, or has it and this
-		// session did not pass it, gets 403 `mfa_required` on every operation. Any other request
-		// falls through to its own handler.
-		anyHttp.all('*/api/v1/*', () =>
-			store.mfaRequiredNow()
-				? ninjaError(403, 'mfa_required', 'Two-factor authentication is required.')
-				: undefined
-		),
+		// session did not pass it, gets 403 `mfa_required` on every operation, after the CSRF check
+		// of an unsafe request. Any other request falls through to its own handler.
+		anyHttp.all('*/api/v1/*', ({ request, cookies }) => {
+			if (!store.mfaRequiredNow()) return undefined;
+			if (!csrfValid(request, cookies, store)) return csrfFailed();
+			return ninjaError(403, 'mfa_required', 'Two-factor authentication is required.');
+		}),
 
 		// `list_my_organizers`: the signed-in account's own memberships.
 		http.get('/api/v1/organizer/organizers', ({ request, cookies, response }) => {
