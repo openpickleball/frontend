@@ -33,6 +33,11 @@
 	}
 
 	function submit(event: SubmitEvent) {
+		// One action at a time: no code check while starting over.
+		if (leaving) {
+			event.preventDefault();
+			return;
+		}
 		return form.submit(event, {
 			parse: () => parseMfaCode(code, kind),
 			run: async (data) => {
@@ -48,7 +53,8 @@
 	}
 
 	async function startOver() {
-		if (leaving) return;
+		// One action at a time: no start over while a code is being checked.
+		if (leaving || form.busy) return;
 		leaving = true;
 		try {
 			await cancelMfa();
