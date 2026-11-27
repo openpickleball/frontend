@@ -30,15 +30,17 @@ A player's name comes only from the first and last name given at signup, and pla
 - `app/src/lib/features/players/settings-store.svelte.ts`: remove `saveName`; a change of the name setting updates `displayName` from the response and calls into `myCode` to update the shown name (replacing `rename`, or keep a renamed setter used only here).
 - `app/src/lib/features/players/my-code.svelte.ts`: remove `rename()` unless the store needs a setter (then one, with a test).
 - `app/src/lib/features/players/privacy-settings.svelte`: the new first row (criteria 3, 4).
+- `app/src/lib/features/players/visibility-settings.svelte`: saves through `setPrivacy` and passes the returned name to `myCode.showName` with the player's code.
+- `app/src/lib/features/players/settings-loader.svelte`: the not-available copy says "privacy settings", not "display name".
 - `app/src/lib/features/players/settings.ts`: remove `checkDisplayName` if unused; `checkDetails` checks first and last name with signup's rules (reuse the signup schema pieces in `app/src/lib/domain/schemas.ts`, do not copy them).
 - `app/src/lib/features/players/player-details-form.svelte`: first and last name fields (criterion 6), `autocomplete="given-name"` / `"family-name"`.
 - `app/src/lib/features/players/name-settings.svelte`, `display-name-form.svelte`, `app/src/routes/profile/name/+page.svelte`: deleted. `index.ts` export and doc comment updated.
 - `app/src/lib/domain/routes.ts`: drop `profileName`.
 - `app/src/routes/profile/+page.svelte`: drop the row, add the "Name" text row (criterion 2). `profile-view.svelte`: fix the stale "display name field" comment.
-- `app/src/lib/mocks/store.ts`, `player-rules.ts`, `handlers/open.ts`, `fixtures.ts`: criterion 7. Fixtures use made-up names only.
+- `app/src/lib/mocks/store.ts`, `player-rules.ts`, `fixtures.ts`: criterion 7. Fixtures use made-up names only.
 - Tests: `settings-pages.svelte.test.ts`, `settings-store.test.ts`, `my-code.test.ts`, `settings.test.ts`, `services.test.ts`, `player-details-form.svelte.test.ts`, `integration.test.ts`, `handlers/index.test.ts`, `routes.test.ts`, `profile-page.test.ts`, `auth/guard.test.ts`, `e2e/profile.spec.ts`, `e2e/a11y.test.ts`.
 - `plans/name-from-signup/plan.md`: this file.
-- Added in implementation: `app/src/lib/domain/schemas.ts` (exports `playerNamesSchema`, signup's name rules, for `checkDetails`); `app/src/lib/mocks/handlers/allauth.ts` (signup's name check moved to `player-rules.ts`, shared with the create's body path); `fixtures.test.ts` (snapshot reset and built names); `own-code-gate.svelte` and its test (the details form intro says "first and last name"); `routes/long-names.svelte.test.ts` (the Profile Name row now shows the name, so a long one must wrap there); `app/README.md` (the create asks for first and last name).
+- Added in implementation: `app/src/lib/domain/schemas.ts` (exports `playerNamesSchema`, signup's name rules, for `checkDetails`); `app/src/lib/mocks/handlers/allauth.ts` (signup's name check moved to `player-rules.ts`, shared with the create's body path); `fixtures.test.ts` (snapshot reset and built names); `own-code-gate.svelte` and its test (the details form intro says "first and last name"); `routes/long-names.svelte.test.ts` (the Profile Name row now shows the name, so a long one must wrap there); `app/README.md` (the create asks for first and last name); `app/src/lib/mocks/name-format.test.ts` (the mock lock fails closed on missing or out-of-range birth data, as backend `is_name_format_locked` does).
 
 ## Order of work
 
@@ -54,6 +56,9 @@ A player's name comes only from the first and last name given at signup, and pla
 9. Full gate, then the live drive.
 
 ## Risks
+
+- Found in review and fixed: overlapping privacy saves can answer out of order. The store applies an answer only when no newer call's answer was applied, and a stale one returns false so no stale name reaches `myCode` (`settings-store.test.ts`).
+- Found in review and fixed: a save still in flight when the page unmounts and the account changes would show the previous account's name. `myCode.showName(code, name)` applies only for the player whose code the page held when the change started (`my-code.test.ts`, `settings-pages.svelte.test.ts`).
 
 - Contract drift: if backend#354's final names differ from `name_format` / `name_format_locked`, follow the generated types and update this plan.
 - The locked switch must not look like a broken control: disabled with a reason in its description, and `aria-describedby` points at it.
@@ -91,7 +96,7 @@ A player's name comes only from the first and last name given at signup, and pla
 - Adults: "First Last" by default, with a switch for "First L." (project owner, 2026-11-27).
 - 13 to 17: always "First L.", the switch shown locked; nothing changes at 18 (project owner, 2026-11-27).
 - The switch lives on Profile > Privacy, first row, since it decides what other players see.
-- `Privacy` gains `name` and `setVisibility` becomes `setPrivacy(key, value)`, so the name switch shares the optimistic save, overlap handling and revert. `myCode.rename` becomes `myCode.showName`, called after any saved privacy change with the name the backend returned.
+- `Privacy` gains `name` and `setVisibility` becomes `setPrivacy(key, value)`, so the name switch shares the optimistic save, overlap handling and revert. `myCode.rename` becomes `myCode.showName(code, name)`, called after a saved privacy change that was applied, with the name the backend returned, for the player whose code the page held.
 - The switch's visible label is "Show my last name as an initial" (its accessible name); "Last name" above means the row, not a second label.
 - The Profile Name row shows the name under the "Name" title, then the line "From your sign-up. It can't be changed.", so a long name wraps inside the row instead of pushing the page sideways.
 - The Home greeting shows only the first word of the name ("Hi, Tamsin"), so it reads the same in both formats. It still follows `myCode.displayName`; changing the greeting is out of scope.

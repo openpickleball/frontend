@@ -7,8 +7,9 @@
 	import { SettingsStore, type SettingsDeps } from './settings-store.svelte.js';
 
 	/**
-	 * Loads the player's settings (`GET me/player`) for the Privacy page, and shows the loading, error and not-available states. Renders `children` with the
-	 * store once the settings are there.
+	 * Loads the player's settings (`GET me/player`) for the Privacy page, and shows the loading,
+	 * error and not-available states. Renders `children` with the store once the settings are
+	 * there.
 	 */
 	let {
 		deps = {},
