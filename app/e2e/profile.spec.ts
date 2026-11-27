@@ -60,10 +60,15 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 		await expect(page.getByTestId('match-count')).toHaveText(/^\d+$/);
 
-		// Each rating the API sends, with its reliability and a Demonstration label.
+		// Each rating the API sends, in a tile of its own, with its reliability and a
+		// Demonstration label.
 		const ratings = page.getByRole('region', { name: 'Ratings' });
-		await expect(ratings.getByTestId('headline-rating')).toContainText('Mixed doubles');
-		await expect(ratings.getByTestId('headline-rating')).toContainText('3.42');
+		const tiles = ratings.getByTestId('ratings').getByRole('listitem');
+		await expect(tiles).toHaveCount(2);
+		await expect(tiles.first()).toContainText('Mixed doubles');
+		await expect(tiles.first()).toContainText('3.42');
+		// Rating history has its own page now.
+		await expect(page.getByRole('region', { name: 'Rating history' })).toHaveCount(0);
 		await expect(ratings.getByText('Reliability: 65 out of 100')).toBeVisible();
 		await expect(ratings.getByText('Reliability: 40 out of 100')).toBeVisible();
 		await expect(ratings.getByText('Demonstration', { exact: true })).toHaveCount(2);
@@ -178,14 +183,24 @@ test.describe('an account that has a player (me/player exists)', () => {
 			await expect(page.getByRole('switch', { name: 'Match history' })).toBeVisible();
 			await expect(page.getByTestId('my-code')).toBeVisible();
 			await expect(page.getByTestId('match-count')).toHaveText(/^\d+$/);
-			await expect(page.getByTestId('headline-rating')).toBeVisible();
+			await expect(page.getByTestId('ratings')).toBeVisible();
+			await expectNoAxeViolations(page);
+		});
+
+		test(`the rating history page has no WCAG 2.1 AA violations (${scheme})`, async ({ page }) => {
+			await page.emulateMedia({ colorScheme: scheme });
+			await page.goto('/profile/ratings');
 			await expect(page.getByTestId('rating-history')).toBeVisible();
 			await expectNoAxeViolations(page);
 		});
 	}
 
-	test('shows the rating history, five changes at a time, newest first', async ({ page }) => {
-		const history = page.getByRole('region', { name: 'Rating history' });
+	test('shows the rating history on its own page, five changes at a time', async ({ page }) => {
+		await page.getByRole('link', { name: 'Rating history' }).click();
+		await expect(page).toHaveURL(/\/profile\/ratings$/);
+		await expect(page).toHaveTitle('Rating history · OPEN Pickleball');
+		await expect(page.getByRole('heading', { level: 1, name: 'Rating history' })).toBeVisible();
+		const history = page.getByRole('main');
 		const list = history.getByTestId('rating-history');
 		await expect(list.getByRole('listitem')).toHaveCount(5);
 		const first = list.getByRole('listitem').first();
@@ -208,14 +223,17 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(history.getByRole('button', { name: 'Older' })).toBeDisabled();
 		await history.getByRole('button', { name: 'Newer' }).click();
 		await expect(history.getByTestId('rating-history-range')).toHaveText('1–5 of 8');
+
+		// The back link returns to the profile.
+		await history.getByRole('link', { name: 'Profile', exact: true }).click();
+		await expect(page).toHaveURL(/\/profile$/);
 	});
 });
 
 test('a player with no rating history yet reads so', async ({ page }) => {
 	await signIn(page, 'kit@example.com');
-	await page.goto('/profile');
-	const history = page.getByRole('region', { name: 'Rating history' });
-	await expect(history.getByText(/Nothing has changed your ratings yet/)).toBeVisible();
+	await page.goto('/profile/ratings');
+	await expect(page.getByText(/Nothing has changed your ratings yet/)).toBeVisible();
 });
 
 test.describe('an account with no player and no signup details held', () => {
@@ -298,4 +316,12 @@ test('signed out, the profile sends the player to sign in and back', async ({ pa
 	await page.goto('/profile');
 	await expect(page).toHaveURL(/\/account\/login\?next=%2Fprofile$/);
 	await expect(page.getByTestId('my-code')).toHaveCount(0);
+});
+
+test('signed out, the rating history page sends the player to sign in and back', async ({
+	page
+}) => {
+	await page.goto('/profile/ratings');
+	await expect(page).toHaveURL(/\/account\/login\?next=%2Fprofile%2Fratings$/);
+	await expect(page.getByTestId('rating-history')).toHaveCount(0);
 });

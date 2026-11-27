@@ -29,7 +29,7 @@ Wave 4
 
 - [ ] #286 Show match status in one place above the scoreboard
 - [ ] #287 Trim the match page header and move the match code to the details
-- [ ] #288 Show each rating format at the same size and move rating history to its own page
+- [x] #288 Show each rating format at the same size and move rating history to its own page
 - [ ] #290 Make Home a short list of what needs you
 
 Wave 5
@@ -59,7 +59,7 @@ Where it applies:
 - Home: Needs your confirmation, Disputed matches, Matches on hold, Waiting for the other team and Recent matches. Counts and the All matches link are the `aside`.
 - Matches: the list has no section title, so nothing changes there. Its list keeps its top border, because no section line sits above it.
 - Record a match and the correction: Match, Players, Scoring and Games, then the submit block with the same line and spacing.
-- Profile: Your OPEN code, Matches, Ratings, Rating history, Name and privacy, Your data and Account.
+- Profile: Your OPEN code, Matches, Ratings, Name and privacy, Your data and Account. Since #288, Rating history is its own page, linked from the Ratings section.
 - Match page: Score (the scoreboard) and Details (Games to, Scoring).
 
 ## Copy for #285
@@ -74,6 +74,7 @@ Where it applies:
 - Players: "Type a player's name to find them, or enter their OPEN code. They can find theirs on their Profile page."
 - Your OPEN code: "Share it with the people you play. They need it to add you to a match."
 - Privacy: "Choose what other signed-in players can see. Your display name is always shown to them."
+- Ratings (#288 shortened these in the tiles): "Early estimate: not enough matches yet." is now "Early estimate.", and "It may change when ratings are next recounted." is now "May still change." The reliability popover can carry the longer meaning.
 
 ## Home (#290)
 
@@ -99,3 +100,7 @@ To be filled in by #290.
 - #284: "Other signed-in players see your confirmed matches." is a second line on the Match history switch, shown while it is on. Matches no longer reads the settings or links to them. The `settings-heading` id stays, for the move to Settings in #276.
 - #284: the correction page keeps its intro and its Players note (a correction keeps the same players), which the issue did not list. The warning under Save the correction is two sentences: it voids the match with a new match code, and it confirms the score for your team.
 - #284: the demonstration sentence on Ratings is already one sentence and stays as it is.
+- #288: the Ratings section shows one tile per format, the same size, in a Tailwind grid: two columns on a phone, three from `sm`. Each tile has the format, the number (Instrument Sans semibold, tabular), its reliability lines and the Demonstration badge. The headline logic (`headlineRating`) is gone. The demonstration sentence stays above the tiles.
+- #288: rating history is its own page at `/profile/ratings` (`ROUTES.ratingHistory`), linked from the Ratings section's `aside` ("Rating history", like Home's "All matches"). It has a back link to Profile, like the match page's back link to Matches, then the page title with "Every change to your ratings, newest first." under it. Its list keeps its top border, as the Matches list does, because no section line sits above it.
+- #288: the history page keeps 5 changes a page, as on Profile before. It reads the same endpoint for the player's own code, so the `rating_history_visibility` setting applies as before: the player always sees their own, and a 404 reads "There is no rating history to show." The guard covers the page, because it is under `/profile`.
+- #288: the Rating history link shows whatever the Ratings section shows (loading, no ratings yet, failed), because the history page has its own empty and error states.

@@ -15,6 +15,7 @@ const expected: Record<string, string> = {
 	'./matches/[code]/+page.svelte': 'Match',
 	'./matches/[code]/correct/+page.svelte': 'Correct the score',
 	'./profile/+page.svelte': 'Profile',
+	'./profile/ratings/+page.svelte': 'Rating history',
 	'./account/login/+page.svelte': 'Sign in',
 	'./account/signup/+page.svelte': 'Create account',
 	'./account/verify-email/[key]/+page.svelte': 'Verify your email',
