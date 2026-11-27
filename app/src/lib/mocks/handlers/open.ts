@@ -14,12 +14,17 @@ import {
 	validationError
 } from '../responses';
 import type { EventResult, MockStore } from '../store';
+import { eventCreateIssues, eventUpdateIssues, matchCreateIssues, pageQuery } from '../validation';
 
 type PlayerCreateIn = components['schemas']['PlayerCreateIn'];
 type EventCreateIn = components['schemas']['EventCreateIn'];
 type EventUpdateIn = components['schemas']['EventUpdateIn'];
 type PlayerUpdateIn = components['schemas']['PlayerUpdateIn'];
-import { eventCreateIssues, eventUpdateIssues, matchCreateIssues, pageQuery } from '../validation';
+
+/** Fixed texts, as `apps/events/api.py` has them. */
+const EVENT_FORBIDDEN = "You may not manage this organizer's events.";
+const EVENT_LOCKED = 'This event has matches, so its name and dates cannot change.';
+const EVENT_PROTECTED = 'This event has matches or uploads, so it cannot be deleted.';
 
 /**
  * The OPEN API. Every operation uses `account_auth`: no session is a 401 (before
@@ -29,11 +34,6 @@ import { eventCreateIssues, eventUpdateIssues, matchCreateIssues, pageQuery } fr
  * `GET /api/v1/players/{code}` would also match `/api/v1/players/search`, so `createHandlers`
  * puts the search handlers first.
  */
-/** Fixed texts, as `apps/events/api.py` has them. */
-const EVENT_FORBIDDEN = "You may not manage this organizer's events.";
-const EVENT_LOCKED = 'This event has matches, so its name and dates cannot change.';
-const EVENT_PROTECTED = 'This event has matches or uploads, so it cannot be deleted.';
-
 export function createOpenHandlers(store: MockStore) {
 	/** An Event operation's refusal as the backend sends it, or the Event with `status`. */
 	function eventAnswer(
