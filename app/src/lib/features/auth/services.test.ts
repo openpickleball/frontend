@@ -6,6 +6,7 @@ import {
 	MOCK_PASSWORD,
 	MOCK_RECOVERY_CODES,
 	MOCK_TOTP_CODE,
+	MFA_REQUIRED_EMAIL,
 	ORGANIZER_EMAIL,
 	TWO_FACTOR_EMAIL,
 	UNVERIFIED_EMAIL,
@@ -34,6 +35,7 @@ import {
 	resetPassword,
 	signup,
 	verifyEmail,
+	watchMfaRequired,
 	watchSessionExpiry
 } from './services';
 
@@ -743,5 +745,40 @@ describe('account state after sign-in', () => {
 		session.apply({ status: 'signed_out' });
 		await loading;
 		expect(session.organizers).toBeNull();
+	});
+});
+
+describe('watchMfaRequired', () => {
+	it('says two-factor needs setting up for an account that must have it and has none', async () => {
+		await login({ email: MFA_REQUIRED_EMAIL, password: MOCK_PASSWORD }, { api });
+		await settled();
+		const heard: boolean[] = [];
+		const stop = watchMfaRequired((enrolled) => heard.push(enrolled), { api });
+		await api.open.GET('/api/v1/accounts/me');
+		stop();
+		await api.open.GET('/api/v1/accounts/me');
+		expect(heard).toEqual([false]);
+	});
+
+	it('says to confirm with a code for an account with TOTP whose session did not pass it', async () => {
+		await login({ email: TWO_FACTOR_EMAIL, password: MOCK_PASSWORD }, { api });
+		await authenticateMfa(MOCK_TOTP_CODE, { api });
+		await settled();
+		const current = mockStore.state.session;
+		if (current) current.mfaAt = null;
+		const heard: boolean[] = [];
+		const stop = watchMfaRequired((enrolled) => heard.push(enrolled), { api });
+		await api.open.GET('/api/v1/accounts/me');
+		stop();
+		expect(heard).toEqual([true]);
+	});
+
+	it('says nothing for any other answer', async () => {
+		await login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD }, { api });
+		const heard: boolean[] = [];
+		const stop = watchMfaRequired((enrolled) => heard.push(enrolled), { api });
+		await api.open.GET('/api/v1/accounts/me');
+		stop();
+		expect(heard).toEqual([]);
 	});
 });

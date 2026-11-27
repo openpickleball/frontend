@@ -472,3 +472,15 @@ export function watchSessionExpiry(
 }
 
 export type { AppError };
+
+/**
+ * Notice every 403 `mfa_required` from the API, so one place can explain it. `notify` gets
+ * whether the account has two-factor: then this session only has to confirm with a code;
+ * otherwise two-factor needs setting up. Returns a function that stops watching.
+ */
+export function watchMfaRequired(
+	notify: (enrolled: boolean) => void,
+	{ api = appApi }: ApiOption = {}
+): () => void {
+	return api.onMfaRequired(() => notify(session.mfaEnrolled === true));
+}

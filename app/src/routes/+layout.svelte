@@ -10,8 +10,10 @@
 		SignOutButton,
 		isAccountPath,
 		onSignOut,
+		requestReauth,
 		session,
 		setSignOutWarning,
+		watchMfaRequired,
 		watchSessionExpiry
 	} from '#lib/features/auth/index.js';
 	import { matchCache, ownerKey, rememberMatch } from '#lib/features/matches/index.js';
@@ -99,6 +101,26 @@
 	// code and the cache above. Re-running the loads lets the guard send the player to sign in,
 	// with `next` set to this page. Set up at the top level, before any child page calls the API.
 	onDestroy(watchSessionExpiry(() => void invalidateAll()));
+
+	// Any 403 `mfa_required` gets one explanation, not each screen's own error. An account with
+	// two-factor only has to confirm with a code in this session; any other needs to set it up.
+	onDestroy(
+		watchMfaRequired((enrolled) => {
+			if (enrolled) {
+				toast('Confirm with a code from your authenticator app.', {
+					id: 'mfa-required',
+					description: 'This needs a session that passed two-factor. Then try again.',
+					action: { label: 'Enter a code', onClick: () => void requestReauth(['code']) }
+				});
+				return;
+			}
+			toast('This needs two-factor authentication.', {
+				id: 'mfa-required',
+				description: 'Set up two-factor authentication in your profile, then try again.',
+				action: { label: 'Set up two-factor', onClick: () => void goto(resolve(ROUTES.twoFactor)) }
+			});
+		})
+	);
 </script>
 
 <svelte:head>

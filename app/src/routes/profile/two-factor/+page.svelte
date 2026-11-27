@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { ROUTES } from '#lib/domain/index.js';
-	import { TwoFactorSettings, session } from '#lib/features/auth/index.js';
+	import { OrganizerMfaPrompt, TwoFactorSettings, session } from '#lib/features/auth/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 </script>
 
@@ -22,6 +22,7 @@
 
 <div class="mt-8 grid gap-8">
 	{#if session.isSignedIn}
+		<OrganizerMfaPrompt />
 		<TwoFactorSettings />
 	{/if}
 </div>

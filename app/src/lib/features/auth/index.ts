@@ -29,6 +29,11 @@
  *   then sends the call again. On Cancel it throws `ReauthCancelled`, which callers ignore.
  *   `requestReauth(methods)` opens the same prompt directly.
  *
+ * - `watchMfaRequired(notify)`: the root layout calls it once, and explains every 403
+ *   `mfa_required` in one toast.
+ * - `OrganizerMfaPrompt`: tells an organizer member without two-factor that organizer actions
+ *   need it. Display only.
+ *
  * The routes use the rest: the forms and the layout guard.
  */
 import { redirect } from '@sveltejs/kit';
@@ -42,7 +47,7 @@ export {
 	type OrganizerMembership,
 	type SessionStatus
 } from './session.svelte.js';
-export { watchSessionExpiry, onSignOut, setSignOutWarning } from './services.js';
+export { watchMfaRequired, watchSessionExpiry, onSignOut, setSignOutWarning } from './services.js';
 export { isAccountPath, safeNext } from './guard.js';
 export { goAfterSignIn } from './navigation.js';
 export { default as SignOutButton } from './components/sign-out-button.svelte';
@@ -55,7 +60,8 @@ export { default as SessionCheck } from './components/session-check.svelte';
 export { default as ReauthPrompt } from './components/reauth-prompt.svelte';
 export { default as TwoFactorSettings } from './components/two-factor-settings.svelte';
 export { default as TwoFactorStatus } from './components/two-factor-status.svelte';
-export { ReauthCancelled, requestReauth, withReauth } from './reauth.svelte.js';
+export { default as OrganizerMfaPrompt } from './components/organizer-mfa-prompt.svelte';
+export { ReauthCancelled, reauthPrompt, requestReauth, withReauth } from './reauth.svelte.js';
 
 /**
  * Read the session once (and set up CSRF), then redirect if this visit isn't allowed:

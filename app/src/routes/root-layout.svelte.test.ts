@@ -1,17 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRawSnippet } from 'svelte';
 import { render } from 'vitest-browser-svelte';
-import { requestReauth, session } from '#lib/features/auth/index.js';
+import { toast } from 'svelte-sonner';
+import { goto } from '$app/navigation';
+import { reauthPrompt, requestReauth, session } from '#lib/features/auth/index.js';
 import { matchCache } from '#lib/features/matches/index.js';
 import { myCode } from '#lib/features/players/index.js';
 import RootLayout from './+layout.svelte';
 
-vi.mock('$app/navigation', () => ({ invalidateAll: vi.fn() }));
+vi.mock('$app/navigation', () => ({ invalidateAll: vi.fn(), goto: vi.fn() }));
 vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/') } }));
 // The auth service is not under test. Keep the real store, and stop the layout's own calls.
+let mfaRequired: ((enrolled: boolean) => void) | null = null;
 vi.mock('#lib/features/auth/services.js', async (importOriginal) => ({
 	...(await importOriginal<Record<string, unknown>>()),
-	watchSessionExpiry: vi.fn(() => () => {})
+	watchSessionExpiry: vi.fn(() => () => {}),
+	watchMfaRequired: vi.fn((notify: (enrolled: boolean) => void) => {
+		mfaRequired = notify;
+		return () => {
+			mfaRequired = null;
+		};
+	})
 }));
 
 const children = createRawSnippet(() => ({ render: () => '<p>page</p>' }));
@@ -75,5 +84,32 @@ describe('root layout reauthentication prompt', () => {
 		await expect.element(screen.getByRole('dialog')).toBeVisible();
 		await screen.getByRole('button', { name: 'Cancel' }).click();
 		expect(await asked).toBe(false);
+	});
+});
+
+describe('root layout mfa_required notice', () => {
+	afterEach(() => {
+		toast.dismiss();
+		reauthPrompt.settle(false);
+	});
+
+	it('explains it and links to the two-factor setup, once however often it comes', async () => {
+		const screen = await render(RootLayout, props);
+		mfaRequired?.(false);
+		mfaRequired?.(false);
+		await expect.element(screen.getByText('This needs two-factor authentication.')).toBeVisible();
+		expect(document.querySelectorAll('[data-sonner-toast]')).toHaveLength(1);
+		await screen.getByRole('button', { name: 'Set up two-factor' }).click();
+		expect(vi.mocked(goto)).toHaveBeenCalledWith('/profile/two-factor');
+	});
+
+	it('offers the code prompt to an account that has two-factor', async () => {
+		const screen = await render(RootLayout, props);
+		mfaRequired?.(true);
+		await expect
+			.element(screen.getByText('Confirm with a code from your authenticator app.'))
+			.toBeVisible();
+		await screen.getByRole('button', { name: 'Enter a code' }).click();
+		await vi.waitFor(() => expect(reauthPrompt.request?.methods).toEqual(['code']));
 	});
 });
