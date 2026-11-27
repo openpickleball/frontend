@@ -813,7 +813,9 @@ test.describe('corrections', () => {
 		await expect(popover.getByText(/organizer/)).toHaveCount(0);
 
 		await page.goto(`/matches/${CLUB_DISPUTE}/correct`);
-		await expect(page.getByTestId('cannot-correct')).toContainText('recorded themselves');
+		await expect(page.getByTestId('cannot-correct')).toContainText(
+			"can't be corrected by its players"
+		);
 		await expect(page.getByRole('button', { name: 'Save the correction' })).toHaveCount(0);
 	});
 

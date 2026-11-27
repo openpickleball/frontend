@@ -73,9 +73,14 @@ export const CORRECT_NOTE =
 export const CORRECT_EVENT_NOTE =
 	"Only the event's organizer can change a match played at an event.";
 
-/** Why the correction page shows no form for a match with a Club and no Event. */
-export const CORRECT_CLUB_NOTE =
-	'Players can only correct a match they recorded themselves, and this one was recorded for a club.';
+/**
+ * Why the correction page shows no form for a match with a Club and no Event. Any player in a
+ * match may correct it, whoever recorded it: the backend refuses this one because it has a Club.
+ */
+export const CORRECT_CLUB_NOTE = "A match recorded for a club can't be corrected by its players.";
+
+/** Added after `CORRECT_CLUB_NOTE` on a pending match. A disputed one is already disputed. */
+export const CORRECT_CLUB_DISPUTE = 'If the score is wrong, dispute the match instead.';
 
 /** The vouch button, while the viewer's side has not vouched. */
 function vouchAction(hold: HoldState): PanelAction[] {
