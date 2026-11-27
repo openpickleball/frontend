@@ -117,7 +117,8 @@ function messageFor(
 	fields: Record<string, string[]>,
 	serverText?: string
 ): string {
-	if (kind === 'forbidden' && FORBIDDEN_MESSAGES[code]) return FORBIDDEN_MESSAGES[code];
+	if (kind === 'forbidden' && Object.hasOwn(FORBIDDEN_MESSAGES, code))
+		return FORBIDDEN_MESSAGES[code];
 	if (code === LOGIN_LOCKOUT && serverText) return serverText;
 	if ((kind === 'validation' || kind === 'duplicate') && serverText) return serverText;
 	if (kind === 'validation' && Object.keys(fields).length === 0) return FORM_MESSAGE;
