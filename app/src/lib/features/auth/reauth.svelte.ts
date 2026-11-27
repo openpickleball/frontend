@@ -29,7 +29,11 @@ class ReauthPromptStore {
 	 * The open request: the ways the player may confirm, the first one shown first, and the kinds
 	 * of code the code step takes.
 	 */
-	request = $state<{ methods: ReauthMethod[]; codeTypes: ReauthCodeType[] } | null>(null);
+	request = $state<{ id: number; methods: ReauthMethod[]; codeTypes: ReauthCodeType[] } | null>(
+		null
+	);
+	/** Tells one request from the next, so a late answer can't settle a newer one. */
+	#nextId = 0;
 	/** What the player typed. Kept here, not in the dialog, so every close can clear it. */
 	password = $state('');
 	code = $state('');
@@ -44,12 +48,13 @@ class ReauthPromptStore {
 			const order: ReauthMethod[] = ['password', 'code'];
 			const typeOrder: ReauthCodeType[] = ['totp', 'recovery_codes'];
 			this.request = {
+				id: this.request.id,
 				methods: order.filter((method) => all.has(method)),
 				codeTypes: typeOrder.filter((type) => types.has(type))
 			};
 			return this.#pending;
 		}
-		this.request = { methods, codeTypes };
+		this.request = { id: ++this.#nextId, methods, codeTypes };
 		this.#pending = new Promise<boolean>((resolve) => (this.#resolve = resolve));
 		return this.#pending;
 	}

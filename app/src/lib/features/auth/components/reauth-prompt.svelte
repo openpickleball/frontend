@@ -13,7 +13,13 @@
 	} from '#lib/ui/dialog/index.js';
 	import { TextField } from '#lib/ui/field/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
-	import { parseMfaCode, type CodeKind } from '../forms.js';
+	import {
+		asAppError,
+		issueMessages,
+		parseMfaCode,
+		serverMessages,
+		type CodeKind
+	} from '../forms.js';
 	import { createAuthForm } from '../form.svelte.js';
 	import { reauthPrompt } from '../reauth.svelte.js';
 	import { reauthenticate, reauthenticateMfa } from '../services.js';
@@ -82,19 +88,38 @@
 		return { success: true, data: { method: 'code', value: parsed.data.code } };
 	}
 
-	function submit(event: SubmitEvent) {
-		return form.submit(event, {
-			parse,
-			run: async (answer) => {
-				if (answer.method === 'password') await reauthenticate(answer.value);
-				else await reauthenticateMfa(answer.value);
-				reauthPrompt.settle(true);
-			},
-			onError: (error, fields) => {
-				if (fields.password || fields.code) form.showFields(fields);
-				else form.problem = { title: error.message };
-			}
-		});
+	/** The request whose confirm is waiting for its answer. Only that request shows it. */
+	let inFlight = $state<number | null>(null);
+	const busy = $derived(inFlight !== null && inFlight === reauthPrompt.request?.id);
+
+	async function submit(event: SubmitEvent) {
+		event.preventDefault();
+		const id = reauthPrompt.request?.id;
+		if (id === undefined || busy) return;
+		form.problem = null;
+		const parsed = parse();
+		if (!parsed.success) {
+			form.showFields(issueMessages(parsed.error.issues));
+			return;
+		}
+		form.showFields({});
+		inFlight = id;
+		// An answer that comes back after this request closed belongs to nobody: drop it.
+		const current = () => reauthPrompt.request?.id === id;
+		try {
+			const answer = parsed.data;
+			if (answer.method === 'password') await reauthenticate(answer.value);
+			else await reauthenticateMfa(answer.value);
+			if (current()) reauthPrompt.settle(true);
+		} catch (cause) {
+			if (!current()) return;
+			const error = asAppError(cause);
+			const fields = serverMessages(error);
+			if (fields.password || fields.code) form.showFields(fields);
+			else form.problem = { title: error.message };
+		} finally {
+			if (inFlight === id) inFlight = null;
+		}
 	}
 
 	function cancel() {
@@ -169,9 +194,9 @@
 			{/if}
 			<DialogFooter>
 				<Button variant="outline" onclick={cancel}>Cancel</Button>
-				<Button type="submit" aria-disabled={form.busy} aria-busy={form.busy}>
-					{#if form.busy}<Spinner />{/if}
-					{form.busy ? 'Checking…' : 'Confirm'}
+				<Button type="submit" aria-disabled={busy} aria-busy={busy}>
+					{#if busy}<Spinner />{/if}
+					{busy ? 'Checking…' : 'Confirm'}
 				</Button>
 			</DialogFooter>
 		</form>
