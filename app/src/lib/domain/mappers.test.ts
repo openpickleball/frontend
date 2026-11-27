@@ -46,6 +46,8 @@ function dto(overrides: Partial<MatchDto> = {}): MatchDto {
 			{ number: 2, team_a: 9, team_b: 11 },
 			{ number: 3, team_a: 11, team_b: 4 }
 		],
+		event: null,
+		club: null,
 		...overrides
 	};
 }
