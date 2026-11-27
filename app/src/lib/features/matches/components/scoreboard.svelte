@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { winner, type Match, type PlayerCode } from '#lib/domain/index.js';
 	import { Section } from '#lib/ui/section/index.js';
-	import { sideScores, teamNames, viewpoint, wonTag } from '../format.js';
+	import { matchHeadline, scoreLine, sideScores, teamNames, viewpoint, wonTag } from '../format.js';
 
 	let { match, you }: { match: Match; you: PlayerCode } = $props();
 
@@ -22,8 +22,12 @@
 </script>
 
 <Section title="Score">
-	<!-- The table is for screen readers. The grid below is the same data, drawn for the eye. -->
+	<!-- The sentence and the table are for screen readers. The grid below is the same data, drawn
+	     for the eye. The page title says only the format and date, so the sentence gives the result. -->
 	<div class="sr-only">
+		<p data-testid="scoreboard-result">
+			{matchHeadline(match, you)}, {scoreLine(match, first)}.
+		</p>
 		<table>
 			<caption>Score by game</caption>
 			<thead>
@@ -64,14 +68,10 @@
 			>
 				<div class="grid min-w-0 gap-1.5">
 					{#each row.team.players as player, index (index)}
-						<div class="grid gap-0.5">
-							<span class="text-lg wrap-anywhere {row.won ? 'font-semibold' : ''}">
-								{player.displayName}{you && player.code === you ? ' (you)' : ''}
-							</span>
-							{#if player.code}
-								<span class="open-code text-sm text-muted">{player.code}</span>
-							{/if}
-						</div>
+						<!-- Names only: player codes don't help on a match you played. -->
+						<span class="text-lg wrap-anywhere {row.won ? 'font-semibold' : ''}">
+							{player.displayName}{you && player.code === you ? ' (you)' : ''}
+						</span>
 					{/each}
 					{#if row.won}
 						<span class="mt-0.5 text-sm font-semibold text-secondary">

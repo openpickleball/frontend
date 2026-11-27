@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	STATUS_LABELS,
 	formatDate,
+	formatDayMonth,
 	formatLongDate,
 	formatShortDate,
 	matchCountLabel,
@@ -197,6 +198,13 @@ describe('rowTeamNames', () => {
 		expect(rowTeamNames(team('a', tamsin, oren), TAMSIN)).toBe('You & Oren Quill');
 		expect(rowTeamNames(team('b', bea, kit), TAMSIN)).toBe('Bea Marlowe & Kit Ashdown');
 		expect(rowTeamNames(team('b', bea), null)).toBe('Bea Marlowe');
+	});
+});
+
+describe('formatDayMonth', () => {
+	it('has the day and month only', () => {
+		expect(formatDayMonth('2026-11-14')).toBe('14 Nov');
+		expect(formatDayMonth('nope')).toBe('nope');
 	});
 });
 

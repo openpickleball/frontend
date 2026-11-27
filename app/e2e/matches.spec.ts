@@ -223,7 +223,7 @@ test.describe('match detail', () => {
 		await rowFor(page, WAITING_ON_ME_TOO).click();
 		await expect(page).toHaveURL(new RegExp(`/matches/${WAITING_ON_ME_TOO}$`));
 		await expect(
-			page.getByRole('heading', { level: 1, name: /^You (beat|lost to) / })
+			page.getByRole('heading', { level: 1, name: /^(Singles|Doubles) · \w{3} \d{1,2} \w{3}$/ })
 		).toBeVisible();
 		await expect(page.getByText('Pending', { exact: true })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Is this the right score?' })).toBeVisible();
@@ -314,9 +314,10 @@ test.describe('match detail', () => {
 		page
 	}) => {
 		await page.goto(`/matches/${WAITING_ON_ME}`);
-		const copy = page.getByRole('button', { name: 'Copy code' });
-		await copy.focus();
-		// Confirm and Dispute come right after the code, before the scoreboard.
+		const back = page.locator('#main').getByRole('link', { name: 'Matches', exact: true });
+		await back.focus();
+		// Confirm and Dispute come right after the header, before the scoreboard.
+		// The header's title and badges have no stop of their own.
 		await page.keyboard.press('Tab');
 		await expect(page.getByRole('button', { name: 'Confirm score' })).toBeFocused();
 		await page.keyboard.press('Tab');
@@ -339,8 +340,8 @@ test.describe('match detail', () => {
 	test('opens a match from its URL on a fresh page load, with nothing cached', async ({ page }) => {
 		const code = matchCode(oldest.random);
 		await page.goto(`/matches/${code}`);
-		await expect(page.getByRole('heading', { level: 1 })).toContainText(/ (beat|lost to|played) /);
-		await expect(page.getByText(code)).toBeVisible();
+		await expect(page.getByRole('heading', { level: 1 })).toContainText(/^(Singles|Doubles) · /);
+		await expect(page.getByRole('region', { name: 'Details' }).getByText(code)).toBeVisible();
 		await expect(page.getByRole('table', { name: 'Score by game' })).toBeAttached();
 		await expectNoAxeViolations(page);
 	});
@@ -753,5 +754,42 @@ test.describe('match page status panel', () => {
 		await page.goto(`/matches/${HELD_VOUCHED}`);
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-tone', 'held');
 		expect(await panelBeforeScore(page)).toBe(true);
+	});
+});
+
+test.describe('match page header', () => {
+	test('is the format and date with the badge, and names the tab the same way', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		const title = page.getByRole('heading', { level: 1 });
+		await expect(title).toHaveText(/^(Singles|Doubles) · \w{3} \d{1,2} \w{3}$/);
+		const [format, date] = (await title.innerText()).split(' · ');
+		await expect(page).toHaveTitle(
+			`${format}, ${date.split(' ').slice(1).join(' ')} · OPEN Pickleball`
+		);
+		await expect(title.locator('..')).not.toContainText(/ (beat|lost to) /);
+	});
+
+	test('copies the match code from Details', async ({ page, context }) => {
+		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		const details = page.getByRole('region', { name: 'Details' });
+		await expect(details.getByText(WAITING_ON_ME, { exact: true })).toBeVisible();
+		await details.getByRole('button', { name: 'Copy match code' }).click();
+		await expect(page.getByText('Match code copied')).toBeVisible();
+		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(WAITING_ON_ME);
+	});
+
+	test('shows names on the scoreboard with no player codes, and says the result to screen readers', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${WAITING_ON_ME}`);
+		const score = page.getByRole('region', { name: 'Score', exact: true });
+		await expect(score.getByText(`${tamsin.displayName} (you)`, { exact: true })).toBeVisible();
+		await expect(score.getByText(/^P-/)).toHaveCount(0);
+		await expect(score.getByTestId('scoreboard-result')).toHaveText(
+			/^You and .+ (beat|lost to) .+, \d+-\d+(, \d+-\d+)*\.$/
+		);
 	});
 });

@@ -25,12 +25,10 @@
 	import { matchCache, type HoldState, type MatchAction } from '../cache.svelte.js';
 	import {
 		STATUS_LABELS,
-		formatLongDate,
+		formatDayMonth,
 		formatName,
-		matchHeadline,
-		scoreLine,
-		scoringName,
-		viewpoint
+		formatShortDate,
+		scoringName
 	} from '../format.js';
 	import {
 		confirmMatch,
@@ -80,7 +78,12 @@
 	// `MatchOut` has no hold field, so the holds list says whether the match is held. The cache
 	// keeps what the home list or this page's own lookup found.
 	const hold = $derived(match && code ? matchCache.holdOf(code) : undefined);
-	const title = $derived(code ? `Match ${code} · OPEN Pickleball` : 'Match · OPEN Pickleball');
+	// "Doubles, 14 Nov". The match code is in Details, not in the tab.
+	const title = $derived(
+		match
+			? `${formatName(match.format)}, ${formatDayMonth(match.playedOn)} · OPEN Pickleball`
+			: 'Match · OPEN Pickleball'
+	);
 
 	// Counts reads and actions. A read that finishes after a newer one started, or after the player
 	// confirmed or disputed, is ignored, so it can't bring back an older state.
@@ -384,24 +387,16 @@
 			</Button>
 		</div>
 	{/if}
-	<div class="pt-4">
-		<p class="label">{formatName(match.format)} · {formatLongDate(match.playedOn)}</p>
-		<h1 id="match-title" tabindex="-1" class="page-title mt-2 outline-none">
-			{matchHeadline(match, you)}
+	<!-- The header is the title and the badges. The scoreboard below says who played and the score. -->
+	<div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-4">
+		<h1 id="match-title" tabindex="-1" class="page-title outline-none">
+			{formatName(match.format)} · {formatShortDate(match.playedOn)}
 		</h1>
-		<p class="mt-2 text-xl font-semibold tabular-nums">{scoreLine(match, viewpoint(match))}</p>
-		<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+		<div class="flex flex-wrap items-center gap-x-3 gap-y-2">
 			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
 			{#if hold && match.status !== 'voided'}
 				<Badge>On hold</Badge>
 			{/if}
-			<span class="open-code text-base text-muted">
-				<span class="sr-only">Match code </span>{match.code}
-			</span>
-			<Button variant="outline" size="sm" onclick={() => copyCode(match.code)}>
-				<CopyIcon aria-hidden="true" />
-				Copy code
-			</Button>
 		</div>
 	</div>
 
@@ -426,7 +421,7 @@
 	<Scoreboard {match} {you} />
 
 	<Section title="Details">
-		<dl class="grid grid-cols-2 gap-x-6">
+		<dl class="grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-3">
 			<div>
 				<dt class="text-sm text-muted">Games to</dt>
 				<dd class="mt-0.5">{match.gameTarget}</dd>
@@ -434,6 +429,17 @@
 			<div>
 				<dt class="text-sm text-muted">Scoring</dt>
 				<dd class="mt-0.5">{scoringName(match.scoringType)}</dd>
+			</div>
+			<!-- The address uses the code, a correction gets a new one, and organizers ask for it. -->
+			<div class="col-span-2 lg:col-span-1">
+				<dt class="text-sm text-muted">Match code</dt>
+				<dd class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+					<span class="open-code">{match.code}</span>
+					<Button variant="outline" size="sm" onclick={() => copyCode(match.code)}>
+						<CopyIcon aria-hidden="true" />
+						Copy <span class="sr-only">match code</span>
+					</Button>
+				</dd>
 			</div>
 		</dl>
 	</Section>
