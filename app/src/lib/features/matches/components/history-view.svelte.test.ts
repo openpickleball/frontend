@@ -184,7 +184,7 @@ describe('HistoryView filter', () => {
 
 		await expect.element(page.getByTestId('range')).toHaveTextContent('1–1 of 1');
 		expect(mocked.listMyHolds).toHaveBeenCalledWith(0, expect.objectContaining({ limit: 20 }));
-		await expect.element(page.getByText(/They don't count until each one/)).toBeVisible();
+		await expect.element(page.getByText('1 match, newest first.', { exact: true })).toBeVisible();
 	});
 
 	it('says so when a filter has no matches, with a way to all of them', async () => {

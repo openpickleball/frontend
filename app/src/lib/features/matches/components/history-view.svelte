@@ -91,15 +91,6 @@
 		void goto(`${resolve(ROUTES.matches)}${matchesQuery(filter)}`, { reset: false });
 	}
 
-	/** What each filter's list holds, under the count. */
-	const ABOUT: Record<Exclude<MatchFilter, 'all'>, string> = {
-		'needs-you':
-			"No one on your team has confirmed these yet. Confirm a score if it's right, or dispute it if it's wrong.",
-		disputed: "A player said these scores are wrong. They don't count while they are disputed.",
-		'on-hold':
-			"Each has the same teams and date as another match on OPEN, but other scores. They don't count until each one is vouched for."
-	};
-
 	/** What an empty filter says. */
 	const NONE: Record<Exclude<MatchFilter, 'all'>, string> = {
 		'needs-you': 'No matches need your confirmation',
@@ -146,19 +137,16 @@
 			</NativeSelect>
 		</div>
 
-		{#if view.status === 'ready' && view.count > 0 && show !== 'all'}
-			<p class="mt-4 max-w-md text-muted">
-				{matchCountLabel(view.count)}, newest first. {ABOUT[show]}
-			</p>
-		{:else if view.status === 'ready' && view.count > 0}
+		{#if view.status === 'ready' && view.count > 0}
+			<!-- A filter shows the count alone. Who sees the matches is said once, under All. -->
 			<p class="mt-4 max-w-md text-muted">
 				{matchCountLabel(view.count)}, newest first.
-				{#if visibility === 'private'}
+				{#if show === 'all' && visibility === 'private'}
 					Only you can see your matches.
-				{:else if visibility === 'signed_in'}
+				{:else if show === 'all' && visibility === 'signed_in'}
 					Other signed-in players see your confirmed matches.
 				{/if}
-				{#if visibility !== null}
+				{#if show === 'all' && visibility !== null}
 					<a href="{resolve(ROUTES.profile)}#settings-heading" class="underline">
 						Change who sees them
 					</a>
