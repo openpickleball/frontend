@@ -12,9 +12,9 @@ import {
 	progressInfo,
 	statusInfo,
 	VOUCH_MEANS,
-	VOUCH_MEANS_EVENT,
 	VOUCH_MEANS_ORGANIZER
 } from './status.js';
+import * as statusModule from './status.js';
 import { sampleMatch, viewerMatch } from './testing.js';
 
 /** A made-up Event and Club for the tests. */
@@ -284,19 +284,20 @@ describe('statusInfo', () => {
 		expect(text({})).toBe(DISPUTE_ENDS);
 	});
 
-	it('picks the vouch text by the match and the viewer', () => {
+	// The holds list gives a hold only to a viewer who may vouch: a player in a match with no
+	// Event, or an organizer member who played in no match of it. So the vouch text depends on the
+	// viewer only, and there is no text for a player in an Event match.
+	it('picks the vouch text by the viewer only', () => {
 		const vouch = (match: ReturnType<typeof sampleMatch>) =>
 			statusInfo(match, { vouched: false })?.terms.find((t) => t.term === 'Vouch')?.text;
 		expect(vouch(viewerMatch({}, { status: 'confirmed' }))).toBe(VOUCH_MEANS);
-		expect(vouch(viewerMatch({}, { status: 'confirmed', club: CLUB }))).toBe(VOUCH_MEANS);
-		expect(vouch(viewerMatch({}, { status: 'confirmed', event: EVENT }))).toBe(VOUCH_MEANS_EVENT);
+		expect(vouch(viewerMatch({}, { status: 'confirmed', event: EVENT }))).toBe(VOUCH_MEANS);
 		expect(vouch(sampleMatch({ status: 'confirmed', event: EVENT }))).toBe(VOUCH_MEANS_ORGANIZER);
 		expect(vouch(sampleMatch({ status: 'confirmed' }))).toBe(VOUCH_MEANS_ORGANIZER);
 	});
 
-	it("tells a player in an event match that the event's organizer vouches, not the players", () => {
-		expect(VOUCH_MEANS_EVENT).toMatch(/event's organizer vouches/);
-		expect(VOUCH_MEANS_EVENT).not.toMatch(/each team/);
+	it('has no vouch text for a player in an Event match, since none is ever shown', () => {
+		expect(Object.keys(statusModule)).not.toContain('VOUCH_MEANS_EVENT');
 	});
 
 	it('explains on hold, and vouch only while the side has not vouched', () => {
