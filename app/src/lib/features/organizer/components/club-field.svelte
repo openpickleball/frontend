@@ -58,6 +58,20 @@
 		});
 	});
 
+	// A club belongs to one organizer's grants: switching organizer clears it, so a club the new
+	// picker or code input does not show is never sent.
+	let shownFor = untrack(() => organizer);
+	$effect(() => {
+		const code = organizer;
+		if (code === shownFor) return;
+		shownFor = code;
+		untrack(() => {
+			if (value === '') return;
+			value = '';
+			onchange?.('');
+		});
+	});
+
 	const options = $derived(grants.map((g) => ({ value: g.club, label: `${g.name} (${g.city})` })));
 
 	function changed(event: Event & { currentTarget: HTMLInputElement | HTMLSelectElement }) {
