@@ -147,7 +147,8 @@
 	}
 </script>
 
-<div aria-busy={busy}>
+<!-- flow-root: the fallbacks' mt-8 stays inside this block instead of collapsing through it. -->
+<div class="flow-root" aria-busy={busy}>
 	<!-- The fallbacks sit 8 below the page title or notice (app/AGENTS.md). -->
 	{#if view.status === 'loading'}
 		<LoadingState label="Loading your two-factor settings…" class="mt-8" />
