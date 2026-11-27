@@ -170,9 +170,14 @@
 							inSection
 						/>
 						{#if needs.length > SHOWN}
-							<!-- The link's own height (min-h-12) spaces it from the list. -->
-							<div class="mt-2">
-								<Button variant="link" href={filterHref('needs-you')} data-testid="see-all-needs">
+							<!-- -ml-1 takes back the link's px-1, so its text lines up with the rows above. -->
+							<div class="mt-4">
+								<Button
+									variant="link"
+									href={filterHref('needs-you')}
+									class="-ml-1"
+									data-testid="see-all-needs"
+								>
 									See all {needs.length}
 									<ArrowRightIcon aria-hidden="true" />
 								</Button>
