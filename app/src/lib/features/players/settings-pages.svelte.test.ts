@@ -138,6 +138,28 @@ describe('VisibilitySettings', () => {
 		expect(myCode.displayName).toBeNull();
 	});
 
+	it("never shows a late answer's name to the next account", async () => {
+		let finish: (value: MySettings) => void = () => {};
+		const updateMySettings = vi.fn(() => new Promise<MySettings>((resolve) => (finish = resolve)));
+		const { screen } = await renderReady(updateMySettings);
+		await screen.getByRole('switch', { name: NAME_SWITCH }).click();
+		expect(updateMySettings).toHaveBeenCalledOnce();
+		// The player leaves the page and signs out, and another account signs in, before the
+		// answer arrives.
+		screen.unmount();
+		myCode.reset();
+		myCode.code = buildCode('player', '9HJD3XK') as PlayerCode;
+		myCode.displayName = 'Oren Quill';
+		myCode.status = 'ready';
+		finish({
+			...SAVED,
+			displayName: 'Fern M.',
+			privacy: { ...SAVED.privacy, name: 'first_last_initial' }
+		});
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		expect(myCode.displayName).toBe('Oren Quill');
+	});
+
 	it('shows the name switch on and locked for a player aged 13 to 17, with why', async () => {
 		const screen = await render(VisibilitySettings, {
 			deps: {

@@ -15,16 +15,23 @@ function appError(kind: AppError['kind'], status: number | null): AppError {
 const SERVER_PLAYER: MyPlayer = { code: CODE_A, displayName: 'Sample Player' };
 
 describe('myCode.showName', () => {
-	it('shows the name the backend returned for a code from the server', async () => {
+	it("shows the name the backend returned for this player's code", async () => {
 		const mine = createMyCode({ fetchMyPlayer: async () => SERVER_PLAYER });
 		await mine.load();
-		mine.showName('Sample P.');
+		mine.showName(CODE_A, 'Sample P.');
 		expect(mine.displayName).toBe('Sample P.');
+	});
+
+	it("ignores a late name for another player, such as the previous account's", async () => {
+		const mine = createMyCode({ fetchMyPlayer: async () => SERVER_PLAYER });
+		await mine.load();
+		mine.showName(CODE_B, 'Other P.');
+		expect(mine.displayName).toBe('Sample Player');
 	});
 
 	it('does nothing before the code is known', () => {
 		const mine = createMyCode({ fetchMyPlayer: async () => SERVER_PLAYER });
-		mine.showName('Sample P.');
+		mine.showName(CODE_A, 'Sample P.');
 		expect(mine.displayName).toBeNull();
 	});
 });
