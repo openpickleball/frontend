@@ -31,8 +31,7 @@ const ONE_UNSENT =
 const THREE_UNSENT =
 	"3 matches haven't been sent yet. They're only on this device, and deleting your account deletes them.";
 const MFA = 'Your account needs two-factor sign-in before it can be deleted.';
-const STAFF =
-	"A staff account can't be deleted here. Email info@openpb.org and we will delete it for you.";
+const STAFF = "A staff account can't be deleted here. Email info@openpb.org for help.";
 const THROTTLED = 'Too many attempts. Wait a moment and try again.';
 
 const openError = (status: number, code: string, message = 'x') =>
@@ -204,7 +203,7 @@ describe('DeleteAccountDialog: confirming', () => {
 		expect(goto).not.toHaveBeenCalled();
 	});
 
-	it('says a staff account is deleted by email', async () => {
+	it("says a staff account can't be deleted here, and where to ask for help", async () => {
 		mocked.deleteAccount.mockRejectedValue(
 			openError(409, 'conflict', 'A staff account cannot be deleted here.')
 		);
