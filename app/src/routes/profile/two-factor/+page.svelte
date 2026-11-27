@@ -10,20 +10,23 @@
 	<title>Two-factor authentication · OPEN Pickleball</title>
 </svelte:head>
 
-<!-- Back to Profile, then the title, as on the rating history page (plans/ux-cleanup #288). -->
-<Button
-	variant="link"
-	href={resolve(ROUTES.profile)}
-	class="mt-2 min-h-10 px-0 text-base font-normal text-muted"
->
-	<ArrowLeftIcon class="size-4" aria-hidden="true" />Profile
-</Button>
-
+<!-- Inside pt-4, as the rating history and match pages are, so the link and title line up. -->
 <div class="pt-4">
-	<h1 class="page-title">Two-factor authentication</h1>
-</div>
+	<!-- Back to Profile, then the title, as on the rating history page (plans/ux-cleanup #288). -->
+	<Button
+		variant="link"
+		href={resolve(ROUTES.profile)}
+		class="mt-2 min-h-10 px-0 text-base font-normal text-muted"
+	>
+		<ArrowLeftIcon class="size-4" aria-hidden="true" />Profile
+	</Button>
 
-{#if session.isSignedIn}
-	<OrganizerMfaPrompt class="mt-8" />
-	<TwoFactorSettings />
-{/if}
+	<div class="pt-4">
+		<h1 class="page-title">Two-factor authentication</h1>
+	</div>
+
+	{#if session.isSignedIn}
+		<OrganizerMfaPrompt class="mt-8" />
+		<TwoFactorSettings />
+	{/if}
+</div>
