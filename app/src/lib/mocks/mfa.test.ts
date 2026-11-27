@@ -204,6 +204,8 @@ describe('with TOTP on', () => {
 	it('shows the unused recovery codes once', async () => {
 		const api = browser();
 		await signedInWithCode(api);
+		// Reading the codes needs a recent reauthentication, as allauth's view does.
+		await reauthenticate(api);
 		const path = '/_allauth/{client}/v1/account/authenticators/recovery-codes' as const;
 		const first = await api.allauth.GET(path, { params: allauthParams });
 		expect(first.data?.data.unused_codes).toEqual([...MOCK_RECOVERY_CODES]);

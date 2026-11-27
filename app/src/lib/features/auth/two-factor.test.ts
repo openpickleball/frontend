@@ -103,6 +103,8 @@ describe('with two-factor on', () => {
 	});
 
 	it('shows the recovery codes once', async () => {
+		// Reading the codes needs a recent reauthentication, as allauth's view does.
+		await reauthenticate(MOCK_PASSWORD, { api });
 		expect((await getRecoveryCodes({ api }))?.codes).toEqual([...MOCK_RECOVERY_CODES]);
 		expect((await getRecoveryCodes({ api }))?.codes).toEqual([]);
 	});
