@@ -14,7 +14,7 @@ Wave 1
 - [x] #280 Keep Krona One for the logo only (app)
 - [x] #280 Keep Krona One for the logo only (site), with #281 Drop the numbered kickers and call the nav link About
 - [x] #282 Put the Record a match line above each section heading
-- [ ] #289 Filter the Matches list by status
+- [x] #289 Filter the Matches list by status
 
 Wave 2
 - [ ] #283 Use one heading and section pattern on every app page
@@ -45,3 +45,7 @@ To be filled in by #290.
 - #280 (app): the `label` utility is Instrument Sans semibold (600), so the 11px caps stay as easy to read as they were in the heavier Krona One.
 - #280 (app): OPEN codes use Instrument Sans medium, not semibold, because the same style applies to names typed into the code input.
 - #280 (app): the code style is one utility, `open-code` in `app/src/routes/layout.css`, because it repeats in 8 places.
+- #289: "Needs you" on Matches is the awaiting-confirmation list only. Held matches the player can still vouch for are under "On hold". The two are separate backend lists with their own paging, and merging them into one paged list would mean reading both in full. #290 can revisit this if Home's "Needs you" takes in vouching.
+- #289: the filter is the native select from `#lib/ui/native-select`, in the address as `?show=` (`needs-you`, `disputed`, `on-hold`). An unknown value shows All. Choosing a filter goes to its first page and keeps focus on the select. The segmented control from Record a match is a radio group inside that feature, so it could not be shared without moving it.
+- #289: Home's "N more ..." links now go to the matching filter, with the text "See them all".
+- #289: a filter shows only the count line ("2 matches, newest first."), with no explanation sentence. #284 removes helper text and #285 moves the disputed and on-hold explanations into info popovers. The empty states stay.

@@ -6,5 +6,5 @@
 </script>
 
 <div class="pt-4">
-	<HistoryView page={data.page} />
+	<HistoryView page={data.page} show={data.show} />
 </div>

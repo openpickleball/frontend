@@ -153,8 +153,10 @@ describe('HomeView', () => {
 		await render(HomeView);
 		await expect
 			.element(page.getByTestId('more-needs'))
-			.toHaveTextContent('3 more matches are waiting for you. See all matches.');
-		await expect.element(page.getByRole('link', { name: 'See all matches' })).toBeVisible();
+			.toHaveTextContent('3 more matches are waiting for you. See them all.');
+		await expect
+			.element(page.getByRole('link', { name: 'See them all' }))
+			.toHaveAttribute('href', '/matches?show=needs-you');
 		await expect.element(page.getByText('4 matches')).toBeVisible();
 	});
 
@@ -307,7 +309,10 @@ describe('HomeView disputed matches', () => {
 		await render(HomeView);
 		await expect
 			.element(page.getByTestId('more-disputes'))
-			.toHaveTextContent('2 more disputed matches are in your history. See all matches.');
+			.toHaveTextContent('2 more disputed matches are in your history. See them all.');
+		await expect
+			.element(page.getByRole('link', { name: 'See them all' }))
+			.toHaveAttribute('href', '/matches?show=disputed');
 		await expect.element(page.getByText('3 matches')).toBeVisible();
 	});
 
@@ -393,7 +398,10 @@ describe('HomeView matches on hold', () => {
 		await render(HomeView);
 		await expect
 			.element(page.getByTestId('more-holds'))
-			.toHaveTextContent('2 more matches are on hold. See all matches.');
+			.toHaveTextContent('2 more matches are on hold. See them all.');
+		await expect
+			.element(page.getByRole('link', { name: 'See them all' }))
+			.toHaveAttribute('href', '/matches?show=on-hold');
 		await expect.element(page.getByText('3 matches')).toBeVisible();
 	});
 
