@@ -68,8 +68,11 @@
 		}
 	}
 
+	/** The offset of the page in the address, which the last good read may not have reached. */
+	const pageOffset = () => (page - 1) * EVENTS_PAGE_SIZE;
+
 	$effect(() => {
-		const from = (page - 1) * EVENTS_PAGE_SIZE;
+		const from = pageOffset();
 		untrack(() => void load(from));
 	});
 
@@ -114,7 +117,7 @@
 	 */
 	function saved(event: OrganizerEvent) {
 		if (editing?.code !== event.code) {
-			void load(offset);
+			void load(pageOffset());
 			return;
 		}
 		// An Event no longer on this page stays where it is: nothing to replace here.
@@ -124,12 +127,12 @@
 
 	/** A delete moves the next Event up from a later page, so the page is read again. */
 	function deleted() {
-		void load(offset);
+		void load(pageOffset());
 	}
 
 	/** A change or delete got 404: read the list again. The memberships were read again too. */
 	function gone() {
-		void load(offset);
+		void load(pageOffset());
 	}
 </script>
 
@@ -169,9 +172,7 @@
 		<CircleAlertIcon aria-hidden="true" />
 		<AlertTitle>{LIST_ERROR}</AlertTitle>
 		<AlertAction>
-			<Button variant="outline" size="sm" onclick={() => load((page - 1) * EVENTS_PAGE_SIZE)}>
-				Try again
-			</Button>
+			<Button variant="outline" size="sm" onclick={() => load(pageOffset())}>Try again</Button>
 		</AlertAction>
 	</Alert>
 	{#if errorKind === 'network'}
