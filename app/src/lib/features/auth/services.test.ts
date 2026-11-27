@@ -1,19 +1,34 @@
 import { HttpResponse, http } from 'msw';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApi, isAppError, type Api, type AppError } from '#lib/api/index.js';
-import { MOCK_KEYS, MOCK_PASSWORD, UNVERIFIED_EMAIL, VERIFIED_EMAIL } from '#lib/mocks/fixtures.js';
+import {
+	MOCK_KEYS,
+	MOCK_PASSWORD,
+	MOCK_RECOVERY_CODES,
+	MOCK_TOTP_CODE,
+	ORGANIZER_EMAIL,
+	TWO_FACTOR_EMAIL,
+	UNVERIFIED_EMAIL,
+	VERIFIED_EMAIL
+} from '#lib/mocks/fixtures.js';
 import { server, useMockApi } from '#lib/mocks/node.js';
 import { mockStore } from '#lib/mocks/store.js';
 import { isThrottled } from './forms';
+import { redirectFor } from './guard';
 import { session } from './session.svelte';
 import {
+	authenticateMfa,
 	bootstrap,
+	cancelMfa,
 	checkResetKey,
 	checkSignupAge,
 	checkSignupPassword,
 	login,
+	loadAccountState,
 	logout,
 	onSignOut,
+	reauthenticate,
+	reauthenticateMfa,
 	requestPasswordReset,
 	resetBootstrap,
 	resetPassword,
@@ -573,5 +588,160 @@ describe('watchSessionExpiry', () => {
 		expect(session.expired).toBe(true);
 		await login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD }, { api });
 		expect(session.expired).toBe(false);
+	});
+});
+
+/** Let the account state calls that run after a sign-in answer. */
+async function settled(): Promise<void> {
+	await loadAccountState({ api });
+}
+
+describe('two-factor sign-in', () => {
+	const twoFactor = { email: TWO_FACTOR_EMAIL, password: MOCK_PASSWORD };
+
+	it('stops at the code step after a correct password, not signed in', async () => {
+		const state = await login(twoFactor, { api });
+		expect(state).toEqual({ status: 'pending_mfa', types: ['totp', 'recovery_codes'] });
+		expect(session.status).toBe('pending_mfa');
+		expect(session.mfaTypes).toEqual(['totp', 'recovery_codes']);
+		expect(session.isSignedIn).toBe(false);
+	});
+
+	it('signs in with the code from the app', async () => {
+		await login(twoFactor, { api });
+		const state = await authenticateMfa(MOCK_TOTP_CODE, { api });
+		expect(state).toEqual({ status: 'signed_in', email: TWO_FACTOR_EMAIL });
+		expect(session.isSignedIn).toBe(true);
+	});
+
+	it('signs in with a recovery code', async () => {
+		await login(twoFactor, { api });
+		await authenticateMfa(MOCK_RECOVERY_CODES[0], { api });
+		expect(session.isSignedIn).toBe(true);
+	});
+
+	it('keeps the code step after a wrong code, with the error on the code field', async () => {
+		await login(twoFactor, { api });
+		const error = await failure(authenticateMfa('000000', { api }));
+		expect(error.kind).toBe('validation');
+		expect(error.fields.code).toEqual(['Incorrect code.']);
+		expect(session.status).toBe('pending_mfa');
+	});
+
+	it('reads the code step again after a reload', async () => {
+		await login(twoFactor, { api });
+		session.reset();
+		resetBootstrap();
+		await bootstrap({ api });
+		expect(session.status).toBe('pending_mfa');
+	});
+
+	it('ends the pending stage on Start over', async () => {
+		await login(twoFactor, { api });
+		await cancelMfa({ api });
+		expect(session.status).toBe('signed_out');
+		resetBootstrap();
+		await bootstrap({ api });
+		expect(session.status).toBe('signed_out');
+	});
+
+	it('keeps guarded pages closed at the code step, and the sign-in page open', async () => {
+		await login(twoFactor, { api });
+		expect(redirectFor({ pathname: '/profile', search: '' }, session.isSignedIn)).toBe(
+			'/account/login?next=%2Fprofile'
+		);
+		expect(redirectFor({ pathname: '/account/login', search: '' }, session.isSignedIn)).toBeNull();
+	});
+});
+
+describe('reauthentication calls', () => {
+	it('accepts the password and refuses a wrong one on its field', async () => {
+		await login({ email: VERIFIED_EMAIL, password: MOCK_PASSWORD }, { api });
+		const error = await failure(reauthenticate('not-the-password', { api }));
+		expect(error.fields.password).toBeDefined();
+		await reauthenticate(MOCK_PASSWORD, { api });
+		expect(mockStore.recentlyReauthenticated()).toBe(true);
+	});
+
+	it('accepts a code and refuses a wrong one on its field', async () => {
+		await login({ email: TWO_FACTOR_EMAIL, password: MOCK_PASSWORD }, { api });
+		await authenticateMfa(MOCK_TOTP_CODE, { api });
+		const error = await failure(reauthenticateMfa('000000', { api }));
+		expect(error.fields.code).toBeDefined();
+		await reauthenticateMfa(MOCK_TOTP_CODE, { api });
+		expect(mockStore.recentlyReauthenticated()).toBe(true);
+	});
+});
+
+describe('account state after sign-in', () => {
+	it('is unknown before it loads', () => {
+		session.apply({ status: 'signed_in', email: VERIFIED_EMAIL });
+		expect(session.organizers).toBeNull();
+		expect(session.isOrganizer).toBe(false);
+		expect(session.mfaEnrolled).toBeNull();
+	});
+
+	it('reads the memberships and two-factor after a sign-in', async () => {
+		await login({ email: ORGANIZER_EMAIL, password: MOCK_PASSWORD }, { api });
+		await settled();
+		expect(session.organizers).toHaveLength(1);
+		expect(session.isOrganizer).toBe(true);
+		expect(session.mfaEnrolled).toBe(false);
+	});
+
+	it('loads by itself after a sign-in, without being asked', async () => {
+		await login({ email: ORGANIZER_EMAIL, password: MOCK_PASSWORD }, { api });
+		await vi.waitFor(() => expect(session.isOrganizer).toBe(true));
+	});
+
+	it('reads two-factor on for an account with TOTP', async () => {
+		await login({ email: TWO_FACTOR_EMAIL, password: MOCK_PASSWORD }, { api });
+		await authenticateMfa(MOCK_TOTP_CODE, { api });
+		await settled();
+		expect(session.mfaEnrolled).toBe(true);
+		expect(session.isOrganizer).toBe(false);
+	});
+
+	it('loads after the session check on startup too', async () => {
+		await login({ email: ORGANIZER_EMAIL, password: MOCK_PASSWORD }, { api });
+		session.reset();
+		resetBootstrap();
+		await bootstrap({ api });
+		await vi.waitFor(() => expect(session.isOrganizer).toBe(true));
+	});
+
+	it('treats a failed call as a non-member with two-factor unknown, and does not throw', async () => {
+		await login({ email: ORGANIZER_EMAIL, password: MOCK_PASSWORD }, { api });
+		server.use(
+			http.get(`${BASE}/api/v1/organizer/organizers`, () => HttpResponse.error()),
+			http.get(`${BASE}/_allauth/browser/v1/account/authenticators`, () =>
+				HttpResponse.json({ status: 500 }, { status: 500 })
+			)
+		);
+		await settled();
+		expect(session.organizers).toEqual([]);
+		expect(session.isOrganizer).toBe(false);
+		expect(session.mfaEnrolled).toBeNull();
+	});
+
+	it('is cleared on sign out and on expiry', async () => {
+		await login({ email: ORGANIZER_EMAIL, password: MOCK_PASSWORD }, { api });
+		await settled();
+		await logout({ api });
+		expect(session.organizers).toBeNull();
+		expect(session.mfaEnrolled).toBeNull();
+		await login({ email: ORGANIZER_EMAIL, password: MOCK_PASSWORD }, { api });
+		await settled();
+		session.expire();
+		expect(session.organizers).toBeNull();
+		expect(session.isOrganizer).toBe(false);
+	});
+
+	it('drops an answer that comes back after the player signed out', async () => {
+		await login({ email: ORGANIZER_EMAIL, password: MOCK_PASSWORD }, { api });
+		const loading = loadAccountState({ api });
+		session.apply({ status: 'signed_out' });
+		await loading;
+		expect(session.organizers).toBeNull();
 	});
 });

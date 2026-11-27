@@ -44,7 +44,7 @@ Paths are under `app/` unless stated.
 - `src/routes/profile/+page.svelte`: a "Two-factor authentication" section in the existing section pattern (`border-t border-line pt-6`, `h2.label`) with the on or off status, a link to the page, and `OrganizerMfaPrompt` above it.
 - `src/routes/+layout.svelte`: mount `ReauthPrompt` and the `mfa_required` listener.
 - `src/lib/features/players/my-code.svelte.ts`: a 403 with code `mfa_required` is not 'unverified'. Let it reach the generic error path, whose message now explains it.
-- `src/lib/features/auth/guard.ts`: `pending_mfa` counts as not signed in for guarded pages (they send to login, which shows the code step), and the login page stays reachable while `pending_mfa`.
+- `src/lib/features/auth/guard.ts`: no change needed. `pending_mfa` is not `isSignedIn`, so guarded pages already send to login (which shows the code step) and the login page stays reachable. `services.test.ts` pins both.
 - Mocks, `src/lib/mocks/`:
   - `store.ts`: an account gains `totp?: { secret: string; createdAt: string }`, `recoveryCodes?: { codes: string[]; used: string[]; createdAt: string; viewed: boolean }`, `organizers?: OrganizerMembership[]`, and `mfaRequired?: boolean` (stands in for staff or moderator). The session gains `stage: 'mfa' | null`, `mfaAt`, `reauthAt`. `login` returns `'mfa'` for an account with TOTP. The mock accepts `MOCK_TOTP_CODE` (`'123456'`) as the current TOTP code and each unused fixture recovery code once. Reauthentication is recent for 300 seconds of `Date.now()`.
   - `browser.ts`: bump the storage key to `open-mock-state-v2`, so old saved state is dropped rather than failing the shape check.
@@ -63,7 +63,7 @@ Each step is TDD (a failing test first, then the code) and its own commit, signe
 1. [x] Add `uqr` and the shadcn-svelte `dialog`, restyled. No behavior yet. Gate: `pnpm check`, `pnpm lint`.
 2. [x] Errors and client: `mfa_required` and `reauthentication_required` messages, `reauthFlowsOf`, `onMfaRequired` middleware. Fix the `my-code` 403 mapping.
 3. [x] Mocks: store fields, fixtures, allauth MFA handlers, organizer handlers, `mfa_required` gate, storage key bump. Unit tests on the mock store's rules (reauthentication first, code once).
-4. [ ] Session and services: `pending_mfa`, `authenticateMfa`, `cancelMfa`, reauthentication calls, `loadAccountState`, clearing on sign out and expiry. Guard rules for `pending_mfa`.
+4. [x] Session and services: `pending_mfa`, `authenticateMfa`, `cancelMfa`, reauthentication calls, `loadAccountState`, clearing on sign out and expiry. Guard rules for `pending_mfa`.
 5. [ ] Sign-in code step: `MfaCodeForm` and the login form switch.
 6. [ ] Reauthentication: `reauth.svelte.ts`, `ReauthPrompt`, mounted in the root layout.
 7. [ ] Two-factor services and settings: `two-factor.ts`, `QrCode`, `RecoveryCodes`, `TwoFactorSettings`, the `/profile/two-factor` route, the profile section.

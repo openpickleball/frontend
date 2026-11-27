@@ -3,7 +3,8 @@
  *
  * For other features and pages:
  * - `session`: the signed-in state, a runes store. `session.status` is `signed_out`,
- *   `pending_verification` or `signed_in` (`unknown` before the first load, or when the
+ *   `pending_verification`, `pending_mfa` (a login waiting for its two-factor code) or
+ *   `signed_in` (`unknown` before the first load, or when the
  *   session could not be read: the guard treats that as signed out, and `SessionCheck` on the
  *   sign-in page says so).
  *   `session.isSignedIn` is the quick check and `session.email` is the account's address
@@ -30,7 +31,12 @@ import { loginUrl, redirectFor } from './guard.js';
 import { session } from './session.svelte.js';
 import { bootstrap } from './services.js';
 
-export { session, type SessionStatus } from './session.svelte.js';
+export {
+	session,
+	type MfaType,
+	type OrganizerMembership,
+	type SessionStatus
+} from './session.svelte.js';
 export { watchSessionExpiry, onSignOut, setSignOutWarning } from './services.js';
 export { isAccountPath, safeNext } from './guard.js';
 export { goAfterSignIn } from './navigation.js';
