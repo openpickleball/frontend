@@ -1,8 +1,4 @@
-import {
-	SIGNUP_FIRST_NAME_MAX_LENGTH,
-	SIGNUP_NAME_MAX_LENGTH,
-	canonicalEmailSchema
-} from '../../domain/schemas';
+import { canonicalEmailSchema } from '../../domain/schemas';
 import { allauthHttp as http, csrfValid, readJson, readObject } from '../http';
 import {
 	allauthCsrfFailed,
@@ -24,8 +20,8 @@ import {
 	NOT_TEXT,
 	codePoints,
 	hasControlCharacter,
-	hasVisibleCharacter,
 	isOldEnough,
+	signupNameIssues,
 	strip
 } from '../player-rules';
 import {
@@ -74,29 +70,6 @@ function wholeNumber(value: unknown): number | 'invalid' | null {
 
 const PLACE_MAX_LENGTH = 100;
 
-/** A required name: stripped, then required, control characters, and its own length. */
-function nameCheck(
-	value: unknown,
-	param: 'first_name' | 'last_name',
-	requiredMessage: string
-): { issue: AllauthIssue | null; value: string } {
-	if (value === undefined || value === null) {
-		return { issue: { code: 'required', message: requiredMessage, param }, value: '' };
-	}
-	if (typeof value !== 'string') {
-		return { issue: { code: 'invalid', message: NOT_TEXT, param }, value: '' };
-	}
-	const stripped = strip(value);
-	// The control-character check comes first, as in the backend.
-	if (hasControlCharacter(stripped)) {
-		return { issue: { code: 'invalid', message: CONTROL_CHARACTER, param }, value: stripped };
-	}
-	if (!hasVisibleCharacter(stripped)) {
-		return { issue: { code: 'required', message: requiredMessage, param }, value: '' };
-	}
-	return { issue: null, value: stripped };
-}
-
 /** Optional place text: stripped, no control characters, at most 100 characters. */
 function placeIssue(value: unknown, param: 'city' | 'region'): AllauthIssue | null {
 	if (value === undefined || value === null) return null;
@@ -107,35 +80,6 @@ function placeIssue(value: unknown, param: 'city' | 'region'): AllauthIssue | nu
 		return { code: 'max_length', message: `Enter at most ${PLACE_MAX_LENGTH} characters.`, param };
 	}
 	return null;
-}
-
-/** The names, with the first-name limit and then the limit on the two together. */
-function nameIssues(body: Record<string, unknown>): AllauthIssue[] {
-	const issues: AllauthIssue[] = [];
-	const first = nameCheck(body.first_name, 'first_name', 'Enter your first name.');
-	const last = nameCheck(body.last_name, 'last_name', 'Enter your last name.');
-	const firstTooLong = !first.issue && codePoints(first.value) > SIGNUP_FIRST_NAME_MAX_LENGTH;
-	if (first.issue) issues.push(first.issue);
-	else if (firstTooLong) {
-		issues.push({
-			code: 'max_length',
-			message: `Your first name can be at most ${SIGNUP_FIRST_NAME_MAX_LENGTH} characters.`,
-			param: 'first_name'
-		});
-	}
-	if (last.issue) issues.push(last.issue);
-	else if (
-		!first.issue &&
-		!firstTooLong &&
-		codePoints(`${first.value} ${last.value}`) > SIGNUP_NAME_MAX_LENGTH
-	) {
-		issues.push({
-			code: 'max_length',
-			message: `Your first and last name together can be at most ${SIGNUP_NAME_MAX_LENGTH - 1} characters.`,
-			param: 'last_name'
-		});
-	}
-	return issues;
 }
 
 /** The birth year and month checks, with the backend's messages, in its field order. */
@@ -187,7 +131,7 @@ function signupAgeIssues(body: Record<string, unknown>): AllauthIssue[] {
 			param: 'gender_division'
 		});
 	}
-	issues.push(...nameIssues(body));
+	issues.push(...signupNameIssues(body).issues);
 	for (const issue of [placeIssue(body.city, 'city'), placeIssue(body.region, 'region')]) {
 		if (issue) issues.push(issue);
 	}

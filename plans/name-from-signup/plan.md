@@ -76,7 +76,7 @@ A player's name comes only from the first and last name given at signup, and pla
 
 - [x] Schema and types regenerated
 - [ ] Services and types
-- [ ] Mocks
+- [x] Mocks
 - [ ] Store and myCode
 - [ ] Privacy switch
 - [ ] Display name page removed, Profile Name row

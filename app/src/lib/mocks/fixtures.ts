@@ -197,8 +197,11 @@ export type FixtureAccount = {
 export type FixturePlayer = {
 	key: PlayerKey;
 	code: string;
+	/** "First Last", as the backend builds it for an adult. */
 	displayName: string;
 	accountEmail: string | null;
+	firstName: string;
+	lastName: string;
 	/** Empty when the player gave none, as the backend stores it. */
 	legalName: string;
 	birthYear: number;
@@ -215,7 +218,8 @@ const signedIn: PrivacyOut = {
 	rating_history_visibility: 'signed_in',
 	stats_visibility: 'signed_in',
 	home_club_visibility: 'signed_in',
-	rating_visibility: 'signed_in'
+	rating_visibility: 'signed_in',
+	name_format: 'full'
 };
 
 type Profile = {
@@ -227,6 +231,7 @@ type Profile = {
 	legalName?: string;
 };
 
+/** Every fixture player is an adult who shows their full name, "First Last". */
 function player(
 	key: PlayerKey,
 	random: string,
@@ -235,11 +240,14 @@ function player(
 	privacy: PrivacyOut = signedIn
 ): FixturePlayer {
 	const [city, region] = profile.place ?? ['', ''];
+	const [firstName, lastName] = displayName.split(' ');
 	return {
 		key,
 		code: buildCode('player', random),
 		displayName,
 		accountEmail: key === 'tamsin' ? VERIFIED_EMAIL : `${key}@example.com`,
+		firstName,
+		lastName,
 		legalName: profile.legalName ?? displayName,
 		birthYear: profile.born[0],
 		birthMonth: profile.born[1],

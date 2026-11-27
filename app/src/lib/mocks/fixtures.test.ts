@@ -24,6 +24,13 @@ describe('fixtures', () => {
 		expect(ACCOUNTS.filter((a) => !a.active)).toHaveLength(1);
 	});
 
+	it('builds each display name from the first and last name, as adults in full', () => {
+		for (const player of PLAYERS) {
+			expect(player.privacy.name_format, player.key).toBe('full');
+			expect(player.displayName, player.key).toBe(`${player.firstName} ${player.lastName}`);
+		}
+	});
+
 	it('uses example.com addresses only', () => {
 		for (const account of ACCOUNTS) expect(account.email).toMatch(/@example\.com$/);
 		expect(ACCOUNTS.find((a) => a.email === 'player@example.com')?.verified).toBe(true);
@@ -349,6 +356,21 @@ describe('the mock store snapshot', () => {
 		}));
 		expect(store.restore(JSON.stringify(old))).toBe(false);
 		expect(store.state.players[0]).toHaveProperty('city');
+	});
+
+	it('drops a snapshot whose players have no first and last name or name format', () => {
+		const store = createMockStore();
+		const old = JSON.parse(store.snapshot()) as { players: Record<string, unknown>[] };
+		old.players = old.players.map((saved) => {
+			const rest = { ...saved };
+			delete rest.firstName;
+			delete rest.lastName;
+			const privacy = { ...(rest.privacy as Record<string, unknown>) };
+			delete privacy.name_format;
+			return { ...rest, privacy };
+		});
+		expect(store.restore(JSON.stringify(old))).toBe(false);
+		expect(store.state.players[0].privacy.name_format).toBe('full');
 	});
 
 	it('drops a snapshot whose ratings have the old mocked shape', () => {

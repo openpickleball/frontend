@@ -20,7 +20,7 @@ describe('createMissingHandlers (PUBLIC_API_MOCK=missing)', () => {
 		const request = new Request(`${BASE}${path}`, {
 			method,
 			headers: { 'Content-Type': 'application/json' },
-			body: method === 'GET' ? undefined : JSON.stringify({ display_name: 'Fern Mock' })
+			body: method === 'GET' ? undefined : JSON.stringify({ city: 'Vexmoor' })
 		});
 		expect(await getResponse(handlers, request)).toBeUndefined();
 	});
