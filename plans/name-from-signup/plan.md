@@ -77,6 +77,7 @@ A player's name comes only from the first and last name given at signup, and pla
 - Criterion 8: `pnpm check`; `git diff` of `open.json` matches the backend file.
 - Live drive (High: changed path plus failure and edge paths), against `pnpm dev` in mock mode, and against the real local backend on the backend#354 branch if it runs: adult toggles on and off and sees the name change on Privacy, Profile and Home; a 13 to 17 player sees the locked switch; a forced PATCH of `full` for that player is refused; `/profile/name` shows not found. a11y check of the privacy page in both themes.
 - Measured on `main` (2026-11-27): `pnpm test` in `app/`: 176 files, 2237 tests passed.
+- The rewritten frozen test still catches the defect it guards. In a scratch worktree at `git merge-base origin/main HEAD` (`0b8765c`), with only that test added (as `setVisibility`, which `main` has, and the same assertions), `npx vitest run --project node src/lib/features/players/settings-store.test.ts -t 'keeps the newer answer for another setting when an older one arrives after it'` failed: `AssertionError: expected { match_history: 'signed_in', …(5) } to match object { stats: 'private', …(1) }`, with `- "home_club": "private"` and `+ "home_club": "signed_in"`. The older answer puts home_club back to signed_in.
 
 ## Steps
 
@@ -100,4 +101,5 @@ A player's name comes only from the first and last name given at signup, and pla
 - The switch's visible label is "Show my last name as an initial" (its accessible name); "Last name" above means the row, not a second label.
 - The Profile Name row shows the name under the "Name" title, then the line "From your sign-up. It can't be changed.", so a long name wraps inside the row instead of pushing the page sideways.
 - The Home greeting shows only the first word of the name ("Hi, Tamsin"), so it reads the same in both formats. It still follows `myCode.displayName`; changing the greeting is out of scope.
+- The project owner approved rewriting a frozen test (2026-11-27): in `settings-store.test.ts`, "keeps the newer answer for another setting when an older one arrives after it" now expects the older stats answer to return `true`. Its old `false` encoded the global ordering rule that finding F shows is wrong: the backend may handle concurrent saves of different settings in either order, so each answer is the authority for the setting it saved.
 - Regenerating from backend#354's `openapi/openapi.json` also brought in backend changes already on that branch that this plan does not use (two-factor reauthentication notes in descriptions). No app code depends on them.

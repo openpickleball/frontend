@@ -248,7 +248,7 @@ describe('SettingsStore.setPrivacy', () => {
 		expect(await second).toBe(true);
 		// The older answer does not know about home_club yet.
 		answers[0].resolve({ ...SAVED, privacy: { ...OPEN, stats: 'private' } });
-		expect(await first).toBe(false);
+		expect(await first).toBe(true);
 		expect(store.privacy).toMatchObject({ stats: 'private', home_club: 'private' });
 	});
 
