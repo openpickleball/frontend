@@ -4,6 +4,7 @@ import { AppError } from '#lib/api/index.js';
 import { buildCode, type PlayerCode } from '#lib/domain/index.js';
 import { myCode } from './my-code.svelte.js';
 import ProfileSettings from './profile-settings.svelte';
+import YourData from './your-data.svelte';
 import type { MySettings, MySettingsChange } from './types.js';
 
 const SAVED: MySettings = {
@@ -219,7 +220,7 @@ describe('ProfileSettings', () => {
 	});
 
 	it('always says how to get a copy of your data', async () => {
-		const screen = await render(ProfileSettings, { deps: { fetchMySettings: async () => null } });
+		const screen = await render(YourData);
 		await expect
 			.element(screen.getByRole('heading', { level: 2, name: 'Your data' }))
 			.toBeVisible();
@@ -260,11 +261,11 @@ describe('ProfileSettings', () => {
 			const screen = await render(ProfileSettings, {
 				deps: { fetchMySettings: async () => null }
 			});
-			await expect
-				.element(screen.getByRole('heading', { level: 2, name: 'Your data' }))
-				.toBeVisible();
 			await new Promise((resolve) => setTimeout(resolve, 50));
 			await expect.element(screen.getByText(/You can't change/)).not.toBeInTheDocument();
+			await expect
+				.element(screen.getByRole('heading', { level: 2, name: 'Name and privacy' }))
+				.not.toBeInTheDocument();
 		}
 	);
 });

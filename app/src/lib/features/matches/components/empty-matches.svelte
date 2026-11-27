@@ -11,10 +11,17 @@
 		EmptyTitle
 	} from '#lib/ui/empty/index.js';
 
-	let { onHome = false }: { onHome?: boolean } = $props();
+	let {
+		onHome = false,
+		class: className = 'mt-8'
+	}: {
+		onHome?: boolean;
+		/** The space above, which depends on what sits before it. */
+		class?: string;
+	} = $props();
 </script>
 
-<section class="mt-8 border-t border-line pt-8" aria-labelledby="empty-title">
+<section class={['border-t border-line pt-8', className]} aria-labelledby="empty-title">
 	<Empty>
 		<EmptyHeader>
 			<EmptyMedia>

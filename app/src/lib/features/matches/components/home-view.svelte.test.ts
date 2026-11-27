@@ -4,7 +4,7 @@ import { page } from 'vitest/browser';
 import { AppError, type AppErrorKind } from '#lib/api/index.js';
 import { buildCode, type Match, type MatchCode } from '#lib/domain/index.js';
 import { session } from '#lib/features/auth/index.js';
-import { myCode } from '#lib/features/players/index.js';
+import { MyRatings, myCode } from '#lib/features/players/index.js';
 import { matchCache } from '../cache.svelte.js';
 import { needsYou } from '../needs-you.svelte.js';
 import { DISPUTED_MEANS, ON_HOLD_MEANS } from '../status.js';
@@ -21,6 +21,24 @@ vi.mock('../services.js', async (importOriginal) => ({
 	listMyHolds: vi.fn()
 }));
 const mocked = vi.mocked(services);
+
+// The ratings come from the players feature, which has its own tests. Here they are a stand-in.
+const fetchRatings = vi.fn<(code: string) => Promise<typeof RATINGS | null>>();
+const RATINGS = {
+	demonstration: true,
+	ratings: [
+		{
+			format: 'singles' as const,
+			value: 3.05,
+			reliability: 72,
+			importedReliability: null,
+			established: true,
+			provisional: false,
+			demonstration: true,
+			updatedAt: '2026-11-15T09:00:00Z'
+		}
+	]
+};
 
 const code = (random: string) => buildCode('match', random) as MatchCode;
 const NEEDS = code('7QK2H9WD3NF');
@@ -124,11 +142,16 @@ beforeEach(() => {
 	myCode.status = 'ready';
 	serveDisputes([]);
 	serveHolds([]);
+	fetchRatings.mockReset();
+	fetchRatings.mockResolvedValue(RATINGS);
 });
 
 afterEach(() => {
 	session.reset();
 });
+
+/** HomeView's props, with the ratings from the stand-in. */
+const home = () => ({ ratings: new MyRatings(fetchRatings) });
 
 const heading = (name: string) => page.getByRole('heading', { level: 2, name });
 const needsList = () => page.getByRole('list', { name: 'Needs you' });
@@ -139,9 +162,8 @@ describe('HomeView Needs you', () => {
 	it('lists what to confirm and what to vouch for, oldest first, each with its action', async () => {
 		serve([needs, needsToo, waiting, done], [needs, needsToo]);
 		serveHolds([{ match: held, vouched: false }]);
-		const screen = await render(HomeView);
+		const screen = await render(HomeView, home());
 
-		await expect.element(heading('Needs you')).toBeVisible();
 		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(3);
 		const rows = needsList().getByTestId('match-row').elements();
 		expect(rows.map((row) => row.getAttribute('href'))).toEqual([
@@ -151,20 +173,19 @@ describe('HomeView Needs you', () => {
 		]);
 		expect(rows[0].textContent).toContain("Vouch for it. It's on hold.");
 		expect(rows[1].textContent).toContain('Confirm or dispute the score.');
-		await expect.element(page.getByText('3 matches')).toBeVisible();
-		expect(titles(screen.container)).toEqual(['Needs you', 'In progress', 'Recent matches']);
+		expect(titles(screen.container)).toEqual(['Ratings', 'In progress']);
+		await expect.element(page.getByRole('heading', { level: 3, name: 'Needs you' })).toBeVisible();
 	});
 
 	it('shows 3, then See all with the total, which opens the Needs you filter', async () => {
 		serve([done], manyToConfirm(5));
 		serveHolds([{ match: heldToo, vouched: false }]);
-		await render(HomeView);
+		await render(HomeView, home());
 
 		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(3);
 		await expect
 			.element(page.getByRole('link', { name: 'See all 6' }))
 			.toHaveAttribute('href', '/matches?show=needs-you');
-		await expect.element(page.getByText('6 matches')).toBeVisible();
 		// The oldest first: the held match played on 27 October.
 		await expect
 			.element(needsList().getByTestId('match-row').first())
@@ -173,7 +194,7 @@ describe('HomeView Needs you', () => {
 
 	it('reads the awaiting-confirmation list to its end, past the first page', async () => {
 		serve([done], manyToConfirm(130));
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByRole('link', { name: 'See all 130' })).toBeVisible();
 		expect(mocked.listAwaitingConfirmation).toHaveBeenCalledWith(0, expect.anything());
 		expect(mocked.listAwaitingConfirmation).toHaveBeenCalledWith(100, expect.anything());
@@ -181,15 +202,15 @@ describe('HomeView Needs you', () => {
 
 	it('has no See all when everything fits', async () => {
 		serve([needs, done], [needs]);
-		await render(HomeView);
-		await expect.element(heading('Needs you')).toBeVisible();
+		await render(HomeView, home());
+		await expect.element(needsList()).toBeVisible();
 		await expect.element(page.getByTestId('see-all-needs')).not.toBeInTheDocument();
 	});
 
 	it("says You're all caught up when nothing needs the player", async () => {
 		serve([waiting, done], []);
 		serveHolds([{ match: heldToo, vouched: true }]);
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
 		await expect.element(needsList()).not.toBeInTheDocument();
 	});
@@ -197,7 +218,7 @@ describe('HomeView Needs you', () => {
 	it('drops a match once its cached copy is confirmed, and a held one once its side vouches', async () => {
 		serve([done], [needs]);
 		serveHolds([{ match: held, vouched: false }]);
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(2);
 
 		matchCache.remember(
@@ -211,15 +232,15 @@ describe('HomeView Needs you', () => {
 	it('still shows the rest, with a notice and Try again, when Needs you fails', async () => {
 		serve([waiting, done]);
 		mocked.listAwaitingConfirmation.mockRejectedValueOnce(new Error('down'));
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByTestId('needs-error')).toBeVisible();
 		await expect.element(page.getByText("We couldn't check what needs you.")).toBeVisible();
-		await expect.element(heading('Recent matches')).toBeVisible();
+		await expect.element(page.getByTestId('all-matches')).toHaveTextContent('2 matches');
 		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
 
 		serveAwaiting([needs]);
 		await page.getByTestId('needs-error').getByRole('button', { name: 'Try again' }).click();
-		await expect.element(heading('Needs you')).toBeVisible();
+		await expect.element(needsList()).toBeVisible();
 		await expect.element(page.getByTestId('needs-error')).not.toBeInTheDocument();
 	});
 });
@@ -232,7 +253,7 @@ describe('HomeView In progress', () => {
 			{ match: held, vouched: false },
 			{ match: heldToo, vouched: true }
 		]);
-		await render(HomeView);
+		await render(HomeView, home());
 
 		const line = page.getByTestId('in-progress');
 		await expect.element(line).toHaveTextContent('2 disputed · 2 on hold');
@@ -250,7 +271,7 @@ describe('HomeView In progress', () => {
 		serve([needs, myDispute, held, done], [needs]);
 		serveDisputes([myDispute]);
 		serveHolds([{ match: held, vouched: false }]);
-		await render(HomeView);
+		await render(HomeView, home());
 		await page.getByRole('button', { name: 'What do disputed and on hold mean?' }).click();
 		const popover = page.getByRole('dialog', { name: 'What do disputed and on hold mean?' });
 		await expect.element(popover.getByText(DISPUTED_MEANS)).toBeVisible();
@@ -260,7 +281,7 @@ describe('HomeView In progress', () => {
 	it('explains only the counts the line shows', async () => {
 		serve([myDispute, done]);
 		serveDisputes([myDispute]);
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByTestId('in-progress')).toHaveTextContent('1 disputed');
 		await expect
 			.element(page.getByRole('button', { name: 'What does disputed mean?' }))
@@ -270,7 +291,7 @@ describe('HomeView In progress', () => {
 	it('keeps counting a dispute the player can withdraw, and drops one that ended', async () => {
 		serve([done]);
 		serveDisputes([myDispute, theirDispute], 3);
-		await render(HomeView);
+		await render(HomeView, home());
 		const line = page.getByTestId('in-progress');
 		await expect.element(line).toHaveTextContent('3 disputed');
 
@@ -279,20 +300,22 @@ describe('HomeView In progress', () => {
 		await expect.element(line).toHaveTextContent('2 disputed');
 	});
 
-	it('is left out when nothing is disputed or on hold', async () => {
+	it('has no counts line, and no info button, when nothing is disputed or on hold', async () => {
 		serve([waiting, done]);
-		await render(HomeView);
-		await expect.element(heading('Recent matches')).toBeVisible();
-		await expect.element(heading('In progress')).not.toBeInTheDocument();
+		await render(HomeView, home());
+		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
+		await expect.element(page.getByTestId('in-progress')).not.toBeInTheDocument();
+		// Home's compact rating tiles have no info button either.
+		expect(page.getByRole('button', { name: /mean\?/ }).elements()).toHaveLength(0);
 	});
 
 	it('still shows the rest, with a notice and Try again, when the disputed list fails', async () => {
 		serve([waiting, done]);
 		mocked.listMyDisputes.mockRejectedValueOnce(new Error('down'));
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByTestId('disputes-error')).toBeVisible();
 		await expect.element(page.getByText("We couldn't check your disputed matches.")).toBeVisible();
-		await expect.element(heading('Recent matches')).toBeVisible();
+		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
 
 		serveDisputes([myDispute]);
 		await page.getByTestId('disputes-error').getByRole('button', { name: 'Try again' }).click();
@@ -301,55 +324,87 @@ describe('HomeView In progress', () => {
 	});
 });
 
-describe('HomeView recent matches, code and Record a match', () => {
-	it('shows 3 recent matches, leaving out what needs the player, and links to all matches', async () => {
-		serve([needs, waiting, myDispute, held, heldToo, done], [needs]);
-		await render(HomeView);
-
-		const recent = page.getByRole('list', { name: 'Recent matches' });
-		await expect.poll(() => recent.getByTestId('match-row').elements()).toHaveLength(3);
-		expect(
-			recent
-				.getByTestId('match-row')
-				.elements()
-				.map((row) => row.getAttribute('href'))
-		).toEqual([`/matches/${WAITING}`, `/matches/${DISPUTED}`, `/matches/${HELD}`]);
+describe('HomeView order, code, ratings and the match count', () => {
+	it('shows the code, then Ratings, then In progress, with no Recent matches or Record', async () => {
+		serve([needs, waiting, done], [needs]);
+		const screen = await render(HomeView, home());
+		await expect.element(heading('In progress')).toBeVisible();
+		await expect.element(page.getByTestId('ratings')).toBeVisible();
+		expect(titles(screen.container)).toEqual(['Ratings', 'In progress']);
+		const strip = page.getByTestId('my-code').element();
+		await expect.element(page.getByTestId('my-code')).toHaveTextContent(TAMSIN);
+		const [ratings] = screen.container.querySelectorAll('section');
+		expect(strip.compareDocumentPosition(ratings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		await expect.element(page.getByRole('button', { name: 'Copy code' })).toBeVisible();
+		await expect.element(heading('Recent matches')).not.toBeInTheDocument();
 		await expect
-			.element(page.getByRole('link', { name: 'All matches' }))
-			.toHaveAttribute('href', '/matches');
+			.element(page.getByRole('link', { name: 'Record a match' }))
+			.not.toBeInTheDocument();
+		await expect.element(page.getByRole('link', { name: 'All matches' })).not.toBeInTheDocument();
 	});
 
-	it('puts the code strip, then Record a match, below the sections', async () => {
+	it("puts the player's match count next to In progress, linking to Matches", async () => {
+		serve([needs, waiting, myDispute, done], [needs]);
+		await render(HomeView, home());
+		const link = page.getByRole('link', { name: '4 matches' });
+		await expect.element(link).toHaveAttribute('href', '/matches');
+		await expect.element(link).toHaveAttribute('data-testid', 'all-matches');
+		const section = heading('In progress').element().closest('section');
+		expect(section?.contains(link.element())).toBe(true);
+	});
+
+	it('says "1 match" for one', async () => {
+		serve([done]);
+		await render(HomeView, home());
+		await expect.element(page.getByRole('link', { name: '1 match', exact: true })).toBeVisible();
+	});
+
+	it('shows the ratings with the demonstration sentence and a Details link to Ratings', async () => {
+		serve([done]);
+		await render(HomeView, home());
+		const ratings = page.getByTestId('ratings');
+		await expect.element(ratings.getByText('3.05')).toBeVisible();
+		await expect
+			.element(
+				page.getByText('These are demonstration numbers while the rating method is being built.')
+			)
+			.toBeVisible();
+		await expect
+			.element(page.getByRole('link', { name: 'Details' }))
+			.toHaveAttribute('href', '/ratings');
+		// Compact tiles: no reliability lines, and so no popover to explain them.
+		await expect.element(ratings.getByText('Demonstration', { exact: true })).toBeVisible();
+		await expect.element(ratings.getByText(/Reliability/)).not.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('button', { name: 'What does reliability mean?' }))
+			.not.toBeInTheDocument();
+		expect(fetchRatings).toHaveBeenCalledWith(TAMSIN);
+	});
+
+	it('keeps the matches when the ratings fail, and says so in the Ratings section', async () => {
+		fetchRatings.mockRejectedValue(new Error('down'));
 		serve([needs, done], [needs]);
-		const screen = await render(HomeView);
-		await expect.element(page.getByTestId('my-code')).toHaveTextContent(TAMSIN);
-		const record = page.getByRole('link', { name: 'Record a match' });
-		await expect.element(record).toHaveAttribute('href', '/record');
-		const sections = screen.container.querySelectorAll('section');
-		const last = sections[sections.length - 1];
-		const strip = page.getByTestId('my-code').element();
-		expect(last.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-		expect(
-			strip.compareDocumentPosition(record.element()) & Node.DOCUMENT_POSITION_FOLLOWING
-		).toBeTruthy();
+		await render(HomeView, home());
+		await expect.element(page.getByText(/We can't load your ratings right now/)).toBeVisible();
+		await expect.element(needsList()).toBeVisible();
 	});
 
 	it('does not say "pending matches" or hedge about who confirmed', async () => {
 		serve([needs, waiting], [needs]);
-		await render(HomeView);
-		await expect.element(heading('Needs you')).toBeVisible();
+		await render(HomeView, home());
+		await expect.element(needsList()).toBeVisible();
 		await expect.element(page.getByText(/pending matches/i)).not.toBeInTheDocument();
 		await expect.element(page.getByText(/If you already confirmed/)).not.toBeInTheDocument();
 	});
 
-	it('shows the empty state, with one Record a match, when the player has no matches', async () => {
+	it('shows the empty state, with its one Record a match, when the player has no matches', async () => {
 		serve([], []);
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByText('No matches yet')).toBeVisible();
-		await expect.element(heading('Needs you')).not.toBeInTheDocument();
-		await expect.element(heading('Recent matches')).not.toBeInTheDocument();
+		await expect.element(heading('In progress')).not.toBeInTheDocument();
 		expect(page.getByRole('link', { name: 'Record a match' }).elements()).toHaveLength(1);
 		await expect.element(page.getByTestId('my-code')).toBeVisible();
+		await expect.element(heading('Ratings')).toBeVisible();
 	});
 });
 
@@ -357,20 +412,19 @@ describe('HomeView history errors', () => {
 	it('shows one page-wide error with Try again when the history fails', async () => {
 		mocked.listMatches.mockRejectedValue(new Error('down'));
 		serveAwaiting([needs]);
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByText("Your matches didn't load.")).toBeVisible();
 		await expect.element(page.getByText(/went wrong on our side/)).toBeVisible();
 		await expect.element(page.getByText(/connection/)).not.toBeInTheDocument();
-		// A problem on our side is not a lost connection, so recording stays open.
-		await expect
-			.element(page.getByRole('link', { name: 'Record a match' }))
-			.toHaveAttribute('href', '/record');
+		// The code and the ratings still show above the error.
+		await expect.element(page.getByTestId('my-code')).toHaveTextContent(TAMSIN);
+		await expect.element(page.getByTestId('ratings')).toBeVisible();
 	});
 
 	it('says the player is offline only for a lost connection', async () => {
 		mocked.listMatches.mockRejectedValue(failure('network'));
 		serveAwaiting([]);
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByText("You're offline.")).toBeVisible();
 		await expect.element(page.getByText("Your matches didn't load.")).not.toBeInTheDocument();
 	});
@@ -378,7 +432,7 @@ describe('HomeView history errors', () => {
 	it('asks the player to wait, with Try again, when there were too many requests', async () => {
 		mocked.listMatches.mockRejectedValue(failure('throttled'));
 		serveAwaiting([]);
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByText("Your matches didn't load.")).toBeVisible();
 		await expect.element(page.getByText(/Wait a minute, then try again/)).toBeVisible();
 		await expect.element(page.getByText(/went wrong on our side/)).not.toBeInTheDocument();
@@ -390,7 +444,7 @@ describe('HomeView history errors', () => {
 	it('links to sign in, with no Try again, when the player is signed out', async () => {
 		mocked.listMatches.mockRejectedValue(failure('unauthenticated'));
 		mocked.listAwaitingConfirmation.mockRejectedValue(failure('unauthenticated'));
-		await render(HomeView);
+		await render(HomeView, home());
 		await expect.element(page.getByText("You're not signed in.")).toBeVisible();
 		await expect.element(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
 		await expect

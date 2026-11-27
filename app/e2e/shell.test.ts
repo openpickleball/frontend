@@ -7,6 +7,7 @@ const TABS = [
 	{ name: 'Home', path: '/' },
 	{ name: 'Record', path: '/record' },
 	{ name: 'Matches', path: '/matches' },
+	{ name: 'Ratings', path: '/ratings' },
 	{ name: 'Profile', path: '/profile' }
 ];
 
@@ -53,8 +54,62 @@ test('an unknown route shows a not-found page with a way home', async ({ page })
 	await expect(page).toHaveTitle(/^We couldn't find this page/);
 	await page.locator('#main').getByRole('link', { name: 'Back to home' }).click();
 	await expect(page).toHaveURL(/\/$/);
-	await expect(page.getByRole('link', { name: 'Record a match' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2, name: 'In progress' })).toBeVisible();
 });
+
+for (const width of [320, 375]) {
+	test(`the five tabs fit a ${width}px phone: one line each, 44px targets, the badge inside`, async ({
+		page
+	}) => {
+		await page.setViewportSize({ width, height: 740 });
+		await signInAsPlayer(page);
+		const tabBar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
+		await expect(tabBar.getByTestId('needs-you-badge')).toBeVisible();
+		const links = tabBar.getByRole('link');
+		await expect(links).toHaveCount(5);
+		const tabs = await links.evaluateAll((items) =>
+			items.map((link) => {
+				const box = link.getBoundingClientRect();
+				// The label is the link's text, or its aria-hidden span when the name says more.
+				const label = [...link.childNodes].find(
+					(node) =>
+						(node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) ||
+						(node instanceof HTMLElement && node.matches('span[aria-hidden="true"]'))
+				);
+				const range = document.createRange();
+				if (label) range.selectNodeContents(label);
+				return {
+					width: box.width,
+					height: box.height,
+					// One client rect per line the label takes.
+					lines: range.getClientRects().length,
+					overflow: link.scrollWidth > link.clientWidth
+				};
+			})
+		);
+		for (const tab of tabs) {
+			expect(tab.width).toBeGreaterThanOrEqual(44);
+			expect(tab.height).toBeGreaterThanOrEqual(44);
+			expect(tab.lines).toBe(1);
+			expect(tab.overflow).toBe(false);
+		}
+		// The badge stays inside the Home tab.
+		const inside = await tabBar.evaluate((nav) => {
+			const badge = nav.querySelector('[data-testid="needs-you-badge"]')!.getBoundingClientRect();
+			const home = nav.querySelector('a')!.getBoundingClientRect();
+			return (
+				badge.left >= home.left &&
+				badge.right <= home.right &&
+				badge.top >= home.top &&
+				badge.bottom <= home.bottom
+			);
+		});
+		expect(inside).toBe(true);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+			width
+		);
+	});
+}
 
 test('the top bar has the wordmark and a 44px theme toggle, and no Sign out', async ({ page }) => {
 	await signInAsPlayer(page);

@@ -77,15 +77,31 @@ function rowFor(page: Page, code: string) {
 }
 
 test.describe('home', () => {
-	test('lists what needs her, then what is in progress, then recent matches and her code', async ({
-		page
-	}) => {
+	test('shows her code, then her ratings, then what is in progress', async ({ page }) => {
 		await expect(page).toHaveTitle('OPEN Pickleball');
-		await expect(page.getByRole('heading', { level: 2 })).toHaveText([
-			'Needs you',
-			'In progress',
-			'Recent matches'
-		]);
+		await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Ratings', 'In progress']);
+		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
+		const order = await page.evaluate(() => {
+			const code = document.querySelector('[data-testid="my-code"]');
+			const [ratings, progress] = [...document.querySelectorAll('main h2')];
+			const follows = (a: Element | null, b: Element | null) =>
+				!!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+			return follows(code, ratings) && follows(ratings, progress);
+		});
+		expect(order).toBe(true);
+
+		// Ratings: the tiles, the demonstration sentence and a Details link to the Ratings tab.
+		const ratings = page.getByRole('region', { name: 'Ratings' });
+		await expect(ratings.getByTestId('ratings').getByRole('listitem').first()).toBeVisible();
+		await expect(ratings.getByText(/demonstration numbers/)).toBeVisible();
+		await expect(ratings.getByRole('link', { name: 'Details' })).toHaveAttribute(
+			'href',
+			'/ratings'
+		);
+		// Compact tiles: the format, the number and the badge. Reliability is on the Ratings tab.
+		await expect(ratings.getByText('Demonstration', { exact: true })).toHaveCount(2);
+		await expect(ratings.getByText(/Reliability/)).toHaveCount(0);
+		await expect(ratings.getByRole('button', { name: /reliability/ })).toHaveCount(0);
 
 		// Oldest first, each row saying what she can do: vouch for the held match, confirm the rest.
 		const needsList = page.getByRole('list', { name: 'Needs you' });
@@ -110,15 +126,52 @@ test.describe('home', () => {
 		// Every dispute, the one she can withdraw too, and both holds. No waiting count.
 		await expect(page.getByTestId('in-progress')).toHaveText('4 disputed · 2 on hold');
 
-		const recent = page.getByRole('list', { name: 'Recent matches' });
-		await expect(recent.getByTestId('match-row')).toHaveCount(3);
-		await expect(recent.locator(`a[href$="/matches/${HELD}"]`)).toHaveCount(0);
+		// No Recent matches and no Record a match on Home: Record stays in the nav.
+		await expect(page.getByRole('list', { name: 'Recent matches' })).toHaveCount(0);
+		await expect(page.getByRole('main').getByRole('link', { name: 'Record a match' })).toHaveCount(
+			0
+		);
 
-		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
-		await expect(page.getByRole('link', { name: 'Record a match' })).toBeVisible();
-
-		await page.getByRole('link', { name: 'All matches' }).click();
+		// Her match count, next to In progress, opens Matches.
+		const progress = page.getByRole('region', { name: 'In progress' });
+		await progress.getByTestId('all-matches').click();
 		await expect(page).toHaveURL(/\/matches$/);
+	});
+
+	test('the match count next to In progress is the total on Matches', async ({ page }) => {
+		const link = page.getByTestId('all-matches');
+		await expect(link).toHaveText(/^\d+ matches\s*$/);
+		const count = (await link.textContent())?.match(/\d+/)?.[0];
+		await link.click();
+		await expect(page.getByTestId('range')).toHaveText(new RegExp(`of ${count}$`));
+	});
+
+	test('keeps each rating tile, badge included, inside its edges on a 320px phone', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 320, height: 740 });
+		await page.reload();
+		const tiles = page.getByTestId('ratings').getByRole('listitem');
+		await expect(tiles).toHaveCount(2);
+		const fits = await tiles.evaluateAll((items) =>
+			items.map((tile) => {
+				const box = tile.getBoundingClientRect();
+				return [...tile.querySelectorAll('*')].every((child) => {
+					const inner = child.getBoundingClientRect();
+					return inner.left >= box.left && inner.right <= box.right;
+				});
+			})
+		);
+		expect(fits).toEqual([true, true]);
+	});
+
+	test('Details opens the Ratings tab', async ({ page }) => {
+		await page
+			.getByRole('region', { name: 'Ratings' })
+			.getByRole('link', { name: 'Details' })
+			.click();
+		await expect(page).toHaveURL(/\/ratings$/);
+		await expect(page.getByRole('heading', { level: 1, name: 'Ratings' })).toBeVisible();
 	});
 
 	test('copies the code', async ({ page, context }) => {
@@ -145,7 +198,9 @@ test.describe('home needs you count', () => {
 		const tabBar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
 		await expect(tabBar.getByRole('link', { name: 'Home, 3 need you', exact: true })).toBeVisible();
 		await expect(tabBar.getByTestId('needs-you-badge')).toHaveText('3');
-		await expect(page.getByRole('region', { name: 'Needs you' })).toContainText('3 matches');
+		await expect(
+			page.getByRole('list', { name: 'Needs you' }).getByTestId('match-row')
+		).toHaveCount(3);
 
 		await page.goto('/matches?show=needs-you');
 		await expect(page.getByTestId('range')).toHaveText('1–3 of 3');
@@ -352,7 +407,7 @@ test.describe('match detail', () => {
 		await expect(
 			page.getByRole('list', { name: 'Needs you' }).getByTestId('match-row')
 		).toHaveCount(2);
-		await page.getByRole('link', { name: 'All matches' }).click();
+		await page.getByTestId('all-matches').click();
 		await expect(
 			rowFor(page, WAITING_ON_ME_TOO).getByText('Confirmed', { exact: true })
 		).toBeVisible();
@@ -371,6 +426,8 @@ test.describe('match detail', () => {
 	test('says it is waiting for the other team when her team already confirmed', async ({
 		page
 	}) => {
+		// Home lists only what needs her, so open it from Matches.
+		await page.goto('/matches');
 		await rowFor(page, ALREADY_CONFIRMED_BY_ME).click();
 		// The API says her team confirmed, so there is nothing to press.
 		await expect(page.getByRole('heading', { name: 'Waiting for the other team' })).toBeVisible();

@@ -6,8 +6,8 @@
 
 	let { code, class: className = 'mt-8' }: { code: PlayerCode; class?: string } = $props();
 
-	// The compact variant of the profile's code card, for the home screen: the same label style,
-	// and the code and a Copy button. Share is on the profile.
+	// The player's code on one line with Copy, at the top of Home and Profile. A line above, like a
+	// section's, and none below: the next section's line follows.
 	async function copy() {
 		try {
 			await navigator.clipboard.writeText(code);
@@ -20,7 +20,7 @@
 
 <div
 	class={[
-		'flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-y border-line py-4',
+		'flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-line pt-4',
 		className
 	]}
 >

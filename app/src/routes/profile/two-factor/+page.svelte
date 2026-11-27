@@ -10,9 +10,9 @@
 	<title>Two-factor authentication · OPEN Pickleball</title>
 </svelte:head>
 
-<!-- Inside pt-4, as the rating history and match pages are, so the link and title line up. -->
+<!-- Inside pt-4, as the match page is, so the link and title line up. -->
 <div class="pt-4">
-	<!-- Back to Profile, then the title, as on the rating history page (plans/ux-cleanup #288). -->
+	<!-- Back to Profile, then the title, as on the match page. -->
 	<Button
 		variant="link"
 		href={resolve(ROUTES.profile)}

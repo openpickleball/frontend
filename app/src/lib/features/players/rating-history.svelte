@@ -18,12 +18,15 @@
 
 	let {
 		history,
-		onpage
+		onpage,
+		underTitle = false
 	}: {
 		/** The page to show. The parent owns it and loads the first page. */
 		history: RatingHistoryView;
 		/** Load the page at this offset. */
 		onpage: (offset: number) => void;
+		/** The list sits right under a section title, whose line is above it, so it drops its own. */
+		underTitle?: boolean;
 	} = $props();
 
 	const busy = $derived(history.status === 'loading');
@@ -69,7 +72,7 @@
 		</div>
 	{:else if history.items.length > 0}
 		<ul
-			class="grid divide-y divide-line border-t border-line"
+			class={['grid divide-y divide-line', !underTitle && 'border-t border-line']}
 			aria-busy={busy}
 			data-testid="rating-history"
 		>

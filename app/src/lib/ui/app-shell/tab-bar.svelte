@@ -11,8 +11,8 @@
 	}: { pathname: string; needsYou?: number; organizer?: boolean } = $props();
 
 	const items = $derived(navItems(organizer));
-	// Two literal classes, so Tailwind sees both.
-	const columns = $derived(items.length === 5 ? 'grid-cols-5' : 'grid-cols-4');
+	// Five tabs, or six with Events for an organizer member. Literal classes, so Tailwind sees both.
+	const columns = $derived(items.length === 6 ? 'grid-cols-6' : 'grid-cols-5');
 </script>
 
 <!-- Mobile only: from 1024px the side nav takes over. -->

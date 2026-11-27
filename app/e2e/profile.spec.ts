@@ -55,25 +55,31 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await page.goto('/profile');
 	});
 
-	test('shows the code, the match count and the demonstration ratings', async ({ page }) => {
+	test('is the settings page: the code on one line, then the settings, with no numbers', async ({
+		page
+	}) => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Profile' })).toBeVisible();
 		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
-		await expect(page.getByTestId('match-count')).toHaveText(/^\d+$/);
-
-		// Each rating the API sends, in a tile of its own, with its reliability and a
-		// Demonstration label.
-		const ratings = page.getByRole('region', { name: 'Ratings' });
-		const tiles = ratings.getByTestId('ratings').getByRole('listitem');
-		await expect(tiles).toHaveCount(2);
-		await expect(tiles.first()).toContainText('Mixed doubles');
-		await expect(tiles.first()).toContainText('3.42');
-		// Rating history has its own page now.
-		await expect(page.getByRole('region', { name: 'Rating history' })).toHaveCount(0);
-		await expect(ratings.getByText('Reliability: 65 out of 100')).toBeVisible();
-		await expect(ratings.getByText('Reliability: 40 out of 100')).toBeVisible();
-		await expect(ratings.getByText('Demonstration', { exact: true })).toHaveCount(2);
-		await expect(ratings.getByText(/demonstration numbers while the rating method/)).toBeVisible();
-		await expect(ratings).not.toContainText(/OPEN rating/i);
+		await expect(page.getByRole('button', { name: 'Copy code' })).toBeVisible();
+		await expect(page.getByRole('switch', { name: 'Match history' })).toBeVisible();
+		await expect(page.getByRole('heading', { level: 2 })).toHaveText([
+			'Name and privacy',
+			'Two-factor authentication',
+			'Your data',
+			'Account'
+		]);
+		// No separate name line: the display name field shows the name.
+		await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveValue(
+			tamsin.displayName
+		);
+		await expect(page.getByRole('main').getByText(tamsin.displayName, { exact: true })).toHaveCount(
+			0
+		);
+		// The match count and the ratings are on Home and the Ratings tab now.
+		await expect(page.getByTestId('match-count')).toHaveCount(0);
+		await expect(page.getByTestId('ratings')).toHaveCount(0);
+		await expect(page.getByRole('region', { name: 'Ratings' })).toHaveCount(0);
+		await expect(page.getByRole('region', { name: 'Matches' })).toHaveCount(0);
 
 		// An adult's current ratings are always shown, so there is no switch for them.
 		await expect(page.getByTestId('privacy-rating-fixed')).toBeVisible();
@@ -106,25 +112,11 @@ test.describe('an account that has a player (me/player exists)', () => {
 		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(tamsin.code);
 	});
 
-	test('shares with the share sheet when the browser has one', async ({ page }) => {
-		await page.addInitScript(() => {
-			(window as unknown as { shared: unknown[] }).shared = [];
-			Object.defineProperty(navigator, 'share', {
-				configurable: true,
-				value: async (data: unknown) => {
-					(window as unknown as { shared: unknown[] }).shared.push(data);
-				}
-			});
-		});
-		await page.reload();
-		await page.getByRole('button', { name: 'Share' }).click();
-		const shared = await page.evaluate(() => (window as unknown as { shared: unknown[] }).shared);
-		expect(JSON.stringify(shared)).toContain(tamsin.code);
-	});
-
-	test('hides Share when there is no share sheet', async ({ page }) => {
+	test('offers Copy code and no Share, even where the browser has a share sheet', async ({
+		page
+	}) => {
 		await page.addInitScript(() =>
-			Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
+			Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} })
 		);
 		await page.reload();
 		await expect(page.getByRole('button', { name: 'Copy code' })).toBeVisible();
@@ -143,8 +135,6 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await page.getByRole('button', { name: 'Save name' }).click();
 		await expect(page.getByText('Name saved.')).toBeVisible();
 		await expect(field).toHaveValue('Tamsin Q');
-		// The name under the page title follows.
-		await expect(page.getByText('Tamsin Q', { exact: true })).toBeVisible();
 
 		await page.reload();
 		await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveValue('Tamsin Q');
@@ -182,25 +172,55 @@ test.describe('an account that has a player (me/player exists)', () => {
 			await page.emulateMedia({ colorScheme: scheme });
 			await expect(page.getByRole('switch', { name: 'Match history' })).toBeVisible();
 			await expect(page.getByTestId('my-code')).toBeVisible();
-			await expect(page.getByTestId('match-count')).toHaveText(/^\d+$/);
-			await expect(page.getByTestId('ratings')).toBeVisible();
-			await expectNoAxeViolations(page);
-		});
-
-		test(`the rating history page has no WCAG 2.1 AA violations (${scheme})`, async ({ page }) => {
-			await page.emulateMedia({ colorScheme: scheme });
-			await page.goto('/profile/ratings');
-			await expect(page.getByTestId('rating-history')).toBeVisible();
 			await expectNoAxeViolations(page);
 		});
 	}
+});
 
-	test('shows the rating history on its own page, five changes at a time', async ({ page }) => {
-		await page.getByRole('link', { name: 'Rating history' }).click();
-		await expect(page).toHaveURL(/\/profile\/ratings$/);
-		await expect(page).toHaveTitle('Rating history · OPEN Pickleball');
-		await expect(page.getByRole('heading', { level: 1, name: 'Rating history' })).toBeVisible();
-		const history = page.getByRole('main');
+test.describe('the Ratings tab', () => {
+	test.beforeEach(async ({ page }) => {
+		await signIn(page, VERIFIED_EMAIL);
+		await page.goto('/');
+	});
+
+	test('opens from the nav, with the tiles, a boxed demonstration notice, then the history', async ({
+		page
+	}) => {
+		const tabBar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
+		await tabBar.getByRole('link', { name: 'Ratings' }).click();
+		await expect(page).toHaveURL(/\/ratings$/);
+		await expect(page).toHaveTitle('Ratings · OPEN Pickleball');
+		await expect(page.getByRole('heading', { level: 1, name: 'Ratings' })).toBeVisible();
+		await expect(tabBar.getByRole('link', { name: 'Ratings' })).toHaveAttribute(
+			'aria-current',
+			'page'
+		);
+		await expect(page.getByRole('heading', { level: 2 })).toHaveText([
+			'Current ratings',
+			'Rating history'
+		]);
+
+		// Each rating the API sends, in a tile of its own, with its reliability and a
+		// Demonstration label, under a boxed notice that says they are demonstration numbers.
+		const current = page.getByRole('region', { name: 'Current ratings' });
+		const notice = current.getByTestId('demonstration-notice');
+		await expect(notice).toContainText('Demonstration numbers');
+		await expect(notice).toContainText(/demonstration numbers while the rating method/);
+		const tiles = current.getByTestId('ratings').getByRole('listitem');
+		await expect(tiles).toHaveCount(2);
+		await expect(tiles.first()).toContainText('Mixed doubles');
+		await expect(tiles.first()).toContainText('3.42');
+		await expect(current.getByText('Reliability: 65 out of 100')).toBeVisible();
+		await expect(current.getByText('Reliability: 40 out of 100')).toBeVisible();
+		await expect(current.getByText('Demonstration', { exact: true })).toHaveCount(2);
+		// No Details link here: this is the page it opens.
+		await expect(current.getByRole('link', { name: 'Details' })).toHaveCount(0);
+		await expect(page.getByRole('main')).not.toContainText(/OPEN rating/i);
+	});
+
+	test('shows the rating history five changes at a time', async ({ page }) => {
+		await page.goto('/ratings');
+		const history = page.getByRole('region', { name: 'Rating history' });
 		// No intro line that restates the title.
 		await expect(history.getByText(/newest first/)).toHaveCount(0);
 		const list = history.getByTestId('rating-history');
@@ -225,16 +245,31 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(history.getByRole('button', { name: 'Older' })).toBeDisabled();
 		await history.getByRole('button', { name: 'Newer' }).click();
 		await expect(history.getByTestId('rating-history-range')).toHaveText('1–5 of 8');
-
-		// The back link returns to the profile.
-		await history.getByRole('link', { name: 'Profile', exact: true }).click();
-		await expect(page).toHaveURL(/\/profile$/);
+		// A tab has no back link.
+		await expect(page.getByRole('main').getByRole('link', { name: 'Profile' })).toHaveCount(0);
 	});
+
+	test('the old rating history address redirects to it', async ({ page }) => {
+		await page.goto('/profile/ratings');
+		await expect(page).toHaveURL(/\/ratings$/);
+		await expect(page.getByRole('heading', { level: 1, name: 'Ratings' })).toBeVisible();
+		await expect(page.getByTestId('rating-history')).toBeVisible();
+	});
+
+	for (const scheme of ['dark', 'light'] as const) {
+		test(`has no WCAG 2.1 AA violations (${scheme})`, async ({ page }) => {
+			await page.emulateMedia({ colorScheme: scheme });
+			await page.goto('/ratings');
+			await expect(page.getByTestId('ratings')).toBeVisible();
+			await expect(page.getByTestId('rating-history')).toBeVisible();
+			await expectNoAxeViolations(page);
+		});
+	}
 });
 
 test('a player with no rating history yet reads so', async ({ page }) => {
 	await signIn(page, 'kit@example.com');
-	await page.goto('/profile/ratings');
+	await page.goto('/ratings');
 	await expect(page.getByText(/Nothing has changed your ratings yet/)).toBeVisible();
 });
 
@@ -285,7 +320,6 @@ test.describe('an account with no player and no signup details held', () => {
 		await page.getByLabel('Display name').fill('Wren Mock');
 		await page.getByRole('button', { name: 'Save and show my code' }).click();
 		await expect(page.getByTestId('my-code')).toHaveText(/^P-/);
-		await expect(page.getByText(/You don't have a rating yet/)).toBeVisible();
 
 		const ratings = page.getByRole('switch', { name: 'Current ratings' });
 		await expect(ratings).not.toBeChecked();
@@ -320,10 +354,14 @@ test('signed out, the profile sends the player to sign in and back', async ({ pa
 	await expect(page.getByTestId('my-code')).toHaveCount(0);
 });
 
-test('signed out, the rating history page sends the player to sign in and back', async ({
-	page
-}) => {
+test('signed out, the Ratings page sends the player to sign in and back', async ({ page }) => {
+	await page.goto('/ratings');
+	await expect(page).toHaveURL(/\/account\/login\?next=%2Fratings$/);
+	await expect(page.getByTestId('rating-history')).toHaveCount(0);
+});
+
+test('signed out, the old rating history address goes to sign in too', async ({ page }) => {
 	await page.goto('/profile/ratings');
-	await expect(page).toHaveURL(/\/account\/login\?next=%2Fprofile%2Fratings$/);
+	await expect(page).toHaveURL(/\/account\/login\?next=%2F(profile%2F)?ratings$/);
 	await expect(page.getByTestId('rating-history')).toHaveCount(0);
 });

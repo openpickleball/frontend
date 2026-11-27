@@ -1,4 +1,4 @@
-export type NavIconName = 'home' | 'record' | 'matches' | 'events' | 'profile';
+export type NavIconName = 'home' | 'record' | 'matches' | 'ratings' | 'events' | 'profile';
 
 export interface NavItem {
 	icon: NavIconName;
@@ -6,13 +6,14 @@ export interface NavItem {
 	label: string;
 	/** The label in the side nav, where there is room for more words. */
 	sideLabel: string;
-	href: '/' | '/record' | '/matches' | '/organizer' | '/profile';
+	href: '/' | '/record' | '/matches' | '/ratings' | '/organizer' | '/profile';
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
 	{ icon: 'home', label: 'Home', sideLabel: 'Home', href: '/' },
 	{ icon: 'record', label: 'Record', sideLabel: 'Record a match', href: '/record' },
 	{ icon: 'matches', label: 'Matches', sideLabel: 'Matches', href: '/matches' },
+	{ icon: 'ratings', label: 'Ratings', sideLabel: 'Ratings', href: '/ratings' },
 	{ icon: 'profile', label: 'Profile', sideLabel: 'Profile', href: '/profile' }
 ];
 
