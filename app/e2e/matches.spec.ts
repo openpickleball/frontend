@@ -2,11 +2,18 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { buildCode } from '../src/lib/domain/codes';
-import { MATCHES, MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
+import {
+	CLUB_MATCH,
+	EVENT_MATCH,
+	MATCHES,
+	MOCK_PASSWORD,
+	PLAYERS,
+	VERIFIED_EMAIL
+} from '../src/lib/mocks/fixtures';
 import { signIn } from './helpers';
 
 // Runs against PUBLIC_API_MOCK=all (see playwright.config.ts), signed in as player@example.com
-// (Tamsin Vale), who has 26 matches: 20 on the first page, 6 on the second. Every test gets a new
+// (Tamsin Vale), who has 28 matches: 20 on the first page, 8 on the second. Every test gets a new
 // browser context, so the mock backend starts from its seed data each time.
 
 const tamsin = PLAYERS.find((p) => p.key === 'tamsin')!;
@@ -17,12 +24,19 @@ const WAITING_ON_ME = matchCode('7QK2H9WD3NF');
 const WAITING_ON_ME_TOO = matchCode('3FTB8ZRMK6P');
 const ALREADY_CONFIRMED_BY_ME = matchCode('X4NC2GHJ9VQ');
 
-// Disputed matches. Tamsin disputed the older one alone, so she can withdraw it. She withdrew
-// her dispute of the newer one, and Bea's dispute keeps it disputed.
+// Disputed matches. Tamsin disputed the oldest one alone, so she can withdraw it. She withdrew
+// her dispute of R5GK9WBD2XF, and Bea's dispute keeps it disputed. Two more are disputed by
+// another player: the Event match and the Club-only match.
 const MY_DISPUTE = matchCode(
-	MATCHES.find((m) => m.status === 'disputed' && m.random !== 'R5GK9WBD2XF')!.random
+	MATCHES.find(
+		(m) =>
+			m.status === 'disputed' &&
+			m.decisions.every((d) => d.player === 'tamsin' && d.decision === 'dispute')
+	)!.random
 );
 const STILL_DISPUTED = matchCode('R5GK9WBD2XF');
+const EVENT_DISPUTE = matchCode(EVENT_MATCH);
+const CLUB_DISPUTE = matchCode(CLUB_MATCH);
 
 // Held matches, both confirmed. Rosa's team and the other match vouched for the first, so
 // Tamsin's vouch ends its hold. Tamsin vouched for the second already.
@@ -93,8 +107,8 @@ test.describe('home', () => {
 		// All three fit, so there is no See all.
 		await expect(page.getByTestId('see-all-needs')).toHaveCount(0);
 
-		// Both disputes, the one she can withdraw too, and both holds. No waiting count.
-		await expect(page.getByTestId('in-progress')).toHaveText('2 disputed · 2 on hold');
+		// Every dispute, the one she can withdraw too, and both holds. No waiting count.
+		await expect(page.getByTestId('in-progress')).toHaveText('4 disputed · 2 on hold');
 
 		const recent = page.getByRole('list', { name: 'Recent matches' });
 		await expect(recent.getByTestId('match-row')).toHaveCount(3);
@@ -186,10 +200,10 @@ test.describe('home needs you count', () => {
 		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
 
 		await page.goBack();
-		await line.getByRole('link', { name: '2 disputed' }).click();
+		await line.getByRole('link', { name: '4 disputed' }).click();
 		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
 		await expect(pill(page, 'Disputed')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(page.getByTestId('range')).toHaveText('1–4 of 4');
 		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
 	});
 });
@@ -211,7 +225,7 @@ test.describe('match history', () => {
 	test('pages forward and back', async ({ page }) => {
 		await page.goto('/matches');
 		await expect(page.getByRole('heading', { level: 1, name: 'Matches' })).toBeVisible();
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 		await expect(page.getByTestId('match-row')).toHaveCount(20);
 		await expect(page.getByRole('link', { name: 'Newer' })).toHaveAttribute(
 			'aria-disabled',
@@ -220,8 +234,8 @@ test.describe('match history', () => {
 
 		await page.getByRole('link', { name: 'Older' }).click();
 		await expect(page).toHaveURL(/\/matches\?page=2$/);
-		await expect(page.getByTestId('range')).toHaveText('21–26 of 26');
-		await expect(page.getByTestId('match-row')).toHaveCount(6);
+		await expect(page.getByTestId('range')).toHaveText('21–28 of 28');
+		await expect(page.getByTestId('match-row')).toHaveCount(8);
 		await expect(page.getByRole('link', { name: 'Older' })).toHaveAttribute(
 			'aria-disabled',
 			'true'
@@ -229,7 +243,7 @@ test.describe('match history', () => {
 
 		await page.getByRole('link', { name: 'Newer' }).click();
 		await expect(page).toHaveURL(/\/matches$/);
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 	});
 
 	test('shows a page past the end as empty, with a way back', async ({ page }) => {
@@ -238,7 +252,7 @@ test.describe('match history', () => {
 			page.getByRole('heading', { name: 'There are no matches on this page' })
 		).toBeVisible();
 		await page.getByRole('link', { name: 'Back to the newest' }).click();
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 	});
 
 	test('has no WCAG 2.1 AA violations', async ({ page }) => {
@@ -252,19 +266,21 @@ test.describe('matches filter', () => {
 	test('opens a filter from a link, and a reload keeps it', async ({ page }) => {
 		await page.goto('/matches?show=disputed');
 		await expect(pill(page, 'Disputed')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(page.getByTestId('range')).toHaveText('1–4 of 4');
 		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
 		await expect(rowFor(page, STILL_DISPUTED)).toBeVisible();
+		await expect(rowFor(page, EVENT_DISPUTE)).toBeVisible();
+		await expect(rowFor(page, CLUB_DISPUTE)).toBeVisible();
 		await expect(page).toHaveTitle('Matches, Disputed, page 1 of 1 · OPEN Pickleball');
 
 		await page.reload();
 		await expect(pill(page, 'Disputed')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await expect(page.getByTestId('range')).toHaveText('1–4 of 4');
 	});
 
 	test('switches filters with the pills and keeps each in the address', async ({ page }) => {
 		await page.goto('/matches?page=2');
-		await expect(page.getByTestId('range')).toHaveText('21–26 of 26');
+		await expect(page.getByTestId('range')).toHaveText('21–28 of 28');
 
 		await pill(page, 'Needs you').click();
 		await expect(page).toHaveURL(/\/matches\?show=needs-you$/);
@@ -290,13 +306,13 @@ test.describe('matches filter', () => {
 
 		await pill(page, 'All').click();
 		await expect(page).toHaveURL(/\/matches$/);
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 	});
 
 	test('shows every match for an unknown filter', async ({ page }) => {
 		await page.goto('/matches?show=waiting');
 		await expect(pill(page, 'All')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–20 of 26');
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 	});
 
 	test('has no WCAG 2.1 AA violations with a filter, in either theme', async ({ page }) => {
@@ -491,10 +507,10 @@ test.describe('disputes', () => {
 	test('counts her disputed matches under In progress on home, the one she can withdraw too', async ({
 		page
 	}) => {
-		await expect(page.getByTestId('in-progress')).toContainText('2 disputed');
-		await page.getByTestId('in-progress').getByRole('link', { name: '2 disputed' }).click();
+		await expect(page.getByTestId('in-progress')).toContainText('4 disputed');
+		await page.getByTestId('in-progress').getByRole('link', { name: '4 disputed' }).click();
 		const list = page.getByRole('list', { name: 'Your matches, Disputed' });
-		await expect(list.getByTestId('match-row')).toHaveCount(2);
+		await expect(list.getByTestId('match-row')).toHaveCount(4);
 		await expect(list.locator(`a[href$="/matches/${MY_DISPUTE}"]`)).toContainText(
 			'You disputed this score.'
 		);
@@ -525,7 +541,7 @@ test.describe('disputes', () => {
 
 		// Home: it left the disputed count and now needs her confirmation.
 		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
-		await expect(page.getByTestId('in-progress')).toContainText('1 disputed');
+		await expect(page.getByTestId('in-progress')).toContainText('3 disputed');
 		await expect(
 			page.getByRole('list', { name: 'Needs you' }).locator(`a[href$="/matches/${MY_DISPUTE}"]`)
 		).toBeVisible();
@@ -715,7 +731,7 @@ test.describe('corrections', () => {
 
 		// Home: the old match left the disputed count.
 		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
-		await expect(page.getByTestId('in-progress')).toContainText('1 disputed');
+		await expect(page.getByTestId('in-progress')).toContainText('3 disputed');
 	});
 
 	test('says the old match is voided when its correction page is opened again', async ({
@@ -760,6 +776,87 @@ test.describe('corrections', () => {
 		await page.goto(`/matches/${STILL_DISPUTED}`);
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'disputed');
 		await expect(page.getByRole('link', { name: 'Correct the score' })).toHaveCount(0);
+	});
+
+	test("names an event match's Event and Club, offers no correction, and says who settles it", async ({
+		page
+	}) => {
+		await page.goto(`/matches/${EVENT_DISPUTE}`);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'disputed');
+		const details = page.getByRole('region', { name: 'Details' });
+		await expect(details.getByText('Larkspur Winter League', { exact: true })).toBeVisible();
+		await expect(details.getByText('Juniper Court Club', { exact: true })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Correct the score' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'What does disputed mean?' }).click();
+		await expect(
+			page.getByRole('dialog', { name: 'What does disputed mean?' }).getByText(/organizer/)
+		).toBeVisible();
+
+		// Opened directly, the correction page says why instead of showing the form.
+		await page.goto(`/matches/${EVENT_DISPUTE}/correct`);
+		await expect(page.getByTestId('cannot-correct')).toContainText("event's organizer");
+		await expect(page.getByRole('button', { name: 'Save the correction' })).toHaveCount(0);
+	});
+
+	test('names a Club-only match its Club, offers no correction, and leaves organizers out', async ({
+		page
+	}) => {
+		await page.goto(`/matches/${CLUB_DISPUTE}`);
+		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'disputed');
+		const details = page.getByRole('region', { name: 'Details' });
+		await expect(details.getByText('Marshwalk Racquet Club', { exact: true })).toBeVisible();
+		await expect(details.getByText('Event', { exact: true })).toHaveCount(0);
+		await expect(page.getByRole('link', { name: 'Correct the score' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'What does disputed mean?' }).click();
+		const popover = page.getByRole('dialog', { name: 'What does disputed mean?' });
+		await expect(popover.getByText(/every player who disputed/)).toBeVisible();
+		await expect(popover.getByText(/organizer/)).toHaveCount(0);
+
+		await page.goto(`/matches/${CLUB_DISPUTE}/correct`);
+		await expect(page.getByTestId('cannot-correct')).toContainText(
+			"can't be corrected by its players"
+		);
+		// Already disputed, so it isn't told to dispute it.
+		await expect(page.getByTestId('cannot-correct')).not.toContainText('dispute the match instead');
+		await expect(page.getByRole('button', { name: 'Save the correction' })).toHaveCount(0);
+	});
+
+	// Details has two columns on a phone. A cell that sits alone in its line must fill it, or the
+	// grid leaves an empty cell next to it. Pixel 7 is a phone width.
+	test('leaves no empty cell in Details on a phone, with or without an Event or Club', async ({
+		page
+	}) => {
+		for (const code of [EVENT_DISPUTE, CLUB_DISPUTE, WAITING_ON_ME]) {
+			await page.goto(`/matches/${code}`);
+			const list = page.getByRole('region', { name: 'Details' }).locator('dl');
+			await expect(list.getByText('Match code', { exact: true })).toBeVisible();
+			const lonely = await list.evaluate((dl) => {
+				const width = dl.getBoundingClientRect().width;
+				const cells = [...dl.children].map((cell) => cell.getBoundingClientRect());
+				return cells.filter(
+					(cell, index) =>
+						Math.abs(cell.width - width) >= 1 &&
+						!cells.some((other, i) => i !== index && Math.abs(other.top - cell.top) < 1)
+				).length;
+			});
+			expect(lonely, `${code} has a cell alone in its line`).toBe(0);
+		}
+	});
+
+	test('wraps a long Event or Club name inside Details on a phone', async ({ page }) => {
+		await page.goto(`/matches/${EVENT_DISPUTE}`);
+		const list = page.getByRole('region', { name: 'Details' }).locator('dl');
+		await expect(list.getByText('Larkspur Winter League')).toBeVisible();
+		// The fixture names are short, so the test lengthens them in place to one long word.
+		const overflow = await list.evaluate((dl) => {
+			const long = 'Northfenwickshireandoxleymeadowspickleballassociationwinterleague';
+			for (const name of ['Larkspur Winter League', 'Juniper Court Club']) {
+				const value = [...dl.querySelectorAll('dd')].find((dd) => dd.textContent === name)!;
+				value.textContent = long;
+			}
+			return [...dl.querySelectorAll('dd'), dl].some((el) => el.scrollWidth > el.clientWidth);
+		});
+		expect(overflow).toBe(false);
 	});
 
 	test('has no WCAG 2.1 AA violations on a pending match and its correction, in either theme', async ({

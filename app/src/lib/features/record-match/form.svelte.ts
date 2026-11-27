@@ -66,9 +66,9 @@ export const FORBIDDEN_MESSAGE =
 export const CORRECT_FORBIDDEN_MESSAGE =
 	"We couldn't correct this match. You can only correct a match you played in.";
 /**
- * `correct_match` answers 404 for a match with an event or a club. `MatchOut` now sends both
- * (backend#302), but the app does not read them yet, so it explains the 404 instead of hiding the
- * button. frontend#264 will use them to hide it.
+ * `correct_match` answers 404 for a match with an event or a club. The match page doesn't offer
+ * Correct on one (`canCorrect`), and the correction page explains why, so this is a fallback for a
+ * match whose Event or Club the app hadn't seen yet.
  */
 export const ORGANIZER_ONLY_MESSAGE = 'This match can only be changed by its organizer';
 export const CORRECT_CONFLICT_MESSAGE = "This match can't be corrected now";

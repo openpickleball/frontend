@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+	CORRECT_CLUB_DISPUTE,
+	CORRECT_CLUB_NOTE,
+	CORRECT_EVENT_NOTE,
 	DISPUTE_ENDS,
+	DISPUTE_ENDS_EVENT,
 	HOLD_ENDS,
 	HOLD_WHY,
 	canCorrect,
@@ -9,9 +13,16 @@ import {
 	panelIsQuiet,
 	panelTone,
 	progressInfo,
-	statusInfo
+	statusInfo,
+	VOUCH_MEANS,
+	VOUCH_MEANS_ORGANIZER
 } from './status.js';
+import * as statusModule from './status.js';
 import { sampleMatch, viewerMatch } from './testing.js';
+
+/** A made-up Event and Club for the tests. */
+const EVENT = { code: 'E-TEST-0001', name: 'Test Winter League', organizer: 'O-TEST-0001' };
+const CLUB = { code: 'C-TEST-0001', name: 'Test Court Club' };
 
 describe('matchStatusCopy', () => {
 	it('offers Confirm, Dispute and Correct on a pending match the player has to confirm', () => {
@@ -59,11 +70,20 @@ describe('matchStatusCopy', () => {
 	});
 
 	it('says who settles a dispute and how it ends, with no moderator and no date', () => {
-		expect(DISPUTE_ENDS).toMatch(/every player who disputed the score withdraws/);
-		expect(DISPUTE_ENDS).toMatch(/event's organizer/);
-		expect(DISPUTE_ENDS).toMatch(/voided/);
-		expect(DISPUTE_ENDS).not.toMatch(/moderator/i);
-		expect(DISPUTE_ENDS).not.toMatch(/\d/);
+		for (const text of [DISPUTE_ENDS, DISPUTE_ENDS_EVENT]) {
+			expect(text).toMatch(/every player who disputed the score withdraws/);
+			expect(text).toMatch(/voided/);
+			expect(text).not.toMatch(/moderator/i);
+			expect(text).not.toMatch(/\d/);
+		}
+	});
+
+	it('leaves the organizer out of a dispute on a match with no event', () => {
+		expect(DISPUTE_ENDS).not.toMatch(/organizer/i);
+	});
+
+	it("says the event's organizer can settle a dispute on an event match", () => {
+		expect(DISPUTE_ENDS_EVENT).toMatch(/event's organizer settles it/);
 	});
 
 	it('says one sentence, with no em dashes, and never says moderator', () => {
@@ -189,6 +209,24 @@ describe('correcting a match', () => {
 		expect(matchStatusCopy(hidden).actions).not.toContain('correct');
 	});
 
+	it('offers no Correct on a match with an event, a club or both', () => {
+		for (const status of ['pending', 'disputed'] as const) {
+			for (const where of [
+				{ event: EVENT, club: null },
+				{ event: null, club: CLUB },
+				{ event: EVENT, club: CLUB }
+			]) {
+				const match = viewerMatch({ decision: 'none' }, { status, ...where });
+				expect(canCorrect(match)).toBe(false);
+				expect(matchStatusCopy(match).actions).not.toContain('correct');
+			}
+		}
+	});
+
+	it('offers Correct on a match with neither an event nor a club', () => {
+		expect(canCorrect(viewerMatch({}, { event: null, club: null }))).toBe(true);
+	});
+
 	it('offers Correct on a pending match waiting on the other team', () => {
 		const copy = matchStatusCopy(viewerMatch({ a: true, decision: 'confirm' }));
 		expect(copy.title).toBe('Waiting for the other team');
@@ -240,6 +278,31 @@ describe('statusInfo', () => {
 		expect(info?.terms).toEqual([{ term: 'Disputed', text: DISPUTE_ENDS }]);
 	});
 
+	it('picks the dispute text by whether the match has an event', () => {
+		const text = (overrides: Parameters<typeof viewerMatch>[1]) =>
+			statusInfo(viewerMatch({}, { status: 'disputed', ...overrides }))?.terms[0].text;
+		expect(text({ event: EVENT })).toBe(DISPUTE_ENDS_EVENT);
+		expect(text({ event: EVENT, club: CLUB })).toBe(DISPUTE_ENDS_EVENT);
+		expect(text({ club: CLUB })).toBe(DISPUTE_ENDS);
+		expect(text({})).toBe(DISPUTE_ENDS);
+	});
+
+	// The holds list gives a hold only to a viewer who may vouch: a player in a match with no
+	// Event, or an organizer member who played in no match of it. So the vouch text depends on the
+	// viewer only, and there is no text for a player in an Event match.
+	it('picks the vouch text by the viewer only', () => {
+		const vouch = (match: ReturnType<typeof sampleMatch>) =>
+			statusInfo(match, { vouched: false })?.terms.find((t) => t.term === 'Vouch')?.text;
+		expect(vouch(viewerMatch({}, { status: 'confirmed' }))).toBe(VOUCH_MEANS);
+		expect(vouch(viewerMatch({}, { status: 'confirmed', event: EVENT }))).toBe(VOUCH_MEANS);
+		expect(vouch(sampleMatch({ status: 'confirmed', event: EVENT }))).toBe(VOUCH_MEANS_ORGANIZER);
+		expect(vouch(sampleMatch({ status: 'confirmed' }))).toBe(VOUCH_MEANS_ORGANIZER);
+	});
+
+	it('has no vouch text for a player in an Event match, since none is ever shown', () => {
+		expect(Object.keys(statusModule)).not.toContain('VOUCH_MEANS_EVENT');
+	});
+
 	it('explains on hold, and vouch only while the side has not vouched', () => {
 		const match = viewerMatch({}, { status: 'confirmed' });
 		expect(statusInfo(match, { vouched: false })?.label).toBe('What do on hold and vouch mean?');
@@ -263,6 +326,8 @@ describe('statusInfo', () => {
 		const match = viewerMatch({}, { status: 'disputed' });
 		for (const info of [
 			statusInfo(match, { vouched: false }),
+			statusInfo({ ...match, event: EVENT }, { vouched: false }),
+			statusInfo({ ...match, club: CLUB }, { vouched: false }),
 			statusInfo(sampleMatch({ status: 'confirmed' }), { vouched: false }),
 			progressInfo(true, true)
 		]) {
@@ -271,6 +336,20 @@ describe('statusInfo', () => {
 				expect(text).not.toMatch(/moderator|OPEN rating/i);
 				expect(text.match(/[.?!](\s|$)/g)!.length).toBeLessThanOrEqual(2);
 			}
+		}
+	});
+
+	it('keeps the correction page reasons to two sentences at most, in plain words', () => {
+		// When the status panel offers Dispute, the correction page shows the Club-only reason and
+		// the dispute advice together, so they are checked together too.
+		for (const text of [
+			CORRECT_EVENT_NOTE,
+			CORRECT_CLUB_NOTE,
+			`${CORRECT_CLUB_NOTE} ${CORRECT_CLUB_DISPUTE}`
+		]) {
+			expect(text).not.toContain('—');
+			expect(text).not.toMatch(/moderator|OPEN rating/i);
+			expect(text.match(/[.?!](\s|$)/g)!.length).toBeLessThanOrEqual(2);
 		}
 	});
 });

@@ -143,6 +143,8 @@ describe('correctionDraft', () => {
 		viewerDecision: 'dispute',
 		confirmedBySide: { a: true, b: false },
 		createdAt: '2026-11-14T18:00:00Z',
+		event: null,
+		club: null,
 		...overrides
 	});
 

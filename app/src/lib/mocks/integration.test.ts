@@ -4,11 +4,22 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { allauthParams, createApi, unwrap } from '../api';
+import type { components } from '../api/generated/open';
 import { buildCode } from '../domain/codes';
 import { toMatchPage } from '../domain/mappers';
-import { MOCK_KEYS, MOCK_PASSWORD, PLAYERS, UNVERIFIED_EMAIL, VERIFIED_EMAIL } from './fixtures';
+import {
+	CLUB_MATCH,
+	EVENT_MATCH,
+	MOCK_KEYS,
+	MOCK_PASSWORD,
+	PLAYERS,
+	UNVERIFIED_EMAIL,
+	VERIFIED_EMAIL
+} from './fixtures';
 import { useMockApi } from './node';
 import { mockStore } from './store';
+
+type MatchCreateIn = components['schemas']['MatchCreateIn'];
 
 useMockApi();
 
@@ -1610,17 +1621,31 @@ describe('correct_match (backend#267)', () => {
 		expect(mockStore.matchByCode(CONFIRMED)?.status).toBe('confirmed');
 	});
 
-	it('answers 404 for a match with an event, as for an unknown code', async () => {
-		const match = mockStore.matchByCode(PENDING)!;
-		match.event = true;
+	it('answers 404 for a match with an event or a club, as for an unknown code', async () => {
 		const api = await signedIn();
-		const result = await api.open.POST('/api/v1/matches/{code}/correction', {
-			...at(PENDING),
-			body: singles
-		});
-		expect(result.response.status).toBe(404);
-		expect(result.error).toMatchObject({ code: 'not_found' });
-		expect(match.status).toBe('pending');
+		for (const [random, body] of [
+			[
+				EVENT_MATCH,
+				{
+					format: 'doubles',
+					played_on: '2026-11-04',
+					team_a: [tamsin, code('rosa')],
+					team_b: [code('oren'), code('nell')],
+					games: [{ team_a: 11, team_b: 5 }]
+				}
+			],
+			[CLUB_MATCH, { ...singles, played_on: '2026-11-02', team_b: [code('idris')] }]
+		] satisfies [string, MatchCreateIn][]) {
+			const at_ = fixture(random);
+			const before = mockStore.matchByCode(at_)!.status;
+			const result = await api.open.POST('/api/v1/matches/{code}/correction', {
+				...at(at_),
+				body
+			});
+			expect(result.response.status).toBe(404);
+			expect(result.error).toMatchObject({ code: 'not_found' });
+			expect(mockStore.matchByCode(at_)?.status).toBe(before);
+		}
 	});
 
 	it('answers 404 for other teams and for a match she did not play in', async () => {

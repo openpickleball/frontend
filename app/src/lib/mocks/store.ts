@@ -73,6 +73,8 @@ type EventOut = Schemas['EventOut'];
 type EventCreateIn = Schemas['EventCreateIn'];
 type EventUpdateIn = Schemas['EventUpdateIn'];
 type OrganizerClubGrantOut = Schemas['OrganizerClubGrantOut'];
+type MatchEventOut = Schemas['MatchEventOut'];
+type MatchClubOut = Schemas['MatchClubOut'];
 
 /** An Event in the store: the fixture's shape, with its creation order for the tie-break. */
 export type MockEvent = FixtureEvent & { seq: number };
@@ -165,11 +167,12 @@ export type MockMatch = {
 	/** Set while a possible duplicate hold keeps the match from counting. */
 	hold?: MockHold;
 	/**
-	 * True for a match with an Event (or a Club). Players can't correct it: `correct_match`
-	 * answers 404. No fixture has one; tests set it. `matchOut` always sends `event` and `club`
-	 * as `null`, even with this flag. Showing them is its own issue.
+	 * The Event the match was recorded under, as `MatchOut` sends it. Players can't correct a
+	 * match with an Event or a Club: `correct_match` answers 404. `matchOut` sends null when unset.
 	 */
-	event?: boolean;
+	event?: MatchEventOut;
+	/** The Club the match names, as `MatchOut` sends it. Null in `matchOut` when unset. */
+	club?: MatchClubOut;
 	/** The code of the match this one corrects, as `corrects` links them in the backend. */
 	corrects?: string;
 };
@@ -342,7 +345,8 @@ function seed(): MockState {
 			...(m.disputedFrom ? { disputedFrom: m.disputedFrom } : {}),
 			...(m.hold
 				? { hold: { vouched: [...m.hold.vouched], otherVouched: m.hold.otherVouched } }
-				: {})
+				: {}),
+			...matchPlace(m.event, m.club)
 		})),
 		ratings,
 		session: null,
@@ -390,6 +394,31 @@ export type ListResult =
 	{ ok: true; items: MockMatch[]; count: number } | { ok: false; kind: 'not_found' };
 
 export type LoginResult = 'ok' | 'mismatch' | 'unverified' | 'mfa';
+
+function clubOut(code: string): MatchClubOut {
+	const club = CLUBS.find((c) => c.code === code);
+	if (!club) throw new Error(`fixture club ${code} is missing`);
+	return { code: club.code, name: club.name };
+}
+
+/**
+ * A fixture match's Event and Club, as `MatchOut` sends them. An Event brings its own Club, and
+ * only its organizer's code: never the organizer's name.
+ */
+function matchPlace(
+	eventCode: string | undefined,
+	clubCode: string | undefined
+): { event?: MatchEventOut; club?: MatchClubOut } {
+	if (eventCode) {
+		const event = EVENTS.find((e) => e.code === eventCode);
+		if (!event) throw new Error(`fixture event ${eventCode} is missing`);
+		return {
+			event: { code: event.code, name: event.name, organizer: event.organizer },
+			...(event.club ? { club: clubOut(event.club) } : {})
+		};
+	}
+	return clubCode ? { club: clubOut(clubCode) } : {};
+}
 
 /** Results of the Event operations. `forbidden` is the create's 403; change and delete use 404. */
 export type EventResult =
@@ -1028,8 +1057,8 @@ export function createMockStore() {
 				team_a: match.teamA.map(participant),
 				team_b: match.teamB.map(participant),
 				games: match.games.map((g, i) => ({ number: i + 1, team_a: g.a, team_b: g.b })),
-				event: null,
-				club: null
+				event: match.event ? { ...match.event } : null,
+				club: match.club ? { ...match.club } : null
 			};
 		},
 
@@ -1143,7 +1172,13 @@ export function createMockStore() {
 		correctMatch(email: string, code: string, body: MatchCreateIn): CorrectResult {
 			const old = this.matchByCode(code);
 			const own = playerOfAccount(email);
-			if (!old || !own || old.event || ![...old.teamA, ...old.teamB].includes(own.code)) {
+			if (
+				!old ||
+				!own ||
+				old.event ||
+				old.club ||
+				![...old.teamA, ...old.teamB].includes(own.code)
+			) {
 				return { ok: false, kind: 'not_found' };
 			}
 			if (old.status !== 'pending' && old.status !== 'disputed') {
@@ -1277,8 +1312,8 @@ export function createMockStore() {
 		 * unknown-code 404. A voided match is a 409 first, even after a withdraw. A repeat withdraw
 		 * changes nothing. A match that is not disputed, or has no open dispute of theirs, is a 409.
 		 * The match stays disputed while another player's dispute is open, and goes back to how it
-		 * was before the dispute once none is. The mock has no Event organizer, so a dispute is
-		 * never settled by one, and every dispute not withdrawn is open.
+		 * was before the dispute once none is. The mock has no way for an Event's organizer to
+		 * settle a dispute, so every dispute not withdrawn is open.
 		 */
 		withdrawDispute(email: string, code: string): ChangeResult {
 			const match = this.matchByCode(code);
@@ -1385,9 +1420,11 @@ export function createMockStore() {
 		},
 
 		/**
-		 * `list_my_holds` for a player: the held matches with no Event the signed-in account's
-		 * player played in, newest first, that are not voided. `vouched` is true once a player on
-		 * their team vouched. The mock has no Event organizer, so it lists no Event match.
+		 * `list_my_holds` for a player: the held matches with no Event and no Club the signed-in
+		 * account's player played in, newest first, that are not voided. `vouched` is true once a
+		 * player on their team vouched. An Event match is for its organizer's members, which the
+		 * mock's holds list doesn't serve, and nobody vouches for a Club-only match, so neither is
+		 * listed.
 		 */
 		listMyHolds(
 			viewerEmail: string,
@@ -1398,7 +1435,12 @@ export function createMockStore() {
 			if (!own) return { items: [], count: 0 };
 			const all = state.matches
 				.filter(
-					(m) => m.hold && m.status !== 'voided' && [...m.teamA, ...m.teamB].includes(own.code)
+					(m) =>
+						m.hold &&
+						m.status !== 'voided' &&
+						!m.event &&
+						!m.club &&
+						[...m.teamA, ...m.teamB].includes(own.code)
 				)
 				.sort(newestFirst)
 				.map((match) => {
@@ -1409,15 +1451,21 @@ export function createMockStore() {
 		},
 
 		/**
-		 * `workflow.vouch_for_match` for a player of a match with no Event. Anyone who did not play
-		 * gets the unknown-code 404. A voided match, and a match no hold keeps, are a 409. A repeat
-		 * changes nothing. The hold ends once a player of each team vouched and the other match was
-		 * vouched for.
+		 * `workflow.vouch_for_match` for a player of a match with no Event and no Club. Anyone who
+		 * did not play, and a player of a match with an Event or a Club, gets the unknown-code 404.
+		 * A voided match, and a match no hold keeps, are a 409. A repeat changes nothing. The hold
+		 * ends once a player of each team vouched and the other match was vouched for.
 		 */
 		vouch(email: string, code: string): ChangeResult {
 			const match = this.matchByCode(code);
 			const own = playerOfAccount(email);
-			if (!match || !own || ![...match.teamA, ...match.teamB].includes(own.code)) {
+			if (
+				!match ||
+				!own ||
+				match.event ||
+				match.club ||
+				![...match.teamA, ...match.teamB].includes(own.code)
+			) {
 				return { ok: false, kind: 'not_found' };
 			}
 			if (match.status === 'voided' || !match.hold) return { ok: false, kind: 'conflict' };

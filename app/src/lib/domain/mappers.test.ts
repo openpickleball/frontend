@@ -174,6 +174,55 @@ describe('toMatch', () => {
 		}
 	});
 
+	it('maps a match with neither an Event nor a Club to nulls', () => {
+		const match = toMatch(dto());
+		expect(match.event).toBeNull();
+		expect(match.club).toBeNull();
+	});
+
+	it('maps the Event: its code, name and organizer code', () => {
+		const match = toMatch(
+			dto({ event: { code: 'E-TEST-0001', name: 'Test Winter League', organizer: 'O-TEST-0001' } })
+		);
+		expect(match.event).toEqual({
+			code: 'E-TEST-0001',
+			name: 'Test Winter League',
+			organizer: 'O-TEST-0001'
+		});
+		expect(match.club).toBeNull();
+	});
+
+	it('maps a Club-only match', () => {
+		const match = toMatch(dto({ club: { code: 'C-TEST-0001', name: 'Test Court Club' } }));
+		expect(match.club).toEqual({ code: 'C-TEST-0001', name: 'Test Court Club' });
+		expect(match.event).toBeNull();
+	});
+
+	it('maps a match with both an Event and a Club', () => {
+		const match = toMatch(
+			dto({
+				event: { code: 'E-TEST-0001', name: 'Test Winter League', organizer: 'O-TEST-0001' },
+				club: { code: 'C-TEST-0001', name: 'Test Court Club' }
+			})
+		);
+		expect(match.event?.name).toBe('Test Winter League');
+		expect(match.club?.name).toBe('Test Court Club');
+	});
+
+	it('copies only the named fields of the Event and the Club', () => {
+		const event = {
+			code: 'E-TEST-0001',
+			name: 'Test Winter League',
+			organizer: 'O-TEST-0001',
+			organizer_name: 'Someone Real'
+		};
+		const club = { code: 'C-TEST-0001', name: 'Test Court Club', extra: 'Not kept' };
+		const match = toMatch(dto({ event, club }));
+		expect(Object.keys(match.event ?? {}).sort()).toEqual(['code', 'name', 'organizer']);
+		expect(Object.keys(match.club ?? {}).sort()).toEqual(['code', 'name']);
+		expect(JSON.stringify(match)).not.toContain('Someone');
+	});
+
 	it('throws a MappingError for a bad match code', () => {
 		expect(() => toMatch(dto({ code: 'M-AAAA-AAAA-AAAA' }))).toThrow(MappingError);
 	});
