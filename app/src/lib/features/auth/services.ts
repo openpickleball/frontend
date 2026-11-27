@@ -23,6 +23,7 @@ import {
 	api as appApi,
 	toAppError,
 	type AllauthComponents,
+	type Api,
 	type ApiOption,
 	type AppError
 } from '#lib/api/index.js';
@@ -110,6 +111,23 @@ export function loadAccountState(options: ApiOption = {}): Promise<void> {
 	return loading;
 }
 
+/**
+ * Is two-factor (TOTP) on for the signed-in account? From `GET account/authenticators`, which
+ * allauth answers even to a session the OPEN API refuses with `mfa_required`. Null when unknown.
+ */
+async function readEnrolled(api: Api): Promise<boolean | null> {
+	try {
+		const result = await settle(
+			api.allauth.GET('/_allauth/{client}/v1/account/authenticators', { params: allauthParams })
+		);
+		if (!result.response.ok) return null;
+		const list = (result.data as { data?: { type?: unknown }[] } | undefined)?.data;
+		return Array.isArray(list) ? list.some((item) => item.type === 'totp') : null;
+	} catch {
+		return null;
+	}
+}
+
 /** The account state read in flight, so a notice can wait until two-factor is known. */
 let accountStateLoading: Promise<void> | null = null;
 
@@ -126,18 +144,7 @@ async function readAccountState({ api = appApi }: ApiOption = {}): Promise<void>
 			return [];
 		}
 	})();
-	const enrolled = (async () => {
-		try {
-			const result = await settle(
-				api.allauth.GET('/_allauth/{client}/v1/account/authenticators', { params: allauthParams })
-			);
-			if (!result.response.ok) return null;
-			const list = (result.data as { data?: { type?: unknown }[] } | undefined)?.data;
-			return Array.isArray(list) ? list.some((item) => item.type === 'totp') : null;
-		} catch {
-			return null;
-		}
-	})();
+	const enrolled = readEnrolled(api);
 	const [memberships, mfa] = await Promise.all([organizers, enrolled]);
 	if (!current()) return;
 	session.organizers = memberships;
@@ -502,6 +509,14 @@ export function watchMfaRequired(
 		// Right after a sign-in two-factor may still be loading: wait for it, so an account that
 		// has it is offered the code and not told to set it up.
 		const loading = accountStateLoading ?? Promise.resolve();
-		void loading.then(() => notify(session.mfaEnrolled === true));
+		void loading.then(async () => {
+			// The cached answer may be old: two-factor turned on from another device is the usual
+			// way a session meets this refusal. Unless it already says on, ask again.
+			if (session.mfaEnrolled !== true && session.isSignedIn) {
+				const fresh = await readEnrolled(api);
+				if (fresh !== null) session.mfaEnrolled = fresh;
+			}
+			notify(session.mfaEnrolled === true);
+		});
 	});
 }
