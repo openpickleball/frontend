@@ -207,9 +207,10 @@ export function bootstrap({ api = appApi }: ApiOption = {}): Promise<void> {
 	return booting;
 }
 
-/** Forget that the session was read. For tests. */
+/** Forget that the session was read, and any unclear delete tries. For tests. */
 export function resetBootstrap(): void {
 	booting = null;
+	unclearDeletes.clear();
 }
 
 export type Credentials = { email: string; password: string };
@@ -488,13 +489,19 @@ export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
  *
  * Some answers leave it unclear whether the backend deleted the account, so this ends it as
  * `maybe` deleted (with the email read before sending) and resolves `maybe`:
- * - A 401 on the DELETE itself: the session ended, perhaps because an earlier try that timed out
- *   deleted the account. The session watcher may have expired the session first; that is
- *   cleared, so sign in says the account may be gone, not that the player was signed out.
  * - No answer (a `network` error: a timeout or a dropped connection), or a 5xx `server` error
  *   (such as a proxy's 502 or 504), when this device is signed out: the session already expired
  *   or is not signed in, or else allauth says so when asked once (`refreshSession`, which an OPEN
- *   401 watcher never hears). Still signed in, or the check failed too: it throws the error.
+ *   401 watcher never hears). Still signed in, or the check failed too: it throws the error, and
+ *   this page remembers that a try for this email had an unclear answer.
+ * - A 401 on the DELETE after such a try: the session ended, perhaps because that try deleted
+ *   the account. The session watcher may have expired the session first; that is cleared, so
+ *   sign in says the account may be gone, not that the player was signed out.
+ *
+ * Any other 401 is a plain expiry: the session ended on the backend (an idle timeout, or a sign
+ * out elsewhere) and the backend deleted nothing. It throws the 401, nothing on this device is
+ * deleted (no `onSignOut` listener runs, so the unsent matches stay), and the watcher's expiry
+ * stands. A 204 or any other definite answer forgets the unclear try.
  *
  * Anything else is an `AppError`, such as 403 `reauthentication_required` (run it through
  * `withReauth`), 403 `mfa_required`, 409 `conflict` for a staff account, or `throttled`.
@@ -503,20 +510,36 @@ export async function deleteAccount({ api = appApi }: ApiOption = {}): Promise<A
 	const email = session.email;
 	try {
 		const result = await settle(api.open.DELETE('/api/v1/accounts/me'));
-		if (result.response.status === 401) {
-			endDeletedAccount(email, 'maybe');
-			return 'maybe';
-		}
-		if (result.response.status !== 204) fail(result);
+		const status = result.response.status;
+		if (status === 401 && email !== null && unclearDeletes.has(email)) return endUnclear(email);
+		if (status !== 204) fail(result);
 	} catch (cause) {
-		if (unclearAnswer(cause) && (await signedOutNow(api))) {
-			endDeletedAccount(email, 'maybe');
-			return 'maybe';
-		}
+		if (!unclearAnswer(cause)) forgetUnclear(email);
+		else if (await signedOutNow(api)) return endUnclear(email);
+		else if (email !== null) unclearDeletes.add(email);
 		throw cause;
 	}
+	forgetUnclear(email);
 	endDeletedAccount(email);
 	return 'deleted';
+}
+
+/**
+ * The emails whose last delete try in this page had an unclear answer (no answer, or a 5xx while
+ * still signed in). Only then does a 401 on the next try mean the account may be gone.
+ */
+const unclearDeletes = new Set<string>();
+
+/** A definite answer: the next 401 for this email is a plain expiry again. */
+function forgetUnclear(email: string | null): void {
+	if (email !== null) unclearDeletes.delete(email);
+}
+
+/** End the account as `maybe` deleted after an unclear answer. */
+function endUnclear(email: string | null): AccountDeleted {
+	forgetUnclear(email);
+	endDeletedAccount(email, 'maybe');
+	return 'maybe';
 }
 
 /** No answer, or a 5xx: the backend may have deleted the account anyway. */

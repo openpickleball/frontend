@@ -29,7 +29,8 @@ export type SessionState =
 
 /**
  * How sure this device is that the player's account was deleted here: `deleted` after the
- * backend's 204, `maybe` when the answer was lost but the session had ended.
+ * backend's 204, `maybe` when the answer was unclear (none, a 5xx, or a 401 after such a try)
+ * and the session had ended.
  */
 export type AccountDeleted = 'deleted' | 'maybe';
 

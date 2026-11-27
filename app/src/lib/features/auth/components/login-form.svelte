@@ -116,8 +116,8 @@
 						<CircleAlertIcon aria-hidden="true" />
 						<AlertTitle>Your account may have been deleted.</AlertTitle>
 						<AlertDescription>
-							We lost the connection before OPEN answered. Sign in to check: if your account is
-							gone, sign-in won't work.
+							We couldn't confirm it before you were signed out. Sign in to check: if your account
+							is gone, sign-in won't work.
 						</AlertDescription>
 					</Alert>
 				{/if}

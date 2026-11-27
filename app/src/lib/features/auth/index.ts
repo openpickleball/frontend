@@ -22,8 +22,11 @@
  *   unsent. The root layout sets the source once, and deleting the account warns with it.
  * - `deleteAccount()`: delete the signed-in account. Run it through `withReauth`. On 204 it calls
  *   `endDeletedAccount()`, which runs the `onSignOut` listeners, signs out and sets
- *   `session.accountDeleted` to `deleted`, so sign-in can say the account was deleted. When the
- *   answer is lost and allauth then says signed out, it does the same with `maybe`.
+ *   `session.accountDeleted` to `deleted`, so sign-in can say the account was deleted. It does
+ *   the same with `maybe` when the answer is unclear: no answer or a 5xx, and this device is
+ *   signed out (allauth is asked once), or a 401 after an earlier try for the same email had no
+ *   answer or a 5xx. Any other 401 is a plain expiry: it throws, deletes nothing on this device
+ *   (the unsent matches stay), and sign-in says the player was signed out.
  * - `DeleteAccountDialog`: the "Delete your account" confirm dialog. It asks for the word
  *   `delete`, runs `deleteAccount()` through `withReauth`, then goes to sign in. Profile renders
  *   its row as the `trigger`.
