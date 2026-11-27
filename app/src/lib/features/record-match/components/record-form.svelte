@@ -284,7 +284,7 @@
 		</div>
 	{/if}
 
-	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
+	<FieldSet class="mt-8 gap-4 border-t border-line pt-6">
 		<FieldLegend>Match</FieldLegend>
 		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
 			{#if target}
@@ -327,7 +327,7 @@
 		</div>
 	</FieldSet>
 
-	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
+	<FieldSet class="mt-8 gap-4 border-t border-line pt-6">
 		<FieldLegend>Players</FieldLegend>
 		<p class="max-w-md text-base text-muted">
 			{#if target}
@@ -390,7 +390,7 @@
 		</div>
 	</FieldSet>
 
-	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
+	<FieldSet class="mt-8 gap-4 border-t border-line pt-6">
 		<FieldLegend>Scoring</FieldLegend>
 		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
 			<Segmented
@@ -417,7 +417,7 @@
 		</div>
 	</FieldSet>
 
-	<FieldSet class="mt-8 gap-4 border-t border-line pt-3">
+	<FieldSet class="mt-8 gap-4 border-t border-line pt-6">
 		<FieldLegend>Games</FieldLegend>
 		<div class="grid max-w-sm">
 			<div class="flex items-center gap-x-2 pb-2 text-xs text-faint" aria-hidden="true">
