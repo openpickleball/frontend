@@ -2,7 +2,7 @@
 
 **Status:** active
 
-Risk tier: Medium. Copy and a small layout change on one static page that deploys to openpb.org on merge. There are no automated tests for `site/`, so the change is proven by the build and by looking at the page in both themes, with reduced motion, at four widths.
+Risk tier: Medium. Copy and a small layout change on one static page that deploys to openpb.org on merge. There are no automated tests for `site/`, so the change is proven by the build and by looking at the page in both themes, with reduced motion, at 320, 375, 768, 1024 and 1440 widths.
 
 Domain skills: impeccable and frontend-design, not applicable because the change adds copy inside the existing visual system and adds no new design. humanizer, invoke on the new copy before it is final. chrome-devtools-mcp, invoke for the live drive (screenshots at each width and theme, reduced motion emulation). All other listed skills (Django, Expo, React, Celery, API, auth, payments, email) are not applicable because the change is a static HTML page.
 
@@ -60,7 +60,7 @@ Sources: `site/public/funding.json` ("a volunteer, community-governed group", "A
 - `site/public/index.html`: About intro and vision line, the pillar list (fourth item, grid `md:grid-cols-2 lg:grid-cols-4`), the Free, Transparent and Community-driven text, and the Get involved section.
 - `site/src/input.css`: only if a style the new markup needs has no Tailwind default or token. Expected: no change.
 - `plans/site-content-v2/plan.md`: new Decisions entries (see Order of work step 4).
-- `plans/open-story/plan.md`: this plan. Tick steps, set status to done.
+- `plans/open-story/plan.md`: this plan. Tick steps. Set the status to done once the maintainer has updated the Tally form (the last step).
 - `site/AGENTS.md`: only if its description of the page becomes wrong. The About and Get involved summaries there stay true, so expected: no change.
 
 ## Order of work
@@ -114,3 +114,4 @@ Run on this branch:
 - This plan lives in `plans/open-story/` because the repo has no `.claude/work-issue.md` and keeps plans under `plans/`.
 - The vision line ends "owned by no company", not "owned by no one". GOVERNANCE.md says no person controlling OPEN is the goal and not true yet, while no company owning OPEN is true today. The maintainer approved the change in review.
 - The Tally link's `mt-9` and `reveal` moved to the new flex row that holds the button and the email. The row keeps the same space above it, and the button and the email fade in together as one block. The link is otherwise unchanged.
+- The status stays `active` after the PR merges, because the last step (adding board and match-results options to the Tally form) happens in Tally, outside the repo. Whoever updates the form ticks that step and sets the status to `done`.
