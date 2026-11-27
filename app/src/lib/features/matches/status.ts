@@ -23,7 +23,8 @@ export type MatchStatusCopy = {
 
 /**
  * How a dispute ends. The API gives no end date (the period is a backend setting), so this
- * promises none. It doesn't know whether the match has an event either, so it says both ways.
+ * promises none. `MatchOut` now sends the match's Event and Club (backend#302), but the app does
+ * not read them yet, so this says both ways. frontend#264 will use them.
  */
 export const DISPUTE_ENDS =
 	"A dispute ends when every player who disputed the score withdraws. For a match played at an event, the event's organizer can settle it too. If no one settles it within a set time, the match is voided and doesn't count.";
@@ -122,8 +123,9 @@ export const CORRECT_NOTE =
 	'To fix a wrong score, correct it. This match is then voided, and the corrected one counts once a player on the other team confirms it.';
 
 /**
- * A disputed match may have an event, and `MatchOut` can't say so (backend#302), so the panel
- * offers a correction and says who changes an event match. The backend answers 404 for one.
+ * A disputed match may have an event. `MatchOut` now sends the Event and Club (backend#302), but
+ * the app does not read them yet, so the panel offers a correction and says who changes an event
+ * match. The backend answers 404 for one. frontend#264 will use the fields.
  */
 export const CORRECT_EVENT_NOTE =
 	'Only the organizer can change a match an organizer recorded, such as one played at an event.';
@@ -132,7 +134,8 @@ export const CORRECT_EVENT_NOTE =
  * True when the signed-in player may try to correct the match (backend#267): it is pending or
  * disputed, they played in it, and every player in it has a code, since a correction names the
  * same players and the API gives no code for a private player. The backend also refuses a match
- * with an event or a club, which the app can't tell apart (backend#302). It decides (rule 6).
+ * with an event or a club. `MatchOut` now sends both (backend#302), but the app does not read
+ * them yet; frontend#264 will. The backend decides (rule 6).
  */
 export function canCorrect(match: Match): boolean {
 	if (match.status !== 'pending' && match.status !== 'disputed') return false;
