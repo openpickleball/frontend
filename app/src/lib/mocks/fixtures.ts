@@ -642,7 +642,8 @@ export const MATCHES: readonly FixtureMatch[] = [
 	},
 	{
 		// An Event match, recorded under Larkspur Winter League. It has an Event, so Tamsin can't
-		// correct it. Nell disputed it, so the Disputed popover names the event's organizer.
+		// correct it. Nell disputed it, so the Disputed popover says the event's organizer can
+		// settle it.
 		random: EVENT_MATCH,
 		status: 'disputed',
 		format: 'doubles',
