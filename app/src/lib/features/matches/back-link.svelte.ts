@@ -1,5 +1,4 @@
 import { tick } from 'svelte';
-import { browser } from '$app/environment';
 import { afterNavigate, goto } from '$app/navigation';
 import { page } from '$app/state';
 import { isPlainClick, type Arrival, type BackTarget } from './back-link.js';
@@ -40,7 +39,9 @@ export function backLink(
 	// The saved target is read from `page.state`, not in `afterNavigate`, because SvelteKit does
 	// not always call `afterNavigate` when the browser's back or forward button opens the page.
 	// The app renders in the browser only. Outside it, as in the route tests, there is no state.
-	const current = $derived((browser ? page.state.backTo : undefined) ?? computed ?? fallback());
+	const current = $derived(
+		(typeof window === 'undefined' ? undefined : page.state.backTo) ?? computed ?? fallback()
+	);
 
 	$effect(() => {
 		const code = remember?.();
