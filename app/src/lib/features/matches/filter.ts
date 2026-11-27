@@ -3,7 +3,7 @@ import { needsYou } from './needs-you.svelte.js';
 import { listMatches, listMyDisputes, listMyHolds } from './services.js';
 
 /**
- * The filters on Matches, in the order the menu lists them. Each one shows a whole list, not
+ * The filters on Matches, in the order the pills show them. Each one shows a whole list, not
  * just what one page of the history holds.
  *
  * - `needs-you` is the app's `needsYou` list: the matches to confirm and the held matches the
@@ -15,7 +15,8 @@ import { listMatches, listMyDisputes, listMyHolds } from './services.js';
  *
  * There is no "Waiting for the other team" filter. The backend has no list of matches the
  * player's team confirmed and the other team has not, and working it out from one page of the
- * history would miss older matches. Add it once the backend serves that list.
+ * history would miss older matches. Add it once the backend serves that list
+ * (openpickleball/backend#338).
  */
 export const MATCH_FILTERS = [
 	{ value: 'all', label: 'All' },
@@ -32,7 +33,7 @@ export function filterFromSearch(search: URLSearchParams): MatchFilter {
 	return MATCH_FILTERS.find((filter) => filter.value === raw)?.value ?? 'all';
 }
 
-/** How the filter reads in the menu and the page title. */
+/** How the filter reads on its pill and in the page title. */
 export function filterLabel(filter: MatchFilter): string {
 	return MATCH_FILTERS.find((option) => option.value === filter)!.label;
 }
