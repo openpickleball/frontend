@@ -38,6 +38,17 @@ describe('FeedbackButton', () => {
 		);
 	});
 
+	it('shows no title or description of its own, only the form and a close button', async () => {
+		const screen = await render(FeedbackButton, { formUrl: BLANK });
+		await screen.getByRole('button', { name: 'Send feedback' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Send feedback' });
+		await expect.element(dialog).toBeVisible();
+		await expect.element(dialog.getByText('Send feedback')).toHaveClass('sr-only');
+		await expect.element(dialog).not.toHaveAttribute('aria-describedby');
+		await expect.element(dialog.getByRole('button', { name: 'Close' })).toBeVisible();
+		await expect.element(dialog).toHaveClass('bg-white');
+	});
+
 	it('shows the form once Tally says it loaded, and only from Tally', async () => {
 		const screen = await render(FeedbackButton, { formUrl: BLANK });
 		await screen.getByRole('button', { name: 'Send feedback' }).click();
