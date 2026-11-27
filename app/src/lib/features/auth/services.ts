@@ -486,33 +486,52 @@ export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
  * may get its 401 first and sign this device out, and the cleanup still needs the deleted
  * account's email.
  *
- * When no answer comes (a timeout or a dropped connection), the backend may still have deleted
- * the account. It asks allauth once whether this device is signed in (`refreshSession`, which an
- * OPEN 401 watcher never hears). Signed out: it ends the account as `maybe` deleted and resolves
- * `maybe`. Still signed in, or the check failed too: it throws the network error.
+ * Some answers leave it unclear whether the backend deleted the account, so this ends it as
+ * `maybe` deleted (with the email read before sending) and resolves `maybe`:
+ * - A 401 on the DELETE itself: the session ended, perhaps because an earlier try that timed out
+ *   deleted the account. The session watcher may have expired the session first; that is
+ *   cleared, so sign in says the account may be gone, not that the player was signed out.
+ * - No answer (a `network` error: a timeout or a dropped connection), or a 5xx `server` error
+ *   (such as a proxy's 502 or 504), when this device is signed out: the session already expired
+ *   or is not signed in, or else allauth says so when asked once (`refreshSession`, which an OPEN
+ *   401 watcher never hears). Still signed in, or the check failed too: it throws the error.
  *
  * Anything else is an `AppError`, such as 403 `reauthentication_required` (run it through
  * `withReauth`), 403 `mfa_required`, 409 `conflict` for a staff account, or `throttled`.
  */
 export async function deleteAccount({ api = appApi }: ApiOption = {}): Promise<AccountDeleted> {
 	const email = session.email;
-	let result: Settled;
 	try {
-		result = await settle(api.open.DELETE('/api/v1/accounts/me'));
+		const result = await settle(api.open.DELETE('/api/v1/accounts/me'));
+		if (result.response.status === 401) {
+			endDeletedAccount(email, 'maybe');
+			return 'maybe';
+		}
+		if (result.response.status !== 204) fail(result);
 	} catch (cause) {
-		if (isAppError(cause) && cause.kind === 'network' && (await signedOutNow(api))) {
+		if (unclearAnswer(cause) && (await signedOutNow(api))) {
 			endDeletedAccount(email, 'maybe');
 			return 'maybe';
 		}
 		throw cause;
 	}
-	if (result.response.status !== 204) fail(result);
 	endDeletedAccount(email);
 	return 'deleted';
 }
 
-/** Does allauth say nobody is signed in on this device? False when it can't tell. */
+/** No answer, or a 5xx: the backend may have deleted the account anyway. */
+function unclearAnswer(cause: unknown): boolean {
+	if (!isAppError(cause)) return false;
+	if (cause.kind === 'network') return true;
+	return cause.kind === 'server' && cause.status !== null && cause.status >= 500;
+}
+
+/**
+ * Is nobody signed in on this device? Yes when the session already expired or is not signed in,
+ * without asking. Otherwise allauth is asked once. False when it can't tell.
+ */
 async function signedOutNow(api: Api): Promise<boolean> {
+	if (session.expired || !session.isSignedIn) return true;
 	try {
 		return (await refreshSession({ api })).status === 'signed_out';
 	} catch {
