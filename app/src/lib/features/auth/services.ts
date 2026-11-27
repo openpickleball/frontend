@@ -205,6 +205,8 @@ export async function login(
 	{ email, password }: Credentials,
 	{ api = appApi }: ApiOption = {}
 ): Promise<SessionState> {
+	// A new attempt: the reason the last code step ended no longer applies, even if this one fails.
+	session.mfaTimedOut = false;
 	const result = await settle(
 		api.allauth.POST('/_allauth/{client}/v1/auth/login', {
 			params: allauthParams,
