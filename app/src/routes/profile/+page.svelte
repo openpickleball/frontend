@@ -81,9 +81,9 @@
 						<Item>
 							<ItemContent>
 								<ItemTitle>Name</ItemTitle>
+								<span class="text-base wrap-anywhere">{name}</span>
 								<ItemDescription>From your sign-up. It can't be changed.</ItemDescription>
 							</ItemContent>
-							<ItemActions class="text-base">{name}</ItemActions>
 						</Item>
 					</li>
 				{/if}

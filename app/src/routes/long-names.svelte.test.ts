@@ -11,23 +11,33 @@ import Profile from './profile/+page.svelte';
 // A name with no spaces must break inside the column, so the page never scrolls sideways
 // (frontend#87). The data calls fail here: only the name line is under test.
 vi.mock('$app/env/public', () => ({ PUBLIC_API_MOCK: 'off' }));
-vi.stubGlobal(
-	'fetch',
-	vi.fn(async () => new Response('{}', { status: 500 }))
-);
+const fetchMock = vi.fn<typeof fetch>(async () => new Response('{}', { status: 500 }));
+vi.stubGlobal('fetch', fetchMock);
 
 const PHONE = 320;
 const NAME = 'W'.repeat(300);
+const CODE = buildCode('player', '4RWN8TQ') as PlayerCode;
+
+/** `GET me/player` answers with the long name, as the Profile gate asks for it again. */
+function answerMyPlayer() {
+	fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+		const url = input instanceof Request ? input.url : String(input);
+		if (!url.endsWith('/api/v1/me/player')) return new Response('{}', { status: 500 });
+		return Response.json({ code: CODE, display_name: NAME });
+	});
+}
 
 beforeEach(() => {
 	myCode.reset();
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
-	myCode.code = buildCode('player', '4RWN8TQ') as PlayerCode;
+	myCode.code = CODE;
 	myCode.status = 'ready';
 });
 
 afterEach(() => {
 	session.reset();
+	fetchMock.mockReset();
+	fetchMock.mockImplementation(async () => new Response('{}', { status: 500 }));
 });
 
 function expectInsideColumn(column: HTMLElement, line: HTMLElement) {
@@ -50,15 +60,17 @@ describe('long names', () => {
 		expectInsideColumn(column, heading);
 	});
 
-	it('never push the profile sideways, which has no name line under its title', async () => {
+	it('break inside the column in the Profile Name row, with no name line under the title', async () => {
 		myCode.displayName = NAME;
+		answerMyPlayer();
 		const { container } = await render(Profile);
 		const column = container as HTMLElement;
 		column.style.width = `${PHONE}px`;
 		await expect.element(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
-		// The display name field shows the name, once the settings load.
 		expect(column.querySelector('h1 + p')).toBeNull();
-		expect(column.textContent).not.toContain(NAME);
-		expectInsideColumn(column, column);
+		await expect.element(page.getByTestId('profile-name')).toBeVisible();
+		const row = column.querySelector('[data-testid="profile-name"]') as HTMLElement;
+		expect(row.textContent).toContain(NAME);
+		expectInsideColumn(column, row);
 	});
 });

@@ -61,7 +61,7 @@ describe('the profile page', () => {
 		const body = renderSignedIn();
 		const row = body.match(/<li[^>]*data-testid="profile-name"[^>]*>(.*?)<\/li>/s);
 		expect(row).not.toBeNull();
-		expect(textOf(row![1])).toBe("Name From your sign-up. It can't be changed. Tamsin V.");
+		expect(textOf(row![1])).toBe("Name Tamsin V. From your sign-up. It can't be changed.");
 		expect(row![1]).not.toMatch(/<a\b|<input\b|<button\b/);
 		expect(body.indexOf('data-testid="profile-name"')).toBeLessThan(
 			body.indexOf('href="/profile/two-factor"')
