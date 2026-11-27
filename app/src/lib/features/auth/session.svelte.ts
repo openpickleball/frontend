@@ -50,6 +50,11 @@ class Session {
 	 * only: the backend decides what an organizer may do.
 	 */
 	organizers = $state<OrganizerMembership[] | null>(null);
+	/**
+	 * True when the last read of the memberships failed. `organizers` is then `[]`, so the account
+	 * counts as a non-member, but a page that needs the memberships reads them again.
+	 */
+	organizersFailed = false;
 	#mfaEnrolled = $state<boolean | null>(null);
 	/** Counts the writes to `mfaEnrolled`, so a slow read can tell it was set after it started. */
 	mfaRevision = 0;
@@ -105,6 +110,7 @@ class Session {
 		this.mfaTypes = state.status === 'pending_mfa' ? state.types : [];
 		if (!sameAccount) {
 			this.organizers = null;
+			this.organizersFailed = false;
 			this.mfaEnrolled = null;
 		}
 		if (state.status === 'signed_in') this.email = state.email;
@@ -132,6 +138,7 @@ class Session {
 		this.mfaTimedOut = false;
 		this.mfaTypes = [];
 		this.organizers = null;
+		this.organizersFailed = false;
 		this.mfaEnrolled = null;
 	}
 }

@@ -135,12 +135,19 @@ async function readEnrolled(api: Api): Promise<boolean | null> {
 
 /**
  * The signed-in account's organizer memberships, once known: it waits for any read in flight
- * (sign-in starts one without waiting), and runs one when the list is still unknown. Empty when
- * the read fails. Call it after the session is read.
+ * (sign-in starts one without waiting), and runs one when the list is still unknown or the last
+ * read failed. Empty when the read fails. Call it after the session is read.
  */
 export async function settledMemberships(options: ApiOption = {}): Promise<OrganizerMembership[]> {
-	while (accountStateLoading) await accountStateLoading;
-	if (session.isSignedIn && session.organizers === null) await loadAccountState(options);
+	// A read that failed while this call waited for it is not tried again at once, so one visit
+	// makes one read. The next visit tries again.
+	let waited = false;
+	while (accountStateLoading) {
+		waited = true;
+		await accountStateLoading;
+	}
+	const retry = session.organizersFailed && !waited;
+	if (session.isSignedIn && (session.organizers === null || retry)) await loadAccountState(options);
 	return session.organizers ?? [];
 }
 
@@ -156,12 +163,12 @@ async function readAccountState({ api = appApi }: ApiOption = {}): Promise<void>
 	const current = () => session.isSignedIn && session.email === email;
 	const revision = session.mfaRevision;
 	const read = ++accountReads;
-	const organizers = (async () => {
+	const organizers = (async (): Promise<OrganizerMembership[] | null> => {
 		try {
 			const result = await settle(api.open.GET('/api/v1/organizer/organizers'));
-			return result.response.ok && Array.isArray(result.data) ? result.data : [];
+			return result.response.ok && Array.isArray(result.data) ? result.data : null;
 		} catch {
-			return [];
+			return null;
 		}
 	})();
 	const enrolled = readEnrolled(api);
@@ -169,7 +176,11 @@ async function readAccountState({ api = appApi }: ApiOption = {}): Promise<void>
 	if (!current()) return;
 	// Only the newest read writes the list: an older one may have been refused before the session
 	// passed two-factor, and would overwrite the real memberships.
-	if (read === accountReads) session.organizers = memberships;
+	// A failed read leaves no memberships, the safe answer, and marks them to be read again.
+	if (read === accountReads) {
+		session.organizers = memberships ?? [];
+		session.organizersFailed = memberships === null;
+	}
 	// A value set while this read waited (turning TOTP on, say) is newer: keep it.
 	if (session.mfaRevision === revision) session.mfaEnrolled = mfa;
 }
