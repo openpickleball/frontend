@@ -69,15 +69,28 @@
 
 	async function submit(submitEvent: SubmitEvent) {
 		submitEvent.preventDefault();
-		const outcome = await form.submit();
+		const mine = form;
+		const outcome = await mine.submit();
+		// The dialog may have been closed by its owner and opened again since: then only a saved
+		// Event goes back to the page, and the new form is left alone.
+		const current = form === mine && open;
 		if (outcome.kind === 'saved') {
 			onsaved(outcome.event);
-			open = false;
+			if (current) open = false;
 		} else if (outcome.kind === 'unchanged') {
-			open = false;
+			if (current) open = false;
 		} else if (outcome.kind === 'failed' && outcome.gone) {
 			ongone();
 		}
+	}
+
+	/** No way out while a save is in flight: its answer belongs to this dialog. */
+	function setOpen(next: boolean) {
+		if (next || !form.submitting) open = next;
+	}
+
+	function holdWhileSaving(blocked: Event) {
+		if (form.submitting) blocked.preventDefault();
 	}
 
 	function focusName(openEvent: Event) {
@@ -86,8 +99,12 @@
 	}
 </script>
 
-<Dialog bind:open>
-	<DialogContent onOpenAutoFocus={focusName}>
+<Dialog bind:open={() => open, setOpen}>
+	<DialogContent
+		onOpenAutoFocus={focusName}
+		onEscapeKeydown={holdWhileSaving}
+		onInteractOutside={holdWhileSaving}
+	>
 		<form method="post" onsubmit={submit} novalidate class="grid gap-8">
 			<DialogHeader>
 				<DialogTitle>{form.isEdit ? EDIT_EVENT : NEW_EVENT}</DialogTitle>
@@ -173,7 +190,9 @@
 			{/if}
 
 			<DialogFooter>
-				<Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
+				<Button variant="outline" aria-disabled={form.submitting} onclick={() => setOpen(false)}>
+					Cancel
+				</Button>
 				<Button type="submit" aria-disabled={form.submitting} aria-busy={form.submitting}>
 					{#if form.submitting}<Spinner />{/if}
 					{form.isEdit ? 'Save' : 'Create Event'}
