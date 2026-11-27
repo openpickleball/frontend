@@ -72,7 +72,9 @@
 		});
 	});
 
-	const options = $derived(grants.map((g) => ({ value: g.club, label: `${g.name} (${g.city})` })));
+	const options = $derived(
+		grants.map((g) => ({ value: g.club, label: g.city ? `${g.name} (${g.city})` : g.name }))
+	);
 
 	function changed(event: Event & { currentTarget: HTMLInputElement | HTMLSelectElement }) {
 		value = event.currentTarget.value;

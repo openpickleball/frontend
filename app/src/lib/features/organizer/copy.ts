@@ -6,7 +6,6 @@ import { isAppError, type AppError } from '#lib/api/index.js';
 import { session } from '#lib/features/auth/index.js';
 
 export const PAGE_TITLE = 'Events';
-export const PAGE_INTRO = 'Set up the Events your organizers run.';
 export const NEW_EVENT = 'New Event';
 export const EDIT_EVENT = 'Edit Event';
 
