@@ -7,7 +7,9 @@ import {
 	hasActions,
 	matchStatusCopy,
 	panelIsQuiet,
-	panelTone
+	panelTone,
+	progressInfo,
+	statusInfo
 } from './status.js';
 import { sampleMatch, viewerMatch } from './testing.js';
 
@@ -228,5 +230,58 @@ describe('panelIsQuiet', () => {
 		for (const status of ['pending', 'disputed', 'voided'] as const) {
 			expect(panelIsQuiet(viewerMatch({}, { status }))).toBe(false);
 		}
+	});
+});
+
+describe('statusInfo', () => {
+	it('explains how a dispute ends on a disputed match', () => {
+		const info = statusInfo(viewerMatch({}, { status: 'disputed' }));
+		expect(info?.label).toBe('What does disputed mean?');
+		expect(info?.terms).toEqual([{ term: 'Disputed', text: DISPUTE_ENDS }]);
+	});
+
+	it('explains on hold, and vouch only while the side has not vouched', () => {
+		const match = viewerMatch({}, { status: 'confirmed' });
+		expect(statusInfo(match, { vouched: false })?.label).toBe('What do on hold and vouch mean?');
+		expect(statusInfo(match, { vouched: true })?.label).toBe('What does on hold mean?');
+		expect(statusInfo(match, { vouched: true })?.terms[0].text).toContain(HOLD_ENDS);
+	});
+
+	it('names every term on a disputed match on hold', () => {
+		const info = statusInfo(viewerMatch({}, { status: 'disputed' }), { vouched: false });
+		expect(info?.label).toBe('What do disputed, on hold and vouch mean?');
+	});
+
+	it('has nothing to explain on a pending, confirmed or voided match that is not held', () => {
+		for (const status of ['pending', 'confirmed', 'voided'] as const) {
+			expect(statusInfo(viewerMatch({}, { status }))).toBeNull();
+		}
+		expect(statusInfo(viewerMatch({}, { status: 'voided' }), { vouched: false })).toBeNull();
+	});
+
+	it('keeps each term to one or two sentences, in plain words', () => {
+		const match = viewerMatch({}, { status: 'disputed' });
+		for (const info of [
+			statusInfo(match, { vouched: false }),
+			statusInfo(sampleMatch({ status: 'confirmed' }), { vouched: false }),
+			progressInfo(true, true)
+		]) {
+			for (const { text } of info!.terms) {
+				expect(text).not.toContain('—');
+				expect(text).not.toMatch(/moderator|OPEN rating/i);
+			}
+		}
+		for (const { text } of progressInfo(true, true)!.terms) {
+			expect(text.match(/[.?!](\s|$)/g)!.length).toBeLessThanOrEqual(2);
+		}
+	});
+});
+
+describe('progressInfo', () => {
+	it('explains only the counts Home shows', () => {
+		expect(progressInfo(true, false)?.label).toBe('What does disputed mean?');
+		expect(progressInfo(false, true)?.label).toBe('What does on hold mean?');
+		expect(progressInfo(true, true)?.label).toBe('What do disputed and on hold mean?');
+		expect(progressInfo(false, false)).toBeNull();
 	});
 });

@@ -21,8 +21,9 @@ export type MatchStatusCopy = {
 	actions: PanelAction[];
 };
 
-// The explanations below are no longer shown in the status panel (frontend#286). They stay here
-// for the info popovers in frontend#285, and plans/ux-cleanup/plan.md lists them.
+// The explanations below left the status panel's sentence in frontend#286. The info popovers
+// (frontend#285, `statusInfo` below) use DISPUTE_ENDS and HOLD_ENDS. plans/ux-cleanup/plan.md
+// lists them all.
 
 /**
  * How a dispute ends. The API gives no end date (the period is a backend setting), so this
@@ -234,4 +235,69 @@ export function panelTone(match: Match, hold?: HoldState): PanelTone {
  */
 export function panelIsQuiet(match: Match, hold?: HoldState): boolean {
 	return match.status === 'confirmed' && hold === undefined;
+}
+
+/**
+ * What an info popover explains (frontend#285): the info button's name, which says what it
+ * explains, and each term in a sentence or two.
+ */
+export type StatusInfo = {
+	label: string;
+	terms: { term: string; text: string }[];
+};
+
+/** Why a held match doesn't count, once the panel's sentence has said there is another match. */
+export const HOLD_COUNTS = `Both matches are on hold and don't count until each one is vouched for. ${HOLD_ENDS}`;
+
+/** What a vouch says, for a player in the match. */
+export const VOUCH_MEANS =
+	"To vouch is to say this is a separate match, not a repeat of the other one. One player from each team needs to vouch, and you can't undo a vouch.";
+
+/** What a vouch says, for a member of the event's organizer, who did not play in it. */
+export const VOUCH_MEANS_ORGANIZER =
+	"To vouch is to say this is a separate match, not a repeat of the other one. You vouch as a member of the event's organizer, and you can't undo a vouch.";
+
+/** What Home's In progress line explains, for each count it shows. */
+export const DISPUTED_MEANS =
+	"A player said the score is wrong. The match doesn't count while it is disputed.";
+export const ON_HOLD_MEANS =
+	'Another match on OPEN has the same teams and date, but other scores. Neither counts until each one is vouched for as a separate match.';
+
+/** The button's name for the terms it explains, such as "What does disputed mean?". */
+function infoFor(terms: StatusInfo['terms']): StatusInfo | null {
+	if (terms.length === 0) return null;
+	const names = terms.map((item) => item.term.toLowerCase());
+	const label =
+		names.length === 1
+			? `What does ${names[0]} mean?`
+			: `What do ${names.slice(0, -1).join(', ')} and ${names.at(-1)} mean?`;
+	return { label, terms };
+}
+
+/**
+ * The status panel's info popover, or null when its title needs none. It says how a dispute ends,
+ * why a held match doesn't count and, while the panel asks for one, what a vouch is. The panel's
+ * own sentence already says what happened, so the popover doesn't repeat it.
+ */
+export function statusInfo(match: Match, hold?: HoldState): StatusInfo | null {
+	const terms: StatusInfo['terms'] = [];
+	if (match.status === 'disputed') terms.push({ term: 'Disputed', text: DISPUTE_ENDS });
+	if (hold && match.status !== 'voided') {
+		terms.push({ term: 'On hold', text: HOLD_COUNTS });
+		if (!hold.vouched) {
+			terms.push({
+				term: 'Vouch',
+				text: match.viewerSide === null ? VOUCH_MEANS_ORGANIZER : VOUCH_MEANS
+			});
+		}
+	}
+	return infoFor(terms);
+}
+
+/** Home's In progress popover, for the counts it shows, or null when it shows none. */
+export function progressInfo(disputed: boolean, held: boolean): StatusInfo | null {
+	const terms: StatusInfo['terms'] = [];
+	if (disputed) terms.push({ term: 'Disputed', text: DISPUTED_MEANS });
+	if (held) terms.push({ term: 'On hold', text: ON_HOLD_MEANS });
+	return infoFor(terms);
 }

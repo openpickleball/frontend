@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { buildCode } from '../src/lib/domain/codes';
 import { MATCHES, MOCK_PASSWORD, PLAYERS, VERIFIED_EMAIL } from '../src/lib/mocks/fixtures';
@@ -46,6 +46,11 @@ async function expectNoAxeViolations(page: Page) {
 		.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
 		.analyze();
 	expect(results.violations).toEqual([]);
+}
+
+/** The status panel's action buttons. The info button by its title is not one. */
+function actionButtons(panel: Locator) {
+	return panel.locator('button:not([data-slot="info-button"])');
 }
 
 function rowFor(page: Page, code: string) {
@@ -527,7 +532,7 @@ test.describe('disputes', () => {
 		await expect(
 			panel.getByText(/You withdrew your dispute, but another player still says/)
 		).toBeVisible();
-		await expect(panel.getByRole('button')).toHaveCount(0);
+		await expect(actionButtons(panel)).toHaveCount(0);
 	});
 
 	test('has no WCAG 2.1 AA violations on home, a disputed match and the dialog, in either theme', async ({
@@ -621,7 +626,7 @@ test.describe('holds', () => {
 		const panel = page.getByTestId('status-panel');
 		await expect(panel.getByRole('heading', { name: 'On hold' })).toBeVisible();
 		await expect(panel.getByText(/Your team vouched for this match/)).toBeVisible();
-		await expect(panel.getByRole('button')).toHaveCount(0);
+		await expect(actionButtons(panel)).toHaveCount(0);
 	});
 
 	test('has no WCAG 2.1 AA violations on home, a held match and the dialog, in either theme', async ({
@@ -797,7 +802,7 @@ test.describe('match page status panel', () => {
 		page
 	}) => {
 		await page.goto(`/matches/${STILL_DISPUTED}`);
-		await expect(page.getByTestId('status-panel').getByRole('button')).toHaveCount(0);
+		await expect(actionButtons(page.getByTestId('status-panel'))).toHaveCount(0);
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-tone', 'disputed');
 		expect(await panelBeforeScore(page)).toBe(true);
 	});

@@ -7,6 +7,7 @@ import { session } from '#lib/features/auth/index.js';
 import { myCode } from '#lib/features/players/index.js';
 import { matchCache } from '../cache.svelte.js';
 import { needsYou } from '../needs-you.svelte.js';
+import { DISPUTED_MEANS, ON_HOLD_MEANS } from '../status.js';
 import * as services from '../services.js';
 import { TAMSIN, viewerMatch } from '../testing.js';
 import HomeView from './home-view.svelte';
@@ -243,6 +244,27 @@ describe('HomeView In progress', () => {
 			.toHaveAttribute('href', '/matches?show=on-hold');
 		// No count of what waits on the other team: there is no list or filter for it.
 		await expect.element(line.getByText(/waiting/)).not.toBeInTheDocument();
+	});
+
+	it('explains disputed and on hold in one info popover by the title', async () => {
+		serve([needs, myDispute, held, done], [needs]);
+		serveDisputes([myDispute]);
+		serveHolds([{ match: held, vouched: false }]);
+		await render(HomeView);
+		await page.getByRole('button', { name: 'What do disputed and on hold mean?' }).click();
+		const popover = page.getByRole('dialog', { name: 'What do disputed and on hold mean?' });
+		await expect.element(popover.getByText(DISPUTED_MEANS)).toBeVisible();
+		await expect.element(popover.getByText(ON_HOLD_MEANS)).toBeVisible();
+	});
+
+	it('explains only the counts the line shows', async () => {
+		serve([myDispute, done]);
+		serveDisputes([myDispute]);
+		await render(HomeView);
+		await expect.element(page.getByTestId('in-progress')).toHaveTextContent('1 disputed');
+		await expect
+			.element(page.getByRole('button', { name: 'What does disputed mean?' }))
+			.toBeVisible();
 	});
 
 	it('keeps counting a dispute the player can withdraw, and drops one that ended', async () => {

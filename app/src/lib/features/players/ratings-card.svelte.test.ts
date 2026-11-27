@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { page } from 'vitest/browser';
 import RatingsCard from './ratings-card.svelte';
+import { RATING_TERMS } from './ratings.js';
 import type { PlayerRatings, Rating } from './types.js';
 
 function rating(more: Partial<Rating>): Rating {
@@ -73,6 +75,37 @@ describe('RatingsCard', () => {
 		await expect
 			.element(screen.getByText('Reliability from an external rating: 30 out of 100'))
 			.toBeVisible();
+	});
+
+	it('explains reliability and the tile lines in one popover for the section', async () => {
+		const screen = await render(RatingsCard, { ratings: RATINGS });
+		const buttons = screen.getByRole('button', { name: 'What does reliability mean?' });
+		expect(buttons.elements()).toHaveLength(1);
+		await buttons.click();
+		const popover = page.getByRole('dialog', { name: 'What does reliability mean?' });
+		for (const item of Object.values(RATING_TERMS)) {
+			await expect.element(popover.getByText(item.text)).toBeVisible();
+		}
+	});
+
+	it('explains only the lines the tiles show', async () => {
+		const screen = await render(RatingsCard, {
+			ratings: { demonstration: true, ratings: [rating({})] }
+		});
+		await screen.getByRole('button', { name: 'What does reliability mean?' }).click();
+		const popover = page.getByRole('dialog', { name: 'What does reliability mean?' });
+		await expect.element(popover.getByText(RATING_TERMS.reliability.text)).toBeVisible();
+		for (const item of [RATING_TERMS.imported, RATING_TERMS.early, RATING_TERMS.provisional]) {
+			await expect.element(popover.getByText(item.text)).not.toBeInTheDocument();
+		}
+	});
+
+	it('has no info button without ratings', async () => {
+		const screen = await render(RatingsCard, { ratings: { demonstration: true, ratings: [] } });
+		await expect.element(screen.getByText(/You don't have a rating yet/)).toBeVisible();
+		await expect
+			.element(screen.getByRole('button', { name: 'What does reliability mean?' }))
+			.not.toBeInTheDocument();
 	});
 
 	it('says so when the player has no rating yet', async () => {

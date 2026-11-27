@@ -59,4 +59,16 @@ describe('Section', () => {
 		const heading = screen.getByRole('heading', { name: 'Disputed matches' }).element();
 		expect(heading.nextElementSibling?.textContent).toBe('2 matches');
 	});
+
+	it('puts an info button right after the title, inside the title row', async () => {
+		const screen = await render(Section, {
+			title: 'In progress',
+			info: html('<button type="button" aria-label="What does on hold mean?">i</button>'),
+			children: html('<p>Content</p>')
+		});
+		const heading = screen.getByRole('heading', { name: 'In progress' }).element();
+		const button = screen.getByRole('button', { name: 'What does on hold mean?' }).element();
+		expect(heading.nextElementSibling).toBe(button);
+		expect(heading.contains(button)).toBe(false);
+	});
 });

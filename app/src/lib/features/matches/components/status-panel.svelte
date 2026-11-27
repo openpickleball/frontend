@@ -2,9 +2,16 @@
 	import type { Match } from '#lib/domain/index.js';
 	import { Alert, AlertDescription } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { InfoPopover } from '#lib/ui/info-popover/index.js';
 	import { Spinner } from '#lib/ui/spinner/index.js';
 	import type { HoldState, MatchAction } from '../cache.svelte.js';
-	import { matchStatusCopy, panelTone, type PanelAction, type PanelTone } from '../status.js';
+	import {
+		matchStatusCopy,
+		panelTone,
+		statusInfo,
+		type PanelAction,
+		type PanelTone
+	} from '../status.js';
 
 	let {
 		match,
@@ -48,6 +55,8 @@
 	} = $props();
 
 	const panel = $derived(matchStatusCopy(match, hold));
+	// Disputed, on hold and vouch are explained in a popover by the title, for players who ask.
+	const info = $derived(statusInfo(match, hold));
 	const held = $derived(hold !== undefined && match.status !== 'voided');
 	const offers = (action: PanelAction) => panel.actions.includes(action);
 	// One panel style for every state. Only the edge changes, and it carries the meaning.
@@ -68,9 +77,14 @@
 	data-held={held || undefined}
 	data-tone={tone}
 >
-	<h2 id="status-heading" tabindex="-1" class="text-lg font-semibold outline-none">
-		{panel.title}
-	</h2>
+	<div class="flex items-center">
+		<h2 id="status-heading" tabindex="-1" class="text-lg font-semibold outline-none">
+			{panel.title}
+		</h2>
+		{#if info}
+			<InfoPopover label={info.label} terms={info.terms} />
+		{/if}
+	</div>
 	{#if corrected}
 		<p class="mt-2 max-w-md text-secondary">
 			You just corrected this match, so it has a new code and the old match is voided.

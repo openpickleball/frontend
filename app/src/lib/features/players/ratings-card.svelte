@@ -4,9 +4,10 @@
 	import { ROUTES } from '#lib/domain/index.js';
 	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { InfoPopover, type InfoTerm } from '#lib/ui/info-popover/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { Section } from '#lib/ui/section/index.js';
-	import { FORMAT_LABELS, formatRating, formatReliability } from './ratings.js';
+	import { FORMAT_LABELS, RATING_TERMS, formatRating, formatReliability } from './ratings.js';
 	import type { PlayerRatings } from './types.js';
 
 	let {
@@ -27,9 +28,21 @@
 	const demonstration = $derived(
 		ratings !== null && (ratings.demonstration || list.some((rating) => rating.demonstration))
 	);
+	// One popover for the section, not one per tile. It explains the lines the tiles show.
+	const terms = $derived<InfoTerm[]>([
+		RATING_TERMS.reliability,
+		...(list.some((rating) => rating.importedReliability !== null) ? [RATING_TERMS.imported] : []),
+		...(list.some((rating) => !rating.established) ? [RATING_TERMS.early] : []),
+		...(list.some((rating) => rating.provisional) ? [RATING_TERMS.provisional] : [])
+	]);
 </script>
 
 <Section title="Ratings">
+	{#snippet info()}
+		{#if list.length > 0}
+			<InfoPopover label="What does reliability mean?" {terms} />
+		{/if}
+	{/snippet}
 	{#snippet aside()}
 		<Button href={resolve(ROUTES.ratingHistory)} variant="link">
 			Rating history

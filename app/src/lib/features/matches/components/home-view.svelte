@@ -8,6 +8,7 @@
 	import WifiOffIcon from '@lucide/svelte/icons/wifi-off';
 	import { Alert, AlertAction, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
 	import { Button } from '#lib/ui/button/index.js';
+	import { InfoPopover } from '#lib/ui/info-popover/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
 	import { Section } from '#lib/ui/section/index.js';
 	import { matchCountLabel } from '../format.js';
@@ -16,6 +17,7 @@
 	import { matchesQuery, type MatchFilter } from '../filter.js';
 	import { needsYou } from '../needs-you.svelte.js';
 	import { listMyDisputes } from '../services.js';
+	import { progressInfo } from '../status.js';
 	import CodeGate from './code-gate.svelte';
 	import CodeStrip from './code-strip.svelte';
 	import EmptyMatches from './empty-matches.svelte';
@@ -95,6 +97,14 @@
 				{ filter: 'on-hold', count: needsFailed ? 0 : heldCount, label: 'on hold' }
 			] satisfies { filter: MatchFilter; count: number; label: string }[]
 		).filter((item) => item.count > 0)
+	);
+	// Disputed and on hold explained, for the counts the line shows. Vouch is part of on hold: a
+	// held match to vouch for is always counted there too.
+	const progressHelp = $derived(
+		progressInfo(
+			progress.some((item) => item.filter === 'disputed'),
+			progress.some((item) => item.filter === 'on-hold')
+		)
 	);
 	// Recent matches leave out what needs the player, so a match shows once.
 	const needCodes = $derived(new Set(needs.map((match) => match.code)));
@@ -219,6 +229,11 @@
 
 			{#if progress.length > 0}
 				<Section title="In progress">
+					{#snippet info()}
+						{#if progressHelp}
+							<InfoPopover label={progressHelp.label} terms={progressHelp.terms} />
+						{/if}
+					{/snippet}
 					<p class="text-muted" data-testid="in-progress">
 						{#each progress as item, index (item.filter)}
 							{#if index > 0}<span aria-hidden="true">&nbsp;·&nbsp;</span>{/if}
