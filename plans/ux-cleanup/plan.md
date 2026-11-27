@@ -30,7 +30,7 @@ Wave 4
 - [x] #286 Show match status in one place above the scoreboard
 - [x] #287 Trim the match page header and move the match code to the details
 - [x] #288 Show each rating format at the same size and move rating history to its own page
-- [ ] #290 Make Home a short list of what needs you
+- [x] #290 Make Home a short list of what needs you
 
 Wave 5
 
@@ -92,7 +92,15 @@ Where it applies:
 
 ## Home (#290)
 
-To be filled in by #290.
+Home is short by design, whatever the number of pending matches. Top to bottom:
+
+- **Needs you**: the matches where the player has something to do. They confirm (or dispute) a match no one on their team has confirmed, or vouch for a held match their side has not vouched for. Oldest first, by the day played, then by when it was recorded. Each row says its action in its note: "Confirm or dispute the score.", "Vouch for it. It's on hold." or both. It shows 3 rows, then "See all N", which opens the Needs you filter on Matches. The count is the `aside`. With nothing to do it says "You're all caught up."
+- **In progress**: one line of counts, each a link to its filter, such as "2 disputed · 2 on hold". It is left out when both are 0.
+- **Recent matches**: the 3 newest matches that are not under Needs you, with All matches as the `aside`.
+- The code strip with Copy code, then Record a match.
+- The Home tab and the side nav's Home item show the Needs you count as a badge when it is above 0. The link's name is "Home, 2 need you" ("Home, 1 needs you" for one).
+
+One list, `needsYou` in `app/src/lib/features/matches/needs-you.svelte.ts`, feeds the badge, Home and the Needs you filter, so the three numbers are always the same. The root layout loads it once the player's code is known. Home and the filter load it again. A confirm or vouch updates the match cache, and the list reads the cache, so the match leaves all three at once.
 
 ## Decisions
 
@@ -100,7 +108,14 @@ To be filled in by #290.
 - #280 (app): the `label` utility is Instrument Sans semibold (600), so the 11px caps stay as easy to read as they were in the heavier Krona One.
 - #280 (app): OPEN codes use Instrument Sans medium, not semibold, because the same style applies to names typed into the code input.
 - #280 (app): the code style is one utility, `open-code` in `app/src/routes/layout.css`, because it repeats in 8 places.
-- #289: "Needs you" on Matches is the awaiting-confirmation list only. Held matches the player can still vouch for are under "On hold". The two are separate backend lists with their own paging, and merging them into one paged list would mean reading both in full. #290 can revisit this if Home's "Needs you" takes in vouching.
+- #289 (since replaced by #290): "Needs you" on Matches was the awaiting-confirmation list only, and held matches the player could still vouch for were only under "On hold".
+- #290: "Needs you" on Matches, on Home and on the nav badge is one list: the matches to confirm and the held matches the player's side has not vouched for. The backend has no combined list and no filter for unvouched holds, so the app reads `GET me/matches/awaiting-confirmation` and `GET me/matches/holds` in full (pages of 100, at most 10 pages each) and merges and sorts them in the browser. Both lists are short by nature. Sorting and merging is display logic, not rating computation. A backend "needs you" list would replace this.
+- #290: "On hold" on Matches still lists every hold the player may vouch for, also the ones their side has vouched for, paged by the backend. So a hold the player still has to vouch for is under both Needs you and On hold.
+- #290: In progress counts what the filter it links to shows: every disputed match (also one the player can withdraw, since withdrawing is optional) and every hold. A hold to vouch for is counted under Needs you and under "on hold", because it is both.
+- #290: In progress has no "waiting" count. The backend has no list of matches waiting for the other team, so there is no filter to link to, and the newest page of the history can't give a true total. Recent matches still say "Waiting for the other team." on such a row.
+- #290: Home's order follows the issue: Needs you first, then In progress, Recent matches, the code strip and Record a match. The Record tab stays one tap away. When the player has no matches, the empty state keeps its own Record a match button and the second one is left out.
+- #290: the nav badge is our own small component (`nav-badge.svelte`). shadcn-svelte's sidebar menu badge would overwrite our restyled sidebar parts, and the status Badge is an outlined pill with a dot. The badge is hidden from screen readers. The link's name comes from hidden text, not an `aria-label`, because axe then counts the badge digit as visible text the name must contain.
+- #290: Home's "Matches on hold", "Disputed matches" and "Waiting for the other team" sections are gone, so the `waiting` row list from #284 is gone too.
 - #289: the filter is the native select from `#lib/ui/native-select`, in the address as `?show=` (`needs-you`, `disputed`, `on-hold`). An unknown value shows All. Choosing a filter goes to its first page and keeps focus on the select. The segmented control from Record a match is a radio group inside that feature, so it could not be shared without moving it.
 - #289: Home's "N more ..." links now go to the matching filter, with the text "See them all".
 - #283: the `label` utility stays, for kickers and captions only: the format and date above the match page and correction titles, and "Your OPEN code" in Home's code strip. None of them is a heading.
