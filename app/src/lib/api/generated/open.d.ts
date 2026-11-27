@@ -163,8 +163,13 @@ export interface paths {
 		 *
 		 *     ``player`` is the admin's player OPEN Code; one that is not an admin
 		 *     of this Club gets the same 404 as an unknown code. 409 when it would
-		 *     leave the Club with no admin. The invites that admin sent to this
+		 *     leave the Club with no admin with two-factor authentication. The invites that admin sent to this
 		 *     Club stop working.
+		 *
+		 *     A two-factor step older than a few minutes gets 403
+		 *     `reauthentication_required`: confirm your two-factor method again
+		 *     (`auth/2fa/reauthenticate` with a code, or
+		 *     `auth/webauthn/reauthenticate` with a passkey), then retry.
 		 */
 		delete: operations['remove_club_admin'];
 		options?: never;
@@ -194,6 +199,11 @@ export interface paths {
 		 *     the Club has too many open invites. Limited per Account to a number
 		 *     of invites a day; past that the answer is 429 with a Retry-After
 		 *     header.
+		 *
+		 *     A two-factor step older than a few minutes gets 403
+		 *     `reauthentication_required`: confirm your two-factor method again
+		 *     (`auth/2fa/reauthenticate` with a code, or
+		 *     `auth/webauthn/reauthenticate` with a passkey), then retry.
 		 */
 		post: operations['invite_club_admin'];
 		delete?: never;
@@ -228,6 +238,11 @@ export interface paths {
 		 *     count, and this changes nothing about verification. An unknown or
 		 *     malformed Organizer code gets the same 404 as an unknown Club. 409
 		 *     when the Club already allows it.
+		 *
+		 *     A two-factor step older than a few minutes gets 403
+		 *     `reauthentication_required`: confirm your two-factor method again
+		 *     (`auth/2fa/reauthenticate` with a code, or
+		 *     `auth/webauthn/reauthenticate` with a passkey), then retry.
 		 */
 		post: operations['grant_club_organizer'];
 		delete?: never;
@@ -254,6 +269,11 @@ export interface paths {
 		 *     Events and matches already recorded keep the Club; a new Event or
 		 *     match naming it is refused from then on. An Organizer the Club does
 		 *     not allow gets the same 404 as an unknown code.
+		 *
+		 *     A two-factor step older than a few minutes gets 403
+		 *     `reauthentication_required`: confirm your two-factor method again
+		 *     (`auth/2fa/reauthenticate` with a code, or
+		 *     `auth/webauthn/reauthenticate` with a passkey), then retry.
 		 */
 		delete: operations['remove_club_organizer_grant'];
 		options?: never;
@@ -735,10 +755,11 @@ export interface paths {
 		 *     The Account's own email address must be verified (403 otherwise), and
 		 *     an Account has one Player (409 for a second). Every value comes from
 		 *     the details held at signup in this session (ADR 0017, ADR 0019, ADR
-		 *     0022), the held name as the legal name and, for an adult, the display
-		 *     name (a player aged 13 to 17 starts with "First L."); the body is used
-		 *     only when the session holds none, and its display name, birth year and
-		 *     month, and gender division are then required. The held details are
+		 *     0022); the body is used only when the session holds none, and its
+		 *     first and last name, birth year and month, and gender division are
+		 *     then required, the names with signup's checks. The legal name is
+		 *     "First Last", and the display name is built from the names: "First
+		 *     Last" for an adult, "First L." for a player aged 13 to 17 (ADR 0062). The held details are
 		 *     removed once the Player exists (on a 409 too), so a create refused for
 		 *     any other reason can be retried. A player under 13, or a birth year
 		 *     and month in the future, is refused with a fixed 422, and the refusal
@@ -755,7 +776,11 @@ export interface paths {
 		 *
 		 *     Only the fields sent change. The birth year and month and the gender
 		 *     division are set once, when the Player is created: sending any of
-		 *     them gets a 422, whatever the value (ADR 0023). Both kinds of change
+		 *     them gets a 422, whatever the value (ADR 0023). So do the display name
+		 *     and the legal name, which are built from the first and last name given
+		 *     at signup: ``privacy.name_format`` chooses "First Last" or "First L."
+		 *     and rebuilds the display name, and ``full`` is refused while the
+		 *     player is 13 to 17 (``name_format_locked``, ADR 0062). Both kinds of change
 		 *     apply together or not at all: a 422 on either changes nothing. Each kind
 		 *     that changes records one Audit Event (profile changes by field name
 		 *     only). 404 when the Account has no Player.
@@ -837,8 +862,14 @@ export interface paths {
 		 *     The file is in the CSV results format (``docs/csv-format.md``), at
 		 *     most 1 MiB and 1000 match rows. ``players_13_or_older`` must be true:
 		 *     it confirms that every player in the file is 13 or older (422
-		 *     otherwise, checked before anything else). ``game_target`` (11, 15, or
-		 *     21) and ``location`` apply to every row. Anyone who may not manage the
+		 *     otherwise, checked before anything else). A session whose latest
+		 *     two-factor step (any sign-in step, without two-factor
+		 *     authentication) is older than a few minutes gets 403 with code
+		 *     `reauthentication_required`: confirm through
+		 *     `auth/2fa/reauthenticate` or `auth/webauthn/reauthenticate` (or
+		 *     `auth/reauthenticate` without two-factor authentication), then
+		 *     retry. ``game_target`` (11, 15, or 21) and ``location`` apply to
+		 *     every row. Anyone who may not manage the
 		 *     Event's matches gets the same 404 as an unknown Event. A larger file
 		 *     gets 413. The file is processed in the background: the response is
 		 *     202 with the file pending, and ``get_results_file`` shows the report.
@@ -987,6 +1018,11 @@ export interface paths {
 		 *     when the Organizer has too many open invites. Limited per Account to
 		 *     a number of invites a day; past that the answer is 429 with a
 		 *     Retry-After header.
+		 *
+		 *     A two-factor step older than a few minutes gets 403
+		 *     `reauthentication_required`: confirm your two-factor method again
+		 *     (`auth/2fa/reauthenticate` with a code, or
+		 *     `auth/webauthn/reauthenticate` with a passkey), then retry.
 		 */
 		post: operations['invite_organizer_member'];
 		delete?: never;
@@ -1034,7 +1070,13 @@ export interface paths {
 		 *
 		 *     ``player`` is the member's player OPEN Code; one that is not a member
 		 *     of this Organizer gets the same 404 as an unknown code. 409 when it
-		 *     would leave the Organizer with no admin.
+		 *     would leave the Organizer with no admin with two-factor
+		 *     authentication.
+		 *
+		 *     A two-factor step older than a few minutes gets 403
+		 *     `reauthentication_required`: confirm your two-factor method again
+		 *     (`auth/2fa/reauthenticate` with a code, or
+		 *     `auth/webauthn/reauthenticate` with a passkey), then retry.
 		 */
 		delete: operations['remove_organizer_member'];
 		options?: never;
@@ -1045,7 +1087,13 @@ export interface paths {
 		 *
 		 *     ``player`` is the member's player OPEN Code; one that is not a member
 		 *     of this Organizer gets the same 404 as an unknown code. 409 when it
-		 *     would leave the Organizer with no admin.
+		 *     would leave the Organizer with no admin with two-factor
+		 *     authentication.
+		 *
+		 *     A two-factor step older than a few minutes gets 403
+		 *     `reauthentication_required`: confirm your two-factor method again
+		 *     (`auth/2fa/reauthenticate` with a code, or
+		 *     `auth/webauthn/reauthenticate` with a passkey), then retry.
 		 */
 		patch: operations['change_organizer_member_role'];
 		trace?: never;
@@ -1067,6 +1115,11 @@ export interface paths {
 		 *     ``statement`` says what the Organizer runs, for moderators only. A
 		 *     moderator decides; nothing is verified automatically. 409 when the
 		 *     Organizer is already verified or already has an open request.
+		 *
+		 *     A two-factor step older than a few minutes gets 403
+		 *     `reauthentication_required`: confirm your two-factor method again
+		 *     (`auth/2fa/reauthenticate` with a code, or
+		 *     `auth/webauthn/reauthenticate` with a passkey), then retry.
 		 */
 		post: operations['request_organizer_verification'];
 		delete?: never;
@@ -2463,7 +2516,9 @@ export interface components {
 		 *
 		 *     Returned only to that Account. Empty optional text fields are ``""``.
 		 *     ``gender_division`` is ``""`` only for a Player stored before it was
-		 *     required (issue #215).
+		 *     required (issue #215). ``first_name`` and ``last_name`` are the names
+		 *     given at signup, ``""`` only for a Player stored before them whose
+		 *     legal name did not split (ADR 0062).
 		 */
 		MyPlayerOut: {
 			/** Birth Month */
@@ -2476,14 +2531,32 @@ export interface components {
 			code: string;
 			/** Display Name */
 			display_name: string;
+			/** First Name */
+			first_name: string;
 			/** Gender Division */
 			gender_division: string;
+			/** Last Name */
+			last_name: string;
 			/** Legal Name */
 			legal_name: string;
+			/**
+			 * Name Format Locked
+			 * @description True while the player is 13 to 17: privacy.name_format cannot be changed to full. Judged at the time of the request, so the app never works out an age.
+			 */
+			name_format_locked: boolean;
 			privacy: components['schemas']['PrivacyOut'];
 			/** Region */
 			region: string;
 		};
+		/**
+		 * NameFormat
+		 * @description How the display name shows the last name (issue #354, ADR 0062).
+		 *
+		 *     ``FIRST_LAST_INITIAL`` is the more private one: the first name and the
+		 *     last name's initial.
+		 * @enum {string}
+		 */
+		NameFormat: 'full' | 'first_last_initial';
 		/**
 		 * OAuthRecordKind
 		 * @description Which kind of OAuth record an entry describes.
@@ -2715,14 +2788,15 @@ export interface components {
 		 *     refuses them.
 		 *
 		 *     The body is read only when the session holds no details from signup
-		 *     (ADR 0017, ADR 0019, ADR 0022): ``display_name``, ``birth_year``,
-		 *     ``birth_month``, and ``gender_division`` are then required. Held
-		 *     details are used instead of every field here: the held name ("First
-		 *     Last") becomes the legal name and, for an adult, the display name (a
-		 *     player aged 13 to 17 starts with "First L."), with the held city and
-		 *     region. ``gender_division`` is ``mens`` or ``womens``.
-		 *     Optional text fields left out or null are empty. Unknown keys are
-		 *     refused.
+		 *     (ADR 0017, ADR 0019, ADR 0022): ``first_name``, ``last_name``,
+		 *     ``birth_year``, ``birth_month``, and ``gender_division`` are then
+		 *     required, and the names get the same checks as at signup. Held details
+		 *     are used instead of every field here. Either way the legal name is
+		 *     "First Last", and the display name is built from the names: "First
+		 *     Last" for an adult, "First L." for a player aged 13 to 17 (ADR 0062).
+		 *     ``gender_division`` is ``mens`` or ``womens``. Optional text fields
+		 *     left out or null are empty. Unknown keys are refused, ``display_name``
+		 *     and ``legal_name`` included.
 		 */
 		PlayerCreateIn: {
 			/** Birth Month */
@@ -2731,12 +2805,12 @@ export interface components {
 			birth_year?: number | null;
 			/** City */
 			city?: string | null;
-			/** Display Name */
-			display_name?: string | null;
+			/** First Name */
+			first_name?: string | null;
 			/** Gender Division */
 			gender_division?: string | null;
-			/** Legal Name */
-			legal_name?: string | null;
+			/** Last Name */
+			last_name?: string | null;
 			/** Region */
 			region?: string | null;
 		};
@@ -2830,18 +2904,16 @@ export interface components {
 		 * @description Changes to the signed-in Account's own Player.
 		 *
 		 *     Only the fields sent change. Null clears an optional text field
-		 *     (``legal_name``, ``city``, ``region``); the display name cannot be
-		 *     cleared. The birth year and month and the gender division are set
-		 *     once, when the Player is created, and cannot be sent here (ADR 0023).
-		 *     ``privacy`` changes the settings it names. Unknown keys are refused.
+		 *     (``city``, ``region``). The birth year and month and the gender
+		 *     division are set once, when the Player is created, and cannot be sent
+		 *     here (ADR 0023). Neither can the display name or the legal name: both
+		 *     are built from the first and last name given at signup, and the
+		 *     player changes only ``privacy.name_format`` (ADR 0062). ``privacy``
+		 *     changes the settings it names. Unknown keys are refused.
 		 */
 		PlayerUpdateIn: {
 			/** City */
 			city?: string | null;
-			/** Display Name */
-			display_name?: string | null;
-			/** Legal Name */
-			legal_name?: string | null;
 			privacy?: components['schemas']['PrivacyIn'] | null;
 			/** Region */
 			region?: string | null;
@@ -2854,6 +2926,8 @@ export interface components {
 			city_region_visibility?: components['schemas']['Visibility'] | null;
 			home_club_visibility?: components['schemas']['Visibility'] | null;
 			match_history_visibility?: components['schemas']['Visibility'] | null;
+			/** @description How the display name shows the last name: full ("First Last") or first_last_initial ("First L."), built from the first and last name given at signup. An adult starts with full, a player aged 13 to 17 with first_last_initial. Changing it rebuilds the display name. Only the player can change it, and not to full while name_format_locked is true (the player is 13 to 17). Nothing changes it at 18. Sending the stored value is always accepted. */
+			name_format?: components['schemas']['NameFormat'] | null;
 			rating_history_visibility?: components['schemas']['Visibility'] | null;
 			/** @description Who may see the player's current ratings. A player who joined at 13 to 17 starts with private and keeps it at 18 until they change it; only the player can change it to signed_in, and only from age 18. An adult's is always signed_in: current ratings cannot be hidden. Sending the stored value is always accepted. */
 			rating_visibility?: components['schemas']['Visibility'] | null;
@@ -2867,6 +2941,8 @@ export interface components {
 			city_region_visibility: components['schemas']['Visibility'];
 			home_club_visibility: components['schemas']['Visibility'];
 			match_history_visibility: components['schemas']['Visibility'];
+			/** @description How the display name shows the last name: full ("First Last") or first_last_initial ("First L."), built from the first and last name given at signup. An adult starts with full, a player aged 13 to 17 with first_last_initial. Changing it rebuilds the display name. Only the player can change it, and not to full while name_format_locked is true (the player is 13 to 17). Nothing changes it at 18. Sending the stored value is always accepted. */
+			name_format: components['schemas']['NameFormat'];
 			rating_history_visibility: components['schemas']['Visibility'];
 			/** @description Who may see the player's current ratings. A player who joined at 13 to 17 starts with private and keeps it at 18 until they change it; only the player can change it to signed_in, and only from age 18. An adult's is always signed_in: current ratings cannot be hidden. Sending the stored value is always accepted. */
 			rating_visibility: components['schemas']['Visibility'];
@@ -3171,7 +3247,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3218,7 +3294,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3280,7 +3356,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3360,7 +3436,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3439,7 +3515,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3513,7 +3589,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3592,7 +3668,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3662,7 +3738,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3745,7 +3821,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3824,7 +3900,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3898,7 +3974,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -3977,7 +4053,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4097,7 +4173,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4167,7 +4243,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4237,7 +4313,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4320,7 +4396,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4399,7 +4475,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4482,7 +4558,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4565,7 +4641,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4644,7 +4720,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4723,7 +4799,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Only a signed-in browser session request without a valid CSRF token. A caller who may not change this match gets 404, as for an unknown code. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4799,7 +4875,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4861,7 +4937,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4931,7 +5007,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -4992,7 +5068,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5053,7 +5129,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5114,7 +5190,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5172,7 +5248,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5234,7 +5310,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5305,7 +5381,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5375,7 +5451,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5437,7 +5513,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5505,7 +5581,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5588,7 +5664,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5686,7 +5762,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5766,7 +5842,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5842,7 +5918,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5895,7 +5971,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -5978,7 +6054,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6057,7 +6133,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6131,7 +6207,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6210,7 +6286,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6280,7 +6356,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6365,7 +6441,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6448,7 +6524,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6527,7 +6603,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6601,7 +6677,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6681,7 +6757,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6742,7 +6818,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6815,7 +6891,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6888,7 +6964,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
@@ -6958,7 +7034,7 @@ export interface operations {
 					'application/json': components['schemas']['ErrorResponse'];
 				};
 			};
-			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. */
+			/** @description Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it. Code `reauthentication_required`: the operation needs a recent reauthentication, or for an admin change to an Organizer or Club and a results upload a recent two-factor step (any sign-in step for an Account without two-factor authentication); confirm through allauth's `auth/2fa/reauthenticate`, `auth/webauthn/reauthenticate`, or `auth/reauthenticate`, then retry. Only operations whose description says so return it. */
 			403: {
 				headers: {
 					[name: string]: unknown;
