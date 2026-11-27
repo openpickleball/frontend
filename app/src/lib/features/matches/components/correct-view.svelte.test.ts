@@ -123,6 +123,19 @@ describe('CorrectView', () => {
 				.not.toBeInTheDocument();
 		});
 
+		// The advice follows the status panel: only a viewer it offers Dispute to is told to dispute.
+		for (const [label, viewer] of [
+			['the viewer withdrew a dispute', { decision: 'withdraw' }],
+			["the viewer's team confirmed", { a: true, decision: 'confirm' }]
+		] as const) {
+			it(`gives no dispute advice on a pending Club-only match when ${label}`, async () => {
+				mocked.getMatch.mockResolvedValue(viewerMatch(viewer, { status: 'pending', club: CLUB }));
+				await render(CorrectView, { code: code() });
+				await expect.element(reason()).toHaveTextContent(CLUB_REASON);
+				await expect.element(page.getByText(/dispute the match instead/)).not.toBeInTheDocument();
+			});
+		}
+
 		it('says a disputed Club-only match cannot be corrected, with no dispute advice', async () => {
 			mocked.getMatch.mockResolvedValue(viewerMatch({}, { status: 'disputed', club: CLUB }));
 			await render(CorrectView, { code: code() });
