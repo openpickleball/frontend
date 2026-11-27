@@ -144,7 +144,17 @@ it('treats a 401 as a plain expiry after a sign-up answered with a signed-in ses
 	await sessionEnds();
 	expect(mockStore.login(VERIFIED_EMAIL, MOCK_PASSWORD)).toBe('ok');
 	const state = await signup(
-		{ birth_year: 1990, birth_month: 6, email: VERIFIED_EMAIL, password: MOCK_PASSWORD },
+		{
+			birth_year: 1990,
+			birth_month: 6,
+			gender_division: 'mens',
+			first_name: 'Sam',
+			last_name: 'Rivera',
+			accepted_terms: true,
+			accepted_privacy: true,
+			email: VERIFIED_EMAIL,
+			password: MOCK_PASSWORD
+		},
 		{ api }
 	);
 	expect(state).toMatchObject({ status: 'signed_in', email: VERIFIED_EMAIL });
