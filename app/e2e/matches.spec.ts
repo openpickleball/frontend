@@ -821,6 +821,44 @@ test.describe('corrections', () => {
 		await expect(page.getByRole('button', { name: 'Save the correction' })).toHaveCount(0);
 	});
 
+	// Details has two columns on a phone. A cell that sits alone in its line must fill it, or the
+	// grid leaves an empty cell next to it. Pixel 7 is a phone width.
+	test('leaves no empty cell in Details on a phone, with or without an Event or Club', async ({
+		page
+	}) => {
+		for (const code of [EVENT_DISPUTE, CLUB_DISPUTE, WAITING_ON_ME]) {
+			await page.goto(`/matches/${code}`);
+			const list = page.getByRole('region', { name: 'Details' }).locator('dl');
+			await expect(list.getByText('Match code', { exact: true })).toBeVisible();
+			const lonely = await list.evaluate((dl) => {
+				const width = dl.getBoundingClientRect().width;
+				const cells = [...dl.children].map((cell) => cell.getBoundingClientRect());
+				return cells.filter(
+					(cell, index) =>
+						Math.abs(cell.width - width) >= 1 &&
+						!cells.some((other, i) => i !== index && Math.abs(other.top - cell.top) < 1)
+				).length;
+			});
+			expect(lonely, `${code} has a cell alone in its line`).toBe(0);
+		}
+	});
+
+	test('wraps a long Event or Club name inside Details on a phone', async ({ page }) => {
+		await page.goto(`/matches/${EVENT_DISPUTE}`);
+		const list = page.getByRole('region', { name: 'Details' }).locator('dl');
+		await expect(list.getByText('Larkspur Winter League')).toBeVisible();
+		// The fixture names are short, so the test lengthens them in place to one long word.
+		const overflow = await list.evaluate((dl) => {
+			const long = 'Northfenwickshireandoxleymeadowspickleballassociationwinterleague';
+			for (const name of ['Larkspur Winter League', 'Juniper Court Club']) {
+				const value = [...dl.querySelectorAll('dd')].find((dd) => dd.textContent === name)!;
+				value.textContent = long;
+			}
+			return [...dl.querySelectorAll('dd'), dl].some((el) => el.scrollWidth > el.clientWidth);
+		});
+		expect(overflow).toBe(false);
+	});
+
 	test('has no WCAG 2.1 AA violations on a pending match and its correction, in either theme', async ({
 		page
 	}) => {
