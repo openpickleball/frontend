@@ -1,6 +1,6 @@
 # Plan: Sync the API schema with backend 0070317 (issue #263)
 
-**Status:** active
+**Status:** done
 
 Risk tier: Medium. Low start, raised one tier because the API schema changes. Type checking covers the absorbed change fully, so no further raise.
 
@@ -18,7 +18,7 @@ The committed API snapshots and generated types match backend `0070317`, so the 
 4. Every match the mock store serves (`matchOut` in `app/src/lib/mocks/store.ts`) has `event: null` and `club: null`, and the `MatchOut` factory in `app/src/lib/domain/mappers.test.ts` has both as `null`.
 5. No app code outside `app/src/lib/api/schema/`, `app/src/lib/api/generated/` and the two files in criterion 4 reads `event`, `club`, the two new OPEN operations or the new allauth operations. No screen, copy or mapper changes. `toMatch` keeps ignoring the new fields.
 6. The full gate passes in `app/`: `pnpm format:check`, `pnpm lint`, `pnpm check` (0 errors), `pnpm test`, `pnpm build`, a `PUBLIC_API_MOCK=off` build followed by `pnpm check:build`, and `pnpm e2e`.
-7. Docs that the new snapshot makes wrong are corrected: the `MockMatch.event` comment in `store.ts` (it says `MatchOut` can't show an Event) and the line in `app/src/lib/api/README.md` that lists sessions among the allauth endpoints OPEN disables. So is every comment in `app/src` that says `MatchOut` can't show a match's Event or Club. Each now says the API sends them, the app does not read them yet, and frontend#264 will use them.
+7. Docs that the new snapshot makes wrong are corrected: the `MockMatch.event` comment in `store.ts` (it says `MatchOut` can't show an Event) and the line in `app/src/lib/api/README.md` that lists sessions among the allauth endpoints OPEN disables. So is every comment in `app/src` that says `MatchOut` can't show a match's Event or Club. Each of those comments now says the API sends them, the app does not read them yet, and frontend#264 will use them.
 
 ## Files that change
 
@@ -28,7 +28,7 @@ The committed API snapshots and generated types match backend `0070317`, so the 
 - `app/src/lib/domain/mappers.test.ts`: `dto()` has `event: null, club: null`.
 - `app/src/lib/features/matches/status.ts`, `app/src/lib/features/matches/index.ts`, `app/src/lib/features/record-match/form.svelte.ts`: comments only (criterion 7). They said `MatchOut` can't show the Event or Club.
 - One test file for the red test (below): `app/src/lib/mocks/fixtures.test.ts` or `app/src/lib/mocks/integration.test.ts`, whichever already reads served matches.
-- `app/src/lib/api/README.md`: the allauth line (Phase 8).
+- `app/src/lib/api/README.md`: the allauth line no longer lists sessions among the endpoints OPEN disables.
 - This plan.
 
 ## Order of work
@@ -42,7 +42,7 @@ The committed API snapshots and generated types match backend `0070317`, so the 
 
 - A stale backend checkout would copy an old schema. Measured: the backend checkout is at `0070317`, which is its `origin/main`.
 - `api:pull:allauth` reads whatever server answers on port 8000. It must be the backend at `0070317`, started from that checkout.
-- 19 existing operations now document a 403 `mfa_required` for accounts that must have two-factor (staff, superusers, moderators, owners of a production application) and have none. Players are not such accounts. The app's error handling already treats a 403 generically. Handling `mfa_required` belongs with the two-factor UI, not here, so this change leaves it alone and the PR notes it.
+- 29 existing operations now document a 403 `mfa_required` (19 gained a 403, and 10 had their 403 text extended). The backend sends it to an account that must have two-factor (staff, superusers, moderators, owners of a production application) and has none, and to an account with two-factor whose session did not pass it, such as a password-only session. Players can't turn on two-factor in the app yet, so today only those staff accounts meet it. The app's error handling maps a 403 it doesn't know to a permission refusal. Handling `mfa_required` belongs with the two-factor UI, not here, so this change leaves it alone and the PR notes it.
 - Not done on purpose: showing the Event or Club on a match, hiding "Correct the score" on event matches, account deletion, the organizer list, two-factor and session screens. Each has its own issue.
 
 ## Proof
