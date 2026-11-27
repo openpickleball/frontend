@@ -69,8 +69,21 @@ class Session {
 		return (this.organizers?.length ?? 0) > 0;
 	}
 
+	#leaveListeners = new Set<() => void>();
+
+	/**
+	 * Run `listener` whenever this account stops being signed in here (a sign out, an expiry, or
+	 * another account). Returns a function that removes it.
+	 */
+	onLeaveSignedIn(listener: () => void): () => void {
+		this.#leaveListeners.add(listener);
+		return () => void this.#leaveListeners.delete(listener);
+	}
+
 	/** Take the backend's answer. `typedEmail` is kept while verification is pending. */
 	apply(state: SessionState, typedEmail?: string): void {
+		const left =
+			this.status === 'signed_in' && !(state.status === 'signed_in' && this.email === state.email);
 		const sameAccount =
 			this.status === 'signed_in' && state.status === 'signed_in' && this.email === state.email;
 		this.status = state.status;
@@ -83,6 +96,7 @@ class Session {
 		if (state.status === 'signed_in') this.email = state.email;
 		else if (state.status === 'pending_verification') this.email = typedEmail ?? this.email;
 		else this.email = null;
+		if (left) for (const listener of this.#leaveListeners) listener();
 	}
 
 	/** The backend refused a call because the session ended. This device is signed out now. */

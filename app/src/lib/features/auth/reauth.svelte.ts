@@ -43,6 +43,11 @@ class ReauthPromptStore {
 
 export const reauthPrompt = new ReauthPromptStore();
 
+// A prompt for an account that is no longer signed in here has nothing left to confirm.
+session.onLeaveSignedIn(() => {
+	if (reauthPrompt.request) reauthPrompt.settle(false);
+});
+
 /**
  * Ask the player to confirm it is them. Resolves true after they did, false when they cancelled.
  * A code is not offered to an account known to have no two-factor, unless it is the only way.
