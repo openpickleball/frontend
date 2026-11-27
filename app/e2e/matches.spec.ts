@@ -816,6 +816,8 @@ test.describe('corrections', () => {
 		await expect(page.getByTestId('cannot-correct')).toContainText(
 			"can't be corrected by its players"
 		);
+		// Already disputed, so it isn't told to dispute it.
+		await expect(page.getByTestId('cannot-correct')).not.toContainText('dispute the match instead');
 		await expect(page.getByRole('button', { name: 'Save the correction' })).toHaveCount(0);
 	});
 
