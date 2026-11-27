@@ -18,7 +18,7 @@
 
 <Section title="Two-factor authentication">
 	<!-- The organizer callout sits in this section, so it is not left between two sections. -->
-	<OrganizerMfaPrompt link class="mb-4" />
+	<OrganizerMfaPrompt class="mb-4" />
 	<div class="flex flex-wrap items-center justify-between gap-4">
 		<p class="max-w-md text-base text-muted">
 			{#if session.mfaEnrolled === true}

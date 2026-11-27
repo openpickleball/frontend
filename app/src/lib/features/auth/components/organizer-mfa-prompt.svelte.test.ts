@@ -21,21 +21,11 @@ afterEach(() => session.reset());
 describe('OrganizerMfaPrompt', () => {
 	it('tells an organizer member without two-factor that organizer actions need it', async () => {
 		signedIn([MEMBERSHIP], false);
-		const screen = await render(OrganizerMfaPrompt, { link: true });
-		await expect
-			.element(screen.getByText('Organizer actions need two-factor authentication.'))
-			.toBeVisible();
-		await expect
-			.element(screen.getByRole('link', { name: 'Set up two-factor' }))
-			.toHaveAttribute('href', '/profile/two-factor');
-	});
-
-	it('leaves the link out on the two-factor page itself', async () => {
-		signedIn([MEMBERSHIP], false);
 		const screen = await render(OrganizerMfaPrompt);
 		await expect
 			.element(screen.getByText('Organizer actions need two-factor authentication.'))
 			.toBeVisible();
+		// The section or page around it has the way to set two-factor up.
 		expect(screen.getByRole('link').query()).toBeNull();
 	});
 
@@ -46,7 +36,7 @@ describe('OrganizerMfaPrompt', () => {
 		['a member whose two-factor is unknown', [MEMBERSHIP], null]
 	] as const)('renders nothing for %s', async (_, organizers, enrolled) => {
 		signedIn(organizers === null ? null : [...organizers], enrolled);
-		const screen = await render(OrganizerMfaPrompt, { link: true });
+		const screen = await render(OrganizerMfaPrompt);
 		expect(screen.container.textContent?.trim()).toBe('');
 	});
 });

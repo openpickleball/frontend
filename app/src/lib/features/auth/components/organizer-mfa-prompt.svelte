@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import ShieldAlertIcon from '@lucide/svelte/icons/shield-alert';
-	import { ROUTES } from '#lib/domain/index.js';
-	import { Alert, AlertDescription, AlertTitle } from '#lib/ui/alert/index.js';
-	import { Button } from '#lib/ui/button/index.js';
+	import { Alert, AlertTitle } from '#lib/ui/alert/index.js';
 	import { session } from '../session.svelte.js';
 
 	/**
@@ -12,27 +9,17 @@
 	 * memberships or two-factor are unknown.
 	 */
 	let {
-		link = false,
 		class: className
 	}: {
-		/** Show a link to the two-factor page. */
-		link?: boolean;
 		/** Space around the callout, from where the page places it. */
 		class?: string;
 	} = $props();
 </script>
 
 {#if session.isOrganizer && session.mfaEnrolled === false}
+	<!-- Only the title: the section or page around it has the way to set two-factor up (#284). -->
 	<Alert class={className}>
 		<ShieldAlertIcon aria-hidden="true" />
 		<AlertTitle>Organizer actions need two-factor authentication.</AlertTitle>
-		<AlertDescription>
-			Turn on two-factor authentication to act for your organizer.
-			{#if link}
-				<Button variant="link" size="inline" href={resolve(ROUTES.twoFactor)}>
-					Set up two-factor
-				</Button>
-			{/if}
-		</AlertDescription>
 	</Alert>
 {/if}
