@@ -197,21 +197,27 @@
 				</div>
 			</div>
 		</Section>
+	{/if}
+	<!-- Shown whenever codes were just made, or could not be shown, whatever the rest shows:
+		they are shown once, so a failed read of the page must not hide them. -->
+	{#if view.status === 'on' || codesProblem || (shownCodes && shownCodes.length > 0)}
 		<Section title="Recovery codes">
 			<div class="grid gap-8">
-				<div class="grid gap-4">
-					{#if view.authenticators.recoveryCodes}
-						<p class="max-w-md text-base text-muted">
-							{view.authenticators.recoveryCodes.unused} of {view.authenticators.recoveryCodes
-								.total} recovery codes unused.
-						</p>
-					{/if}
-					<div>
-						<Button variant="outline" onclick={newCodes} aria-disabled={busy}>
-							Make new recovery codes
-						</Button>
+				{#if view.status === 'on'}
+					<div class="grid gap-4">
+						{#if view.authenticators.recoveryCodes}
+							<p class="max-w-md text-base text-muted">
+								{view.authenticators.recoveryCodes.unused} of {view.authenticators.recoveryCodes
+									.total} recovery codes unused.
+							</p>
+						{/if}
+						<div>
+							<Button variant="outline" onclick={newCodes} aria-disabled={busy}>
+								Make new recovery codes
+							</Button>
+						</div>
 					</div>
-				</div>
+				{/if}
 				{#if codesProblem}
 					<Alert>
 						<CircleAlertIcon aria-hidden="true" />
