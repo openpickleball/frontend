@@ -15,7 +15,7 @@ A player can delete their account from the profile. The app explains what goes a
 1. The profile's "Your data" section has a second row, "Delete your account", after "Copy of your data". It is a button that opens a dialog. The h2 order of the profile page is unchanged.
 2. The dialog says, before the player confirms:
    - What goes: email address, password, names, birth month and year, gender division, city and region, privacy settings, sign-in sessions, two-factor methods and organizer memberships.
-   - What stays: match results, so other players' ratings don't change. In those matches the player shows as "Private player", and their player keeps its OPEN Code.
+   - What stays: if the player played matches, they stay, so other players' ratings don't change. In those matches the player shows as "Private player", and their player keeps its OPEN Code.
    - It can't be undone, and the same email address can sign up again later as a new player who starts fresh.
    - When the offline queue holds unsent matches for this account, that deleting the account also deletes them from this device.
 3. The delete button (`destructive-solid`, label "Delete account") does nothing until the player has typed the word `delete` (trimmed, any case) into a labelled field. Until then the button is disabled.
@@ -95,6 +95,7 @@ Chosen not to do:
 
 ## Decisions
 
+- The "What stays" copy starts "If you played matches" (criterion 9 over criterion 2). The Privacy Policy says a player that nothing depends on is deleted with the account, so the dialog must not promise that every player keeps its OPEN Code.
 - Typed word `delete`, case-insensitive and trimmed: short, plain, and the same word as the action.
 - After deletion, the sign-in page with a notice rather than a new page.
 - Reuse `onSignOut` listeners for the device cleanup, so sign out and deletion can't drift apart.

@@ -22,7 +22,7 @@ const mocked = vi.mocked(services);
 const GOES =
 	'Your email address, password, names, birth month and year, gender division, city and region, privacy settings, sign-in sessions, two-factor methods and organizer memberships.';
 const STAYS =
-	'Your match results, so other players\' ratings don\'t change. In those matches you show as "Private player", and your player keeps its OPEN Code.';
+	'If you played matches, they stay, so other players\' ratings don\'t change. In those matches you show as "Private player", and your player keeps its OPEN Code.';
 const AGAIN =
 	'You can sign up again later with the same email address, as a new player who starts fresh.';
 const ONE_UNSENT =
@@ -192,13 +192,13 @@ describe('DeleteAccountDialog: confirming', () => {
 		expect(mocked.deleteAccount).toHaveBeenCalledTimes(1);
 	});
 
-	it('links to two-factor sign-in when the account needs it', async () => {
+	it('links to two-factor authentication when the account needs it', async () => {
 		mocked.deleteAccount.mockRejectedValue(openError(403, 'mfa_required'));
 		await openAndConfirm();
 		const alert = dialog().getByRole('alert');
 		await expect.element(alert.getByText(MFA)).toBeVisible();
 		await expect
-			.element(alert.getByRole('link', { name: 'Go to two-factor sign-in' }))
+			.element(alert.getByRole('link', { name: 'Go to two-factor authentication' }))
 			.toHaveAttribute('href', '/profile/two-factor');
 		expect(goto).not.toHaveBeenCalled();
 	});

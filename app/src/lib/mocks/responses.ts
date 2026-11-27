@@ -37,7 +37,7 @@ export const reauthenticationRequiredOpen = () =>
 	ninjaError(
 		403,
 		'reauthentication_required',
-		'Reauthentication is required. Confirm your password and try again.'
+		'Confirm your password or a two-factor code again, then retry.'
 	);
 
 export const throttled = () => ninjaError(429, 'throttled', 'Too many requests.');

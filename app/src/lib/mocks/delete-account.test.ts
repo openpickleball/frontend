@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { allauthParams, type Api } from '../api';
 import {
 	MFA_REQUIRED_EMAIL,
+	MOCK_KEYS,
 	MOCK_PASSWORD,
 	MOCK_TOTP_CODE,
 	STAFF_EMAIL,
@@ -110,6 +111,17 @@ describe('DELETE /api/v1/accounts/me', () => {
 		mockStore.signup(VERIFIED_EMAIL, 'another-long-pass-9876');
 		expect(mockStore.accountByEmail(VERIFIED_EMAIL)?.verified).toBe(false);
 		expect(mockStore.playerOfAccount(VERIFIED_EMAIL)).toBeUndefined();
+	});
+
+	it('drops the reset keys and mail for the address, so a new sign-up cannot be reset by them', async () => {
+		const api = cookieJarApi();
+		await login(api, VERIFIED_EMAIL);
+		await reauthenticate(api);
+		await api.open.DELETE('/api/v1/accounts/me');
+		expect(mockStore.state.tokens.some((t) => t.email === VERIFIED_EMAIL)).toBe(false);
+		expect(mockStore.state.outbox.some((m) => m.to === VERIFIED_EMAIL)).toBe(false);
+		mockStore.signup(VERIFIED_EMAIL, 'another-long-pass-9876');
+		expect(mockStore.resetPassword(MOCK_KEYS.resetPassword, 'new-long-pass-5555')).toBe(false);
 	});
 
 	it('leaves its player in place, shown as a private player', async () => {

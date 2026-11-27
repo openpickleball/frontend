@@ -801,6 +801,8 @@ export function createMockStore() {
 			for (const player of state.players) {
 				if (player.accountEmail === email) player.accountEmail = null;
 			}
+			state.tokens = state.tokens.filter((t) => t.email !== email);
+			state.outbox = state.outbox.filter((m) => m.to !== email);
 			if (state.session?.email === email) state.session = null;
 			if (state.pendingEmail === email) state.pendingEmail = null;
 			if (state.signupHold?.email === email) state.signupHold = null;

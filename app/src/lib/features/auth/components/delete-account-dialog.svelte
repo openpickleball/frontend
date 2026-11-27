@@ -124,8 +124,8 @@
 			<div class="grid gap-1">
 				<h3 class="text-base font-semibold text-secondary">What stays</h3>
 				<p class="text-muted">
-					Your match results, so other players' ratings don't change. In those matches you show as
-					"Private player", and your player keeps its OPEN Code.
+					If you played matches, they stay, so other players' ratings don't change. In those matches
+					you show as "Private player", and your player keeps its OPEN Code.
 				</p>
 			</div>
 			<p class="text-muted">
@@ -162,7 +162,7 @@
 					<AlertTitle>Your account needs two-factor sign-in before it can be deleted.</AlertTitle>
 					<AlertDescription>
 						<Button variant="link" size="inline" href={resolve(ROUTES.twoFactor)}>
-							Go to two-factor sign-in
+							Go to two-factor authentication
 						</Button>
 					</AlertDescription>
 				{:else if problem.kind === 'staff'}
