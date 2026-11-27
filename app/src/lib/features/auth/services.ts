@@ -128,6 +128,9 @@ async function readEnrolled(api: Api): Promise<boolean | null> {
 	}
 }
 
+/** Counts the account state reads started, so only the newest one writes the organizer list. */
+let accountReads = 0;
+
 /** The account state read in flight, so a notice can wait until two-factor is known. */
 let accountStateLoading: Promise<void> | null = null;
 
@@ -136,6 +139,7 @@ async function readAccountState({ api = appApi }: ApiOption = {}): Promise<void>
 	if (!email) return;
 	const current = () => session.isSignedIn && session.email === email;
 	const revision = session.mfaRevision;
+	const read = ++accountReads;
 	const organizers = (async () => {
 		try {
 			const result = await settle(api.open.GET('/api/v1/organizer/organizers'));
@@ -147,7 +151,9 @@ async function readAccountState({ api = appApi }: ApiOption = {}): Promise<void>
 	const enrolled = readEnrolled(api);
 	const [memberships, mfa] = await Promise.all([organizers, enrolled]);
 	if (!current()) return;
-	session.organizers = memberships;
+	// Only the newest read writes the list: an older one may have been refused before the session
+	// passed two-factor, and would overwrite the real memberships.
+	if (read === accountReads) session.organizers = memberships;
 	// A value set while this read waited (turning TOTP on, say) is newer: keep it.
 	if (session.mfaRevision === revision) session.mfaEnrolled = mfa;
 }
