@@ -6,13 +6,16 @@
 	import NavBadge from './nav-badge.svelte';
 	import NavIcon from './nav-icon.svelte';
 	import Wordmark from './wordmark.svelte';
-	import { NAV_ITEMS, isCurrent, needsYouName } from './nav.js';
+	import { isCurrent, navItems, needsYouName } from './nav.js';
 
 	let {
 		pathname,
 		account,
-		needsYou = 0
-	}: { pathname: string; account?: Snippet; needsYou?: number } = $props();
+		needsYou = 0,
+		organizer = false
+	}: { pathname: string; account?: Snippet; needsYou?: number; organizer?: boolean } = $props();
+
+	const items = $derived(navItems(organizer));
 </script>
 
 <!-- From 1024px. Below that, the top bar and the tab bar take over. The banner landmark from 1024px. -->
@@ -26,7 +29,7 @@
 			<nav aria-label="Main">
 				<!-- Pulled left so the icons line up with the wordmark. -->
 				<Sidebar.Menu class="-ml-3.5 w-auto gap-1">
-					{#each NAV_ITEMS as item (item.href)}
+					{#each items as item (item.href)}
 						{@const current = isCurrent(item, pathname)}
 						{@const name = needsYouName(item, item.sideLabel, needsYou)}
 						<Sidebar.MenuItem>

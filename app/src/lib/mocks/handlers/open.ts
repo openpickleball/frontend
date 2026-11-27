@@ -1,4 +1,4 @@
-import { http as anyHttp } from 'msw';
+import { HttpResponse, http as anyHttp } from 'msw';
 import { normalizeCode } from '../../domain/codes';
 import type { components } from '../../api/generated/open';
 import { csrfValid, openHttp as http, readJson } from '../http';
@@ -13,12 +13,18 @@ import {
 	unauthorized,
 	validationError
 } from '../responses';
-import type { MockStore } from '../store';
+import type { EventResult, MockStore } from '../store';
+import { eventCreateIssues, eventUpdateIssues, matchCreateIssues, pageQuery } from '../validation';
 
 type PlayerCreateIn = components['schemas']['PlayerCreateIn'];
 type EventCreateIn = components['schemas']['EventCreateIn'];
+type EventUpdateIn = components['schemas']['EventUpdateIn'];
 type PlayerUpdateIn = components['schemas']['PlayerUpdateIn'];
-import { matchCreateIssues, pageQuery } from '../validation';
+
+/** Fixed texts, as `apps/events/api.py` has them. */
+const EVENT_FORBIDDEN = "You may not manage this organizer's events.";
+const EVENT_LOCKED = 'This event has matches, so its name and dates cannot change.';
+const EVENT_PROTECTED = 'This event has matches or uploads, so it cannot be deleted.';
 
 /**
  * The OPEN API. Every operation uses `account_auth`: no session is a 401 (before
@@ -29,6 +35,29 @@ import { matchCreateIssues, pageQuery } from '../validation';
  * puts the search handlers first.
  */
 export function createOpenHandlers(store: MockStore) {
+	/** An Event operation's refusal as the backend sends it, or the Event with `status`. */
+	function eventAnswer(
+		result: EventResult,
+		status: 200 | 201 | 204,
+		response: { untyped(r: Response): Response }
+	): Response {
+		if (result.ok) {
+			return response.untyped(HttpResponse.json(store.eventOut(result.event), { status }));
+		}
+		switch (result.kind) {
+			case 'forbidden':
+				return response.untyped(ninjaError(403, 'forbidden', EVENT_FORBIDDEN));
+			case 'not_found':
+				return response.untyped(notFound());
+			case 'conflict':
+				return response.untyped(
+					ninjaError(409, 'conflict', status === 204 ? EVENT_PROTECTED : EVENT_LOCKED)
+				);
+			case 'validation':
+				return response.untyped(validationError(result.issues));
+		}
+	}
+
 	function guard(request: Request, cookies: Record<string, string | undefined>): Response | string {
 		const account = store.currentAccount();
 		if (!account) return unauthorized();
@@ -74,39 +103,73 @@ export function createOpenHandlers(store: MockStore) {
 			return response(200).json(structuredClone(store.accountByEmail(email)?.organizers ?? []));
 		}),
 
-		// Only so the two-factor tests can show an organizer operation. The app has no Event
-		// screens yet (frontend#217), so the mock keeps no Events.
+		// `list_organizer_events`: every Event of every organizer the account is a member of,
+		// either role, verified or not.
 		http.get('/api/v1/organizer/events', ({ request, cookies, response }) => {
 			const email = guard(request, cookies);
 			if (typeof email !== 'string') return response.untyped(email);
-			return response(200).json({ items: [], count: 0 });
+			const url = new URL(request.url);
+			const page = pageQuery(url.searchParams.get('limit'), url.searchParams.get('offset'));
+			if (!page.ok) return response.untyped(validationError(page.issues));
+			const all = store.organizerEvents(email);
+			const { limit, offset } = page.value;
+			return response(200).json({
+				items: all.slice(offset, offset + limit).map((e) => store.eventOut(e)),
+				count: all.length
+			});
 		}),
 
 		// `create_organizer_event`: a verified organizer the account is a member of, and two-factor
-		// on the account. Anything else is the same plain 403.
+		// on the account. Anything else is the same plain 403, before the club is read.
 		http.post('/api/v1/organizer/events', async ({ request, cookies, response }) => {
 			const email = guard(request, cookies);
 			if (typeof email !== 'string') return response.untyped(email);
-			const account = store.accountByEmail(email);
-			const body = (await readJson(request)) as Partial<EventCreateIn> | undefined;
-			const membership = account?.organizers?.find(
-				(m) => m.verified && m.organizer === body?.organizer
-			);
-			if (!membership || !account?.totp) {
-				return response.untyped(
-					ninjaError(403, 'forbidden', 'You cannot create an Event for this organizer.')
-				);
-			}
-			return response(201).json({
-				code: 'E-MOCK-0001',
-				organizer: membership.organizer,
-				club: null,
-				name: String(body?.name ?? ''),
-				kind: body?.kind ?? 'tournament',
-				start_date: String(body?.start_date ?? ''),
-				end_date: String(body?.end_date ?? '')
-			});
+			const body = await readJson(request);
+			const shape = eventCreateIssues(body);
+			if (shape.length > 0) return response.untyped(validationError(shape));
+			const result = store.createEvent(email, body as EventCreateIn);
+			return eventAnswer(result, 201, response);
 		}),
+
+		// `update_organizer_event`: anyone who may not manage the Event gets the same 404.
+		http.patch(
+			'/api/v1/organizer/events/{code}',
+			async ({ request, cookies, params, response }) => {
+				const email = guard(request, cookies);
+				if (typeof email !== 'string') return response.untyped(email);
+				const body = await readJson(request);
+				const shape = eventUpdateIssues(body);
+				if (shape.length > 0) return response.untyped(validationError(shape));
+				const result = store.updateEvent(email, params.code, body as EventUpdateIn);
+				return eventAnswer(result, 200, response);
+			}
+		),
+
+		http.delete('/api/v1/organizer/events/{code}', ({ request, cookies, params, response }) => {
+			const email = guard(request, cookies);
+			if (typeof email !== 'string') return response.untyped(email);
+			const result = store.deleteEvent(email, params.code);
+			if (!result.ok) return eventAnswer(result, 204, response);
+			return response(204).empty();
+		}),
+
+		// `list_organizer_club_grants`: an account without two-factor gets `mfa_required` before
+		// any lookup, then anyone but an admin member gets 404.
+		http.get(
+			'/api/v1/organizer/organizers/{code}/club-grants',
+			({ request, cookies, params, response }) => {
+				const email = guard(request, cookies);
+				if (typeof email !== 'string') return response.untyped(email);
+				if (!store.accountByEmail(email)?.totp) {
+					return response.untyped(
+						ninjaError(403, 'mfa_required', 'Two-factor authentication is required.')
+					);
+				}
+				const grants = store.clubGrants(email, params.code);
+				if (!grants) return response.untyped(notFound());
+				return response(200).json(grants);
+			}
+		),
 
 		http.get('/api/v1/accounts/me', ({ request, cookies, response }) => {
 			const email = guard(request, cookies);

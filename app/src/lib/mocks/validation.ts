@@ -6,7 +6,13 @@
  * The score and player rules come after this, from the domain validators
  * (`store.submitMatch`), as in the backend where `validate_match` runs inside the view.
  */
-import { BEST_OF_VALUES, GAME_TARGETS, MATCH_FORMATS, SCORING_TYPES } from '../domain/models';
+import {
+	BEST_OF_VALUES,
+	EVENT_KINDS,
+	GAME_TARGETS,
+	MATCH_FORMATS,
+	SCORING_TYPES
+} from '../domain/models';
 import type { FieldIssue } from './store';
 
 /** The longest team and game lists the schema takes (`MAX_TEAM_ENTRIES`, `MAX_GAME_ENTRIES`). */
@@ -190,3 +196,63 @@ export function pageQuery(
 	const offset = read('offset', rawOffset, 0, 0);
 	return issues.length > 0 ? { ok: false, issues } : { ok: true, value: { limit, offset } };
 }
+
+/** The limits of `EventPagination.Input`, the same as the match history's. */
+export const EVENTS_PAGE_SIZE = HISTORY_PAGE_SIZE;
+export const EVENTS_MAX_PAGE_SIZE = HISTORY_MAX_PAGE_SIZE;
+
+const EVENT_CREATE_FIELDS = ['organizer', 'name', 'kind', 'start_date', 'end_date', 'club'];
+const EVENT_UPDATE_FIELDS = ['name', 'kind', 'start_date', 'end_date'];
+
+/**
+ * Issues in the shape of `EventCreateIn` (every field but `club` required, `club` a string or
+ * null) or `EventUpdateIn` (every field optional, null refused), and no other field.
+ */
+function eventIssues(body: unknown, mode: 'create' | 'update'): FieldIssue[] {
+	if (!isObject(body)) {
+		return [
+			{
+				field: 'body',
+				code: 'model_attributes_type',
+				message: 'Input should be a valid dictionary or object to extract fields from'
+			}
+		];
+	}
+	const issues: FieldIssue[] = [];
+	const allowed = mode === 'create' ? EVENT_CREATE_FIELDS : EVENT_UPDATE_FIELDS;
+	for (const key of allowed) {
+		const field = `body.${key}`;
+		const value = body[key];
+		if (value === undefined) {
+			if (mode === 'create' && key !== 'club') issues.push(missing(field));
+			continue;
+		}
+		if (key === 'club' && value === null) continue;
+		if (key === 'kind') {
+			if (!EVENT_KINDS.includes(value as never)) issues.push(enumIssue(field, EVENT_KINDS));
+		} else if (key === 'start_date' || key === 'end_date') {
+			if (!isDate(value)) {
+				issues.push({
+					field,
+					code: 'date_from_datetime_parsing',
+					message: 'Input should be a valid date or datetime'
+				});
+			}
+		} else if (typeof value !== 'string') {
+			issues.push({ field, code: 'string_type', message: 'Input should be a valid string' });
+		}
+	}
+	for (const key of Object.keys(body)) {
+		if (!allowed.includes(key)) {
+			issues.push({
+				field: `body.${key}`,
+				code: 'extra_forbidden',
+				message: 'Extra inputs are not permitted'
+			});
+		}
+	}
+	return issues;
+}
+
+export const eventCreateIssues = (body: unknown) => eventIssues(body, 'create');
+export const eventUpdateIssues = (body: unknown) => eventIssues(body, 'update');

@@ -16,7 +16,16 @@
  */
 import type { components } from '../api/generated/open';
 import { parseMatchCode, parsePlayerCode } from './codes';
-import type { Game, Hold, Match, Player, Team } from './models';
+import {
+	EVENT_KINDS,
+	type EventKind,
+	type Game,
+	type Hold,
+	type Match,
+	type OrganizerEvent,
+	type Player,
+	type Team
+} from './models';
 
 type Schemas = components['schemas'];
 
@@ -26,6 +35,8 @@ export type GameDto = Schemas['GameOut'];
 export type PagedMatchDto = Schemas['PagedMatchOut'];
 export type HoldDto = Schemas['HoldOut'];
 export type PagedHoldDto = Schemas['PagedHoldOut'];
+export type EventDto = Schemas['EventOut'];
+export type PagedEventDto = Schemas['PagedEventOut'];
 
 /** What a player is called when the API hides them. Matches the backend's `PRIVATE_PLAYER_NAME`. */
 export const PRIVATE_PLAYER_NAME = 'Private player';
@@ -98,4 +109,31 @@ export function toHold(dto: HoldDto): Hold {
 
 export function toHoldPage(dto: PagedHoldDto): HoldPage {
 	return { items: dto.items.map(toHold), count: dto.count };
+}
+
+/** One page of an organizer's Events and the total across all pages. */
+export type OrganizerEventPage = {
+	items: OrganizerEvent[];
+	count: number;
+};
+
+function isEventKind(kind: string): kind is EventKind {
+	return (EVENT_KINDS as readonly string[]).includes(kind);
+}
+
+export function toOrganizerEvent(dto: EventDto): OrganizerEvent {
+	if (!isEventKind(dto.kind)) throw new MappingError('The API sent an Event of an unknown kind.');
+	return {
+		code: dto.code,
+		name: dto.name,
+		kind: dto.kind,
+		organizer: dto.organizer,
+		club: dto.club ?? null,
+		startDate: dto.start_date,
+		endDate: dto.end_date
+	};
+}
+
+export function toOrganizerEventPage(dto: PagedEventDto): OrganizerEventPage {
+	return { items: dto.items.map(toOrganizerEvent), count: dto.count };
 }

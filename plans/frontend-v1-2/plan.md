@@ -87,7 +87,7 @@ Update 2026-11-26 (#261): backend#301 (organizer memberships, `GET /api/v1/organ
 - [x] S4 Show held matches and let players vouch for them (#216), after S3
 - [x] S5 Let players correct a pending or disputed match with no Event (#215), after S3
 - [x] B1 Open backend issues for organizer memberships (backend#301) and for the Event on `MatchOut` (backend#302)
-- [ ] S6 Organizer area: list, create, edit and delete Events (#217), after S1 and B1
+- [x] S6 Organizer area: list, create, edit and delete Events (#217), after S1 and B1
 - [ ] S7 Upload a CSV results file and read its report (#218), after S6
 - [ ] S8 Settle disputes on an Event's matches (#219), after S6
 - [ ] S9 Report an organizer (#220), after S1 and the `MatchOut` part of B1
@@ -127,8 +127,8 @@ Update 2026-11-26 (#261): backend#301 (organizer memberships, `GET /api/v1/organ
 - **The old match reads as voided (S5).** `MatchOut` doesn't link a match to its correction. A voided match says that a corrected match would be in the player's history with a new code, and within the visit the old match's page links to the correction the player just saved.
 - **No correction with a private player (S5).** The API gives no code for a private player, and a correction must name the same players, so the app offers no correction on such a match. The player can still dispute it.
 - **A correction alone doesn't move the panel (S5).** The status panel goes before the score only for actions the match waits on. "Correct the score" is an outline link after the other buttons.
+- **The organizer area is a nav entry (S6).** "Events" at `/organizer`, in the side nav and the tab bar, only for organizer members (`session.isOrganizer`). Anyone else gets the app's not found page there. See `plans/organizer-events/plan.md`.
 
 ## Open questions
 
-- Should the organizer area be a separate section in the side nav and tab bar, or a page under the profile? This changes the app shell, so decide in S6.
 - The dispute and hold periods (30 and 14 days by default) are backend settings, and the API returns no end date. Should the backend add one, so the app can say when a match will end?

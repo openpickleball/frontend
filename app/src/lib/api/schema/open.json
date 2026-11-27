@@ -1,11 +1,227 @@
 {
 	"components": {
 		"schemas": {
+			"AuditActor": {
+				"description": "Who acted, without naming another Account.",
+				"enum": ["you", "staff", "other", "system"],
+				"title": "AuditActor",
+				"type": "string"
+			},
 			"BestOf": {
 				"description": "How many games a Match is played to (decision F15 in #1).",
 				"enum": [1, 3, 5],
 				"title": "BestOf",
 				"type": "integer"
+			},
+			"ClubAdminOut": {
+				"description": "One admin of a Club, as its admins see it.\n\n``player`` is the admin's Player's OPEN Code (the value the remove\noperation takes), or null when the Account has no Player.\n``display_name`` is that Player's display name, or null when there is\nnone or the Account is inactive. ``you`` marks the signed-in Account.\nNever an email.",
+				"properties": {
+					"display_name": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Display Name"
+					},
+					"player": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Player"
+					},
+					"you": {
+						"title": "You",
+						"type": "boolean"
+					}
+				},
+				"required": ["player", "display_name", "you"],
+				"title": "ClubAdminOut",
+				"type": "object"
+			},
+			"ClubCreateIn": {
+				"additionalProperties": false,
+				"description": "A new Club. ``name`` is 1 to 200 characters after trimming;\n``city`` and ``region`` are optional, at most 100 characters each.\nNone has control characters. A Club is a place or group, not a\nperson: its profile is shown to any signed-in Account.",
+				"properties": {
+					"city": {
+						"default": "",
+						"maxLength": 100,
+						"title": "City",
+						"type": "string"
+					},
+					"name": {
+						"maxLength": 200,
+						"title": "Name",
+						"type": "string"
+					},
+					"region": {
+						"default": "",
+						"maxLength": 100,
+						"title": "Region",
+						"type": "string"
+					}
+				},
+				"required": ["name"],
+				"title": "ClubCreateIn",
+				"type": "object"
+			},
+			"ClubInviteAcceptIn": {
+				"additionalProperties": false,
+				"description": "The key from the Club invite email's link.",
+				"properties": {
+					"key": {
+						"description": "The key from the link in the invite email. A key longer than 128 characters gets the same 404 as an unknown one.",
+						"title": "Key",
+						"type": "string"
+					}
+				},
+				"required": ["key"],
+				"title": "ClubInviteAcceptIn",
+				"type": "object"
+			},
+			"ClubInviteIn": {
+				"additionalProperties": false,
+				"description": "An invite of an email address to be an admin of the Club.",
+				"properties": {
+					"email": {
+						"maxLength": 254,
+						"title": "Email",
+						"type": "string"
+					}
+				},
+				"required": ["email"],
+				"title": "ClubInviteIn",
+				"type": "object"
+			},
+			"ClubInviteSentOut": {
+				"description": "The same answer for every accepted Club invite request: it never\nsays whether the address has an Account, is an admin, or was\ninvited.",
+				"properties": {
+					"message": {
+						"title": "Message",
+						"type": "string"
+					}
+				},
+				"required": ["message"],
+				"title": "ClubInviteSentOut",
+				"type": "object"
+			},
+			"ClubOrganizerGrantIn": {
+				"additionalProperties": false,
+				"description": "The Organizer to allow, by its OPEN Code, in any case, with or\nwithout hyphens. An unknown or malformed code gets the same 404 as an\nunknown Club.",
+				"properties": {
+					"organizer": {
+						"title": "Organizer",
+						"type": "string"
+					}
+				},
+				"required": ["organizer"],
+				"title": "ClubOrganizerGrantIn",
+				"type": "object"
+			},
+			"ClubOrganizerGrantOut": {
+				"description": "An Organizer the Club allows to name it: the Organizer's OPEN Code\nand when the Club allowed it. Never the Organizer's name, which may be\na person's.",
+				"properties": {
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"organizer": {
+						"title": "Organizer",
+						"type": "string"
+					}
+				},
+				"required": ["organizer", "created_at"],
+				"title": "ClubOrganizerGrantOut",
+				"type": "object"
+			},
+			"ClubOut": {
+				"description": "A Club's public profile: its OPEN Code (``club``), name, city, and\nregion. Any signed-in Account may read it. Never a row id or an\nadmin.",
+				"properties": {
+					"city": {
+						"title": "City",
+						"type": "string"
+					},
+					"club": {
+						"title": "Club",
+						"type": "string"
+					},
+					"name": {
+						"title": "Name",
+						"type": "string"
+					},
+					"region": {
+						"title": "Region",
+						"type": "string"
+					}
+				},
+				"required": ["club", "name", "city", "region"],
+				"title": "ClubOut",
+				"type": "object"
+			},
+			"ClubRoleKind": {
+				"description": "A role an Account holds at a Club. A Club has only admins (ADR 0021).",
+				"enum": ["admin"],
+				"title": "ClubRoleKind",
+				"type": "string"
+			},
+			"ClubUpdateIn": {
+				"additionalProperties": false,
+				"description": "The profile fields to change, with the create's rules. A field left\nout or null is not changed; an empty body changes nothing. ``city``\nand ``region`` may be set to an empty string; ``name`` may not.",
+				"properties": {
+					"city": {
+						"anyOf": [
+							{
+								"maxLength": 100,
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "City"
+					},
+					"name": {
+						"anyOf": [
+							{
+								"maxLength": 200,
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Name"
+					},
+					"region": {
+						"anyOf": [
+							{
+								"maxLength": 100,
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Region"
+					}
+				},
+				"title": "ClubUpdateIn",
+				"type": "object"
+			},
+			"ConfirmationDecision": {
+				"description": "What a participant said about a Match.",
+				"enum": ["confirm", "dispute", "withdraw"],
+				"title": "ConfirmationDecision",
+				"type": "string"
 			},
 			"CurrentAccount": {
 				"description": "The signed-in Account.",
@@ -17,6 +233,208 @@
 				},
 				"required": ["email"],
 				"title": "CurrentAccount",
+				"type": "object"
+			},
+			"DataExportDownloadIn": {
+				"description": "The download key from the data export email.",
+				"properties": {
+					"key": {
+						"description": "The key from the link in the data export email. A key longer than 128 characters gets the same 404 as an unknown one.",
+						"title": "Key",
+						"type": "string"
+					}
+				},
+				"required": ["key"],
+				"title": "DataExportDownloadIn",
+				"type": "object"
+			},
+			"DataExportOut": {
+				"description": "A copy of the data OPEN holds about the signed-in Account.\n\nPlayer sections are null or empty for an Account with no Player. Other\nplayers appear only as match responses show them. Every rating carries\nits reliability and ``demonstration: true``.",
+				"properties": {
+					"account": {
+						"$ref": "#/components/schemas/ExportAccountOut"
+					},
+					"agreements": {
+						"items": {
+							"$ref": "#/components/schemas/ExportAgreementOut"
+						},
+						"title": "Agreements",
+						"type": "array"
+					},
+					"audit_events": {
+						"items": {
+							"$ref": "#/components/schemas/ExportAuditEventOut"
+						},
+						"title": "Audit Events",
+						"type": "array"
+					},
+					"club_roles": {
+						"items": {
+							"$ref": "#/components/schemas/ExportClubRoleOut"
+						},
+						"title": "Club Roles",
+						"type": "array"
+					},
+					"confirmations": {
+						"items": {
+							"$ref": "#/components/schemas/ExportConfirmationOut"
+						},
+						"title": "Confirmations",
+						"type": "array"
+					},
+					"email_addresses": {
+						"items": {
+							"$ref": "#/components/schemas/ExportEmailAddressOut"
+						},
+						"title": "Email Addresses",
+						"type": "array"
+					},
+					"format_version": {
+						"const": "1",
+						"title": "Format Version",
+						"type": "string"
+					},
+					"generated_at": {
+						"format": "date-time",
+						"title": "Generated At",
+						"type": "string"
+					},
+					"matches": {
+						"items": {
+							"$ref": "#/components/schemas/ExportMatchOut"
+						},
+						"title": "Matches",
+						"type": "array"
+					},
+					"mfa_methods": {
+						"items": {
+							"$ref": "#/components/schemas/ExportMFAMethodOut"
+						},
+						"title": "Mfa Methods",
+						"type": "array"
+					},
+					"oauth": {
+						"items": {
+							"$ref": "#/components/schemas/ExportOAuthRecordOut"
+						},
+						"title": "Oauth",
+						"type": "array"
+					},
+					"organizer_memberships": {
+						"items": {
+							"$ref": "#/components/schemas/OrganizerMembershipOut"
+						},
+						"title": "Organizer Memberships",
+						"type": "array"
+					},
+					"organizer_reports": {
+						"items": {
+							"$ref": "#/components/schemas/ExportOrganizerReportOut"
+						},
+						"title": "Organizer Reports",
+						"type": "array"
+					},
+					"partner_applications": {
+						"items": {
+							"$ref": "#/components/schemas/ExportPartnerApplicationOut"
+						},
+						"title": "Partner Applications",
+						"type": "array"
+					},
+					"profile": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/MyPlayerOut"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating_history": {
+						"items": {
+							"$ref": "#/components/schemas/ExportRatingHistoryItemOut"
+						},
+						"title": "Rating History",
+						"type": "array"
+					},
+					"ratings": {
+						"additionalProperties": {
+							"$ref": "#/components/schemas/ExportRatingOut"
+						},
+						"propertyNames": {
+							"$ref": "#/components/schemas/RatingFormat"
+						},
+						"title": "Ratings",
+						"type": "object"
+					},
+					"sessions": {
+						"items": {
+							"$ref": "#/components/schemas/ExportSessionOut"
+						},
+						"title": "Sessions",
+						"type": "array"
+					},
+					"submission_batches": {
+						"items": {
+							"$ref": "#/components/schemas/ExportSubmissionBatchOut"
+						},
+						"title": "Submission Batches",
+						"type": "array"
+					},
+					"submitted_matches": {
+						"items": {
+							"$ref": "#/components/schemas/ExportSubmittedMatchOut"
+						},
+						"title": "Submitted Matches",
+						"type": "array"
+					},
+					"vouches": {
+						"items": {
+							"$ref": "#/components/schemas/ExportVouchOut"
+						},
+						"title": "Vouches",
+						"type": "array"
+					}
+				},
+				"required": [
+					"format_version",
+					"generated_at",
+					"account",
+					"email_addresses",
+					"sessions",
+					"mfa_methods",
+					"agreements",
+					"profile",
+					"matches",
+					"confirmations",
+					"vouches",
+					"submitted_matches",
+					"submission_batches",
+					"ratings",
+					"rating_history",
+					"organizer_memberships",
+					"club_roles",
+					"organizer_reports",
+					"partner_applications",
+					"oauth",
+					"audit_events"
+				],
+				"title": "DataExportOut",
+				"type": "object"
+			},
+			"DataExportRequestOut": {
+				"description": "A data export request was stored; the email follows.",
+				"properties": {
+					"requested_at": {
+						"description": "When the request was stored. An email with a single-use download link follows once the export is built; the link lasts 24 hours.",
+						"format": "date-time",
+						"title": "Requested At",
+						"type": "string"
+					}
+				},
+				"required": ["requested_at"],
+				"title": "DataExportRequestOut",
 				"type": "object"
 			},
 			"DisputeCorrectionIn": {
@@ -262,6 +680,1136 @@
 				"title": "EventUpdateIn",
 				"type": "object"
 			},
+			"ExportAccountOut": {
+				"description": "The Account: its login email, dates, and access.",
+				"properties": {
+					"date_joined": {
+						"format": "date-time",
+						"title": "Date Joined",
+						"type": "string"
+					},
+					"email": {
+						"title": "Email",
+						"type": "string"
+					},
+					"groups": {
+						"description": "The names of the Account's groups.",
+						"items": {
+							"type": "string"
+						},
+						"title": "Groups",
+						"type": "array"
+					},
+					"is_active": {
+						"title": "Is Active",
+						"type": "boolean"
+					},
+					"is_staff": {
+						"title": "Is Staff",
+						"type": "boolean"
+					},
+					"is_superuser": {
+						"title": "Is Superuser",
+						"type": "boolean"
+					},
+					"last_login": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Last Login"
+					},
+					"permissions": {
+						"description": "The Account's own permissions, as app_label.codename.",
+						"items": {
+							"type": "string"
+						},
+						"title": "Permissions",
+						"type": "array"
+					}
+				},
+				"required": [
+					"email",
+					"date_joined",
+					"last_login",
+					"is_active",
+					"is_staff",
+					"is_superuser",
+					"groups",
+					"permissions"
+				],
+				"title": "ExportAccountOut",
+				"type": "object"
+			},
+			"ExportAgreementOut": {
+				"description": "One version of a legal agreement the Account accepted.",
+				"properties": {
+					"accepted_at": {
+						"format": "date-time",
+						"title": "Accepted At",
+						"type": "string"
+					},
+					"agreement": {
+						"title": "Agreement",
+						"type": "string"
+					},
+					"version": {
+						"title": "Version",
+						"type": "integer"
+					}
+				},
+				"required": ["agreement", "version", "accepted_at"],
+				"title": "ExportAgreementOut",
+				"type": "object"
+			},
+			"ExportAuditEventOut": {
+				"description": "One Audit Event about the Account's own records, or that it made.\n\n``before`` and ``after`` appear only when the target is one of the\nAccount's own records (the Account, its Player and privacy row, its\nratings, and its agreement rows), without row ids. The reason is\nnever included.",
+				"properties": {
+					"action": {
+						"title": "Action",
+						"type": "string"
+					},
+					"actor": {
+						"$ref": "#/components/schemas/AuditActor"
+					},
+					"after": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/JsonValue"
+							}
+						]
+					},
+					"at": {
+						"format": "date-time",
+						"title": "At",
+						"type": "string"
+					},
+					"before": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/JsonValue"
+							}
+						]
+					},
+					"target_code": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The target's OPEN Code, or null when it has none.",
+						"title": "Target Code"
+					},
+					"target_type": {
+						"description": "The target's model, as app.model.",
+						"title": "Target Type",
+						"type": "string"
+					}
+				},
+				"required": ["action", "at", "target_type", "target_code", "actor"],
+				"title": "ExportAuditEventOut",
+				"type": "object"
+			},
+			"ExportClubRoleOut": {
+				"description": "One of the Account's Club Roles.",
+				"properties": {
+					"club": {
+						"description": "The Club's OPEN Code.",
+						"title": "Club",
+						"type": "string"
+					},
+					"name": {
+						"title": "Name",
+						"type": "string"
+					},
+					"role": {
+						"$ref": "#/components/schemas/ClubRoleKind"
+					}
+				},
+				"required": ["club", "name", "role"],
+				"title": "ExportClubRoleOut",
+				"type": "object"
+			},
+			"ExportConfirmationOut": {
+				"description": "One confirm, dispute, or withdrawal the Player made on a match.",
+				"properties": {
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"decision": {
+						"$ref": "#/components/schemas/ConfirmationDecision"
+					},
+					"match": {
+						"description": "The match's OPEN Code.",
+						"title": "Match",
+						"type": "string"
+					}
+				},
+				"required": ["match", "decision", "created_at"],
+				"title": "ExportConfirmationOut",
+				"type": "object"
+			},
+			"ExportEmailAddressOut": {
+				"description": "One email address on the Account.",
+				"properties": {
+					"email": {
+						"title": "Email",
+						"type": "string"
+					},
+					"primary": {
+						"title": "Primary",
+						"type": "boolean"
+					},
+					"verified": {
+						"title": "Verified",
+						"type": "boolean"
+					}
+				},
+				"required": ["email", "verified", "primary"],
+				"title": "ExportEmailAddressOut",
+				"type": "object"
+			},
+			"ExportMFAMethodOut": {
+				"description": "One two-factor method: its type, a passkey's name, and its dates,\nnever its secret or credential.",
+				"properties": {
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"last_used_at": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Last Used At"
+					},
+					"name": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The name the player chose for a passkey; null otherwise.",
+						"title": "Name"
+					},
+					"type": {
+						"title": "Type",
+						"type": "string"
+					}
+				},
+				"required": ["type", "created_at", "last_used_at"],
+				"title": "ExportMFAMethodOut",
+				"type": "object"
+			},
+			"ExportMatchOut": {
+				"description": "A match the player played: ``MatchOut`` as match responses show it\nto the player, plus the match's own details. Never its rating format,\nwhich reveals the players' gender divisions.",
+				"properties": {
+					"best_of": {
+						"$ref": "#/components/schemas/BestOf"
+					},
+					"bracket_label": {
+						"title": "Bracket Label",
+						"type": "string"
+					},
+					"club": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/MatchClubOut"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"code": {
+						"title": "Code",
+						"type": "string"
+					},
+					"confirmed_by_team": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/TeamConfirmationsOut"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"corrects": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The OPEN Code of the match this one corrects, only when the player played in that match too; null otherwise.",
+						"title": "Corrects"
+					},
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"event": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/MatchEventOut"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"event_label": {
+						"title": "Event Label",
+						"type": "string"
+					},
+					"format": {
+						"$ref": "#/components/schemas/MatchFormat"
+					},
+					"game_target": {
+						"$ref": "#/components/schemas/GameTarget"
+					},
+					"games": {
+						"items": {
+							"$ref": "#/components/schemas/GameOut"
+						},
+						"title": "Games",
+						"type": "array"
+					},
+					"location": {
+						"title": "Location",
+						"type": "string"
+					},
+					"match_type": {
+						"$ref": "#/components/schemas/MatchType"
+					},
+					"my_decision": {
+						"$ref": "#/components/schemas/MyDecision"
+					},
+					"my_team": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/Team"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"played_at": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Played At"
+					},
+					"played_at_utc_offset": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Minutes east of UTC where the match was played.",
+						"title": "Played At Utc Offset"
+					},
+					"played_on": {
+						"format": "date",
+						"title": "Played On",
+						"type": "string"
+					},
+					"scoring_type": {
+						"$ref": "#/components/schemas/ScoringType"
+					},
+					"status": {
+						"$ref": "#/components/schemas/MatchStatus"
+					},
+					"team_a": {
+						"items": {
+							"$ref": "#/components/schemas/ParticipantOut"
+						},
+						"title": "Team A",
+						"type": "array"
+					},
+					"team_b": {
+						"items": {
+							"$ref": "#/components/schemas/ParticipantOut"
+						},
+						"title": "Team B",
+						"type": "array"
+					}
+				},
+				"required": [
+					"code",
+					"status",
+					"format",
+					"played_on",
+					"best_of",
+					"scoring_type",
+					"game_target",
+					"team_a",
+					"team_b",
+					"games",
+					"my_team",
+					"my_decision",
+					"confirmed_by_team",
+					"event",
+					"club",
+					"created_at",
+					"match_type",
+					"location",
+					"played_at",
+					"played_at_utc_offset",
+					"event_label",
+					"bracket_label",
+					"corrects"
+				],
+				"title": "ExportMatchOut",
+				"type": "object"
+			},
+			"ExportOAuthRecordOut": {
+				"description": "An OAuth token or grant issued to the Account, never its value.",
+				"properties": {
+					"application": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The application's client_id, if the record names one.",
+						"title": "Application"
+					},
+					"created": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Created"
+					},
+					"expires": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Expires"
+					},
+					"kind": {
+						"$ref": "#/components/schemas/OAuthRecordKind"
+					},
+					"redirect_uri": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "A grant's redirect URI.",
+						"title": "Redirect Uri"
+					},
+					"revoked": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "When a refresh token was revoked.",
+						"title": "Revoked"
+					},
+					"scope": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Scope"
+					}
+				},
+				"required": [
+					"kind",
+					"application",
+					"scope",
+					"redirect_uri",
+					"created",
+					"expires",
+					"revoked"
+				],
+				"title": "ExportOAuthRecordOut",
+				"type": "object"
+			},
+			"ExportOrganizerReportOut": {
+				"description": "An Organizer Report the Account filed.",
+				"properties": {
+					"closed_at": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Closed At"
+					},
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"organizer": {
+						"description": "The Organizer's OPEN Code.",
+						"title": "Organizer",
+						"type": "string"
+					},
+					"reason": {
+						"$ref": "#/components/schemas/OrganizerReportReason"
+					}
+				},
+				"required": ["organizer", "reason", "created_at", "closed_at"],
+				"title": "ExportOrganizerReportOut",
+				"type": "object"
+			},
+			"ExportPartnerApplicationOut": {
+				"description": "A Partner Application the Account owns, never its secret or who\napproved it.",
+				"properties": {
+					"algorithm": {
+						"title": "Algorithm",
+						"type": "string"
+					},
+					"allowed_origins": {
+						"title": "Allowed Origins",
+						"type": "string"
+					},
+					"approved_at": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Approved At"
+					},
+					"authorization_grant_type": {
+						"title": "Authorization Grant Type",
+						"type": "string"
+					},
+					"client_id": {
+						"title": "Client Id",
+						"type": "string"
+					},
+					"client_type": {
+						"title": "Client Type",
+						"type": "string"
+					},
+					"created": {
+						"format": "date-time",
+						"title": "Created",
+						"type": "string"
+					},
+					"is_sandbox": {
+						"title": "Is Sandbox",
+						"type": "boolean"
+					},
+					"name": {
+						"title": "Name",
+						"type": "string"
+					},
+					"organizer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The owning Organizer's OPEN Code.",
+						"title": "Organizer"
+					},
+					"post_logout_redirect_uris": {
+						"title": "Post Logout Redirect Uris",
+						"type": "string"
+					},
+					"redirect_uris": {
+						"title": "Redirect Uris",
+						"type": "string"
+					},
+					"skip_authorization": {
+						"title": "Skip Authorization",
+						"type": "boolean"
+					},
+					"updated": {
+						"format": "date-time",
+						"title": "Updated",
+						"type": "string"
+					}
+				},
+				"required": [
+					"client_id",
+					"name",
+					"organizer",
+					"redirect_uris",
+					"post_logout_redirect_uris",
+					"allowed_origins",
+					"client_type",
+					"authorization_grant_type",
+					"skip_authorization",
+					"algorithm",
+					"is_sandbox",
+					"approved_at",
+					"created",
+					"updated"
+				],
+				"title": "ExportPartnerApplicationOut",
+				"type": "object"
+			},
+			"ExportRatingHistoryItemOut": {
+				"description": "A rating change, with its reliability and ``demonstration: true``,\nplus the match that caused it, the change, and the stored detail.",
+				"properties": {
+					"calculated_as_of": {
+						"anyOf": [
+							{
+								"format": "date",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Calculated As Of"
+					},
+					"config_version": {
+						"title": "Config Version",
+						"type": "string"
+					},
+					"delta": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The change a live update made.",
+						"title": "Delta"
+					},
+					"demonstration": {
+						"const": true,
+						"description": "Always true: every rating is a demonstration rating while the rating engine is a demonstration package.",
+						"title": "Demonstration",
+						"type": "boolean"
+					},
+					"engine_version": {
+						"title": "Engine Version",
+						"type": "string"
+					},
+					"established": {
+						"description": "True once the rating rests on enough matches to be established.",
+						"title": "Established",
+						"type": "boolean"
+					},
+					"imported_reliability": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The reliability carried from an external rating, 0 to 100, shown apart from the OPEN-earned reliability. Null when there is none.",
+						"title": "Imported Reliability"
+					},
+					"kind": {
+						"$ref": "#/components/schemas/RatingChangeKind"
+					},
+					"last_played": {
+						"anyOf": [
+							{
+								"format": "date",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Last Played"
+					},
+					"live_updates_since_recalculation": {
+						"title": "Live Updates Since Recalculation",
+						"type": "integer"
+					},
+					"match": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The causing match's OPEN Code.",
+						"title": "Match"
+					},
+					"matches_played": {
+						"title": "Matches Played",
+						"type": "integer"
+					},
+					"parameter_fingerprint": {
+						"title": "Parameter Fingerprint",
+						"type": "string"
+					},
+					"params_version": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The published parameter set label; null when it is not one.",
+						"title": "Params Version"
+					},
+					"provisional": {
+						"description": "True when the rating holds live updates not yet confirmed by a replay of the ledger, or was never replayed. A provisional rating can change at the next replay.",
+						"title": "Provisional",
+						"type": "boolean"
+					},
+					"rating": {
+						"description": "The rating after the change.",
+						"title": "Rating",
+						"type": "number"
+					},
+					"rating_format": {
+						"$ref": "#/components/schemas/RatingFormat"
+					},
+					"rd": {
+						"title": "Rd",
+						"type": "number"
+					},
+					"recorded_at": {
+						"description": "When the change was recorded.",
+						"format": "date-time",
+						"title": "Recorded At",
+						"type": "string"
+					},
+					"reliability": {
+						"description": "OPEN-earned reliability, 0 to 100. The OPEN standard requires any app that shows an OPEN rating to show its reliability next to it.",
+						"title": "Reliability",
+						"type": "number"
+					},
+					"spec_version": {
+						"description": "The OPEN rating spec version the rating follows.",
+						"title": "Spec Version",
+						"type": "string"
+					}
+				},
+				"required": [
+					"rd",
+					"matches_played",
+					"last_played",
+					"calculated_as_of",
+					"live_updates_since_recalculation",
+					"config_version",
+					"params_version",
+					"parameter_fingerprint",
+					"engine_version",
+					"rating_format",
+					"kind",
+					"rating",
+					"reliability",
+					"imported_reliability",
+					"provisional",
+					"established",
+					"spec_version",
+					"demonstration",
+					"recorded_at",
+					"match",
+					"delta"
+				],
+				"title": "ExportRatingHistoryItemOut",
+				"type": "object"
+			},
+			"ExportRatingOut": {
+				"description": "A current rating, with its reliability and ``demonstration: true``,\nplus the stored detail and versions.",
+				"properties": {
+					"calculated_as_of": {
+						"anyOf": [
+							{
+								"format": "date",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Calculated As Of"
+					},
+					"config_version": {
+						"title": "Config Version",
+						"type": "string"
+					},
+					"demonstration": {
+						"const": true,
+						"description": "Always true: every rating is a demonstration rating while the rating engine is a demonstration package.",
+						"title": "Demonstration",
+						"type": "boolean"
+					},
+					"engine_version": {
+						"title": "Engine Version",
+						"type": "string"
+					},
+					"established": {
+						"description": "True once the rating rests on enough matches to be established.",
+						"title": "Established",
+						"type": "boolean"
+					},
+					"imported_reliability": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The reliability carried from an external rating, 0 to 100, shown apart from the OPEN-earned reliability. Null when there is none.",
+						"title": "Imported Reliability"
+					},
+					"last_played": {
+						"anyOf": [
+							{
+								"format": "date",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Last Played"
+					},
+					"live_updates_since_recalculation": {
+						"title": "Live Updates Since Recalculation",
+						"type": "integer"
+					},
+					"matches_played": {
+						"title": "Matches Played",
+						"type": "integer"
+					},
+					"parameter_fingerprint": {
+						"title": "Parameter Fingerprint",
+						"type": "string"
+					},
+					"params_version": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The published parameter set label; null when it is not one.",
+						"title": "Params Version"
+					},
+					"provisional": {
+						"description": "True when the rating holds live updates not yet confirmed by a replay of the ledger, or was never replayed. A provisional rating can change at the next replay.",
+						"title": "Provisional",
+						"type": "boolean"
+					},
+					"rating": {
+						"description": "The rating, as the engine gave it.",
+						"title": "Rating",
+						"type": "number"
+					},
+					"rd": {
+						"title": "Rd",
+						"type": "number"
+					},
+					"reliability": {
+						"description": "OPEN-earned reliability, 0 to 100. The OPEN standard requires any app that shows an OPEN rating to show its reliability next to it.",
+						"title": "Reliability",
+						"type": "number"
+					},
+					"spec_version": {
+						"description": "The OPEN rating spec version the rating follows.",
+						"title": "Spec Version",
+						"type": "string"
+					},
+					"updated_at": {
+						"description": "When the rating last changed.",
+						"format": "date-time",
+						"title": "Updated At",
+						"type": "string"
+					}
+				},
+				"required": [
+					"rd",
+					"matches_played",
+					"last_played",
+					"calculated_as_of",
+					"live_updates_since_recalculation",
+					"config_version",
+					"params_version",
+					"parameter_fingerprint",
+					"engine_version",
+					"rating",
+					"reliability",
+					"imported_reliability",
+					"provisional",
+					"established",
+					"spec_version",
+					"demonstration",
+					"updated_at"
+				],
+				"title": "ExportRatingOut",
+				"type": "object"
+			},
+			"ExportResultsFileOut": {
+				"description": "A CSV results file the Account uploaded, without its contents.",
+				"properties": {
+					"code": {
+						"title": "Code",
+						"type": "string"
+					},
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"error_code": {
+						"description": "Why processing failed; empty if not.",
+						"title": "Error Code",
+						"type": "string"
+					},
+					"game_target": {
+						"title": "Game Target",
+						"type": "integer"
+					},
+					"location": {
+						"title": "Location",
+						"type": "string"
+					},
+					"processed_at": {
+						"anyOf": [
+							{
+								"format": "date-time",
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Processed At"
+					},
+					"status": {
+						"$ref": "#/components/schemas/ResultsFileStatus"
+					}
+				},
+				"required": [
+					"code",
+					"status",
+					"error_code",
+					"location",
+					"game_target",
+					"created_at",
+					"processed_at"
+				],
+				"title": "ExportResultsFileOut",
+				"type": "object"
+			},
+			"ExportSessionOut": {
+				"description": "One signed-in session, as the session list records it.",
+				"properties": {
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"ip": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Ip"
+					},
+					"last_seen_at": {
+						"format": "date-time",
+						"title": "Last Seen At",
+						"type": "string"
+					},
+					"user_agent": {
+						"title": "User Agent",
+						"type": "string"
+					}
+				},
+				"required": ["ip", "user_agent", "created_at", "last_seen_at"],
+				"title": "ExportSessionOut",
+				"type": "object"
+			},
+			"ExportSubmissionBatchOut": {
+				"description": "One upload or bulk request of matches the Account submitted.",
+				"properties": {
+					"club": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The Club's OPEN Code, if any.",
+						"title": "Club"
+					},
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"event": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The Event's OPEN Code, if any.",
+						"title": "Event"
+					},
+					"expected_size": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "How many matches the batch meant to record, if set.",
+						"title": "Expected Size"
+					},
+					"matches": {
+						"description": "The OPEN Codes of its matches.",
+						"items": {
+							"type": "string"
+						},
+						"title": "Matches",
+						"type": "array"
+					},
+					"results_file": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/ExportResultsFileOut"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": ["created_at", "event", "club", "matches", "expected_size", "results_file"],
+				"title": "ExportSubmissionBatchOut",
+				"type": "object"
+			},
+			"ExportSubmittedMatchOut": {
+				"description": "A match the Account submitted.",
+				"properties": {
+					"match": {
+						"description": "The match's OPEN Code.",
+						"title": "Match",
+						"type": "string"
+					},
+					"submitted_at": {
+						"format": "date-time",
+						"title": "Submitted At",
+						"type": "string"
+					}
+				},
+				"required": ["match", "submitted_at"],
+				"title": "ExportSubmittedMatchOut",
+				"type": "object"
+			},
+			"ExportVouchOut": {
+				"description": "One vouch the Account gave for a held match.",
+				"properties": {
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"match": {
+						"description": "The match's OPEN Code.",
+						"title": "Match",
+						"type": "string"
+					}
+				},
+				"required": ["match", "created_at"],
+				"title": "ExportVouchOut",
+				"type": "object"
+			},
 			"FieldError": {
 				"description": "One invalid input: where it is, what kind of error, and a message.\n\n`existing_code` is the earlier match's OPEN code. Only a duplicate match\nitem has it, and only when the submitter may know that match.",
 				"properties": {
@@ -370,6 +1918,7 @@
 				"title": "Input",
 				"type": "object"
 			},
+			"JsonValue": {},
 			"LiveOut": {
 				"properties": {
 					"status": {
@@ -688,6 +2237,12 @@
 				"title": "MatchStatus",
 				"type": "string"
 			},
+			"MatchType": {
+				"description": "The match type a Match counts as (ADR 0024, ADR 0035).\n\nThe values are ``open_engine.MatchType``'s. ``record_match`` stores one\nper Match when it is recorded (``apps.matches.services.draft_match``):\nthe Event's kind, ``rec_verified`` for a Club with no Event, and\n``self_reported`` for neither. It never changes afterward, so a later\nchange of an Event's kind moves only matches recorded after it. A\ncorrection (``edit_match``) copies the type of the match it corrects.",
+				"enum": ["tournament", "league", "rec_verified", "self_reported"],
+				"title": "MatchType",
+				"type": "string"
+			},
 			"MemberRole": {
 				"description": "A role an Account holds at an Organizer.",
 				"enum": ["admin", "match_manager"],
@@ -753,8 +2308,149 @@
 				"title": "MyPlayerOut",
 				"type": "object"
 			},
+			"OAuthRecordKind": {
+				"description": "Which kind of OAuth record an entry describes.",
+				"enum": ["access_token", "refresh_token", "id_token", "grant", "device_grant"],
+				"title": "OAuthRecordKind",
+				"type": "string"
+			},
+			"OrganizerClubGrantOut": {
+				"description": "A Club that allows the Organizer to name it, as the Organizer's\nadmin members see it: the Club's OPEN Code, name, city, and region,\nand when it allowed it.",
+				"properties": {
+					"city": {
+						"title": "City",
+						"type": "string"
+					},
+					"club": {
+						"title": "Club",
+						"type": "string"
+					},
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"name": {
+						"title": "Name",
+						"type": "string"
+					},
+					"region": {
+						"title": "Region",
+						"type": "string"
+					}
+				},
+				"required": ["club", "name", "city", "region", "created_at"],
+				"title": "OrganizerClubGrantOut",
+				"type": "object"
+			},
+			"OrganizerCreateIn": {
+				"additionalProperties": false,
+				"description": "A new Organizer. ``name`` is 1 to 200 characters after trimming,\nwith no control characters. It may be a person's name: it is shown\nonly to the Organizer's members and staff.",
+				"properties": {
+					"name": {
+						"maxLength": 200,
+						"title": "Name",
+						"type": "string"
+					}
+				},
+				"required": ["name"],
+				"title": "OrganizerCreateIn",
+				"type": "object"
+			},
+			"OrganizerInviteAcceptIn": {
+				"additionalProperties": false,
+				"description": "The key from the invite email's link.",
+				"properties": {
+					"key": {
+						"description": "The key from the link in the invite email. A key longer than 128 characters gets the same 404 as an unknown one.",
+						"title": "Key",
+						"type": "string"
+					}
+				},
+				"required": ["key"],
+				"title": "OrganizerInviteAcceptIn",
+				"type": "object"
+			},
+			"OrganizerInviteIn": {
+				"additionalProperties": false,
+				"description": "An invite of an email address to act for the Organizer as ``role``.",
+				"properties": {
+					"email": {
+						"maxLength": 254,
+						"title": "Email",
+						"type": "string"
+					},
+					"role": {
+						"$ref": "#/components/schemas/MemberRole"
+					}
+				},
+				"required": ["email", "role"],
+				"title": "OrganizerInviteIn",
+				"type": "object"
+			},
+			"OrganizerInviteSentOut": {
+				"description": "The same answer for every accepted invite request: it never says\nwhether the address has an Account, is a member, or was invited.",
+				"properties": {
+					"message": {
+						"title": "Message",
+						"type": "string"
+					}
+				},
+				"required": ["message"],
+				"title": "OrganizerInviteSentOut",
+				"type": "object"
+			},
+			"OrganizerMemberOut": {
+				"description": "One member of an Organizer, as its admins see it.\n\n``player`` is the member's Player's OPEN Code (the value the member\noperations take), or null when the Account has no Player.\n``display_name`` is that Player's display name, or null when there is\nnone or the Account is inactive. ``you`` marks the signed-in Account.\nNever an email.",
+				"properties": {
+					"display_name": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Display Name"
+					},
+					"player": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"title": "Player"
+					},
+					"role": {
+						"$ref": "#/components/schemas/MemberRole"
+					},
+					"you": {
+						"title": "You",
+						"type": "boolean"
+					}
+				},
+				"required": ["player", "display_name", "role", "you"],
+				"title": "OrganizerMemberOut",
+				"type": "object"
+			},
+			"OrganizerMemberRoleIn": {
+				"additionalProperties": false,
+				"description": "A member's new role.",
+				"properties": {
+					"role": {
+						"$ref": "#/components/schemas/MemberRole"
+					}
+				},
+				"required": ["role"],
+				"title": "OrganizerMemberRoleIn",
+				"type": "object"
+			},
 			"OrganizerMembershipOut": {
-				"description": "One of the signed-in Account's own Organizer memberships.\n\n``organizer`` is the Organizer's OPEN Code, the value\n``EventCreateIn.organizer`` takes. ``name`` is the Organizer's name,\nshown only to its own members. ``verified`` says whether the Organizer\nis verified; it does not say whether the Account may act for it now\n(Organizer authority also needs MFA, ADR 0043). ``role`` is the\nAccount's own role there. It names no other member.",
+				"description": "One of the signed-in Account's own Organizer memberships.\n\n``organizer`` is the Organizer's OPEN Code, the value\n``EventCreateIn.organizer`` takes. ``name`` is the Organizer's name,\nshown only to its own members. ``verified`` says whether the Organizer\nis verified; it does not say whether the Account may act for it now\n(Organizer authority also needs MFA, ADR 0043).\n``verification_requested`` says whether a request that moderators\nverify it is open (#229). ``role`` is the Account's own role there.\nIt names no other member.",
 				"properties": {
 					"name": {
 						"title": "Name",
@@ -767,12 +2463,16 @@
 					"role": {
 						"$ref": "#/components/schemas/MemberRole"
 					},
+					"verification_requested": {
+						"title": "Verification Requested",
+						"type": "boolean"
+					},
 					"verified": {
 						"title": "Verified",
 						"type": "boolean"
 					}
 				},
-				"required": ["organizer", "name", "verified", "role"],
+				"required": ["organizer", "name", "verified", "verification_requested", "role"],
 				"title": "OrganizerMembershipOut",
 				"type": "object"
 			},
@@ -819,6 +2519,51 @@
 				],
 				"title": "OrganizerReportReason",
 				"type": "string"
+			},
+			"OrganizerUpdateIn": {
+				"additionalProperties": false,
+				"description": "A new name for an Organizer, with the create's rules.",
+				"properties": {
+					"name": {
+						"maxLength": 200,
+						"title": "Name",
+						"type": "string"
+					}
+				},
+				"required": ["name"],
+				"title": "OrganizerUpdateIn",
+				"type": "object"
+			},
+			"OrganizerVerificationRequestIn": {
+				"additionalProperties": false,
+				"description": "A request that moderators verify the Organizer.\n\n``statement`` says what the Organizer runs, for moderators only: 1 to\n1000 characters after trimming, with no control characters except\nline breaks and tabs.",
+				"properties": {
+					"statement": {
+						"maxLength": 1000,
+						"title": "Statement",
+						"type": "string"
+					}
+				},
+				"required": ["statement"],
+				"title": "OrganizerVerificationRequestIn",
+				"type": "object"
+			},
+			"OrganizerVerificationRequestOut": {
+				"description": "The request just made: the Organizer's OPEN Code and when. The\nstatement is not repeated.",
+				"properties": {
+					"created_at": {
+						"format": "date-time",
+						"title": "Created At",
+						"type": "string"
+					},
+					"organizer": {
+						"title": "Organizer",
+						"type": "string"
+					}
+				},
+				"required": ["organizer", "created_at"],
+				"title": "OrganizerVerificationRequestOut",
+				"type": "object"
 			},
 			"PagedEventOut": {
 				"properties": {
@@ -1831,6 +3576,1164 @@
 				],
 				"summary": "Get Current Account",
 				"tags": ["accounts"]
+			}
+		},
+		"/api/v1/clubs": {
+			"post": {
+				"description": "Create a Club, with you as its only admin.\n\nYour login address must be verified (403 otherwise). 409 when you are\nalready an admin of as many Clubs as an Account may create. No MFA is\nneeded to create one; every admin action on it needs MFA. A Club\ngives no authority to record matches: allow a verified Organizer to\nname it with `grant_club_organizer`.",
+				"operationId": "create_club",
+				"parameters": [],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ClubCreateIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ClubOut"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Create Club",
+				"tags": ["clubs"]
+			}
+		},
+		"/api/v1/clubs/invites/accept": {
+			"post": {
+				"description": "Accept an invite to be a Club admin, with the key from its email.\n\nSign in with the invited address, verified, and have a player\nprofile. A key that is unknown, malformed, expired, already used, or\nfor another address, an unverified address, an Account with no\nplayer, and anyone else refused get the same 404. 409 when you are\nalready an admin; the invite is used up then too.",
+				"operationId": "accept_club_invite",
+				"parameters": [],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ClubInviteAcceptIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ClubOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Accept Club Invite",
+				"tags": ["clubs"]
+			}
+		},
+		"/api/v1/clubs/{code}": {
+			"get": {
+				"description": "A Club's public profile: its OPEN Code, name, city, and region.\n\nFor any signed-in Account. An unknown code gets 404.",
+				"operationId": "get_club",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "C-7K3M-QX9V"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+							"examples": ["C-7K3M-QX9V"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ClubOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Get Club",
+				"tags": ["clubs"]
+			},
+			"patch": {
+				"description": "Change the Club's name, city, or region. For a Club admin with MFA.\n\nA field left out or null is not changed. Anyone else, and an unknown\ncode, gets the same 404. 409 for a new name once any Event or\nrecorded match names the Club: players see the name on those\nmatches, so OPEN staff rename it. The city and region may still\nchange.",
+				"operationId": "update_club",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "C-7K3M-QX9V"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+							"examples": ["C-7K3M-QX9V"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ClubUpdateIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ClubOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Update Club",
+				"tags": ["clubs"]
+			}
+		},
+		"/api/v1/clubs/{code}/admins": {
+			"get": {
+				"description": "The Club's admins. For a Club admin with MFA.\n\nEach with its player's OPEN Code and display name, and whether it is\nyou. Never an email.",
+				"operationId": "list_club_admins",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "C-7K3M-QX9V"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+							"examples": ["C-7K3M-QX9V"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/ClubAdminOut"
+									},
+									"title": "Response",
+									"type": "array"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List Club Admins",
+				"tags": ["clubs"]
+			}
+		},
+		"/api/v1/clubs/{code}/admins/{player}": {
+			"delete": {
+				"description": "Remove an admin, yourself included. For a Club admin with MFA.\n\n``player`` is the admin's player OPEN Code; one that is not an admin\nof this Club gets the same 404 as an unknown code. 409 when it would\nleave the Club with no admin. The invites that admin sent to this\nClub stop working.",
+				"operationId": "remove_club_admin",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "C-7K3M-QX9V"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+							"examples": ["C-7K3M-QX9V"],
+							"title": "Code",
+							"type": "string"
+						}
+					},
+					{
+						"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "P-7K3M-QX9H"
+							}
+						},
+						"in": "path",
+						"name": "player",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+							"examples": ["P-7K3M-QX9H"],
+							"title": "Player",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Remove Club Admin",
+				"tags": ["clubs"]
+			}
+		},
+		"/api/v1/clubs/{code}/invites": {
+			"post": {
+				"description": "Invite an email address to be an admin of the Club. For a Club\nadmin with MFA.\n\nThe answer is the same whether or not the address has an OPEN\nAccount, is already an admin, or was invited before: an invite email\nwith a link that works once goes to any address that is not an\nadmin's, replacing an earlier invite to it. The invitee accepts\nwhile signed in with that address (`accept_club_invite`). 409 when\nthe Club has too many open invites. Limited per Account to a number\nof invites a day; past that the answer is 429 with a Retry-After\nheader.",
+				"operationId": "invite_club_admin",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "C-7K3M-QX9V"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+							"examples": ["C-7K3M-QX9V"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ClubInviteIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"202": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ClubInviteSentOut"
+								}
+							}
+						},
+						"description": "Accepted"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Invite Club Admin",
+				"tags": ["clubs"]
+			}
+		},
+		"/api/v1/clubs/{code}/organizer-grants": {
+			"get": {
+				"description": "The Organizers the Club allows to name it on Events and matches.\nFor a Club admin with MFA.\n\nEach by its OPEN Code, with when it was allowed, ordered by code.\nNever an Organizer's name.",
+				"operationId": "list_club_organizer_grants",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "C-7K3M-QX9V"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+							"examples": ["C-7K3M-QX9V"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/ClubOrganizerGrantOut"
+									},
+									"title": "Response",
+									"type": "array"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List Club Organizer Grants",
+				"tags": ["clubs"]
+			},
+			"post": {
+				"description": "Allow an Organizer to name the Club on its Events and matches. For\na Club admin with MFA.\n\nThe grant is consent, not trust: only a verified Organizer's matches\ncount, and this changes nothing about verification. An unknown or\nmalformed Organizer code gets the same 404 as an unknown Club. 409\nwhen the Club already allows it.",
+				"operationId": "grant_club_organizer",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "C-7K3M-QX9V"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+							"examples": ["C-7K3M-QX9V"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ClubOrganizerGrantIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ClubOrganizerGrantOut"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Grant Club Organizer",
+				"tags": ["clubs"]
+			}
+		},
+		"/api/v1/clubs/{code}/organizer-grants/{organizer}": {
+			"delete": {
+				"description": "Stop allowing an Organizer to name the Club. For a Club admin with\nMFA.\n\nEvents and matches already recorded keep the Club; a new Event or\nmatch naming it is refused from then on. An Organizer the Club does\nnot allow gets the same 404 as an unknown code.",
+				"operationId": "remove_club_organizer_grant",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "C-7K3M-QX9V"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a club. Any case, with or without hyphens and the prefix.",
+							"examples": ["C-7K3M-QX9V"],
+							"title": "Code",
+							"type": "string"
+						}
+					},
+					{
+						"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "G-7K3M-QX9Q"
+							}
+						},
+						"in": "path",
+						"name": "organizer",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+							"examples": ["G-7K3M-QX9Q"],
+							"title": "Organizer",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Remove Club Organizer Grant",
+				"tags": ["clubs"]
 			}
 		},
 		"/api/v1/health/live": {
@@ -2927,6 +5830,182 @@
 				],
 				"summary": "Withdraw Match Dispute",
 				"tags": ["matches"]
+			}
+		},
+		"/api/v1/me/export": {
+			"post": {
+				"description": "Ask for a copy of your data.\n\nReauthenticate first, through allauth's `auth/reauthenticate` (your\npassword) or `auth/2fa/reauthenticate` (a two-factor code); without a\nrecent one you get 403 with code `reauthentication_required`. A new\nrequest replaces any earlier export. Once the export is built, an\nemail to your login address links to the web app's download page,\nwhich calls `download_data_export` with the key. The link works once\nand lasts 24 hours. Limited per Account to a few requests a day; past\nthat the answer is 429 with a Retry-After header; a request without a\nrecent reauthentication counts against the Account's general limits\ninstead. 404 when the Account was deleted while the request ran.",
+				"operationId": "request_data_export",
+				"parameters": [],
+				"responses": {
+					"202": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DataExportRequestOut"
+								}
+							}
+						},
+						"description": "Accepted"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Request Data Export",
+				"tags": ["data export"]
+			}
+		},
+		"/api/v1/me/export/download": {
+			"post": {
+				"description": "Download your data export once, with the key from the email.\n\nReturns the export as a JSON file (`open-data-export.json`) and\ndeletes it, so the key works once. A key that is unknown, malformed,\nlonger than 128 characters, expired, already used, not built yet, or\nanother Account's gets the same 404. No reauthentication is needed.",
+				"operationId": "download_data_export",
+				"parameters": [],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/DataExportDownloadIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DataExportOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Download Data Export",
+				"tags": ["data export"]
 			}
 		},
 		"/api/v1/me/matches/awaiting-confirmation": {
@@ -4199,6 +7278,114 @@
 				"tags": ["matches"]
 			}
 		},
+		"/api/v1/organizer/invites/accept": {
+			"post": {
+				"description": "Accept an invite to act for an Organizer, with the key from its email.\n\nSign in with the invited address, verified, and have a player\nprofile. A key that is unknown, malformed, expired, already used, or\nfor another address, an unverified address, an Account with no\nplayer, and anyone else refused get the same 404. 409 when you are\nalready a member; the invite is used up then too.",
+				"operationId": "accept_organizer_invite",
+				"parameters": [],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OrganizerInviteAcceptIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OrganizerMembershipOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Accept Organizer Invite",
+				"tags": ["organizers"]
+			}
+		},
 		"/api/v1/organizer/organizers": {
 			"get": {
 				"description": "The Organizers the signed-in Account is a member of.\n\nVerified or not, each with its OPEN Code (the value an Event create\ntakes as ``organizer``), its name, whether it is verified, and the\nAccount's own role there. Ordered by OPEN Code. Empty for an Account\nwith no memberships. No other member is listed. ``verified`` is the\nOrganizer's state: acting for a verified Organizer also needs MFA on\nthe Account (ADR 0043).",
@@ -4268,6 +7455,977 @@
 					}
 				],
 				"summary": "List My Organizers",
+				"tags": ["organizers"]
+			},
+			"post": {
+				"description": "Create an Organizer, with you as its only admin.\n\nYour login address must be verified (403 otherwise). The Organizer\nstarts unverified: it cannot record counted matches or manage Events\nuntil an OPEN moderator verifies it (ask with\n`request_organizer_verification`). 409 when you are already an admin\nof as many Organizers as an Account may create. No MFA is needed to\ncreate one; every admin action on it needs MFA.",
+				"operationId": "create_organizer",
+				"parameters": [],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OrganizerCreateIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OrganizerMembershipOut"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Create Organizer Operation",
+				"tags": ["organizers"]
+			}
+		},
+		"/api/v1/organizer/organizers/{code}": {
+			"patch": {
+				"description": "Change the Organizer's name. For an admin member with MFA.\n\nAnyone else, and an unknown code, gets the same 404. 409 while the\nOrganizer is verified: a moderator verified it under its name, so a\nmoderator unverifies it first, or staff rename it.",
+				"operationId": "update_organizer",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "G-7K3M-QX9Q"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+							"examples": ["G-7K3M-QX9Q"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OrganizerUpdateIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OrganizerMembershipOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Update Organizer",
+				"tags": ["organizers"]
+			}
+		},
+		"/api/v1/organizer/organizers/{code}/club-grants": {
+			"get": {
+				"description": "The Clubs that allow the Organizer to name them on its Events and\nmatches. For an admin member with MFA.\n\nEach with its OPEN Code, name, city, region, and when it allowed the\nOrganizer, ordered by Club code. A Club decides this; the Organizer\ncannot add or remove one.",
+				"operationId": "list_organizer_club_grants",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "G-7K3M-QX9Q"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+							"examples": ["G-7K3M-QX9Q"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/OrganizerClubGrantOut"
+									},
+									"title": "Response",
+									"type": "array"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List Organizer Club Grants",
+				"tags": ["organizers"]
+			}
+		},
+		"/api/v1/organizer/organizers/{code}/invites": {
+			"post": {
+				"description": "Invite an email address to act for the Organizer, as admin or\nmatch manager. For an admin member with MFA.\n\nThe answer is the same whether or not the address has an OPEN\nAccount, is already a member, or was invited before: an invite email\nwith a link that works once goes to any address that is not a\nmember's, replacing an earlier invite to it. The invitee accepts\nwhile signed in with that address (`accept_organizer_invite`). 409\nwhen the Organizer has too many open invites. Limited per Account to\na number of invites a day; past that the answer is 429 with a\nRetry-After header.",
+				"operationId": "invite_organizer_member",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "G-7K3M-QX9Q"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+							"examples": ["G-7K3M-QX9Q"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OrganizerInviteIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"202": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OrganizerInviteSentOut"
+								}
+							}
+						},
+						"description": "Accepted"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Invite Organizer Member",
+				"tags": ["organizers"]
+			}
+		},
+		"/api/v1/organizer/organizers/{code}/members": {
+			"get": {
+				"description": "The Organizer's members. For an admin member with MFA.\n\nEach with its player's OPEN Code and display name, its role, and\nwhether it is you; admins first. Never an email.",
+				"operationId": "list_organizer_members",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "G-7K3M-QX9Q"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+							"examples": ["G-7K3M-QX9Q"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/OrganizerMemberOut"
+									},
+									"title": "Response",
+									"type": "array"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "List Organizer Members",
+				"tags": ["organizers"]
+			}
+		},
+		"/api/v1/organizer/organizers/{code}/members/{player}": {
+			"delete": {
+				"description": "Remove a member, yourself included. For an admin member with MFA.\n\n``player`` is the member's player OPEN Code; one that is not a member\nof this Organizer gets the same 404 as an unknown code. 409 when it\nwould leave the Organizer with no admin.",
+				"operationId": "remove_organizer_member",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "G-7K3M-QX9Q"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+							"examples": ["G-7K3M-QX9Q"],
+							"title": "Code",
+							"type": "string"
+						}
+					},
+					{
+						"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "P-7K3M-QX9H"
+							}
+						},
+						"in": "path",
+						"name": "player",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+							"examples": ["P-7K3M-QX9H"],
+							"title": "Player",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Remove Organizer Member",
+				"tags": ["organizers"]
+			},
+			"patch": {
+				"description": "Change a member's role. For an admin member with MFA.\n\n``player`` is the member's player OPEN Code; one that is not a member\nof this Organizer gets the same 404 as an unknown code. 409 when it\nwould leave the Organizer with no admin.",
+				"operationId": "change_organizer_member_role",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "G-7K3M-QX9Q"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+							"examples": ["G-7K3M-QX9Q"],
+							"title": "Code",
+							"type": "string"
+						}
+					},
+					{
+						"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "P-7K3M-QX9H"
+							}
+						},
+						"in": "path",
+						"name": "player",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a player. Any case, with or without hyphens and the prefix.",
+							"examples": ["P-7K3M-QX9H"],
+							"title": "Player",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OrganizerMemberRoleIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OrganizerMemberOut"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Change Organizer Member Role",
+				"tags": ["organizers"]
+			}
+		},
+		"/api/v1/organizer/organizers/{code}/verification-request": {
+			"post": {
+				"description": "Ask OPEN moderators to verify the Organizer. For an admin member\nwith MFA.\n\n``statement`` says what the Organizer runs, for moderators only. A\nmoderator decides; nothing is verified automatically. 409 when the\nOrganizer is already verified or already has an open request.",
+				"operationId": "request_organizer_verification",
+				"parameters": [
+					{
+						"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+						"examples": {
+							"example0": {
+								"value": "G-7K3M-QX9Q"
+							}
+						},
+						"in": "path",
+						"name": "code",
+						"required": true,
+						"schema": {
+							"description": "An OPEN Code for a organizer. Any case, with or without hyphens and the prefix.",
+							"examples": ["G-7K3M-QX9Q"],
+							"title": "Code",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OrganizerVerificationRequestIn"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OrganizerVerificationRequestOut"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not authenticated."
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden. Code `mfa_required`: an Account that must have two-factor authentication (staff, superusers, moderators, and owners of a production application) and has none, or an Account with it whose session did not pass it, such as a password-only session. It can still use allauth's endpoints to set it up or sign in with it."
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "The request is not valid."
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						},
+						"description": "Too many requests. Retry after the seconds in Retry-After.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds until the request can be allowed again: when the refusing limit resets, or when a later limit that is already used up resets.",
+								"schema": {
+									"minimum": 1,
+									"type": "integer"
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionTokenAuth": []
+					},
+					{
+						"SessionAuth": []
+					}
+				],
+				"summary": "Request Organizer Verification",
 				"tags": ["organizers"]
 			}
 		},

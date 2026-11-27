@@ -33,7 +33,7 @@
 		hint?: string;
 		/** For a password: add a Show and Hide button. */
 		reveal?: boolean;
-		type?: 'text' | 'email' | 'password';
+		type?: 'text' | 'email' | 'password' | 'date';
 	} = $props();
 
 	let shown = $state(false);

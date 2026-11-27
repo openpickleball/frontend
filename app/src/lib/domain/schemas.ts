@@ -9,7 +9,13 @@
  * schema check on one score), so a form groups game errors by the `games.<i>` prefix.
  */
 import { z } from './zod';
-import { type BestOf, type GameTarget, type MatchFormat, type ScoringType } from './models';
+import {
+	EVENT_KINDS,
+	type BestOf,
+	type GameTarget,
+	type MatchFormat,
+	type ScoringType
+} from './models';
 import {
 	groupIssues,
 	validateMatch,
@@ -397,3 +403,42 @@ export type SignupAgeInput = z.input<typeof signupAgeSchema>;
 export type LoginInput = z.input<typeof loginSchema>;
 export type PasswordResetRequestInput = z.input<typeof passwordResetRequestSchema>;
 export type PasswordResetInput = z.input<typeof passwordResetSchema>;
+
+/** The longest Event name the backend stores. */
+export const EVENT_NAME_MAX = 200;
+
+const eventDate = (message: string) => z.string(message).min(1, message);
+
+/**
+ * The Event form. Keys and output are the create request body (`EventCreateIn`), so a client
+ * issue and a 422 field land under the same key. The checks are a convenience: the backend
+ * checks again. A blank club is sent as no club.
+ */
+export const eventInputSchema = z
+	.object({
+		name: z
+			.string("Enter the Event's name.")
+			.trim()
+			.min(1, "Enter the Event's name.")
+			.max(EVENT_NAME_MAX, `Keep the name to ${EVENT_NAME_MAX} characters or fewer.`),
+		kind: z.enum(EVENT_KINDS, 'Choose the kind of Event.'),
+		organizer: z.string('Choose an organizer.').min(1, 'Choose an organizer.'),
+		club: z
+			.string()
+			.nullish()
+			.transform((club) => club?.trim() || null),
+		start_date: eventDate('Enter the start date.'),
+		end_date: eventDate('Enter the end date.')
+	})
+	.refine((input) => !input.start_date || !input.end_date || input.end_date >= input.start_date, {
+		path: ['end_date'],
+		message: 'The end date cannot be before the start date.',
+		// Check the order even when another field failed, so every problem shows at once.
+		when: ({ value }) => {
+			const dates = (value ?? {}) as Record<string, unknown>;
+			return typeof dates.start_date === 'string' && typeof dates.end_date === 'string';
+		}
+	});
+
+export type EventInput = z.input<typeof eventInputSchema>;
+export type EventCreateBody = z.output<typeof eventInputSchema>;

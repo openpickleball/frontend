@@ -30,6 +30,8 @@ export type SessionState =
 /** One of the signed-in account's own organizer memberships. */
 export type OrganizerMembership = OpenComponents['schemas']['OrganizerMembershipOut'];
 
+const looseCode = (code: string): string => code.toUpperCase().replaceAll('-', '');
+
 class Session {
 	status = $state<SessionStatus>('unknown');
 	/**
@@ -48,6 +50,11 @@ class Session {
 	 * only: the backend decides what an organizer may do.
 	 */
 	organizers = $state<OrganizerMembership[] | null>(null);
+	/**
+	 * True when the last read of the memberships failed. `organizers` is then `[]`, so the account
+	 * counts as a non-member, but a page that needs the memberships reads them again.
+	 */
+	organizersFailed = false;
 	#mfaEnrolled = $state<boolean | null>(null);
 	/** Counts the writes to `mfaEnrolled`, so a slow read can tell it was set after it started. */
 	mfaRevision = 0;
@@ -69,6 +76,15 @@ class Session {
 	/** A member of at least one organizer. False while unknown, loading or after a failure. */
 	get isOrganizer(): boolean {
 		return (this.organizers?.length ?? 0) > 0;
+	}
+
+	/**
+	 * Is the account a member of this organizer? Codes compare in any case, with or without
+	 * hyphens, as the backend reads them. False while unknown. Display only.
+	 */
+	isMemberOf(code: string): boolean {
+		const wanted = looseCode(code);
+		return this.organizers?.some((m) => looseCode(m.organizer) === wanted) ?? false;
 	}
 
 	#leaveListeners = new Set<() => void>();
@@ -94,6 +110,7 @@ class Session {
 		this.mfaTypes = state.status === 'pending_mfa' ? state.types : [];
 		if (!sameAccount) {
 			this.organizers = null;
+			this.organizersFailed = false;
 			this.mfaEnrolled = null;
 		}
 		if (state.status === 'signed_in') this.email = state.email;
@@ -121,6 +138,7 @@ class Session {
 		this.mfaTimedOut = false;
 		this.mfaTypes = [];
 		this.organizers = null;
+		this.organizersFailed = false;
 		this.mfaEnrolled = null;
 	}
 }

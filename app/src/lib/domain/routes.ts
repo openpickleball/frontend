@@ -10,6 +10,7 @@ export const ROUTES = {
 	profile: '/profile',
 	twoFactor: '/profile/two-factor',
 	ratingHistory: '/profile/ratings',
+	organizer: '/organizer',
 	account: '/account',
 	login: '/account/login',
 	signup: '/account/signup',

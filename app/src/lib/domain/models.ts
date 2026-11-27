@@ -149,3 +149,30 @@ export function waitingOnOtherTeam(
 		match.confirmedBySide[match.viewerSide] && !match.confirmedBySide[otherSide(match.viewerSide)]
 	);
 }
+
+/** The kinds of Event, as the API names them (`EventKind`). */
+export const EVENT_KINDS = ['tournament', 'league', 'rec_verified'] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
+
+/** Each kind of Event in plain words. */
+export const EVENT_KIND_LABELS: Record<EventKind, string> = {
+	tournament: 'Tournament',
+	league: 'League',
+	rec_verified: 'Verified rec play'
+};
+
+/**
+ * An Event an organizer runs (`EventOut`). Not named `Event`, which is the DOM's type.
+ * `organizer` and `club` are OPEN codes, which the app shows but does not parse.
+ */
+export type OrganizerEvent = {
+	code: string;
+	name: string;
+	kind: EventKind;
+	organizer: string;
+	club: string | null;
+	/** `YYYY-MM-DD`. Kept as text so no time zone shifts it. */
+	startDate: string;
+	/** `YYYY-MM-DD`. */
+	endDate: string;
+};

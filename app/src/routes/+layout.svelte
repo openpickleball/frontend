@@ -143,6 +143,7 @@
 	bare={isAccountPath(page.url.pathname)}
 	account={session.isSignedIn ? signOut : undefined}
 	needsYou={session.isSignedIn ? needsYou.count : 0}
+	organizer={session.isSignedIn && session.isOrganizer}
 >
 	{#if session.isSignedIn && !isAccountPath(page.url.pathname)}
 		<QueueNotice onfix={fix} />
