@@ -30,8 +30,6 @@
 	);
 	let method = $state<ReauthMethod>('password');
 	let kind = $state<CodeKind>('totp');
-	let password = $state('');
-	let code = $state('');
 	const form = createAuthForm('reauth', ['password', 'code']);
 
 	// Each request starts on its first method, with empty fields.
@@ -40,8 +38,6 @@
 		if (!request) return;
 		method = request.methods[0] ?? 'password';
 		kind = 'totp';
-		password = '';
-		code = '';
 		form.problem = null;
 		form.showFields({});
 	});
@@ -62,7 +58,7 @@
 
 	function toggleKind() {
 		kind = kind === 'totp' ? 'recovery' : 'totp';
-		code = '';
+		reauthPrompt.code = '';
 		form.showFields({});
 	}
 
@@ -73,15 +69,15 @@
 
 	function parse(): Parsed {
 		if (method === 'password') {
-			if (password === '') {
+			if (reauthPrompt.password === '') {
 				return {
 					success: false,
 					error: { issues: [{ path: ['password'], message: 'Enter your password.' }] }
 				};
 			}
-			return { success: true, data: { method: 'password', value: password } };
+			return { success: true, data: { method: 'password', value: reauthPrompt.password } };
 		}
-		const parsed = parseMfaCode(code, kind);
+		const parsed = parseMfaCode(reauthPrompt.code, kind);
 		if (!parsed.success) return parsed;
 		return { success: true, data: { method: 'code', value: parsed.data.code } };
 	}
@@ -135,11 +131,16 @@
 						type="password"
 						reveal
 						autocomplete="current-password"
-						bind:value={password}
+						bind:value={reauthPrompt.password}
 						error={form.errors.password}
 					/>
 				{:else}
-					<MfaCodeField id="reauth-code" {kind} bind:value={code} error={form.errors.code} />
+					<MfaCodeField
+						id="reauth-code"
+						{kind}
+						bind:value={reauthPrompt.code}
+						error={form.errors.code}
+					/>
 					{#if offersRecovery}
 						<Button
 							variant="link"

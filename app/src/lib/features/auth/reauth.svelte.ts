@@ -30,6 +30,9 @@ class ReauthPromptStore {
 	 * of code the code step takes.
 	 */
 	request = $state<{ methods: ReauthMethod[]; codeTypes: ReauthCodeType[] } | null>(null);
+	/** What the player typed. Kept here, not in the dialog, so every close can clear it. */
+	password = $state('');
+	code = $state('');
 	#pending: Promise<boolean> | null = null;
 	#resolve: ((ok: boolean) => void) | null = null;
 
@@ -55,6 +58,8 @@ class ReauthPromptStore {
 	settle(ok: boolean): void {
 		const resolve = this.#resolve;
 		this.request = null;
+		this.password = '';
+		this.code = '';
 		this.#pending = null;
 		this.#resolve = null;
 		resolve?.(ok);
