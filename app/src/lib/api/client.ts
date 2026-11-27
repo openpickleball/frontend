@@ -1,6 +1,6 @@
 import createClient, { type Client } from 'openapi-fetch';
 import { CSRF_BOOTSTRAP_PATH, createCsrfMiddleware, readCsrfToken } from './csrf';
-import { isAbortError, networkError, timeoutError } from './errors';
+import { MFA_REQUIRED, isAbortError, networkError, timeoutError } from './errors';
 import type { paths as OpenPaths } from './generated/open';
 import type { paths as AllauthPaths } from './generated/allauth';
 
@@ -42,7 +42,25 @@ export type Api = {
 	 * Returns a function that stops listening.
 	 */
 	onUnauthenticated: (listener: () => void) => () => void;
+	/**
+	 * Call `listener` whenever `open` answers 403 with code `mfa_required`: the account needs
+	 * two-factor, or this session has not passed it. The caller still gets the response.
+	 * Returns a function that stops listening.
+	 */
+	onMfaRequired: (listener: () => void) => () => void;
 };
+
+/** The `code` of an OPEN API error body, read from a copy so the caller can still read it. */
+async function errorCode(response: Response): Promise<string | null> {
+	try {
+		const body: unknown = await response.clone().json();
+		if (typeof body !== 'object' || body === null) return null;
+		const code = (body as Record<string, unknown>).code;
+		return typeof code === 'string' ? code : null;
+	} catch {
+		return null;
+	}
+}
 
 export function createApi(options: CreateApiOptions = {}): Api {
 	const baseUrl = options.baseUrl ?? '';
@@ -107,10 +125,24 @@ export function createApi(options: CreateApiOptions = {}): Api {
 		return () => listeners.delete(listener);
 	}
 
+	const mfaListeners = new Set<() => void>();
+	open.use({
+		async onResponse({ response }) {
+			if (response.status !== 403 || mfaListeners.size === 0) return;
+			if ((await errorCode(response)) !== MFA_REQUIRED) return;
+			for (const listener of mfaListeners) listener();
+		}
+	});
+	function onMfaRequired(listener: () => void): () => void {
+		mfaListeners.add(listener);
+		return () => mfaListeners.delete(listener);
+	}
+
 	return {
 		open,
 		allauth,
 		initCsrf: async () => (getToken() ? undefined : refresh()),
-		onUnauthenticated
+		onUnauthenticated,
+		onMfaRequired
 	};
 }

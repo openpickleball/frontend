@@ -1,4 +1,4 @@
-import { isAppError } from '#lib/api/index.js';
+import { MFA_REQUIRED, isAppError } from '#lib/api/index.js';
 import type { PlayerCode } from '#lib/domain/index.js';
 import {
 	createMyPlayer,
@@ -218,7 +218,8 @@ export class MyCode {
 function failureStatus(error: unknown): MyCodeStatus {
 	if (!isAppError(error)) return 'error';
 	if (error.kind === 'unauthenticated') return 'signed-out';
-	if (error.kind === 'forbidden') return 'unverified';
+	// A 403 `mfa_required` is about two-factor, not the email: the generic error explains it.
+	if (error.kind === 'forbidden' && error.code !== MFA_REQUIRED) return 'unverified';
 	return 'error';
 }
 

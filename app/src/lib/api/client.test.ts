@@ -270,6 +270,42 @@ describe('onUnauthenticated', () => {
 	});
 });
 
+describe('onMfaRequired', () => {
+	const mfaRequired = () =>
+		json(403, { code: 'mfa_required', message: 'Two-factor required.', errors: [] });
+
+	it('tells listeners when the first-party API answers 403 mfa_required', async () => {
+		const { api } = setup(mfaRequired);
+		const listener = vi.fn();
+		api.onMfaRequired(listener);
+		const result = await unwrap(api.open.GET('/api/v1/organizer/organizers')).catch((e) => e);
+		expect(listener).toHaveBeenCalledOnce();
+		// The caller still reads the body.
+		expect(result).toMatchObject({ kind: 'forbidden', code: 'mfa_required' });
+	});
+
+	it('ignores any other 403, and stops when unsubscribed', async () => {
+		let body = { code: 'forbidden', message: 'No.', errors: [] as unknown[] };
+		const { api } = setup(() => json(403, body));
+		const listener = vi.fn();
+		const stop = api.onMfaRequired(listener);
+		await api.open.GET('/api/v1/accounts/me');
+		expect(listener).not.toHaveBeenCalled();
+		stop();
+		body = { code: 'mfa_required', message: 'x', errors: [] };
+		await api.open.GET('/api/v1/accounts/me');
+		expect(listener).not.toHaveBeenCalled();
+	});
+
+	it('ignores a 403 that is not JSON', async () => {
+		const { api } = setup(() => new Response('<html>', { status: 403 }));
+		const listener = vi.fn();
+		api.onMfaRequired(listener);
+		await api.open.GET('/api/v1/accounts/me');
+		expect(listener).not.toHaveBeenCalled();
+	});
+});
+
 describe('unwrap', () => {
 	it('returns data on success', async () => {
 		const { api } = setup(() => json(200, { email: 'a@example.test' }));

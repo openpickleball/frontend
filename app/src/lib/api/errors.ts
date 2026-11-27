@@ -95,6 +95,21 @@ const TIMEOUT_MESSAGE =
  */
 const LOGIN_LOCKOUT = 'too_many_login_attempts';
 
+/**
+ * The OPEN API's 403 codes for two-factor (backend ADR 0043). `mfa_required`: the account must
+ * have two-factor and has none, or has it and this session did not pass it.
+ * `reauthentication_required`: the call needs a recent password or code.
+ */
+export const MFA_REQUIRED = 'mfa_required';
+export const REAUTHENTICATION_REQUIRED = 'reauthentication_required';
+
+/** Our own text for the 403 codes that are not a match permission refusal. */
+const FORBIDDEN_MESSAGES: Record<string, string> = {
+	[MFA_REQUIRED]:
+		'This needs two-factor authentication. Set it up or confirm with a code, then try again.',
+	[REAUTHENTICATION_REQUIRED]: "Confirm it's you, then try again."
+};
+
 /** The message for an error. `serverText` is the backend's own message, if it sent one. */
 function messageFor(
 	kind: AppErrorKind,
@@ -102,6 +117,7 @@ function messageFor(
 	fields: Record<string, string[]>,
 	serverText?: string
 ): string {
+	if (kind === 'forbidden' && FORBIDDEN_MESSAGES[code]) return FORBIDDEN_MESSAGES[code];
 	if (code === LOGIN_LOCKOUT && serverText) return serverText;
 	if ((kind === 'validation' || kind === 'duplicate') && serverText) return serverText;
 	if (kind === 'validation' && Object.keys(fields).length === 0) return FORM_MESSAGE;
@@ -319,4 +335,23 @@ export function toAppError(error: unknown, response?: Response): AppError {
 	const kind = kindForStatus(status, error, 'non_json');
 	const code = kind === 'csrf' ? 'csrf_failed' : status === 429 ? 'throttled' : 'non_json_response';
 	return new AppError({ kind, status, code, message: messageFor(kind, code, {}), fields: {} });
+}
+
+/** How a player can confirm it is them: the password, or a two-factor code. */
+export type ReauthMethod = 'password' | 'code';
+
+/**
+ * The ways to reauthenticate that a failed call asks for, or null when it is not a request to
+ * reauthenticate. allauth answers 401 with a `reauthenticate` flow (the password) or an
+ * `mfa_reauthenticate` flow (a code from the app, or a recovery code). The OPEN API answers 403
+ * `reauthentication_required`, which either one meets. The password comes first.
+ */
+export function reauthFlowsOf(error: AppError): ReauthMethod[] | null {
+	if (error.status === 403 && error.code === REAUTHENTICATION_REQUIRED) return ['password', 'code'];
+	if (error.status !== 401 || !error.flows) return null;
+	const ids = new Set(error.flows.map((flow) => flow.id));
+	const methods: ReauthMethod[] = [];
+	if (ids.has('reauthenticate')) methods.push('password');
+	if (ids.has('mfa_reauthenticate')) methods.push('code');
+	return methods.length > 0 ? methods : null;
 }

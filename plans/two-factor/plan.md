@@ -61,7 +61,7 @@ Paths are under `app/` unless stated.
 Each step is TDD (a failing test first, then the code) and its own commit, signed off.
 
 1. [x] Add `uqr` and the shadcn-svelte `dialog`, restyled. No behavior yet. Gate: `pnpm check`, `pnpm lint`.
-2. [ ] Errors and client: `mfa_required` and `reauthentication_required` messages, `reauthFlowsOf`, `onMfaRequired` middleware. Fix the `my-code` 403 mapping.
+2. [x] Errors and client: `mfa_required` and `reauthentication_required` messages, `reauthFlowsOf`, `onMfaRequired` middleware. Fix the `my-code` 403 mapping.
 3. [ ] Mocks: store fields, fixtures, allauth MFA handlers, organizer handlers, `mfa_required` gate, storage key bump. Unit tests on the mock store's rules (reauthentication first, code once).
 4. [ ] Session and services: `pending_mfa`, `authenticateMfa`, `cancelMfa`, reauthentication calls, `loadAccountState`, clearing on sign out and expiry. Guard rules for `pending_mfa`.
 5. [ ] Sign-in code step: `MfaCodeForm` and the login form switch.
