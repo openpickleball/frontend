@@ -1,6 +1,6 @@
 # Show a match's Event and Club and hide Correct on organizer matches (issue #264)
 
-**Status:** active
+**Status:** done
 
 Risk tier: High. It changes existing behavior (the Correct action, the dispute and vouch copy) across about 15 files in the domain, mocks, features and e2e layers. Nothing is security sensitive: the backend still refuses a correction with a 404.
 
@@ -83,6 +83,9 @@ All paths are under `app/` unless noted.
 - **A Club-only match is settled by its players.** ADR 0034: a legacy club-only match has no Organizer level. So it gets the no-Event dispute copy and the players' vouch copy. It still can't be corrected by a player (the backend answers 404 for a match with a Club).
 - **The frontend can't tell whether an Event's Organizer is still verified.** The Event copy says the organizer can settle it, which is the normal case. The backend decides.
 - **Keep the 404 fallback.** `correctMatch` still maps a 404 to the organizer message, as the issue asks.
+- **Two correction reasons, two constants.** `CORRECT_EVENT_NOTE` now reads "Only the event's organizer can change a match played at an event." and the new `CORRECT_CLUB_NOTE` gives the Club-only reason. `correct-view.svelte` uses both, so neither is an unused export.
+- **Both new fixtures are disputed by another player.** The Proof needs the Disputed popover on each. The Event match (`EVENT_MATCH`, 2026-11-04) is Tamsin and Rosa against Oren and Nell, disputed by Nell. The Club-only match (`CLUB_MATCH`, 2026-11-02) is Tamsin against Idris, disputed by Idris. Neither needs Tamsin, so Home's Needs you stays at three. Her match total goes from 26 to 28 and the disputed count from 2 to 4. `fixtures.ts` exports the two codes for the tests.
+- **Tests that picked "the other disputed match" now pick Tamsin's own dispute by its decisions** (`services.test.ts`, `e2e/matches.spec.ts`), since the new fixtures come first in the array. The mock integration test for the correction 404 now uses the two fixtures instead of setting a flag (`integration.test.ts`, not listed under Files above).
 
 ## Proof
 

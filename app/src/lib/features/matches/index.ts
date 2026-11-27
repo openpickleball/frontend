@@ -25,15 +25,20 @@
  *   list on a 404, for an organizer who came from a hold email. `POST matches/{code}/vouch`
  *   can't be undone, and its answer doesn't say whether the hold ended, so the page reads the
  *   holds list again. The cache keeps each known hold (`holdOf`).
- * - A player corrects a pending or disputed match with no event on its own page,
+ * - A player corrects a pending or disputed match with no Event and no Club on its own page,
  *   `/matches/{code}/correct`, which the route builds from the record-match form (backend#267).
  *   The backend voids the old match and returns the correction, a new match with a new code.
- *   `MatchOut` doesn't link the two. It now sends the match's Event and Club (backend#302), but
- *   the app does not read them yet (frontend#264 will), so the panel offers "Correct the score"
- *   on every pending or disputed match the player can name every player of (`canCorrect`), and
- *   the form explains the 404 an event match gets.
+ *   `MatchOut` doesn't link the two. The panel offers "Correct the score" only when
+ *   `canCorrect` says so: no Event or Club, and every player has a code. Opened directly for a
+ *   match with an Event or a Club, the correction page says why (`CORRECT_EVENT_NOTE`,
+ *   `CORRECT_CLUB_NOTE`). The form still explains the 404 the backend gives one.
  *   `rememberCorrection(correction, old)` tells the cache, so the old match's page links to the
  *   correction in this visit.
+ * - `MatchOut` sends the match's Event (code, name and its organizer's code) and Club (code and
+ *   name), each null when there is none (backend#302). The match page names them in Details.
+ *   Match rows don't. The organizer is never named. Who settles a dispute or a hold depends on
+ *   the Event (backend ADR 0034), so the popovers pick `DISPUTE_ENDS` or `DISPUTE_ENDS_EVENT`,
+ *   and `VOUCH_MEANS` or `VOUCH_MEANS_EVENT`. A Club-only match is settled by its players.
  * - `status.ts` (`matchStatusCopy`) says how each status and decision reads and which buttons
  *   the status panel offers. Add a new status or action there.
  *
