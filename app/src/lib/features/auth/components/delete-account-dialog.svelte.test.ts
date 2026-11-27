@@ -39,7 +39,7 @@ const openError = (status: number, code: string, message = 'x') =>
 
 function deferred() {
 	let resolve!: () => void;
-	const promise = new Promise<void>((yes) => (resolve = yes));
+	const promise = new Promise<'deleted'>((yes) => (resolve = () => yes('deleted')));
 	return { promise, resolve };
 }
 
@@ -160,7 +160,7 @@ describe('DeleteAccountDialog: the typed word', () => {
 
 describe('DeleteAccountDialog: confirming', () => {
 	it('deletes and goes to sign in, leaving the end of the account to the service', async () => {
-		mocked.deleteAccount.mockResolvedValue();
+		mocked.deleteAccount.mockResolvedValue('deleted');
 		await openAndConfirm();
 		await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/account/login'));
 		expect(mocked.deleteAccount).toHaveBeenCalledTimes(1);
@@ -170,7 +170,7 @@ describe('DeleteAccountDialog: confirming', () => {
 	it("asks the player to confirm it's them, then deletes again", async () => {
 		mocked.deleteAccount
 			.mockRejectedValueOnce(openError(403, 'reauthentication_required'))
-			.mockResolvedValueOnce();
+			.mockResolvedValueOnce('deleted');
 		await openAndConfirm();
 		await vi.waitFor(() => expect(reauthPrompt.request).not.toBeNull());
 		expect(goto).not.toHaveBeenCalled();

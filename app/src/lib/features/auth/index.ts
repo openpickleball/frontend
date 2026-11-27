@@ -22,7 +22,8 @@
  *   unsent. The root layout sets the source once, and deleting the account warns with it.
  * - `deleteAccount()`: delete the signed-in account. Run it through `withReauth`. On 204 it calls
  *   `endDeletedAccount()`, which runs the `onSignOut` listeners, signs out and sets
- *   `session.accountDeleted`, so sign-in can say the account was deleted.
+ *   `session.accountDeleted` to `deleted`, so sign-in can say the account was deleted. When the
+ *   answer is lost and allauth then says signed out, it does the same with `maybe`.
  * - `DeleteAccountDialog`: the "Delete your account" confirm dialog. It asks for the word
  *   `delete`, runs `deleteAccount()` through `withReauth`, then goes to sign in. Profile renders
  *   its row as the `trigger`.
@@ -59,6 +60,7 @@ import { bootstrap, settledMemberships } from './services.js';
 
 export {
 	session,
+	type AccountDeleted,
 	type MfaType,
 	type OrganizerMembership,
 	type SessionStatus

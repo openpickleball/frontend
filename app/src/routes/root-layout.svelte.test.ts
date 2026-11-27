@@ -186,7 +186,7 @@ describe('root layout account deletion', () => {
 		endDeletedAccount();
 
 		expect(session.isSignedIn).toBe(false);
-		expect(session.accountDeleted).toBe(true);
+		expect(session.accountDeleted).toBe('deleted');
 		expect(offlineQueue.unsent).toBe(0);
 		expect(unsentMatches()).toBe(0);
 		await vi.waitFor(async () => expect((await readAgain()).unsent).toBe(0));

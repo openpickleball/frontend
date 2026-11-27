@@ -21,6 +21,7 @@
 import {
 	allauthParams,
 	api as appApi,
+	isAppError,
 	toAppError,
 	type AllauthComponents,
 	type Api,
@@ -29,6 +30,7 @@ import {
 } from '#lib/api/index.js';
 import {
 	session,
+	type AccountDeleted,
 	type MfaType,
 	type OrganizerMembership,
 	type SessionState
@@ -478,28 +480,57 @@ export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
 
 /**
  * Delete the signed-in account (`DELETE /api/v1/accounts/me`). On 204 the backend has ended every
- * session of the account, so this ends it here too (`endDeletedAccount`) before it resolves. No
- * code that waits on it sees a signed-in session, so a later 401 can't make it look expired.
- * The email is read before the request is sent: a request that raced the delete may get its 401
- * first and sign this device out, and the cleanup still needs the deleted account's email.
+ * session of the account, so this ends it here too (`endDeletedAccount`) before it resolves, and
+ * resolves `deleted`. No code that waits on it sees a signed-in session, so a later 401 can't make
+ * it look expired. The email is read before the request is sent: a request that raced the delete
+ * may get its 401 first and sign this device out, and the cleanup still needs the deleted
+ * account's email.
+ *
+ * When no answer comes (a timeout or a dropped connection), the backend may still have deleted
+ * the account. It asks allauth once whether this device is signed in (`refreshSession`, which an
+ * OPEN 401 watcher never hears). Signed out: it ends the account as `maybe` deleted and resolves
+ * `maybe`. Still signed in, or the check failed too: it throws the network error.
+ *
  * Anything else is an `AppError`, such as 403 `reauthentication_required` (run it through
  * `withReauth`), 403 `mfa_required`, 409 `conflict` for a staff account, or `throttled`.
  */
-export async function deleteAccount({ api = appApi }: ApiOption = {}): Promise<void> {
+export async function deleteAccount({ api = appApi }: ApiOption = {}): Promise<AccountDeleted> {
 	const email = session.email;
-	const result = await settle(api.open.DELETE('/api/v1/accounts/me'));
+	let result: Settled;
+	try {
+		result = await settle(api.open.DELETE('/api/v1/accounts/me'));
+	} catch (cause) {
+		if (isAppError(cause) && cause.kind === 'network' && (await signedOutNow(api))) {
+			endDeletedAccount(email, 'maybe');
+			return 'maybe';
+		}
+		throw cause;
+	}
 	if (result.response.status !== 204) fail(result);
 	endDeletedAccount(email);
+	return 'deleted';
+}
+
+/** Does allauth say nobody is signed in on this device? False when it can't tell. */
+async function signedOutNow(api: Api): Promise<boolean> {
+	try {
+		return (await refreshSession({ api })).status === 'signed_out';
+	} catch {
+		return false;
+	}
 }
 
 /**
  * The account is gone: delete what this device keeps for it (the `onSignOut` listeners, with
- * `email`, the deleted account's address), then sign out and set `session.accountDeleted`.
- * `deleteAccount` calls it on 204 with the email it read before sending, so callers don't.
+ * `email`, the deleted account's address), then sign out and set `session.accountDeleted` to
+ * `state`. `deleteAccount` calls it with the email it read before sending, so callers don't.
  */
-export function endDeletedAccount(email: string | null = session.email): void {
+export function endDeletedAccount(
+	email: string | null = session.email,
+	state: AccountDeleted = 'deleted'
+): void {
 	runSignOutListeners(email);
-	session.markDeleted();
+	session.markDeleted(state);
 }
 
 /**

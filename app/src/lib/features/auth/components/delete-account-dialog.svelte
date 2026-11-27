@@ -73,7 +73,8 @@
 		busy = true;
 		problem = null;
 		try {
-			// On 204 the service has already ended the account on this device.
+			// Deleted, or maybe deleted when the answer was lost: either way the service has already
+			// ended the account on this device, and sign in says which.
 			await withReauth(() => deleteAccount());
 		} catch (cause) {
 			if (!(cause instanceof ReauthCancelled)) problem = problemOf(cause);

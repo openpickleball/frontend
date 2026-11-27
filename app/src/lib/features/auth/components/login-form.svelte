@@ -103,12 +103,21 @@
 						<AlertDescription>Your session ended. Sign in again to continue.</AlertDescription>
 					</Alert>
 				{/if}
-				{#if session.accountDeleted}
+				{#if session.accountDeleted === 'deleted'}
 					<Alert>
 						<CircleCheckIcon aria-hidden="true" />
 						<AlertTitle>Your account was deleted.</AlertTitle>
 						<AlertDescription>
 							You can sign up again with the same email address as a new player.
+						</AlertDescription>
+					</Alert>
+				{:else if session.accountDeleted === 'maybe'}
+					<Alert>
+						<CircleAlertIcon aria-hidden="true" />
+						<AlertTitle>Your account may have been deleted.</AlertTitle>
+						<AlertDescription>
+							We lost the connection before OPEN answered. Sign in to check: if your account is
+							gone, sign-in won't work.
 						</AlertDescription>
 					</Alert>
 				{/if}
