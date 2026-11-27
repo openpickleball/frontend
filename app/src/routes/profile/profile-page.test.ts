@@ -8,13 +8,13 @@ import DataPage from './data/+page.svelte';
 import NamePage from './name/+page.svelte';
 import PrivacyPage from './privacy/+page.svelte';
 
-/** The visible text of some HTML, without tags or Svelte's comment markers. */
+/** The visible text of some rendered HTML: the text between its tags, joined by spaces. */
 const textOf = (html: string) =>
-	html
-		.replace(/<!--[^>]*-->/g, '')
-		.replace(/<[^>]+>/g, ' ')
-		.replace(/\s+/g, ' ')
-		.trim();
+	[...`>${html}<`.matchAll(/>([^<]*)</g)]
+		.map((m) => m[1].trim())
+		.filter(Boolean)
+		.join(' ')
+		.replace(/\s+/g, ' ');
 
 function renderSignedIn() {
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
