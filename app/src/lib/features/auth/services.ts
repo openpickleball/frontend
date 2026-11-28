@@ -21,6 +21,7 @@
 import {
 	allauthParams,
 	api as appApi,
+	isAppError,
 	toAppError,
 	type AllauthComponents,
 	type Api,
@@ -29,6 +30,7 @@ import {
 } from '#lib/api/index.js';
 import {
 	session,
+	type AccountDeleted,
 	type MfaType,
 	type OrganizerMembership,
 	type SessionState
@@ -205,9 +207,10 @@ export function bootstrap({ api = appApi }: ApiOption = {}): Promise<void> {
 	return booting;
 }
 
-/** Forget that the session was read. For tests. */
+/** Forget that the session was read, and any unclear delete tries. For tests. */
 export function resetBootstrap(): void {
 	booting = null;
+	unclearDeletes.clear();
 }
 
 export type Credentials = { email: string; password: string };
@@ -250,6 +253,7 @@ export async function login(
 		result.response.status === 409 ? await alreadySignedIn(result, { api }) : stateOf(result);
 	if (state.status === 'signed_out') fail(result);
 	applyState(state, { api }, email);
+	forgetUnclearOnSignIn(state);
 	return state;
 }
 
@@ -279,6 +283,7 @@ export async function authenticateMfa(
 		state = stateOf(result);
 		applyState(state, { api });
 	}
+	forgetUnclearOnSignIn(state);
 	if (state.status === 'signed_in') return state;
 	// The login's two-factor stage ran out: the sign-in page says why it is back.
 	if (state.status !== 'pending_mfa') session.mfaTimedOut = true;
@@ -352,6 +357,7 @@ export async function signup(
 		result.response.status === 409 ? await alreadySignedIn(result, { api }) : stateOf(result);
 	if (state.status === 'signed_out') fail(result);
 	session.apply(state, details.email);
+	forgetUnclearOnSignIn(state);
 	return state;
 }
 
@@ -395,9 +401,10 @@ export async function checkSignupPassword(
 const signOutListeners = new Set<(email: string | null) => void>();
 
 /**
- * Run `listener` when the player signs out on purpose (not when a session expires), before the
- * session ends, with the account's email. Other features use it to delete what they keep on
- * this device. A throwing listener never stops the sign out. Returns a function that removes it.
+ * Run `listener` when the player signs out on purpose or deletes their account (not when a
+ * session expires), before the session ends, with the account's email. Other features use it to
+ * delete what they keep on this device. A throwing listener never stops the sign out. Returns a
+ * function that removes it.
  */
 export function onSignOut(listener: (email: string | null) => void): () => void {
 	signOutListeners.add(listener);
@@ -427,9 +434,31 @@ export function signOutWarning(): string | null {
 	}
 }
 
-/** Sign out. The backend answers 401, which is the signed-out session. */
-export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
-	const email = session.email;
+let unsentMatchesSource: () => number = () => 0;
+
+/**
+ * Say how many matches on this device have not reached the backend, so deleting the account can
+ * warn that it deletes them too. The root layout sets it once (the offline queue). Returns a
+ * function that removes it.
+ */
+export function setUnsentMatchesSource(source: () => number): () => void {
+	unsentMatchesSource = source;
+	return () => {
+		if (unsentMatchesSource === source) unsentMatchesSource = () => 0;
+	};
+}
+
+/** How many matches on this device have not been sent. 0 when unknown. */
+export function unsentMatches(): number {
+	try {
+		return unsentMatchesSource();
+	} catch {
+		return 0;
+	}
+}
+
+/** Tell every `onSignOut` listener, before the session changes. */
+function runSignOutListeners(email: string | null): void {
 	for (const listener of signOutListeners) {
 		try {
 			listener(email);
@@ -437,6 +466,11 @@ export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
 			// Cleaning up must never keep a player signed in.
 		}
 	}
+}
+
+/** Sign out. The backend answers 401, which is the signed-out session. */
+export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
+	runSignOutListeners(session.email);
 	try {
 		const result = await settle(
 			api.allauth.DELETE('/_allauth/{client}/v1/auth/session', { params: allauthParams })
@@ -446,6 +480,134 @@ export async function logout({ api = appApi }: ApiOption = {}): Promise<void> {
 		// Even if the call failed, this device should not look signed in.
 		session.apply({ status: 'signed_out' });
 	}
+}
+
+/**
+ * Delete the signed-in account (`DELETE /api/v1/accounts/me`). On 204 the backend has ended every
+ * session of the account, so this ends it here too (`endDeletedAccount`) before it resolves, and
+ * resolves `deleted`. No code that waits on it sees a signed-in session, so a later 401 can't make
+ * it look expired. The email is read before the request is sent: a request that raced the delete
+ * may get its 401 first and sign this device out, and the cleanup still needs the deleted
+ * account's email.
+ *
+ * Some answers leave it unclear whether the backend deleted the account, so this ends it as
+ * `maybe` deleted (with the email read before sending) and resolves `maybe`:
+ * - No answer (a `network` error: a timeout or a dropped connection), or a 5xx `server` error
+ *   (such as a proxy's 502 or 504), when this device is signed out: the session already expired
+ *   or is not signed in, or else allauth says so when asked once (`refreshSession`, which an OPEN
+ *   401 watcher never hears). Still signed in, or the check failed too: it throws the error, and
+ *   this page remembers that a try for this email had an unclear answer.
+ * - A 401 on the DELETE after such a try: the session ended, perhaps because that try deleted
+ *   the account. The session watcher may have expired the session first; that is cleared, so
+ *   sign in says the account may be gone, not that the player was signed out.
+ *
+ * Any other 401 is a plain expiry: the session ended on the backend (an idle timeout, or a sign
+ * out elsewhere) and the backend deleted nothing. It throws the 401, nothing on this device is
+ * deleted (no `onSignOut` listener runs, so the unsent matches stay), and the watcher's expiry
+ * stands. The unclear try is forgotten on a 204, on the maybe end, on a 409 (a staff account,
+ * which the backend never deletes), when a sign-in with that email succeeds, and once it is older
+ * than `UNCLEAR_DELETE_MS`. A 429, a 403 or any other answer keeps it, since the unclear try may
+ * still commit.
+ *
+ * Anything else is an `AppError`, such as 403 `reauthentication_required` (run it through
+ * `withReauth`), 403 `mfa_required`, 409 `conflict` for a staff account, or `throttled`.
+ */
+export async function deleteAccount({ api = appApi }: ApiOption = {}): Promise<AccountDeleted> {
+	const email = session.email;
+	try {
+		const result = await settle(api.open.DELETE('/api/v1/accounts/me'));
+		const status = result.response.status;
+		if (status === 401 && hadUnclearTry(email)) return endUnclear(email);
+		if (status !== 204) fail(result);
+	} catch (cause) {
+		if (!unclearAnswer(cause)) {
+			if (isAppError(cause) && cause.status === 409) forgetUnclear(email);
+		} else if (await signedOutNow(api)) return endUnclear(email);
+		else if (email !== null) unclearDeletes.set(email, Date.now());
+		throw cause;
+	}
+	forgetUnclear(email);
+	endDeletedAccount(email);
+	return 'deleted';
+}
+
+/**
+ * How long an unclear delete try counts: 10 minutes. A slow backend commits or gives up well
+ * within that, and the player who just pressed Delete tries again within it. Later, a 401 is far
+ * more likely a session that ended than that old try, so it is a plain expiry again.
+ */
+const UNCLEAR_DELETE_MS = 10 * 60 * 1000;
+
+/**
+ * The emails whose delete try in this page had an unclear answer (no answer, or a 5xx while still
+ * signed in), with the time of the latest such try. Only then does a 401 on a later try mean the
+ * account may be gone.
+ */
+const unclearDeletes = new Map<string, number>();
+
+/** Did a delete try for this email have an unclear answer, within `UNCLEAR_DELETE_MS`? */
+function hadUnclearTry(email: string | null): boolean {
+	if (email === null) return false;
+	const at = unclearDeletes.get(email);
+	if (at === undefined) return false;
+	if (Date.now() - at <= UNCLEAR_DELETE_MS) return true;
+	unclearDeletes.delete(email);
+	return false;
+}
+
+/** The next 401 for this email is a plain expiry again. */
+function forgetUnclear(email: string | null): void {
+	if (email !== null) unclearDeletes.delete(email);
+}
+
+/**
+ * A sign-in with this email succeeded, so its account exists and no earlier try deleted it. Not
+ * called for a session read (`refreshSession`): a read that says `signed_in` can come before a
+ * slow try commits. `signedOutNow` runs its own `refreshSession`, which can return `signed_in`
+ * that way, and that same call is about to set the memory.
+ */
+function forgetUnclearOnSignIn(state: SessionState): void {
+	if (state.status === 'signed_in') forgetUnclear(state.email);
+}
+
+/** End the account as `maybe` deleted after an unclear answer. */
+function endUnclear(email: string | null): AccountDeleted {
+	forgetUnclear(email);
+	endDeletedAccount(email, 'maybe');
+	return 'maybe';
+}
+
+/** No answer, or a 5xx: the backend may have deleted the account anyway. */
+function unclearAnswer(cause: unknown): boolean {
+	if (!isAppError(cause)) return false;
+	if (cause.kind === 'network') return true;
+	return cause.kind === 'server' && cause.status !== null && cause.status >= 500;
+}
+
+/**
+ * Is nobody signed in on this device? Yes when the session already expired or is not signed in,
+ * without asking. Otherwise allauth is asked once. False when it can't tell.
+ */
+async function signedOutNow(api: Api): Promise<boolean> {
+	if (session.expired || !session.isSignedIn) return true;
+	try {
+		return (await refreshSession({ api })).status === 'signed_out';
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * The account is gone: delete what this device keeps for it (the `onSignOut` listeners, with
+ * `email`, the deleted account's address), then sign out and set `session.accountDeleted` to
+ * `state`. `deleteAccount` calls it with the email it read before sending, so callers don't.
+ */
+export function endDeletedAccount(
+	email: string | null = session.email,
+	state: AccountDeleted = 'deleted'
+): void {
+	runSignOutListeners(email);
+	session.markDeleted(state);
 }
 
 /**

@@ -46,6 +46,8 @@ With `all`, you can sign in as `player@example.com` (see `src/lib/mocks/fixtures
 
 For two-factor, the mocks also have `organizer@example.com` (a member of a made-up verified organizer, no two-factor yet), `twofactor@example.com` (two-factor on) and `moderator@example.com` (must have two-factor and has none, so the API answers `mfa_required`). The mock accepts `MOCK_TOTP_CODE` (`123456`) as the current code from any authenticator app, and each of `MOCK_RECOVERY_CODES` once.
 
+For account deletion, `staff@example.com` is a staff account with two-factor on. After the confirm prompt, deleting it from the profile answers 409, because it is staff. In a tab, a deleted mock account stays deleted across reloads until `window.__openMock.reset()` runs. A new tab starts again from the made-up accounts.
+
 The mocks also cover the organizer Events page (`/organizer`). `organizer@example.com` is an admin of a made-up verified organizer that has made-up Events. `manager@example.com` has two-factor on. It is a match manager of the same organizer and a member of a made-up unverified one. `player@example.com` is not a member, so the page is not found for them. With `all`, two helpers in the browser console change an account: `window.__openMock.turnOnTwoFactor(email)` turns two-factor on, and `window.__openMock.removeMembership(email, organizerCode)` removes a membership, as if an admin had removed it.
 
 ### The `/api` proxy

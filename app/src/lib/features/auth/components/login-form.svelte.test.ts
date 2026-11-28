@@ -292,4 +292,26 @@ describe('LoginForm', () => {
 		await expect.element(screen.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 		await expect.element(screen.getByText('You were signed out.')).not.toBeInTheDocument();
 	});
+
+	it('says the account was deleted, and not that the player was signed out', async () => {
+		session.apply({ status: 'signed_in', email: 'player@example.com' });
+		// The services module is mocked here, so this is the store call `endDeletedAccount` makes.
+		session.markDeleted();
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		await expect.element(screen.getByText('Your account was deleted.')).toBeVisible();
+		await expect
+			.element(
+				screen.getByText('You can sign up again with the same email address as a new player.')
+			)
+			.toBeVisible();
+		await expect.element(screen.getByText('You were signed out.')).not.toBeInTheDocument();
+	});
+
+	it('says the player was signed out, and not that the account was deleted, after expiry', async () => {
+		session.apply({ status: 'signed_in', email: 'player@example.com' });
+		session.expire();
+		const screen = await render(LoginForm, { onsuccess: vi.fn() });
+		await expect.element(screen.getByText('You were signed out.')).toBeVisible();
+		await expect.element(screen.getByText('Your account was deleted.')).not.toBeInTheDocument();
+	});
 });

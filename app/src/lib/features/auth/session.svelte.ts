@@ -27,6 +27,13 @@ export type SessionState =
 	| { status: 'pending_mfa'; types: MfaType[] }
 	| { status: 'signed_in'; email: string };
 
+/**
+ * How sure this device is that the player's account was deleted here: `deleted` after the
+ * backend's 204, `maybe` when the answer was unclear (none, a 5xx, or a 401 after such a try)
+ * and the session had ended.
+ */
+export type AccountDeleted = 'deleted' | 'maybe';
+
 /** One of the signed-in account's own organizer memberships. */
 export type OrganizerMembership = OpenComponents['schemas']['OrganizerMembershipOut'];
 
@@ -41,6 +48,11 @@ class Session {
 	email = $state<string | null>(null);
 	/** True when the session ended while the app was open, so sign-in can say why it is back. */
 	expired = $state(false);
+	/**
+	 * Set when the player deleted their account here, so sign-in can say it was deleted (or may
+	 * have been). Null otherwise.
+	 */
+	accountDeleted = $state<AccountDeleted | null>(null);
 	/** True when a login's two-factor step ran out, so sign-in can say why the password is back. */
 	mfaTimedOut = $state(false);
 	/** With `pending_mfa`: the kinds of code the backend accepts. Empty otherwise. */
@@ -106,6 +118,7 @@ class Session {
 			this.status === 'signed_in' && state.status === 'signed_in' && this.email === state.email;
 		this.status = state.status;
 		this.expired = false;
+		this.accountDeleted = null;
 		this.mfaTimedOut = false;
 		this.mfaTypes = state.status === 'pending_mfa' ? state.types : [];
 		if (!sameAccount) {
@@ -125,6 +138,15 @@ class Session {
 		this.expired = true;
 	}
 
+	/**
+	 * The backend deleted the account and ended its sessions (`deleted`), or may have (`maybe`).
+	 * This device is signed out now.
+	 */
+	markDeleted(state: AccountDeleted = 'deleted'): void {
+		this.apply({ status: 'signed_out' });
+		this.accountDeleted = state;
+	}
+
 	/** Forget a pending verification on this device, such as "Use a different email". */
 	clearPending(): void {
 		if (this.status === 'pending_verification') this.apply({ status: 'signed_out' });
@@ -135,6 +157,7 @@ class Session {
 		this.status = 'unknown';
 		this.email = null;
 		this.expired = false;
+		this.accountDeleted = null;
 		this.mfaTimedOut = false;
 		this.mfaTypes = [];
 		this.organizers = null;

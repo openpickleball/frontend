@@ -94,6 +94,20 @@ describe('the profile page', () => {
 		expect(button![0]).toContain('aria-haspopup="dialog"');
 	});
 
+	it('has a Delete your account row after Copy of your data that opens a dialog', () => {
+		const body = renderSignedIn();
+		const section = body.match(/<section[^>]*>(?:(?!<\/section>).)*Your data.*?<\/section>/s);
+		expect(section).not.toBeNull();
+		const rows = [...section![0].matchAll(/<li[^>]*>(.*?)<\/li>/gs)].map((m) => m[1]);
+		expect(rows.map((row) => textOf(row))).toEqual([
+			'Copy of your data How to get a copy of what OPEN holds',
+			'Delete your account What goes, what stays, and how to confirm'
+		]);
+		const button = rows[1].match(/<button[^>]*>.*<\/button>/s);
+		expect(button).not.toBeNull();
+		expect(button![0]).toContain('aria-haspopup="dialog"');
+	});
+
 	it('shows the app version and commit from the build', () => {
 		const body = renderSignedIn();
 		const version = body.match(/data-testid="app-version"[^>]*>(.*?)<\/span>/s);
@@ -112,7 +126,7 @@ describe('the profile page', () => {
 
 	it('shows no rows for settings that do not exist yet, and no numbers', () => {
 		const text = textOf(renderSignedIn());
-		expect(text).not.toMatch(/coming soon|password|leaderboard|connected apps|delete/i);
+		expect(text).not.toMatch(/coming soon|password|leaderboard|connected apps/i);
 		expect(text).not.toMatch(/rating|stats|matches/i);
 	});
 

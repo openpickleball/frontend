@@ -1,6 +1,6 @@
 /**
  * Reauthentication: some calls need the player to confirm it is them first (turning two-factor
- * on or off, new recovery codes, and later deleting the account). The backend says so with an
+ * on or off, new recovery codes, and deleting the account). The backend says so with an
  * allauth 401 listing `reauthenticate` or `mfa_reauthenticate`, or an OPEN 403
  * `reauthentication_required`. `withReauth` catches that, opens the one prompt
  * (`ReauthPrompt`, in the root layout), and sends the call once more after the player confirms.

@@ -79,6 +79,8 @@ Update 2026-11-26 (#261): backend#301 (organizer memberships, `GET /api/v1/organ
 
 Update 2026-11-27 (#264): backend#302 has shipped. `MatchOut` sends the match's Event (its code, name and organizer code, never the organizer's name) and its Club. #264 shows them on the match page and hides "Correct the score" on a match with either. #220 can use the organizer code.
 
+Update 2026-11-27 (#265): backend#116 (account deletion) has shipped. #265 adds "Delete your account" to the profile's "Your data" section.
+
 ## Steps
 
 - [x] S0 Read the CSRF token from `__Host-csrftoken` when it is set, else `csrftoken`, with tests (#222). Independent of the rest. It must land before the app is hosted (frontend#22).

@@ -64,8 +64,8 @@ const plain = <T>(value: T): T => JSON.parse(JSON.stringify(value));
  * `setAccount(email)` picks whose queue this is, reads it and sends it. Pass null when nobody is
  * signed in: the queue then shows and sends nothing. Each match is sent oldest first, one at a
  * time. A match leaves the device only when the backend has it, when the player deletes it
- * (`remove`), or on sign out (`forget`). A match the backend refused stays, with its `problem`,
- * until the player fixes or deletes it.
+ * (`remove`), or on sign out or account deletion (`forgetEmail`, `forget`). A match the backend
+ * refused stays, with its `problem`, until the player fixes or deletes it.
  */
 export class OfflineQueue {
 	/** This account's matches, oldest first: waiting ones and refused ones. */
@@ -81,6 +81,8 @@ export class OfflineQueue {
 
 	#deps: QueueDeps;
 	#account: string | null = null;
+	/** The email `#account` was made from, in memory only, so `forgetEmail` can match it at once. */
+	#email: string | null = null;
 	/** Bumped on every account change, so a late answer never lands in another account's queue. */
 	#run = 0;
 	#flushing: Promise<void> | null = null;
@@ -116,6 +118,7 @@ export class OfflineQueue {
 		if (run !== this.#run) return;
 		if (account === this.#account) return;
 		this.#account = account;
+		this.#email = account ? email : null;
 		this.items = [];
 		this.reason = 'idle';
 		this.expired = 0;
@@ -293,18 +296,32 @@ export class OfflineQueue {
 	}
 
 	/**
-	 * Delete this account's queue from the device and stop showing it. For a sign out on purpose.
-	 * A session that ends by itself is not a sign out: keep the queue then.
+	 * Delete this account's queue from the device and stop showing it. For a sign out on purpose
+	 * or a deleted account. A session that ends by itself is not a sign out: keep the queue then.
 	 */
 	async forget(): Promise<void> {
 		const account = this.#account;
 		this.#run++;
 		this.#account = null;
+		this.#email = null;
 		this.items = [];
 		this.reason = 'idle';
 		this.expired = 0;
 		this.sending = false;
 		if (account) await this.#deps.store.removeAccount(account);
+	}
+
+	/**
+	 * Delete the queue of the account with this email from the device, even when the queue shows
+	 * nobody now (a deletion whose session a 401 had already ended). It stops showing the queue
+	 * only when it is that account's: another account's view is never cleared.
+	 */
+	async forgetEmail(email: string): Promise<void> {
+		// The account shown now: clear its view at once, before any await.
+		if (this.#account && this.#email === email) return this.forget();
+		const account = await this.#deps.accountKey(email);
+		if (account === this.#account) return this.forget();
+		await this.#deps.store.removeAccount(account);
 	}
 
 	/** Call `listener` with the matches that left the queue after each send. Returns a stop. */

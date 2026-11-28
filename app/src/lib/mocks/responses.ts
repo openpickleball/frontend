@@ -32,6 +32,16 @@ export const notFound = () => ninjaError(404, 'not_found', 'Not found.');
 export const validationError = (errors: FieldIssue[]) =>
 	ninjaError(422, 'validation_error', 'The request is not valid.', errors);
 
+/** A sensitive operation without a reauthentication in the last 300 seconds. */
+export const reauthenticationRequiredOpen = () =>
+	ninjaError(
+		403,
+		'reauthentication_required',
+		'Confirm your password or a two-factor code again, then retry.'
+	);
+
+export const throttled = () => ninjaError(429, 'throttled', 'Too many requests.');
+
 /** `MatchPermissionDenied`: fixed text, never which rule failed. */
 export const cannotSubmit = () =>
 	ninjaError(403, 'forbidden', 'You are not allowed to submit this match.');

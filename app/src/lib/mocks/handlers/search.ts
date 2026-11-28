@@ -1,5 +1,5 @@
 import { openHttp as http } from '../http';
-import { ninjaError, unauthorized, validationError } from '../responses';
+import { throttled, unauthorized, validationError } from '../responses';
 import type { FieldIssue, MockStore } from '../store';
 
 /**
@@ -106,9 +106,9 @@ export function createSearchHandlers(store: MockStore, options: SearchOptions = 
 			}
 			if (slot.used >= perMinute) {
 				const wait = Math.max(1, Math.ceil((slot.start + 60_000 - at) / 1000));
-				const throttled = ninjaError(429, 'throttled', 'Too many requests.');
-				throttled.headers.set('Retry-After', String(wait));
-				return response.untyped(throttled);
+				const refused = throttled();
+				refused.headers.set('Retry-After', String(wait));
+				return response.untyped(refused);
 			}
 			slot.used += 1;
 

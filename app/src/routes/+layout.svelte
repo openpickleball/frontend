@@ -13,6 +13,7 @@
 		requestReauth,
 		session,
 		setSignOutWarning,
+		setUnsentMatchesSource,
 		watchMfaRequired,
 		watchSessionExpiry
 	} from '#lib/features/auth/index.js';
@@ -70,16 +71,19 @@
 	// On app open, delete matches that waited too long, for every account on this device.
 	void offlineQueue.purgeExpired();
 
-	// Signing out on purpose clears the code and name at once, before the backend answers. It also
-	// deletes this account's unsent matches from the device, after the Sign out button warned.
+	// Signing out on purpose, or deleting the account, clears the code and name at once, before
+	// the backend answers. It also deletes that account's unsent matches from the device, after the
+	// Sign out button or the delete dialog warned. A deletion passes the deleted account's email,
+	// which a 401 that raced it may already have signed out of the queue.
 	onDestroy(
-		onSignOut(() => {
+		onSignOut((email) => {
 			myCode.reset();
 			needsYou.reset();
-			void offlineQueue.forget();
+			void (email ? offlineQueue.forgetEmail(email) : offlineQueue.forget());
 		})
 	);
 	onDestroy(setSignOutWarning(() => signOutWarning(offlineQueue.unsent)));
+	onDestroy(setUnsentMatchesSource(() => offlineQueue.unsent));
 
 	// Say when queued matches reach the backend, and hand new ones to the match cache.
 	onDestroy(offlineQueue.onSent(announceSent));
