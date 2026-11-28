@@ -72,9 +72,8 @@ export class NeedsYouView {
 	/** The last load's failure, so a caller that needs it can throw it again. */
 	error: unknown = null;
 
-	// Codes from both lists, and from the holds list alone.
+	// Codes from both lists.
 	#codes = $state.raw<MatchCode[]>([]);
-	#heldCodes = $state.raw<MatchCode[]>([]);
 	#pending: Promise<void> | null = null;
 	#run = 0;
 	#cache: MatchCache;
@@ -105,20 +104,6 @@ export class NeedsYouView {
 	}
 
 	/**
-	 * Every match on hold that the player may vouch for, also the ones their side has vouched for,
-	 * from the same full read of the holds list.
-	 */
-	get held(): Match[] {
-		const cache = this.#cache;
-		return this.#heldCodes
-			.map((code) => cache.get(code))
-			.filter(
-				(match): match is Match =>
-					match !== undefined && match.status !== 'voided' && cache.holdOf(match.code) !== undefined
-			);
-	}
-
-	/**
 	 * Read both lists again. A load already in flight is shared, so Home, the nav badge and the
 	 * Matches filter ask once between them. It never throws: read `status` and `error`.
 	 */
@@ -144,7 +129,6 @@ export class NeedsYouView {
 			if (run !== this.#run) return;
 			const held = holds.map((hold) => hold.match.code);
 			this.#codes = unique([...awaiting.map((match) => match.code), ...held]);
-			this.#heldCodes = unique(held);
 			this.errorKind = null;
 			this.error = null;
 			this.status = 'ready';
@@ -161,7 +145,6 @@ export class NeedsYouView {
 		this.#run++;
 		this.#pending = null;
 		this.#codes = [];
-		this.#heldCodes = [];
 		this.errorKind = null;
 		this.error = null;
 		this.status = 'loading';

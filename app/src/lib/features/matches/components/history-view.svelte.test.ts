@@ -16,12 +16,20 @@ vi.mock('../services.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('../services.js')>()),
 	listMatches: vi.fn(),
 	listAwaitingConfirmation: vi.fn(),
-	listMyDisputes: vi.fn(),
 	listMyHolds: vi.fn()
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn(async () => {}), snapshot: vi.fn() }));
 const mocked = vi.mocked(services);
 const renderView = (props: { page: number; show?: MatchFilter }) => render(HistoryView, props);
+
+/** The tags of the nth row, as drawn. */
+async function tagsOf(row = 0): Promise<string[]> {
+	const tags = page.getByTestId('match-tags').nth(row);
+	await expect.element(tags).toBeVisible();
+	return [...tags.element().querySelectorAll('[data-slot="badge"]')].map(
+		(badge) => badge.textContent?.trim() ?? ''
+	);
+}
 
 beforeEach(() => {
 	vi.resetAllMocks();
@@ -61,7 +69,7 @@ describe('HistoryView title', () => {
 });
 
 describe('HistoryView holds', () => {
-	it('reads the holds list so a held row says it is on hold', async () => {
+	it('reads the holds list so a held row asks for a vouch', async () => {
 		matchCache.setOwnerSource(() => myCode.code);
 		const held = viewerMatch({ a: true, b: true, decision: 'confirm' }, { status: 'confirmed' });
 		mocked.listMatches.mockImplementation(async (_player, _offset, options) => {
@@ -74,9 +82,7 @@ describe('HistoryView holds', () => {
 		});
 		await renderView({ page: 1 });
 
-		await expect
-			.element(page.getByText("On hold. It doesn't count yet. Open it to vouch for it."))
-			.toBeVisible();
+		await vi.waitFor(async () => expect(await tagsOf()).toEqual(['Confirmed', 'Needs your vouch']));
 		expect(mocked.listMyHolds).toHaveBeenCalledWith(0, { limit: 100 });
 	});
 
@@ -85,10 +91,7 @@ describe('HistoryView holds', () => {
 		mocked.listMyHolds.mockRejectedValue(new Error('down'));
 		await renderView({ page: 1 });
 		await expect.element(page.getByTestId('match-row')).toBeVisible();
-		// The filter has an On hold pill, so look in the row.
-		await expect
-			.element(page.getByTestId('match-row').getByText(/On hold/))
-			.not.toBeInTheDocument();
+		expect(await tagsOf()).toEqual(['Needs your confirmation']);
 	});
 });
 
@@ -137,7 +140,7 @@ describe('HistoryView filter', () => {
 			.element(page.getByTestId('match-row'))
 			.toHaveAttribute('href', `/matches/${toConfirm[19].code}`);
 		expect(mocked.listMatches).not.toHaveBeenCalled();
-		await expect.element(page.getByRole('radio', { name: 'Needs you' })).toBeChecked();
+		await expect.element(page.getByRole('radio', { name: /^Needs you/ })).toBeChecked();
 		await expect.element(page.getByRole('list', { name: 'Your matches, Needs you' })).toBeVisible();
 		await expect
 			.element(page.getByRole('link', { name: 'Newer' }))
@@ -167,41 +170,17 @@ describe('HistoryView filter', () => {
 
 		await expect.element(page.getByTestId('range')).toHaveTextContent('1–2 of 2');
 		const rows = page.getByTestId('match-row');
-		await expect.element(rows.first().getByText("Vouch for it. It's on hold.")).toBeVisible();
-		await expect.element(rows.nth(1).getByText('Confirm or dispute the score.')).toBeVisible();
+		await expect.element(rows.nth(1)).toBeVisible();
+		expect(await tagsOf(0)).toEqual(['Pending', 'Needs your vouch']);
+		expect(await tagsOf(1)).toEqual(['Needs your confirmation']);
 	});
 
-	it('pages within the filter', async () => {
-		mocked.listMyDisputes.mockResolvedValue({ items: [viewerMatch()], count: 45 });
-		await renderView({ page: 2, show: 'disputed' });
+	it('says so when nothing needs the player, with a way to all matches', async () => {
+		mocked.listAwaitingConfirmation.mockResolvedValue({ items: [], count: 0 });
+		await renderView({ page: 1, show: 'needs-you' });
 
 		await expect
-			.element(page.getByRole('link', { name: 'Older' }))
-			.toHaveAttribute('href', '/matches?show=disputed&page=3');
-		await expect
-			.element(page.getByRole('link', { name: 'Newer' }))
-			.toHaveAttribute('href', '/matches?show=disputed');
-	});
-
-	it('lists the held matches from the holds list', async () => {
-		const held = viewerMatch({ a: true, b: true, decision: 'confirm' }, { status: 'confirmed' });
-		mocked.listMyHolds.mockResolvedValue({ items: [{ match: held, vouched: false }], count: 1 });
-		await renderView({ page: 1, show: 'on-hold' });
-
-		await expect.element(page.getByTestId('range')).toHaveTextContent('1–1 of 1');
-		expect(mocked.listMyHolds).toHaveBeenCalledWith(0, expect.objectContaining({ limit: 20 }));
-		// The filter says On hold, so the row doesn't say it again.
-		await expect
-			.element(page.getByTestId('match-row').getByText(/doesn't count yet/))
-			.not.toBeInTheDocument();
-	});
-
-	it('says so when a filter has no matches, with a way to all of them', async () => {
-		mocked.listMyDisputes.mockResolvedValue({ items: [], count: 0 });
-		await renderView({ page: 1, show: 'disputed' });
-
-		await expect
-			.element(page.getByRole('heading', { name: 'You have no disputed matches' }))
+			.element(page.getByRole('heading', { name: 'Nothing to confirm or vouch for' }))
 			.toBeVisible();
 		await expect
 			.element(page.getByRole('link', { name: 'See all matches' }))
@@ -213,19 +192,16 @@ describe('HistoryView filter', () => {
 		await renderView({ page: 2 });
 
 		await expect.element(page.getByTestId('range')).toBeVisible();
-		const onHold = page.getByRole('radio', { name: 'On hold' });
-		await onHold.click();
-		expect(goto).toHaveBeenCalledWith('/matches?show=on-hold', { reset: false });
-		await expect.element(onHold).toBeChecked();
-		await expect.element(onHold).toHaveFocus();
+		const needs = page.getByRole('radio', { name: /^Needs you/ });
+		await needs.click();
+		expect(goto).toHaveBeenCalledWith('/matches?show=needs-you', { reset: false });
+		await expect.element(needs).toBeChecked();
+		await expect.element(needs).toHaveFocus();
 
 		// The arrow keys move along the pills and choose as they go.
 		await userEvent.keyboard('{ArrowLeft}');
-		const disputed = page.getByRole('radio', { name: 'Disputed' });
-		await expect.element(disputed).toHaveFocus();
-		expect(goto).toHaveBeenLastCalledWith('/matches?show=disputed', { reset: false });
-
-		await page.getByRole('radio', { name: 'All' }).click();
+		const all = page.getByRole('radio', { name: 'All', exact: true });
+		await expect.element(all).toHaveFocus();
 		expect(goto).toHaveBeenLastCalledWith('/matches', { reset: false });
 	});
 
@@ -236,11 +212,30 @@ describe('HistoryView filter', () => {
 		const group = page.getByRole('group', { name: 'Show' });
 		await expect.element(group).toBeVisible();
 		await expect.element(group.getByRole('radio', { name: 'All' })).toBeChecked();
-		// No Waiting for the other team, which the backend has no list for.
+		// Two pills only: no Disputed or On hold, and no Waiting for the other team.
 		const names = group
 			.getByRole('radio')
 			.elements()
 			.map((radio) => radio.textContent?.trim());
-		expect(names).toEqual(['All', 'Needs you', 'Disputed', 'On hold']);
+		expect(names).toEqual(['All', 'Needs you']);
+	});
+
+	it('gives Needs you the same count as the nav badge, and none at 0', async () => {
+		matchCache.setOwnerSource(() => myCode.code);
+		mocked.listMatches.mockResolvedValue({ items: [viewerMatch()], count: 1 });
+		const toConfirm = [viewerMatch({ b: true })];
+		mocked.listAwaitingConfirmation.mockImplementation(async (_offset, options) => {
+			options?.cache?.rememberAll(toConfirm);
+			return { items: toConfirm, count: 1 };
+		});
+		await renderView({ page: 1 });
+		const pill = page.getByRole('radio', { name: /^Needs you/ });
+		await expect.element(pill).toHaveAccessibleName('Needs you');
+
+		// The layout loads the list for the badge.
+		await needsYou.load();
+		await expect.element(pill).toHaveAccessibleName('Needs you, 1');
+		await expect.element(pill.getByTestId('pill-count')).toHaveTextContent('1');
+		expect(needsYou.count).toBe(1);
 	});
 });

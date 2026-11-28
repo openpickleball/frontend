@@ -10,7 +10,6 @@
 	import { isAppError } from '#lib/api/index.js';
 	import { ROUTES, parseMatchCode, type Match, type MatchCode } from '#lib/domain/index.js';
 	import { myCode } from '#lib/features/players/index.js';
-	import { Badge } from '#lib/ui/badge/index.js';
 	import { Button } from '#lib/ui/button/index.js';
 	import { Section } from '#lib/ui/section/index.js';
 	import { LoadingState } from '#lib/ui/loading-state/index.js';
@@ -27,10 +26,10 @@
 	import { backLink, rememberedOrigin } from '../back-link.svelte.js';
 	import { matchCache, type HoldState, type MatchAction } from '../cache.svelte.js';
 	import {
-		STATUS_LABELS,
 		formatDayMonth,
 		formatName,
 		formatShortDate,
+		matchTags,
 		scoringName
 	} from '../format.js';
 	import {
@@ -44,6 +43,7 @@
 	import { panelIsQuiet } from '../status.js';
 	import CodeGate from './code-gate.svelte';
 	import DisputeDialog from './dispute-dialog.svelte';
+	import MatchTags from './match-tags.svelte';
 	import Scoreboard from './scoreboard.svelte';
 	import StatusPanel from './status-panel.svelte';
 	import VouchDialog from './vouch-dialog.svelte';
@@ -370,21 +370,17 @@
 			</Button>
 		</div>
 	{/if}
-	<!-- The header is the title and the badges. The scoreboard below says who played and the score. -->
+	<!-- The header is the title and the tags, the same tags as the match's row on Home and Matches.
+	     The scoreboard below says who played and the score. -->
 	<div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-4">
 		<h1 id="match-title" tabindex="-1" class="page-title outline-none">
 			{formatName(match.format)} · {formatShortDate(match.playedOn)}
 		</h1>
-		<div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-			<Badge variant={match.status}>{STATUS_LABELS[match.status]}</Badge>
-			{#if hold && match.status !== 'voided'}
-				<Badge>On hold</Badge>
-			{/if}
-		</div>
+		<MatchTags tags={matchTags(match, hold)} />
 	</div>
 
 	<!-- The status panel always comes first, so it is in the same place for every state and viewer.
-	     A confirmed match with nothing else to say drops it, and the badge says where it stands. -->
+	     A confirmed match with nothing else to say drops it, and the tags say where it stands. -->
 	{#if !panelIsQuiet(match, hold) || justRecorded || justCorrected || error}
 		<StatusPanel
 			{match}

@@ -10,7 +10,7 @@ import {
 	PLAYERS,
 	VERIFIED_EMAIL
 } from '../src/lib/mocks/fixtures';
-import { signIn } from './helpers';
+import { signIn, signOut } from './helpers';
 
 // Runs against PUBLIC_API_MOCK=all (see playwright.config.ts), signed in as player@example.com
 // (Tamsin Vale), who has 28 matches: 20 on the first page, 8 on the second. Every test gets a new
@@ -68,8 +68,19 @@ function actionButtons(panel: Locator) {
 }
 
 /** A pill of the Show filter on Matches. */
-function pill(page: Page, name: 'All' | 'Needs you' | 'Disputed' | 'On hold') {
-	return page.getByRole('group', { name: 'Show' }).getByRole('radio', { name, exact: true });
+/** A pill of the Show filter on Matches. Needs you carries its count, as in "Needs you, 3". */
+function pill(page: Page, name: 'All' | 'Needs you') {
+	return page
+		.getByRole('group', { name: 'Show' })
+		.getByRole('radio', { name: name === 'All' ? /^All$/ : /^Needs you(, \d+)?$/ });
+}
+
+/** The tags of a row, or of the match page, as drawn. */
+async function tagsIn(container: Locator): Promise<string[]> {
+	const tags = container.getByTestId('match-tags').first();
+	await expect(tags).toBeVisible();
+	const texts = await tags.locator('[data-slot="badge"]').allTextContents();
+	return texts.map((tag) => tag.trim());
 }
 
 function rowFor(page: Page, code: string) {
@@ -77,9 +88,9 @@ function rowFor(page: Page, code: string) {
 }
 
 test.describe('home', () => {
-	test('shows her code, then her ratings, then what is in progress', async ({ page }) => {
+	test('shows her code, then her ratings, then what needs her', async ({ page }) => {
 		await expect(page).toHaveTitle('OPEN Pickleball');
-		await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Ratings', 'In progress']);
+		await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Ratings', 'Needs you']);
 		await expect(page.getByTestId('my-code')).toHaveText(tamsin.code);
 		const order = await page.evaluate(() => {
 			const code = document.querySelector('[data-testid="my-code"]');
@@ -103,7 +114,8 @@ test.describe('home', () => {
 		await expect(ratings.getByText(/Reliability/)).toHaveCount(0);
 		await expect(ratings.getByRole('button', { name: /reliability/ })).toHaveCount(0);
 
-		// Oldest first, each row saying what she can do: vouch for the held match, confirm the rest.
+		// Oldest first, each row's tags saying what she can do: vouch for the held match, confirm the
+		// rest.
 		const needsList = page.getByRole('list', { name: 'Needs you' });
 		await expect(needsList.getByTestId('match-row')).toHaveCount(3);
 		const hrefs = await needsList
@@ -114,17 +126,19 @@ test.describe('home', () => {
 			`/matches/${WAITING_ON_ME_TOO}`,
 			`/matches/${WAITING_ON_ME}`
 		]);
-		await expect(needsList.locator(`a[href$="/matches/${HELD}"]`)).toContainText(
-			"Vouch for it. It's on hold."
-		);
-		await expect(needsList.locator(`a[href$="/matches/${WAITING_ON_ME}"]`)).toContainText(
-			'Confirm or dispute the score.'
-		);
+		expect(await tagsIn(needsList.locator(`a[href$="/matches/${HELD}"]`))).toEqual([
+			'Confirmed',
+			'Needs your vouch'
+		]);
+		expect(await tagsIn(needsList.locator(`a[href$="/matches/${WAITING_ON_ME}"]`))).toEqual([
+			'Needs your confirmation'
+		]);
 		// All three fit, so there is no See all.
 		await expect(page.getByTestId('see-all-needs')).toHaveCount(0);
 
-		// Every dispute, the one she can withdraw too, and both holds. No waiting count.
-		await expect(page.getByTestId('in-progress')).toHaveText('4 disputed · 2 on hold');
+		// No In progress and no counts of disputed or held matches: those are in All on Matches.
+		await expect(page.getByTestId('in-progress')).toHaveCount(0);
+		await expect(page.getByText(/\d+ disputed/)).toHaveCount(0);
 
 		// No Recent matches and no Record a match on Home: Record stays in the nav.
 		await expect(page.getByRole('list', { name: 'Recent matches' })).toHaveCount(0);
@@ -132,13 +146,13 @@ test.describe('home', () => {
 			0
 		);
 
-		// Her match count, next to In progress, opens Matches.
-		const progress = page.getByRole('region', { name: 'In progress' });
-		await progress.getByTestId('all-matches').click();
+		// Her match count, next to Needs you, opens Matches.
+		const needs = page.getByRole('region', { name: 'Needs you' });
+		await needs.getByTestId('all-matches').click();
 		await expect(page).toHaveURL(/\/matches$/);
 	});
 
-	test('the match count next to In progress is the total on Matches', async ({ page }) => {
+	test('the match count next to Needs you is the total on Matches', async ({ page }) => {
 		const link = page.getByTestId('all-matches');
 		await expect(link).toHaveText(/^\d+ matches\s*$/);
 		const count = (await link.textContent())?.match(/\d+/)?.[0];
@@ -204,9 +218,11 @@ test.describe('home needs you count', () => {
 
 		await page.goto('/matches?show=needs-you');
 		await expect(page.getByTestId('range')).toHaveText('1–3 of 3');
-		await expect(page.getByTestId('match-row').first()).toContainText(
-			"Vouch for it. It's on hold."
-		);
+		await expect(pill(page, 'Needs you')).toHaveAccessibleName('Needs you, 3');
+		expect(await tagsIn(page.getByTestId('match-row').first())).toEqual([
+			'Confirmed',
+			'Needs your vouch'
+		]);
 
 		// The side nav from 1024px carries the same badge.
 		await page.setViewportSize({ width: 1280, height: 800 });
@@ -244,22 +260,42 @@ test.describe('home needs you count', () => {
 		await expect(tabBar.getByRole('link', { name: 'Home', exact: true })).toBeVisible();
 
 		await tabBar.getByRole('link', { name: 'Home', exact: true }).click();
-		await expect(page.getByText("You're all caught up.")).toBeVisible();
+		await expect(page.getByText('Nothing to confirm or vouch for.')).toBeVisible();
+		await expect(page.getByRole('list', { name: 'Needs you' })).toHaveCount(0);
+
+		// The Needs you pill drops its count with the badge.
+		await page.goto('/matches');
+		await expect(pill(page, 'Needs you')).toHaveAccessibleName('Needs you');
 	});
 
-	test('follows the In progress counts into the matching filters', async ({ page }) => {
-		const line = page.getByTestId('in-progress');
-		await line.getByRole('link', { name: '2 on hold' }).click();
-		await expect(page).toHaveURL(/\/matches\?show=on-hold$/);
-		await expect(pill(page, 'On hold')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+	test('shows 3, then See all with the total, which opens the Needs you filter', async ({
+		page
+	}) => {
+		// Oren records a match against her, so a fourth match needs her confirmation.
+		await signOut(page);
+		await signIn(page, 'oren@example.com', MOCK_PASSWORD);
+		await page.goto('/record');
+		await page.getByRole('radio', { name: 'Singles' }).click();
+		const opponent = page.getByLabel('Your opponent: name or OPEN code');
+		await opponent.fill(tamsin.code);
+		await opponent.blur();
+		await expect(page.getByRole('button', { name: `Remove ${tamsin.code}` })).toBeVisible();
+		await page.getByLabel("Game 1, your team's points").fill('11');
+		await page.getByLabel("Game 1, opponents' points").fill('9');
+		await page.getByRole('button', { name: 'Record and confirm score' }).click();
+		await expect(page.getByText('Match recorded')).toBeVisible();
+		await signOut(page);
+		await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
 
-		await page.goBack();
-		await line.getByRole('link', { name: '4 disputed' }).click();
-		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
-		await expect(pill(page, 'Disputed')).toBeChecked();
+		const needsList = page.getByRole('list', { name: 'Needs you' });
+		await expect(needsList.getByTestId('match-row')).toHaveCount(3);
+		const seeAll = page.getByRole('link', { name: 'See all 4 in Matches' });
+		await expect(seeAll).toHaveAttribute('href', '/matches?show=needs-you');
+		await seeAll.click();
+		await expect(page).toHaveURL(/\/matches\?show=needs-you$/);
+		await expect(pill(page, 'Needs you')).toBeChecked();
+		await expect(pill(page, 'Needs you')).toHaveAccessibleName('Needs you, 4');
 		await expect(page.getByTestId('range')).toHaveText('1–4 of 4');
-		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
 	});
 });
 
@@ -318,20 +354,39 @@ test.describe('match history', () => {
 });
 
 test.describe('matches filter', () => {
+	test('has two pills, All and Needs you with its count', async ({ page }) => {
+		await page.goto('/matches');
+		const radios = page.getByRole('group', { name: 'Show' }).getByRole('radio');
+		await expect(radios).toHaveCount(2);
+		await expect(pill(page, 'All')).toBeChecked();
+		await expect(pill(page, 'Needs you')).toHaveAccessibleName('Needs you, 3');
+		await expect(pill(page, 'Needs you').getByTestId('pill-count')).toHaveText('3');
+	});
+
 	test('opens a filter from a link, and a reload keeps it', async ({ page }) => {
-		await page.goto('/matches?show=disputed');
-		await expect(pill(page, 'Disputed')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–4 of 4');
-		await expect(rowFor(page, MY_DISPUTE)).toBeVisible();
-		await expect(rowFor(page, STILL_DISPUTED)).toBeVisible();
-		await expect(rowFor(page, EVENT_DISPUTE)).toBeVisible();
-		await expect(rowFor(page, CLUB_DISPUTE)).toBeVisible();
-		await expect(page).toHaveTitle('Matches, Disputed, page 1 of 1 · OPEN Pickleball');
+		await page.goto('/matches?show=needs-you');
+		await expect(pill(page, 'Needs you')).toBeChecked();
+		await expect(page.getByTestId('range')).toHaveText('1–3 of 3');
+		await expect(page).toHaveTitle('Matches, Needs you, page 1 of 1 · OPEN Pickleball');
 
 		await page.reload();
-		await expect(pill(page, 'Disputed')).toBeChecked();
-		await expect(page.getByTestId('range')).toHaveText('1–4 of 4');
+		await expect(pill(page, 'Needs you')).toBeChecked();
+		await expect(page.getByTestId('range')).toHaveText('1–3 of 3');
 	});
+
+	for (const show of ['disputed', 'on-hold']) {
+		test(`sends an old ?show=${show} link to All, with each match and its tags`, async ({
+			page
+		}) => {
+			await page.goto(`/matches?show=${show}`);
+			await expect(pill(page, 'All')).toBeChecked();
+			await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
+			await expect(page).toHaveTitle('Matches, page 1 of 2 · OPEN Pickleball');
+			// Disputed and held matches are in All, each saying so in its tags.
+			expect(await tagsIn(rowFor(page, STILL_DISPUTED))).toEqual(['Disputed']);
+			expect(await tagsIn(rowFor(page, HELD))).toEqual(['Confirmed', 'Needs your vouch']);
+		});
+	}
 
 	test('switches filters with the pills and keeps each in the address', async ({ page }) => {
 		await page.goto('/matches?page=2');
@@ -349,16 +404,13 @@ test.describe('matches filter', () => {
 		await expect(rowFor(page, ALREADY_CONFIRMED_BY_ME)).toHaveCount(0);
 
 		// The arrow keys move along the pills and choose as they go.
-		await page.keyboard.press('ArrowRight');
-		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
-		await expect(pill(page, 'Disputed')).toBeFocused();
-		await page.keyboard.press('ArrowRight');
-		await expect(page).toHaveURL(/\/matches\?show=on-hold$/);
-		await expect(pill(page, 'On hold')).toBeFocused();
-		await expect(rowFor(page, HELD)).toBeVisible();
-		await expect(rowFor(page, HELD_VOUCHED)).toBeVisible();
-		await expect(page.getByTestId('range')).toHaveText('1–2 of 2');
+		await page.keyboard.press('ArrowLeft');
+		await expect(page).toHaveURL(/\/matches$/);
+		await expect(pill(page, 'All')).toBeFocused();
+		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 
+		await pill(page, 'Needs you').click();
+		await expect(page).toHaveURL(/\/matches\?show=needs-you$/);
 		await pill(page, 'All').click();
 		await expect(page).toHaveURL(/\/matches$/);
 		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
@@ -370,14 +422,48 @@ test.describe('matches filter', () => {
 		await expect(page.getByTestId('range')).toHaveText('1–20 of 28');
 	});
 
-	test('has no WCAG 2.1 AA violations with a filter, in either theme', async ({ page }) => {
+	test('has no WCAG 2.1 AA violations on All and Needs you, in either theme', async ({ page }) => {
 		for (const scheme of ['dark', 'light'] as const) {
 			await page.emulateMedia({ colorScheme: scheme });
-			await page.goto('/matches?show=needs-you');
-			await expect(page.getByTestId('range')).toBeVisible();
-			await expectNoAxeViolations(page);
+			for (const path of ['/matches', '/matches?show=needs-you']) {
+				await page.goto(path);
+				await expect(page.getByTestId('range')).toBeVisible();
+				await expectNoAxeViolations(page);
+			}
 		}
 	});
+
+	for (const width of [320, 375]) {
+		test(`wraps the tags inside each row with no sideways scroll at ${width}px`, async ({
+			page
+		}) => {
+			await page.setViewportSize({ width, height: 740 });
+			for (const path of ['/', '/matches']) {
+				await page.goto(path);
+				const rows = page.getByTestId('match-row');
+				await expect(rows.first()).toBeVisible();
+				const fits = await rows.evaluateAll((items) =>
+					items.map((row) => {
+						const box = row.getBoundingClientRect();
+						return [...row.querySelectorAll('[data-slot="badge"], p')].every((child) => {
+							const inner = child.getBoundingClientRect();
+							return inner.left >= box.left - 0.5 && inner.right <= box.right + 0.5;
+						});
+					})
+				);
+				expect(fits.every(Boolean)).toBe(true);
+				expect(
+					await page.evaluate(
+						() => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+					)
+				).toBe(true);
+			}
+			// A held match to confirm carries two long tags, which wrap within the row.
+			await page.goto('/matches?show=needs-you');
+			const tags = rowFor(page, HELD).getByTestId('match-tags');
+			await expect(tags.locator('[data-slot="badge"]')).toHaveCount(2);
+		});
+	}
 });
 
 test.describe('match detail', () => {
@@ -387,14 +473,14 @@ test.describe('match detail', () => {
 		await expect(
 			page.getByRole('heading', { level: 1, name: /^(Singles|Doubles) · \w{3} \d{1,2} \w{3}$/ })
 		).toBeVisible();
-		await expect(page.getByText('Pending', { exact: true })).toBeVisible();
+		expect(await tagsIn(page.getByRole('main'))).toEqual(['Needs your confirmation']);
 		await expect(page.getByRole('heading', { name: 'Is this the right score?' })).toBeVisible();
 
 		await page.getByRole('button', { name: 'Confirm score' }).click();
 
 		// Rosa had confirmed already, so Tamsin's confirmation makes it count.
 		await expect(page.getByText('Confirmed. The match now counts.')).toBeVisible();
-		// A confirmed match with nothing else to say drops the panel. The badge says it, and the
+		// A confirmed match with nothing else to say drops the panel. The tag says it, and the
 		// page title takes focus.
 		await expect(page.getByTestId('status-panel')).toHaveCount(0);
 		await expect(page.getByText('Confirmed', { exact: true })).toBeVisible();
@@ -561,17 +647,25 @@ test.describe('match detail', () => {
 });
 
 test.describe('disputes', () => {
-	test('counts her disputed matches under In progress on home, the one she can withdraw too', async ({
+	test('shows her disputed matches in All, each tagged Disputed, and not under Needs you', async ({
 		page
 	}) => {
-		await expect(page.getByTestId('in-progress')).toContainText('4 disputed');
-		await page.getByTestId('in-progress').getByRole('link', { name: '4 disputed' }).click();
-		const list = page.getByRole('list', { name: 'Your matches, Disputed' });
-		await expect(list.getByTestId('match-row')).toHaveCount(4);
-		await expect(list.locator(`a[href$="/matches/${MY_DISPUTE}"]`)).toContainText(
-			'You disputed this score.'
-		);
-		await expect(list.locator(`a[href$="/matches/${STILL_DISPUTED}"]`)).toBeVisible();
+		await expect(
+			page.getByRole('list', { name: 'Needs you' }).getByTestId('match-row')
+		).toHaveCount(3);
+		for (const code of [MY_DISPUTE, STILL_DISPUTED, EVENT_DISPUTE, CLUB_DISPUTE]) {
+			await expect(
+				page.getByRole('list', { name: 'Needs you' }).locator(`a[href$="/matches/${code}"]`)
+			).toHaveCount(0);
+		}
+		await page.goto('/matches');
+		const list = page.getByRole('list', { name: 'Your matches' });
+		expect(await tagsIn(list.locator(`a[href$="/matches/${STILL_DISPUTED}"]`))).toEqual([
+			'Disputed'
+		]);
+		// The one she can withdraw is older, on the second page.
+		await page.goto('/matches?page=2');
+		expect(await tagsIn(rowFor(page, MY_DISPUTE))).toEqual(['Disputed']);
 	});
 
 	test('withdraws her dispute, then offers Confirm and no second dispute', async ({ page }) => {
@@ -596,12 +690,16 @@ test.describe('disputes', () => {
 		await expect(page.getByRole('button', { name: 'Dispute', exact: true })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Withdraw my dispute' })).toHaveCount(0);
 
-		// Home: it left the disputed count and now needs her confirmation.
+		// The tag at the top asks for her confirmation now, as the row does.
+		expect(await tagsIn(page.getByRole('main'))).toEqual(['Needs your confirmation']);
+
+		// Home: it now needs her confirmation.
 		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
-		await expect(page.getByTestId('in-progress')).toContainText('3 disputed');
-		await expect(
-			page.getByRole('list', { name: 'Needs you' }).locator(`a[href$="/matches/${MY_DISPUTE}"]`)
-		).toBeVisible();
+		const row = page
+			.getByRole('list', { name: 'Needs you' })
+			.locator(`a[href$="/matches/${MY_DISPUTE}"]`);
+		await expect(row).toBeVisible();
+		expect(await tagsIn(row)).toEqual(['Needs your confirmation']);
 	});
 
 	test('keeps Withdraw away when she already withdrew and another player still disputes', async ({
@@ -621,8 +719,8 @@ test.describe('disputes', () => {
 	}) => {
 		for (const scheme of ['dark', 'light'] as const) {
 			await page.emulateMedia({ colorScheme: scheme });
-			await page.goto('/');
-			await expect(page.getByTestId('in-progress')).toBeVisible();
+			await page.goto('/matches');
+			await expect(rowFor(page, STILL_DISPUTED)).toBeVisible();
 			await expectNoAxeViolations(page);
 
 			await page.goto(`/matches/${MY_DISPUTE}`);
@@ -644,25 +742,26 @@ test.describe('disputes', () => {
 });
 
 test.describe('holds', () => {
-	test('lists the held match she can vouch for under Needs you, and counts both holds', async ({
+	test('lists the held match she can vouch for under Needs you, and tags both holds in All', async ({
 		page
 	}) => {
 		const needsList = page.getByRole('list', { name: 'Needs you' });
 		const heldRow = needsList.locator(`a[href$="/matches/${HELD}"]`);
-		await expect(heldRow).toContainText("Vouch for it. It's on hold.");
-		// A held confirmed match reads On hold, not Confirmed.
-		await expect(heldRow.getByText('On hold', { exact: true })).toBeVisible();
-		await expect(heldRow.getByText('Confirmed', { exact: true })).toHaveCount(0);
+		// A held match keeps its status and asks for her vouch.
+		expect(await tagsIn(heldRow)).toEqual(['Confirmed', 'Needs your vouch']);
 		// Her team vouched for the other one, so it doesn't need her.
 		await expect(needsList.locator(`a[href$="/matches/${HELD_VOUCHED}"]`)).toHaveCount(0);
-		await expect(page.getByTestId('in-progress')).toContainText('2 on hold');
 
-		await page.getByTestId('in-progress').getByRole('link', { name: '2 on hold' }).click();
-		const list = page.getByRole('list', { name: 'Your matches, On hold' });
-		await expect(list.locator(`a[href$="/matches/${HELD}"]`)).not.toContainText("doesn't count");
-		await expect(list.locator(`a[href$="/matches/${HELD_VOUCHED}"]`)).toContainText(
-			'Your team has vouched for it.'
-		);
+		await page.goto('/matches');
+		const list = page.getByRole('list', { name: 'Your matches' });
+		expect(await tagsIn(list.locator(`a[href$="/matches/${HELD}"]`))).toEqual([
+			'Confirmed',
+			'Needs your vouch'
+		]);
+		expect(await tagsIn(list.locator(`a[href$="/matches/${HELD_VOUCHED}"]`))).toEqual([
+			'Confirmed',
+			'On hold'
+		]);
 	});
 
 	test('vouches for a held match through the dialog, and the hold ends', async ({ page }) => {
@@ -692,12 +791,17 @@ test.describe('holds', () => {
 		await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
 		await expect(page.getByRole('button', { name: 'This match really happened' })).toHaveCount(0);
 
-		// Home: it left Needs you and the held count.
+		// The tags at the top say Confirmed alone now.
+		expect(await tagsIn(page.getByRole('main'))).toEqual(['Confirmed']);
+
+		// Home: it left Needs you.
 		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
+		await expect(
+			page.getByRole('list', { name: 'Needs you' }).getByTestId('match-row')
+		).toHaveCount(2);
 		await expect(
 			page.getByRole('list', { name: 'Needs you' }).locator(`a[href$="/matches/${HELD}"]`)
 		).toHaveCount(0);
-		await expect(page.getByTestId('in-progress')).toContainText('1 on hold');
 	});
 
 	test('says her team vouched already and offers nothing, from a link with nothing cached', async ({
@@ -786,9 +890,8 @@ test.describe('corrections', () => {
 		await expect(page).toHaveURL(/\/matches\/M-FXD/);
 		await expect(page.getByTestId('status-panel')).toHaveAttribute('data-status', 'pending');
 
-		// Home: the old match left the disputed count.
-		await page.getByRole('link', { name: /^Home/ }).filter({ visible: true }).first().click();
-		await expect(page.getByTestId('in-progress')).toContainText('3 disputed');
+		// The tag at the top says the correction waits on the other team.
+		expect(await tagsIn(page.getByRole('main'))).toEqual(['Pending']);
 	});
 
 	test('says the old match is voided when its correction page is opened again', async ({
@@ -977,9 +1080,7 @@ test.describe('match page status panel', () => {
 });
 
 test.describe('match page header', () => {
-	test('is the format and date with the badge, and names the tab the same way', async ({
-		page
-	}) => {
+	test('is the format and date with the tags, and names the tab the same way', async ({ page }) => {
 		await page.goto(`/matches/${WAITING_ON_ME}`);
 		const title = page.getByRole('heading', { level: 1 });
 		await expect(title).toHaveText(/^(Singles|Doubles) · \w{3} \d{1,2} \w{3}$/);
@@ -988,6 +1089,10 @@ test.describe('match page header', () => {
 			`${format}, ${date.split(' ').slice(1).join(' ')} · OPEN Pickleball`
 		);
 		await expect(title.locator('..')).not.toContainText(/ (beat|lost to) /);
+		// The same tags as the match's row on Home and Matches.
+		expect(await tagsIn(page.getByRole('main'))).toEqual(['Needs your confirmation']);
+		await page.goto('/');
+		expect(await tagsIn(rowFor(page, WAITING_ON_ME))).toEqual(['Needs your confirmation']);
 	});
 
 	test('copies the match code from Details', async ({ page, context }) => {
@@ -1042,13 +1147,13 @@ test.describe('match page back link', () => {
 	});
 
 	test('returns to Matches with its filter', async ({ page }) => {
-		await page.goto('/matches?show=disputed');
-		await rowFor(page, STILL_DISPUTED).click();
+		await page.goto('/matches?show=needs-you');
+		await rowFor(page, HELD).click();
 		const back = backLink(page, 'Matches');
-		await expect(back).toHaveAttribute('href', '/matches?show=disputed');
+		await expect(back).toHaveAttribute('href', '/matches?show=needs-you');
 		await back.click();
-		await expect(page).toHaveURL(/\/matches\?show=disputed$/);
-		await expect(pill(page, 'Disputed')).toBeChecked();
+		await expect(page).toHaveURL(/\/matches\?show=needs-you$/);
+		await expect(pill(page, 'Needs you')).toBeChecked();
 	});
 
 	test('returns to the page of Matches it came from', async ({ page }) => {
@@ -1065,15 +1170,15 @@ test.describe('match page back link', () => {
 	});
 
 	test('opens its address in a new tab with a modifier click', async ({ page, context }) => {
-		await page.goto('/matches?show=disputed');
-		await rowFor(page, STILL_DISPUTED).click();
+		await page.goto('/matches?show=needs-you');
+		await rowFor(page, HELD).click();
 		const [tab] = await Promise.all([
 			context.waitForEvent('page'),
 			backLink(page, 'Matches').click({ modifiers: ['ControlOrMeta'] })
 		]);
-		await expect(tab).toHaveURL(/\/matches\?show=disputed$/);
+		await expect(tab).toHaveURL(/\/matches\?show=needs-you$/);
 		// The match stays open in the first tab.
-		await expect(page).toHaveURL(new RegExp(`/matches/${STILL_DISPUTED}$`));
+		await expect(page).toHaveURL(new RegExp(`/matches/${HELD}$`));
 	});
 
 	test('goes to Matches from a shared link', async ({ page }) => {
@@ -1148,7 +1253,7 @@ test.describe('scroll position on the way back', () => {
 	for (const [where, path, range] of [
 		['Matches', '/matches', '1–20 of 28'],
 		['the second page of Matches', '/matches?page=2', '21–28 of 28'],
-		['a filter on Matches', '/matches?show=disputed', '1–4 of 4']
+		['a filter on Matches', '/matches?show=needs-you', '1–3 of 3']
 	] as const) {
 		test(`returns to the same place on ${where}, by the back link and the back button`, async ({
 			page

@@ -104,16 +104,13 @@ export {
 	canCorrect,
 	DISPUTE_ENDS,
 	DISPUTE_ENDS_EVENT,
-	DISPUTED_MEANS,
 	HOLD_COUNTS,
 	HOLD_ENDS,
 	HOLD_WHY,
-	ON_HOLD_MEANS,
 	VOUCH_MEANS,
 	VOUCH_MEANS_ORGANIZER,
 	hasActions,
 	matchStatusCopy,
-	progressInfo,
 	statusInfo,
 	type MatchStatusCopy,
 	type PanelAction,
@@ -135,22 +132,29 @@ export {
 	type NeedsYouAction
 } from './needs-you.svelte.js';
 export {
+	NEEDS_CONFIRMATION_LABEL,
+	NEEDS_VOUCH_LABEL,
+	ON_HOLD_LABEL,
 	STATUS_LABELS,
 	formatDate,
 	formatLongDate,
 	formatName,
 	matchCountLabel,
 	matchHeadline,
+	matchTags,
 	matchTitle,
 	pageFromSearch,
 	rangeLabel,
+	resultWord,
 	rowLabel,
+	rowPlayers,
 	scoreLine,
 	scoringName,
 	sideScores,
 	teamNames,
 	viewpoint,
-	wonTag
+	wonTag,
+	type MatchTag
 } from './format.js';
 export { default as HomeView } from './components/home-view.svelte';
 export { default as HistoryView } from './components/history-view.svelte';
@@ -158,6 +162,7 @@ export { default as MatchView } from './components/match-view.svelte';
 export { default as CorrectView } from './components/correct-view.svelte';
 export { default as MatchRow } from './components/match-row.svelte';
 export { default as MatchList } from './components/match-list.svelte';
+export { default as MatchTags } from './components/match-tags.svelte';
 export { default as StatusPanel } from './components/status-panel.svelte';
 export { default as DisputeDialog } from './components/dispute-dialog.svelte';
 export { default as WithdrawDialog } from './components/withdraw-dialog.svelte';

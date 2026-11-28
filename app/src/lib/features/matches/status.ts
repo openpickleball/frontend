@@ -273,12 +273,6 @@ export const VOUCH_MEANS =
 export const VOUCH_MEANS_ORGANIZER =
 	"To vouch is to say this is a separate match, not a repeat of the other one. You vouch as a member of the event's organizer, and you can't undo a vouch.";
 
-/** What Home's In progress line explains, for each count it shows. */
-export const DISPUTED_MEANS =
-	"A player said the score is wrong. The match doesn't count while it is disputed.";
-export const ON_HOLD_MEANS =
-	'Another match on OPEN has the same teams and date, but other scores. Neither counts until each one is vouched for as a separate match.';
-
 /** The button's name for the terms it explains, such as "What does disputed mean?". */
 function infoFor(terms: StatusInfo['terms']): StatusInfo | null {
 	if (terms.length === 0) return null;
@@ -312,13 +306,5 @@ export function statusInfo(match: Match, hold?: HoldState): StatusInfo | null {
 			});
 		}
 	}
-	return infoFor(terms);
-}
-
-/** Home's In progress popover, for the counts it shows, or null when it shows none. */
-export function progressInfo(disputed: boolean, held: boolean): StatusInfo | null {
-	const terms: StatusInfo['terms'] = [];
-	if (disputed) terms.push({ term: 'Disputed', text: DISPUTED_MEANS });
-	if (held) terms.push({ term: 'On hold', text: ON_HOLD_MEANS });
 	return infoFor(terms);
 }
