@@ -54,7 +54,7 @@ test('an unknown route shows a not-found page with a way home', async ({ page })
 	await expect(page).toHaveTitle(/^We couldn't find this page/);
 	await page.locator('#main').getByRole('link', { name: 'Back to home' }).click();
 	await expect(page).toHaveURL(/\/$/);
-	await expect(page.getByRole('heading', { level: 2, name: 'In progress' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2, name: 'Needs you' })).toBeVisible();
 });
 
 for (const width of [320, 375]) {

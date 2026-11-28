@@ -19,6 +19,7 @@
 	} from '../filter.js';
 	import { rangeLabel } from '../format.js';
 	import { MatchListView } from '../list-view.svelte.js';
+	import { needsYou } from '../needs-you.svelte.js';
 	import { PAGE_SIZE, listMyHolds } from '../services.js';
 	import CodeGate from './code-gate.svelte';
 	import EmptyMatches from './empty-matches.svelte';
@@ -50,7 +51,7 @@
 	});
 
 	// The rows say when a match is on hold, which only the holds list knows. One large page covers
-	// almost every player. The rows just leave the note out when it fails.
+	// almost every player. The rows just leave the hold tag out when it fails.
 	$effect(() => {
 		if (myCode.status === 'ready' && myCode.code) {
 			untrack(() => void listMyHolds(0, { limit: 100 }).catch(() => {}));
@@ -75,12 +76,14 @@
 		void goto(`${resolve(ROUTES.matches)}${matchesQuery(filter)}`, { reset: false });
 	}
 
-	/** What an empty filter says. */
-	const NONE: Record<Exclude<MatchFilter, 'all'>, string> = {
-		'needs-you': 'No matches need you',
-		disputed: 'You have no disputed matches',
-		'on-hold': 'You have no matches on hold'
-	};
+	// The Needs you pill carries its count, the same list and number as the nav badge, which the
+	// layout loads. Like the badge, it shows from 1, and not while the list has failed.
+	const needsCount = $derived(needsYou.status === 'error' ? 0 : needsYou.count);
+	const pills = $derived(
+		MATCH_FILTERS.map((option) =>
+			option.value === 'needs-you' && needsCount > 0 ? { ...option, count: needsCount } : option
+		)
+	);
 
 	// The title changes with the page, so a screen reader hears that a new page loaded. The total is
 	// known once a page with matches has loaded. A page past the end has no matches, so it never
@@ -112,17 +115,8 @@
 
 <CodeGate>
 	{#snippet children(you)}
-		<!-- Four pills are wider than Record a match's. Below sm the pills are narrower, so they fit
-		on one line on most phones. On a narrower screen they wrap, and the track's corners are
-		rounded rather than round, so a second row still sits inside it. -->
 		<div class="mt-4">
-			<Segmented
-				class="flex-wrap rounded-3xl *:px-2.5 sm:*:px-4"
-				name="show"
-				label="Show"
-				options={MATCH_FILTERS}
-				bind:value={() => chosen, choose}
-			/>
+			<Segmented name="show" label="Show" options={pills} bind:value={() => chosen, choose} />
 		</div>
 
 		{#if view.status === 'error'}
@@ -134,7 +128,7 @@
 		{:else if view.count === 0 && show !== 'all'}
 			<Empty class="mt-8">
 				<EmptyHeader>
-					<EmptyTitle>{NONE[show]}</EmptyTitle>
+					<EmptyTitle>Nothing to confirm or vouch for</EmptyTitle>
 				</EmptyHeader>
 				<EmptyContent>
 					<Button href={pageHref(1, 'all')} variant="outline">See all matches</Button>
@@ -163,7 +157,6 @@
 					matches={view.matches}
 					{you}
 					label={show === 'all' ? 'Your matches' : `Your matches, ${filterLabel(show)}`}
-					listOf={show === 'all' ? undefined : show}
 				/>
 				<nav class="mt-4 flex flex-wrap items-center justify-between gap-3" aria-label="Pages">
 					<span class="text-base text-muted" data-testid="range">

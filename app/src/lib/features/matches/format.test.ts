@@ -7,10 +7,13 @@ import {
 	formatShortDate,
 	matchCountLabel,
 	matchHeadline,
+	matchTags,
 	matchTitle,
 	pageFromSearch,
 	rangeLabel,
+	resultWord,
 	rowLabel,
+	rowPlayers,
 	rowTeamNames,
 	scoreLine,
 	scoringName,
@@ -29,7 +32,8 @@ import {
 	privatePlayer,
 	sampleMatch,
 	tamsin,
-	team
+	team,
+	viewerMatch
 } from './testing.js';
 
 describe('dates', () => {
@@ -148,10 +152,13 @@ describe('matchHeadline', () => {
 		);
 	});
 
-	it('reads a held match as On hold', () => {
+	it('reads the tags at the end, as the row shows them', () => {
 		const match = sampleMatch({ status: 'confirmed' });
 		expect(rowLabel(match, TAMSIN)).toMatch(/ Confirmed\.$/);
-		expect(rowLabel(match, TAMSIN, true)).toMatch(/ On hold\.$/);
+		expect(rowLabel(match, TAMSIN, { vouched: true })).toMatch(/ Confirmed\. On hold\.$/);
+		expect(rowLabel(viewerMatch(), TAMSIN, { vouched: false })).toMatch(
+			/ Needs your confirmation\. Needs your vouch\.$/
+		);
 	});
 
 	it('says "played" while there is no winner', () => {
@@ -212,5 +219,87 @@ describe('formatShortDate', () => {
 	it('has the weekday and no year', () => {
 		expect(formatShortDate('2026-11-14')).toBe('Sat 14 Nov');
 		expect(formatShortDate('nope')).toBe('nope');
+	});
+});
+
+describe('matchTags', () => {
+	const labels = (...args: Parameters<typeof matchTags>) =>
+		matchTags(...args).map((tag) => `${tag.label}:${tag.tone}`);
+
+	it('is the plain status when nothing needs the player', () => {
+		expect(labels(sampleMatch())).toEqual(['Pending:pending']);
+		expect(labels(viewerMatch({ a: true }))).toEqual(['Pending:pending']);
+		expect(labels(sampleMatch({ status: 'confirmed' }))).toEqual(['Confirmed:confirmed']);
+		expect(labels(sampleMatch({ status: 'disputed' }))).toEqual(['Disputed:disputed']);
+		expect(labels(sampleMatch({ status: 'voided' }))).toEqual(['Voided:voided']);
+	});
+
+	it('asks for a confirmation in place of Pending while her team has not confirmed', () => {
+		expect(labels(viewerMatch())).toEqual(['Needs your confirmation:action']);
+		expect(labels(viewerMatch({ b: true }))).toEqual(['Needs your confirmation:action']);
+	});
+
+	it('keeps the status of a held match and adds the hold', () => {
+		const confirmed = sampleMatch({ status: 'confirmed', viewerSide: 'a' });
+		expect(labels(confirmed, { vouched: false })).toEqual([
+			'Confirmed:confirmed',
+			'Needs your vouch:action'
+		]);
+		expect(labels(confirmed, { vouched: true })).toEqual(['Confirmed:confirmed', 'On hold:held']);
+		expect(labels(sampleMatch({ status: 'disputed' }), { vouched: true })).toEqual([
+			'Disputed:disputed',
+			'On hold:held'
+		]);
+		expect(labels(viewerMatch(), { vouched: false })).toEqual([
+			'Needs your confirmation:action',
+			'Needs your vouch:action'
+		]);
+	});
+
+	it('drops the hold of a voided match', () => {
+		expect(labels(sampleMatch({ status: 'voided' }), { vouched: false })).toEqual([
+			'Voided:voided'
+		]);
+	});
+});
+
+describe('rowPlayers', () => {
+	it('names the partner and the opponents in doubles', () => {
+		expect(rowPlayers(viewerMatch(), TAMSIN)).toBe('With Oren Quill vs Bea Marlowe & Kit Ashdown');
+		expect(rowPlayers(sampleMatch({ viewerSide: 'b' }), BEA)).toBe(
+			'With Kit Ashdown vs Tamsin Vale & Oren Quill'
+		);
+	});
+
+	it('names the opponent in singles', () => {
+		const singles = sampleMatch({
+			format: 'singles',
+			viewerSide: 'a',
+			teamA: team('a', tamsin),
+			teamB: team('b', bea)
+		});
+		expect(rowPlayers(singles, TAMSIN)).toBe('Vs Bea Marlowe');
+	});
+
+	it('says "Private player" for a private player', () => {
+		const match = viewerMatch({}, { teamB: team('b', privatePlayer, kit) });
+		expect(rowPlayers(match, TAMSIN)).toBe('With Oren Quill vs Private player & Kit Ashdown');
+		const partner = viewerMatch({}, { teamA: team('a', tamsin, privatePlayer) });
+		expect(rowPlayers(partner, TAMSIN)).toBe('With Private player vs Bea Marlowe & Kit Ashdown');
+	});
+
+	it('names both teams for someone who did not play', () => {
+		expect(rowPlayers(sampleMatch(), TAMSIN)).toBe(
+			'Tamsin Vale & Oren Quill vs Bea Marlowe & Kit Ashdown'
+		);
+	});
+});
+
+describe('resultWord', () => {
+	it('says Won or Lost from her side, and nothing without a side or a winner', () => {
+		expect(resultWord(viewerMatch())).toBe('Won');
+		expect(resultWord(sampleMatch({ viewerSide: 'b' }))).toBe('Lost');
+		expect(resultWord(sampleMatch())).toBeNull();
+		expect(resultWord(viewerMatch({}, { games: games([11, 7]) }))).toBeNull();
 	});
 });

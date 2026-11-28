@@ -91,12 +91,6 @@ for (const scheme of ['dark', 'light'] as const) {
 		await expect(page.getByRole('dialog')).toBeVisible();
 		await expectNoAxeViolations(page);
 
-		await page.goto('/');
-		await page.getByRole('button', { name: 'What do disputed and on hold mean?' }).tap();
-		const progress = page.getByRole('dialog', { name: 'What do disputed and on hold mean?' });
-		await expect(progress).toContainText("doesn't count while it is disputed");
-		await expectNoAxeViolations(page);
-
 		await page.goto('/ratings');
 		await page.getByRole('button', { name: 'What does reliability mean?' }).tap();
 		const reliability = page.getByRole('dialog', { name: 'What does reliability mean?' });

@@ -47,4 +47,20 @@ describe('Segmented', () => {
 		});
 		await expect.element(page.getByRole('radiogroup')).toHaveClass('flex-wrap');
 	});
+
+	it('shows a count after a label, and names the pill with it', async () => {
+		await render(Segmented, {
+			name: 'show',
+			label: 'Show',
+			options: [
+				{ value: 'all', label: 'All' },
+				{ value: 'needs-you', label: 'Needs you', count: 3 }
+			],
+			value: 'all'
+		});
+		await expect.element(page.getByRole('radio', { name: 'All', exact: true })).toBeVisible();
+		const needs = page.getByRole('radio', { name: 'Needs you, 3', exact: true });
+		await expect.element(needs).toBeVisible();
+		await expect.element(needs.getByTestId('pill-count')).toHaveTextContent('3');
+	});
 });

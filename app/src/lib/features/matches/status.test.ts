@@ -12,7 +12,6 @@ import {
 	matchStatusCopy,
 	panelIsQuiet,
 	panelTone,
-	progressInfo,
 	statusInfo,
 	VOUCH_MEANS,
 	VOUCH_MEANS_ORGANIZER
@@ -328,8 +327,7 @@ describe('statusInfo', () => {
 			statusInfo(match, { vouched: false }),
 			statusInfo({ ...match, event: EVENT }, { vouched: false }),
 			statusInfo({ ...match, club: CLUB }, { vouched: false }),
-			statusInfo(sampleMatch({ status: 'confirmed' }), { vouched: false }),
-			progressInfo(true, true)
+			statusInfo(sampleMatch({ status: 'confirmed' }), { vouched: false })
 		]) {
 			for (const { text } of info!.terms) {
 				expect(text).not.toContain('—');
@@ -351,14 +349,5 @@ describe('statusInfo', () => {
 			expect(text).not.toMatch(/moderator|OPEN rating/i);
 			expect(text.match(/[.?!](\s|$)/g)!.length).toBeLessThanOrEqual(2);
 		}
-	});
-});
-
-describe('progressInfo', () => {
-	it('explains only the counts Home shows', () => {
-		expect(progressInfo(true, false)?.label).toBe('What does disputed mean?');
-		expect(progressInfo(false, true)?.label).toBe('What does on hold mean?');
-		expect(progressInfo(true, true)?.label).toBe('What do disputed and on hold mean?');
-		expect(progressInfo(false, false)).toBeNull();
 	});
 });

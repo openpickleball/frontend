@@ -4,6 +4,7 @@
  * Scores use a plain hyphen ("11-7, 9-11, 11-5") and ranges an en dash ("1–20 of 47"). No em dashes.
  */
 import {
+	needsViewerConfirmation,
 	gameWinner,
 	gamesWon,
 	winner,
@@ -13,6 +14,7 @@ import {
 	type Side,
 	type Team
 } from '#lib/domain/index.js';
+import type { HoldState } from './cache.svelte.js';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = [
@@ -138,8 +140,69 @@ export const STATUS_LABELS: Record<MatchStatus, string> = {
 	voided: 'Voided'
 };
 
-/** The badge and spoken status of a held match, the same on the match page and in its row. */
+/** The tag of a held match the player's side has vouched for, or that they can't vouch for. */
 export const ON_HOLD_LABEL = 'On hold';
+
+/** The tag that asks the player to confirm or dispute. It takes the place of Pending. */
+export const NEEDS_CONFIRMATION_LABEL = 'Needs your confirmation';
+
+/** The tag that asks the player to vouch for a held match. It takes the place of On hold. */
+export const NEEDS_VOUCH_LABEL = 'Needs your vouch';
+
+/**
+ * One tag on a match: `action` asks something of the player (the warning color), `held` is On
+ * hold, and a status is the match's own status.
+ */
+export type MatchTag = { label: string; tone: MatchStatus | 'held' | 'action' };
+
+/**
+ * The tags of a match, the same in its row and at the top of its page: the status, then the hold.
+ * "Needs your confirmation" takes the place of Pending while the player's team has not confirmed
+ * or disputed. A held match keeps its status and adds "Needs your vouch" while the player's side
+ * has not vouched, and "On hold" once it has. Pass `hold` when the holds list says the match is
+ * held: `MatchOut` itself can't say so. The two action tags are `needsYouActions`, so a match with
+ * one of them is in Needs you.
+ */
+export function matchTags(match: Match, hold?: HoldState): MatchTag[] {
+	const tags: MatchTag[] = [
+		needsViewerConfirmation(match)
+			? { label: NEEDS_CONFIRMATION_LABEL, tone: 'action' }
+			: { label: STATUS_LABELS[match.status], tone: match.status }
+	];
+	if (hold && match.status !== 'voided') {
+		tags.push(
+			hold.vouched
+				? { label: ON_HOLD_LABEL, tone: 'held' }
+				: { label: NEEDS_VOUCH_LABEL, tone: 'action' }
+		);
+	}
+	return tags;
+}
+
+/**
+ * Who played, for a list row, from the player's side: "With Oren Quill vs Bea Marlowe & Kit
+ * Ashdown" for doubles and "Vs Rosa Fenwick" for singles. A private player reads "Private player",
+ * as everywhere. For someone who did not play, such as an organizer, both teams: "Tamsin Vale &
+ * Oren Quill vs Bea Marlowe & Kit Ashdown".
+ */
+export function rowPlayers(match: Match, you: PlayerCode | null): string {
+	if (!match.viewerSide) {
+		return `${rowTeamNames(match.teamA, null)} vs ${rowTeamNames(match.teamB, null)}`;
+	}
+	const [mine, theirs] =
+		match.viewerSide === 'a' ? [match.teamA, match.teamB] : [match.teamB, match.teamA];
+	const opponents = rowTeamNames(theirs, null);
+	const partners = mine.players.filter((player) => !you || player.code !== you);
+	if (match.format === 'singles' || partners.length === 0) return `Vs ${opponents}`;
+	return `With ${partners.map((player) => player.displayName).join(' & ')} vs ${opponents}`;
+}
+
+/** "Won" or "Lost", from the player's side. Null for someone who did not play, or no winner. */
+export function resultWord(match: Match): 'Won' | 'Lost' | null {
+	const won = winner(match);
+	if (!match.viewerSide || won === null) return null;
+	return won === match.viewerSide ? 'Won' : 'Lost';
+}
 
 /**
  * The side to read the match from: the signed-in player's own, as the API says (`viewerSide`).
@@ -166,16 +229,21 @@ export function matchHeadline(match: Match, you: PlayerCode | null): string {
 }
 
 /**
- * One sentence for a screen reader: who played, the score and the status. A held match passes
- * `held`, so it reads "On hold" like the row's badge, not its plain status.
+ * One sentence for a screen reader: who played, the score and the tags, as the row shows them
+ * (`matchTags`). Pass `hold` when the match is held.
  */
-export function rowLabel(match: Match, you: PlayerCode | null, held = false): string {
+export function rowLabel(match: Match, you: PlayerCode | null, hold?: HoldState): string {
 	const from = viewpoint(match);
 	const mine = from === 'a' ? match.teamA : match.teamB;
 	const theirs = from === 'a' ? match.teamB : match.teamA;
 	const won = winner(match);
 	const verb = won === null ? 'played' : won === from ? 'beat' : 'lost to';
-	return `${formatDate(match.playedOn)}, ${matchTitle(match)}. ${teamNames(mine, you)} ${verb} ${teamNames(theirs, you)}, ${scoreLine(match, from)}. ${held ? ON_HOLD_LABEL : STATUS_LABELS[match.status]}.`;
+	return `${formatDate(match.playedOn)}, ${matchTitle(match)}. ${teamNames(mine, you)} ${verb} ${teamNames(theirs, you)}, ${scoreLine(match, from)}. ${matchTags(
+		match,
+		hold
+	)
+		.map((tag) => `${tag.label}.`)
+		.join(' ')}`;
 }
 
 /** "1–20 of 47" for the page that starts at `offset` and shows `shown` matches. */

@@ -7,7 +7,6 @@ import { session } from '#lib/features/auth/index.js';
 import { MyRatings, myCode } from '#lib/features/players/index.js';
 import { matchCache } from '../cache.svelte.js';
 import { needsYou } from '../needs-you.svelte.js';
-import { DISPUTED_MEANS, ON_HOLD_MEANS } from '../status.js';
 import * as services from '../services.js';
 import { TAMSIN, viewerMatch } from '../testing.js';
 import HomeView from './home-view.svelte';
@@ -17,7 +16,6 @@ vi.mock('../services.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('../services.js')>()),
 	listMatches: vi.fn(),
 	listAwaitingConfirmation: vi.fn(),
-	listMyDisputes: vi.fn(),
 	listMyHolds: vi.fn()
 }));
 const mocked = vi.mocked(services);
@@ -46,7 +44,6 @@ const NEEDS_TOO = code('3FTB8ZRMK6P');
 const WAITING = code('X4NC2GHJ9VQ');
 const RECENT = code('D9PW5KXE7RM');
 const DISPUTED = code('R5GK9WBD2XF');
-const DISPUTED_TOO = code('6YEM3HNV8QT');
 const HELD = code('H2ZA6TQN4CJ');
 const HELD_TOO = code('N3QH7DFR5KZ');
 
@@ -62,14 +59,10 @@ const done = viewerMatch(
 	{ code: RECENT, status: 'confirmed', playedOn: '2026-11-08' }
 );
 
-// Tamsin disputed this one, so she can withdraw it. Another player disputed the second.
+// Tamsin disputed this one, so she can withdraw it, from the match page.
 const myDispute = viewerMatch(
 	{ decision: 'dispute' },
 	{ code: DISPUTED, status: 'disputed', playedOn: '2026-11-03' }
-);
-const theirDispute = viewerMatch(
-	{ a: true, decision: 'confirm' },
-	{ code: DISPUTED_TOO, status: 'disputed', playedOn: '2026-11-01' }
 );
 
 // Held. Tamsin's side has not vouched for the first, and has for the second.
@@ -93,13 +86,6 @@ function paged<T>(items: T[], remember: (items: T[]) => void) {
 
 function serveHolds(holds: { match: Match; vouched: boolean }[]) {
 	mocked.listMyHolds.mockImplementation(paged(holds, (page) => matchCache.rememberHolds(page)));
-}
-
-function serveDisputes(disputes: Match[], count = disputes.length) {
-	mocked.listMyDisputes.mockImplementation(async (_offset, options) => {
-		options?.cache?.rememberAll(disputes);
-		return { items: disputes, count };
-	});
 }
 
 function serveAwaiting(awaiting: Match[]) {
@@ -140,7 +126,6 @@ beforeEach(() => {
 	session.apply({ status: 'signed_in', email: 'player@example.com' });
 	myCode.code = TAMSIN;
 	myCode.status = 'ready';
-	serveDisputes([]);
 	serveHolds([]);
 	fetchRatings.mockReset();
 	fetchRatings.mockResolvedValue(RATINGS);
@@ -156,10 +141,20 @@ const home = () => ({ ratings: new MyRatings(fetchRatings) });
 const heading = (name: string) => page.getByRole('heading', { level: 2, name });
 const needsList = () => page.getByRole('list', { name: 'Needs you' });
 const titles = (container: HTMLElement) =>
-	[...container.querySelectorAll('h2')].map((h) => h.textContent?.trim());
+	[...container.querySelectorAll('h2, h3')].map((h) => h.textContent?.trim());
+/** The tags of each row in Needs you, in order, joined by commas. */
+const rowTags = () =>
+	needsList()
+		.getByTestId('match-tags')
+		.elements()
+		.map((tags) =>
+			[...tags.querySelectorAll('[data-slot="badge"]')]
+				.map((badge) => badge.textContent?.trim())
+				.join(', ')
+		);
 
 describe('HomeView Needs you', () => {
-	it('lists what to confirm and what to vouch for, oldest first, each with its action', async () => {
+	it('lists what to confirm and what to vouch for, oldest first, each with its tags', async () => {
 		serve([needs, needsToo, waiting, done], [needs, needsToo]);
 		serveHolds([{ match: held, vouched: false }]);
 		const screen = await render(HomeView, home());
@@ -171,20 +166,23 @@ describe('HomeView Needs you', () => {
 			`/matches/${NEEDS_TOO}`,
 			`/matches/${NEEDS}`
 		]);
-		expect(rows[0].textContent).toContain("Vouch for it. It's on hold.");
-		expect(rows[1].textContent).toContain('Confirm or dispute the score.');
-		expect(titles(screen.container)).toEqual(['Ratings', 'In progress']);
-		await expect.element(page.getByRole('heading', { level: 3, name: 'Needs you' })).toBeVisible();
+		expect(rowTags()).toEqual([
+			'Confirmed, Needs your vouch',
+			'Needs your confirmation',
+			'Needs your confirmation'
+		]);
+		// Needs you is the section title. There is no In progress any more.
+		expect(titles(screen.container)).toEqual(['Ratings', 'Needs you']);
 	});
 
-	it('shows 3, then See all with the total, which opens the Needs you filter', async () => {
+	it('shows 3, then See all with the total in Matches, which opens the Needs you filter', async () => {
 		serve([done], manyToConfirm(5));
 		serveHolds([{ match: heldToo, vouched: false }]);
 		await render(HomeView, home());
 
 		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(3);
 		await expect
-			.element(page.getByRole('link', { name: 'See all 6' }))
+			.element(page.getByRole('link', { name: 'See all 6 in Matches' }))
 			.toHaveAttribute('href', '/matches?show=needs-you');
 		// The oldest first: the held match played on 27 October.
 		await expect
@@ -195,7 +193,7 @@ describe('HomeView Needs you', () => {
 	it('reads the awaiting-confirmation list to its end, past the first page', async () => {
 		serve([done], manyToConfirm(130));
 		await render(HomeView, home());
-		await expect.element(page.getByRole('link', { name: 'See all 130' })).toBeVisible();
+		await expect.element(page.getByRole('link', { name: 'See all 130 in Matches' })).toBeVisible();
 		expect(mocked.listAwaitingConfirmation).toHaveBeenCalledWith(0, expect.anything());
 		expect(mocked.listAwaitingConfirmation).toHaveBeenCalledWith(100, expect.anything());
 	});
@@ -207,12 +205,25 @@ describe('HomeView Needs you', () => {
 		await expect.element(page.getByTestId('see-all-needs')).not.toBeInTheDocument();
 	});
 
-	it("says You're all caught up when nothing needs the player", async () => {
-		serve([waiting, done], []);
+	it('shows exactly 3, with no See all, when 3 need the player', async () => {
+		serve([done], manyToConfirm(3));
+		await render(HomeView, home());
+		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(3);
+		await expect.element(page.getByTestId('see-all-needs')).not.toBeInTheDocument();
+	});
+
+	it('says there is nothing to confirm or vouch for when nothing needs the player', async () => {
+		serve([waiting, myDispute, done], []);
 		serveHolds([{ match: heldToo, vouched: true }]);
 		await render(HomeView, home());
-		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
+		await expect
+			.element(page.getByText('Nothing to confirm or vouch for.', { exact: true }))
+			.toBeVisible();
 		await expect.element(needsList()).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('see-all-needs')).not.toBeInTheDocument();
+		// The section and its match count stay.
+		await expect.element(heading('Needs you')).toBeVisible();
+		await expect.element(page.getByTestId('all-matches')).toHaveTextContent('3 matches');
 	});
 
 	it('drops a match once its cached copy is confirmed, and a held one once its side vouches', async () => {
@@ -226,7 +237,7 @@ describe('HomeView Needs you', () => {
 		);
 		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(1);
 		matchCache.markVouched(HELD);
-		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
+		await expect.element(page.getByText('Nothing to confirm or vouch for.')).toBeVisible();
 	});
 
 	it('still shows the rest, with a notice and Try again, when Needs you fails', async () => {
@@ -245,92 +256,30 @@ describe('HomeView Needs you', () => {
 	});
 });
 
-describe('HomeView In progress', () => {
-	it('counts disputed and held matches in one line that links to each filter', async () => {
-		serve([needs, myDispute, theirDispute, held, heldToo, done], [needs]);
-		serveDisputes([myDispute, theirDispute]);
+describe('HomeView without In progress', () => {
+	it('has no counts line and no info button for disputed or held matches', async () => {
+		serve([needs, myDispute, held, heldToo, done], [needs]);
 		serveHolds([
 			{ match: held, vouched: false },
 			{ match: heldToo, vouched: true }
 		]);
 		await render(HomeView, home());
-
-		const line = page.getByTestId('in-progress');
-		await expect.element(line).toHaveTextContent('2 disputed · 2 on hold');
-		await expect
-			.element(line.getByRole('link', { name: '2 disputed' }))
-			.toHaveAttribute('href', '/matches?show=disputed');
-		await expect
-			.element(line.getByRole('link', { name: '2 on hold' }))
-			.toHaveAttribute('href', '/matches?show=on-hold');
-		// No count of what waits on the other team: there is no list or filter for it.
-		await expect.element(line.getByText(/waiting/)).not.toBeInTheDocument();
-	});
-
-	it('explains disputed and on hold in one info popover by the title', async () => {
-		serve([needs, myDispute, held, done], [needs]);
-		serveDisputes([myDispute]);
-		serveHolds([{ match: held, vouched: false }]);
-		await render(HomeView, home());
-		await page.getByRole('button', { name: 'What do disputed and on hold mean?' }).click();
-		const popover = page.getByRole('dialog', { name: 'What do disputed and on hold mean?' });
-		await expect.element(popover.getByText(DISPUTED_MEANS)).toBeVisible();
-		await expect.element(popover.getByText(ON_HOLD_MEANS)).toBeVisible();
-	});
-
-	it('explains only the counts the line shows', async () => {
-		serve([myDispute, done]);
-		serveDisputes([myDispute]);
-		await render(HomeView, home());
-		await expect.element(page.getByTestId('in-progress')).toHaveTextContent('1 disputed');
-		await expect
-			.element(page.getByRole('button', { name: 'What does disputed mean?' }))
-			.toBeVisible();
-	});
-
-	it('keeps counting a dispute the player can withdraw, and drops one that ended', async () => {
-		serve([done]);
-		serveDisputes([myDispute, theirDispute], 3);
-		await render(HomeView, home());
-		const line = page.getByTestId('in-progress');
-		await expect.element(line).toHaveTextContent('3 disputed');
-
-		// She withdrew, and no one else disputes it: it is pending again.
-		matchCache.remember(viewerMatch({ decision: 'withdraw' }, { code: DISPUTED }));
-		await expect.element(line).toHaveTextContent('2 disputed');
-	});
-
-	it('has no counts line, and no info button, when nothing is disputed or on hold', async () => {
-		serve([waiting, done]);
-		await render(HomeView, home());
-		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
+		await expect.poll(() => needsList().getByTestId('match-row').elements()).toHaveLength(2);
+		await expect.element(heading('In progress')).not.toBeInTheDocument();
 		await expect.element(page.getByTestId('in-progress')).not.toBeInTheDocument();
+		await expect.element(page.getByText(/\d+ disputed/)).not.toBeInTheDocument();
 		// Home's compact rating tiles have no info button either.
 		expect(page.getByRole('button', { name: /mean\?/ }).elements()).toHaveLength(0);
-	});
-
-	it('still shows the rest, with a notice and Try again, when the disputed list fails', async () => {
-		serve([waiting, done]);
-		mocked.listMyDisputes.mockRejectedValueOnce(new Error('down'));
-		await render(HomeView, home());
-		await expect.element(page.getByTestId('disputes-error')).toBeVisible();
-		await expect.element(page.getByText("We couldn't check your disputed matches.")).toBeVisible();
-		await expect.element(page.getByText("You're all caught up.")).toBeVisible();
-
-		serveDisputes([myDispute]);
-		await page.getByTestId('disputes-error').getByRole('button', { name: 'Try again' }).click();
-		await expect.element(page.getByTestId('in-progress')).toHaveTextContent('1 disputed');
-		await expect.element(page.getByTestId('disputes-error')).not.toBeInTheDocument();
 	});
 });
 
 describe('HomeView order, code, ratings and the match count', () => {
-	it('shows the code, then Ratings, then In progress, with no Recent matches or Record', async () => {
+	it('shows the code, then Ratings, then Needs you, with no Recent matches or Record', async () => {
 		serve([needs, waiting, done], [needs]);
 		const screen = await render(HomeView, home());
-		await expect.element(heading('In progress')).toBeVisible();
+		await expect.element(heading('Needs you')).toBeVisible();
 		await expect.element(page.getByTestId('ratings')).toBeVisible();
-		expect(titles(screen.container)).toEqual(['Ratings', 'In progress']);
+		expect(titles(screen.container)).toEqual(['Ratings', 'Needs you']);
 		const strip = page.getByTestId('my-code').element();
 		await expect.element(page.getByTestId('my-code')).toHaveTextContent(TAMSIN);
 		const [ratings] = screen.container.querySelectorAll('section');
@@ -343,13 +292,13 @@ describe('HomeView order, code, ratings and the match count', () => {
 		await expect.element(page.getByRole('link', { name: 'All matches' })).not.toBeInTheDocument();
 	});
 
-	it("puts the player's match count next to In progress, linking to Matches", async () => {
+	it("puts the player's match count next to Needs you, linking to Matches", async () => {
 		serve([needs, waiting, myDispute, done], [needs]);
 		await render(HomeView, home());
 		const link = page.getByRole('link', { name: '4 matches' });
 		await expect.element(link).toHaveAttribute('href', '/matches');
 		await expect.element(link).toHaveAttribute('data-testid', 'all-matches');
-		const section = heading('In progress').element().closest('section');
+		const section = heading('Needs you').element().closest('section');
 		expect(section?.contains(link.element())).toBe(true);
 	});
 
@@ -401,7 +350,7 @@ describe('HomeView order, code, ratings and the match count', () => {
 		serve([], []);
 		await render(HomeView, home());
 		await expect.element(page.getByText('No matches yet')).toBeVisible();
-		await expect.element(heading('In progress')).not.toBeInTheDocument();
+		await expect.element(heading('Needs you')).not.toBeInTheDocument();
 		expect(page.getByRole('link', { name: 'Record a match' }).elements()).toHaveLength(1);
 		await expect.element(page.getByTestId('my-code')).toBeVisible();
 		await expect.element(heading('Ratings')).toBeVisible();

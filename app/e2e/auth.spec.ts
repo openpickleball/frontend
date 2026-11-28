@@ -240,7 +240,7 @@ test('a signed-out visit to a signed-in page goes to sign in, then back', async 
 
 test('a session that ends mid-use sends the player to sign in, then back', async ({ page }) => {
 	await signIn(page, VERIFIED_EMAIL, MOCK_PASSWORD);
-	await expect(page.getByRole('heading', { name: 'In progress' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Needs you' })).toBeVisible();
 
 	// The backend forgets the session, as when it expires or the player signs out elsewhere.
 	await page.evaluate(() =>

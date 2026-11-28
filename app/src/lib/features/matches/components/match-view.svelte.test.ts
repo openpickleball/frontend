@@ -116,10 +116,10 @@ describe('MatchView', () => {
 
 		it('keeps the Matches filter and page it came from', async () => {
 			await render(MatchView, { code: code() });
-			arriveFrom('link', '/matches?show=disputed&page=2', '/matches');
+			arriveFrom('link', '/matches?show=needs-you&page=2', '/matches');
 			await expect
 				.element(back('Matches'))
-				.toHaveAttribute('href', '/matches?show=disputed&page=2');
+				.toHaveAttribute('href', '/matches?show=needs-you&page=2');
 		});
 
 		it('opens the address instead of going back after the browser back or forward button', async () => {
@@ -147,13 +147,17 @@ describe('MatchView', () => {
 		});
 	});
 
-	it('makes the format and date the heading, with the status badge next to it', async () => {
+	it('makes the format and date the heading, with the same tags as the row next to it', async () => {
 		const screen = await render(MatchView, { code: code() });
 
 		await expect
 			.element(page.getByRole('heading', { level: 1, name: 'Doubles · Sat 14 Nov' }))
 			.toBeVisible();
-		await expect.element(page.getByText('Pending', { exact: true })).toBeVisible();
+		// Her team has not confirmed, so the tag asks for it in place of Pending, as in the row.
+		await expect
+			.element(page.getByTestId('match-tags').getByText('Needs your confirmation', { exact: true }))
+			.toBeVisible();
+		await expect.element(page.getByText('Pending', { exact: true })).not.toBeInTheDocument();
 		const title = screen.container.querySelector('h1')!;
 		// The header has no sentence headline and no score line: the scoreboard says those.
 		expect(title.parentElement!.textContent).not.toMatch(/beat|11-7/);
@@ -861,12 +865,15 @@ describe('MatchView vouch', () => {
 		await dialog.getByRole('button', { name: 'Vouch for match' }).click();
 	}
 
-	it('says a held match is on hold, with a badge, before the score', async () => {
+	it('says a held match is on hold, with its tags, before the score', async () => {
 		openHeld();
 		const screen = await render(MatchView, { code: code() });
 		await expect.element(page.getByRole('heading', { name: 'On hold' })).toBeVisible();
 		const badges = [...screen.container.querySelectorAll('[data-slot="badge"]')];
-		expect(badges.map((badge) => badge.textContent?.trim())).toEqual(['Confirmed', 'On hold']);
+		expect(badges.map((badge) => badge.textContent?.trim())).toEqual([
+			'Confirmed',
+			'Needs your vouch'
+		]);
 		const panel = screen.container.querySelector('[data-testid="status-panel"]')!;
 		const board = screen.getByRole('region', { name: 'Score' }).element();
 		expect(panel.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -922,6 +929,11 @@ describe('MatchView vouch', () => {
 		expect(mocked.vouchForMatch).toHaveBeenCalledExactlyOnceWith(code());
 		await expect.element(page.getByRole('heading', { name: 'On hold' })).toHaveFocus();
 		await expect.element(page.getByText(/Your team vouched for this match/)).toBeVisible();
+		// The tag no longer asks for a vouch.
+		await expect
+			.element(page.getByTestId('match-tags').getByText('On hold', { exact: true }))
+			.toBeVisible();
+		await expect.element(page.getByText('Needs your vouch')).not.toBeInTheDocument();
 		expect(toast).toHaveBeenCalledWith('Vouched. The hold ends once the others vouch too.');
 		await expect
 			.element(page.getByRole('button', { name: 'This match really happened' }))

@@ -29,15 +29,26 @@ describe('matchBackTarget', () => {
 
 	it('keeps the Matches filter and page', () => {
 		const target = matchBackTarget(
-			arrival('link', from('/matches', '/matches?show=disputed&page=2')),
+			arrival('link', from('/matches', '/matches?show=needs-you&page=2')),
 			paths,
 			nothing
 		);
 		expect(target).toEqual({
-			href: '/matches?show=disputed&page=2',
+			href: '/matches?show=needs-you&page=2',
 			label: 'Matches',
 			back: true
 		});
+	});
+
+	it('drops an old Disputed or On hold filter, and keeps the page', () => {
+		for (const show of ['disputed', 'on-hold']) {
+			const target = matchBackTarget(
+				arrival('link', from('/matches', `/matches?show=${show}&page=2`)),
+				paths,
+				nothing
+			);
+			expect(target).toEqual({ href: '/matches?page=2', label: 'Matches', back: true });
+		}
 	});
 
 	it('drops an unknown filter, a bad page and anything else in the query', () => {
@@ -87,7 +98,7 @@ describe('matchBackTarget', () => {
 	});
 
 	it('from another match, links to where that match went', () => {
-		const filtered: BackTarget = { href: '/matches?show=disputed', label: 'Matches', back: true };
+		const filtered: BackTarget = { href: '/matches?show=needs-you', label: 'Matches', back: true };
 		const target = matchBackTarget(
 			arrival('link', from('/matches/[code]', '/matches/M-OLD', { code: 'M-OLD' })),
 			paths,

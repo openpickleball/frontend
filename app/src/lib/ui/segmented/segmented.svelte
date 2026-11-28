@@ -16,7 +16,8 @@
 		/** Names the radio group. */
 		name: string;
 		label: string;
-		options: readonly { value: string; label: string }[];
+		/** `count`, when set, follows the label, such as "Needs you 3", and is part of its name. */
+		options: readonly { value: string; label: string; count?: number }[];
 		value: string;
 		/** Classes for the track, for example to let the pills wrap. */
 		class?: string;
@@ -27,7 +28,19 @@
 	<FieldLegend variant="label">{label}</FieldLegend>
 	<RadioGroup bind:value {name} orientation="horizontal" class={className}>
 		{#each options as option (option.value)}
-			<RadioGroupItem value={option.value}>{option.label}</RadioGroupItem>
+			<!-- With a count, the pill's name says it with a comma, "Needs you, 3", rather than run the
+			     two together. -->
+			<RadioGroupItem
+				value={option.value}
+				aria-label={option.count === undefined ? undefined : `${option.label}, ${option.count}`}
+			>
+				{option.label}
+				{#if option.count !== undefined}
+					<span class="ms-1.5 font-normal tabular-nums" data-testid="pill-count">
+						{option.count}
+					</span>
+				{/if}
+			</RadioGroupItem>
 		{/each}
 	</RadioGroup>
 </FieldSet>
