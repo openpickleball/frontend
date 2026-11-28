@@ -51,6 +51,8 @@ A player can delete their account from the profile. The app explains what goes a
 - `app/src/lib/features/auth/components/reauth-prompt.svelte`: its Dialog is mounted only while a request is open, so the prompt opens on top of the delete dialog (see Decisions).
 - `app/e2e/delete-account-client-nav.spec.ts` (new, frozen): reaches Profile by its link, then confirms and cancels the prompt with the mouse.
 - `plans/delete-account/plan.md`: tick steps and record decisions.
+- `app/README.md`: the staff mock account, and how long a deleted mock account lasts.
+- `plans/organizer-events/plan.md` and `plans/frontend-v1-2/plan.md`: they no longer say account deletion is not built.
 
 ## Order of work
 
