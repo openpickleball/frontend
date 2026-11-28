@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
+import { buildCode, type PlayerCode } from '#lib/domain/index.js';
 import { session } from '#lib/features/auth/index.js';
+import { myCode } from '#lib/features/players/index.js';
 import { APP_COMMIT, APP_VERSION, versionLabel } from '#lib/ui/app-version.js';
 import { PRIVACY_URL, TERMS_URL } from '#lib/ui/legal.js';
 import ProfilePage from './+page.svelte';
 import DataPage from './data/+page.svelte';
-import NamePage from './name/+page.svelte';
 import PrivacyPage from './privacy/+page.svelte';
 
 /** The visible text of some rendered HTML: the text between its tags, joined by spaces. */
@@ -21,7 +22,17 @@ function renderSignedIn() {
 	return render(ProfilePage).body;
 }
 
-afterEach(() => session.reset());
+afterEach(() => {
+	session.reset();
+	myCode.reset();
+});
+
+/** myCode as the gate leaves it once the backend sent the player's code and name. */
+function readyCode(displayName: string) {
+	myCode.code = buildCode('player', '4RWN8TQ') as PlayerCode;
+	myCode.displayName = displayName;
+	myCode.status = 'ready';
+}
 
 describe('the profile page', () => {
 	it('has the settings groups in order, then Sign out', () => {
@@ -34,7 +45,6 @@ describe('the profile page', () => {
 	it('links each settings row to its page', () => {
 		const body = renderSignedIn();
 		for (const [href, title] of [
-			['/profile/name', 'Display name'],
 			['/profile/two-factor', 'Two-factor authentication'],
 			['/profile/privacy', 'Profile visibility'],
 			['/profile/data', 'Copy of your data']
@@ -44,6 +54,23 @@ describe('the profile page', () => {
 			expect(textOf(link![1])).toContain(title);
 			expect(link![0]).not.toContain('target=');
 		}
+	});
+
+	it('shows the name other players see as text, with no link or field, first in Account', () => {
+		readyCode('Tamsin V.');
+		const body = renderSignedIn();
+		const row = body.match(/<li[^>]*data-testid="profile-name"[^>]*>(.*?)<\/li>/s);
+		expect(row).not.toBeNull();
+		expect(textOf(row![1])).toBe("Name Tamsin V. From your sign-up. It can't be changed.");
+		expect(row![1]).not.toMatch(/<a\b|<input\b|<button\b/);
+		expect(body.indexOf('data-testid="profile-name"')).toBeLessThan(
+			body.indexOf('href="/profile/two-factor"')
+		);
+		expect(textOf(body)).not.toContain('Display name');
+	});
+
+	it('shows no Name row while the name is not known', () => {
+		expect(renderSignedIn()).not.toContain('data-testid="profile-name"');
 	});
 
 	it('opens the terms and the privacy policy in a new tab, as the footer does', () => {
@@ -98,7 +125,6 @@ describe('the profile page', () => {
 
 describe('the settings pages under Profile', () => {
 	it.each([
-		['Display name', NamePage],
 		['Profile visibility', PrivacyPage],
 		['Copy of your data', DataPage]
 	])('%s has a back link to Profile above its title', (title, page) => {

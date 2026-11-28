@@ -130,13 +130,15 @@ describe('fetchMySettings', () => {
 		if (player) player.privacy.stats_visibility = 'private';
 		expect(await fetchMySettings({ api })).toEqual({
 			displayName: tamsin.displayName,
+			nameLocked: false,
 			privacy: {
 				match_history: 'signed_in',
 				stats: 'private',
 				rating_history: 'signed_in',
 				home_club: 'signed_in',
 				city_region: 'signed_in',
-				rating: 'signed_in'
+				rating: 'signed_in',
+				name: 'full'
 			}
 		});
 		expect(calls.map((c) => c.call)).toEqual(['GET /api/v1/me/player']);
@@ -172,10 +174,13 @@ describe('updateMySettings', () => {
 
 	it('sends only what changes, with the backend field names', async () => {
 		await updateMySettings({ privacy: { stats: 'private' } }, { api });
-		await updateMySettings({ displayName: 'Tam Vale' }, { api });
+		await updateMySettings({ privacy: { name: 'first_last_initial' } }, { api });
 		expect(calls).toEqual([
 			{ call: 'PATCH /api/v1/me/player', body: { privacy: { stats_visibility: 'private' } } },
-			{ call: 'PATCH /api/v1/me/player', body: { display_name: 'Tam Vale' } }
+			{
+				call: 'PATCH /api/v1/me/player',
+				body: { privacy: { name_format: 'first_last_initial' } }
+			}
 		]);
 	});
 
@@ -195,24 +200,41 @@ describe('updateMySettings', () => {
 		});
 	});
 
-	it('returns the settings the backend holds', async () => {
-		const saved = await updateMySettings({ displayName: '  Tam Vale ' }, { api });
-		expect(saved.displayName).toBe('Tam Vale');
+	it('returns the settings the backend holds, with the name it built', async () => {
+		const saved = await updateMySettings({ privacy: { name: 'first_last_initial' } }, { api });
+		expect(saved.displayName).toBe('Tamsin V.');
+		expect(saved.privacy.name).toBe('first_last_initial');
 		expect(saved.privacy.match_history).toBe('signed_in');
-		expect(mockStore.playerByCode(tamsin.code)?.displayName).toBe('Tam Vale');
+		expect(mockStore.playerByCode(tamsin.code)?.displayName).toBe('Tamsin V.');
 	});
 
-	it('throws when the save is refused', async () => {
-		const refused = updateMySettings({ displayName: '   ' }, { api });
+	it("reads the lock, and keeps the backend's refusal of the full name", async () => {
+		const player = mockStore.playerByCode(tamsin.code);
+		if (player) {
+			player.birthYear = new Date().getFullYear() - 15;
+			player.birthMonth = 1;
+			player.privacy.name_format = 'first_last_initial';
+			player.displayName = 'Tamsin V.';
+		}
+		expect(await fetchMySettings({ api })).toMatchObject({
+			displayName: 'Tamsin V.',
+			nameLocked: true,
+			privacy: { name: 'first_last_initial' }
+		});
+		const refused = updateMySettings({ privacy: { name: 'full' } }, { api });
 		await expect(refused).rejects.toBeInstanceOf(AppError);
-		await expect(refused).rejects.toMatchObject({ status: 422 });
-		expect(mockStore.playerByCode(tamsin.code)?.displayName).toBe(tamsin.displayName);
+		await expect(refused).rejects.toMatchObject({
+			status: 422,
+			fields: { 'privacy.name_format': ['Your full last name can be shown only from age 18.'] }
+		});
+		expect(mockStore.playerByCode(tamsin.code)?.displayName).toBe('Tamsin V.');
 	});
 });
 
 describe('createMyPlayer', () => {
 	const details = {
-		display_name: 'Fern Mock',
+		first_name: 'Fern',
+		last_name: 'Mock',
 		birth_year: 1990,
 		birth_month: 6,
 		gender_division: 'womens'
@@ -265,7 +287,8 @@ describe('createMyPlayer', () => {
 		expect(await createMyPlayer(undefined, { api })).toEqual({
 			kind: 'needs-details',
 			fields: {
-				display_name: 'Enter a display name.',
+				first_name: 'Enter your first name.',
+				last_name: 'Enter your last name.',
 				birth_year: 'Enter your birth year.',
 				birth_month: 'Enter your birth month.',
 				gender_division: 'Choose a gender division.'
@@ -284,12 +307,12 @@ describe('createMyPlayer', () => {
 	it('needs details when any item is missing, with every field message', async () => {
 		await signInFresh();
 		answerPost(422, [
-			{ field: 'body.display_name', code: 'missing', message: 'Enter a display name.' },
+			{ field: 'body.first_name', code: 'missing', message: 'Enter your first name.' },
 			{ field: 'body.birth_year', code: 'min_value', message: 'Too early.' }
 		]);
 		expect(await createMyPlayer(undefined, { api })).toEqual({
 			kind: 'needs-details',
-			fields: { display_name: 'Enter a display name.', birth_year: 'Too early.' }
+			fields: { first_name: 'Enter your first name.', birth_year: 'Too early.' }
 		});
 	});
 

@@ -142,7 +142,7 @@ The command prints no real data. Do not put real player names, emails or matches
 
 ### Your own OPEN code
 
-The app reads your code from `GET /api/v1/me/player` (backend [#124](https://github.com/openpickleball/backend/issues/124)). When your account has no player yet, the app creates it with `POST /api/v1/me/player`, from the details the backend holds from your signup in that browser session. If the backend holds none (you signed out and in again, or signed in on a different device or browser than the one you signed up in), the app asks for your birth month and year, gender and a display name, then creates the player. The app never asks you to type in your own code, and keeps nothing about it in the browser. If `me/player` fails or can't be reached, the screen shows an error with Try again. To look up the code of a player you created some other way, print it with:
+The app reads your code from `GET /api/v1/me/player` (backend [#124](https://github.com/openpickleball/backend/issues/124)). When your account has no player yet, the app creates it with `POST /api/v1/me/player`, from the details the backend holds from your signup in that browser session. If the backend holds none (you signed out and in again, or signed in on a different device or browser than the one you signed up in), the app asks for your birth month and year, gender and your first and last name, then creates the player. The app never asks you to type in your own code, and keeps nothing about it in the browser. If `me/player` fails or can't be reached, the screen shows an error with Try again. To look up the code of a player you created some other way, print it with:
 
 ```sh
 uv run python manage.py shell -c "

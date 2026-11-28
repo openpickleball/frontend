@@ -48,14 +48,18 @@ import {
 } from './fixtures';
 import {
 	AGE_REFUSAL,
+	displayNameFor,
 	isFutureMonth,
 	isMinor,
+	isNameFormatLocked,
 	isOldEnough,
-	minorDisplayName,
 	missingIssues,
+	nameFormatIssues,
 	privacyNullIssues,
 	profileIssues,
 	ratingVisibilityIssues,
+	signupNameIssues,
+	type NameFormat,
 	type PlayerCreateIn,
 	type PlayerUpdateIn,
 	type ProfileValues
@@ -127,8 +131,12 @@ const now = () => Date.now() / 1000;
 
 export type MockPlayer = {
 	code: string;
+	/** Built from `firstName`, `lastName` and `privacy.name_format`, as the backend builds it. */
 	displayName: string;
 	accountEmail: string | null;
+	/** The names given at signup. `""` when unknown, as `MyPlayerOut` sends them. */
+	firstName: string;
+	lastName: string;
 	/** Empty optional text is `""`, as the backend stores it. */
 	legalName: string;
 	birthYear: number;
@@ -319,6 +327,8 @@ function seed(): MockState {
 			code: p.code,
 			displayName: p.displayName,
 			accountEmail: p.accountEmail,
+			firstName: p.firstName,
+			lastName: p.lastName,
 			legalName: p.legalName,
 			birthYear: p.birthYear,
 			birthMonth: p.birthMonth,
@@ -471,9 +481,14 @@ export type CreatePlayerResult =
 	| { ok: false; kind: 'conflict' }
 	| { ok: false; kind: 'validation'; issues: FieldIssue[] };
 
-/** `create_player`: every setting signed_in for an adult, private for a player aged 13 to 17. */
-function startingPrivacy(visibility: PrivacyOut['stats_visibility']): PrivacyOut {
+/**
+ * `create_player`: every setting signed_in for an adult, private for a player aged 13 to 17.
+ * The full name only when the name format is not locked (`isNameFormatLocked`), else "First L.".
+ */
+function startingPrivacy(minor: boolean, nameLocked: boolean): PrivacyOut {
+	const visibility = minor ? 'private' : 'signed_in';
 	return {
+		name_format: nameLocked ? 'first_last_initial' : 'full',
 		city_region_visibility: visibility,
 		match_history_visibility: visibility,
 		rating_history_visibility: visibility,
@@ -490,6 +505,8 @@ function isMockPlayer(value: unknown): boolean {
 	return (
 		typeof player.code === 'string' &&
 		typeof player.displayName === 'string' &&
+		typeof player.firstName === 'string' &&
+		typeof player.lastName === 'string' &&
 		typeof player.legalName === 'string' &&
 		typeof player.birthYear === 'number' &&
 		typeof player.birthMonth === 'number' &&
@@ -499,6 +516,7 @@ function isMockPlayer(value: unknown): boolean {
 		typeof player.privacy === 'object' &&
 		player.privacy !== null &&
 		'rating_visibility' in player.privacy &&
+		'name_format' in player.privacy &&
 		!('homeClub' in player)
 	);
 }
@@ -514,16 +532,6 @@ function isSignupHold(value: unknown): boolean {
 		typeof hold.birthMonth === 'number' &&
 		texts.every((key) => typeof hold[key] === 'string')
 	);
-}
-
-/**
- * The backend's `starting_display_name`: "First Last" for an adult, and "First L." for a player
- * aged 13 to 17 (see `minorDisplayName`).
- */
-function startingDisplayName(hold: SignupHold): string {
-	return isMinor(hold.birthYear, hold.birthMonth)
-		? minorDisplayName(hold.firstName, hold.lastName)
-		: `${hold.firstName} ${hold.lastName}`;
 }
 
 export type MockStore = ReturnType<typeof createMockStore>;
@@ -856,12 +864,15 @@ export function createMockStore() {
 				code: player.code,
 				display_name: player.displayName,
 				legal_name: player.legalName,
+				first_name: player.firstName,
+				last_name: player.lastName,
 				birth_year: player.birthYear,
 				birth_month: player.birthMonth,
 				gender_division: player.genderDivision,
 				city: player.city,
 				region: player.region,
-				privacy: { ...player.privacy }
+				privacy: { ...player.privacy },
+				name_format_locked: isNameFormatLocked(player.birthYear, player.birthMonth)
 			};
 		},
 
@@ -881,11 +892,13 @@ export function createMockStore() {
 			}
 			if (state.signupRefused) return { ok: false, kind: 'validation', issues: [AGE_REFUSAL] };
 			const held = state.signupHold?.email === email ? state.signupHold : null;
+			let first: string;
+			let last: string;
+			let nameIssues: FieldIssue[] = [];
 			let values: ProfileValues;
 			if (held) {
+				[first, last] = [held.firstName, held.lastName];
 				values = {
-					display_name: startingDisplayName(held),
-					legal_name: `${held.firstName} ${held.lastName}`,
 					birth_year: held.birthYear,
 					birth_month: held.birthMonth,
 					gender_division: held.genderDivision,
@@ -895,7 +908,21 @@ export function createMockStore() {
 			} else {
 				const missing = missingIssues(body);
 				if (missing.length > 0) return { ok: false, kind: 'validation', issues: missing };
-				values = body as ProfileValues;
+				// `PlayerNamesForm`: signup's checks on the body's names.
+				const names = signupNameIssues(body);
+				[first, last] = [names.first, names.last];
+				nameIssues = names.issues.map(({ param, code, message }) => ({
+					field: `body.${param}`,
+					code,
+					message
+				}));
+				values = {
+					birth_year: body.birth_year as number,
+					birth_month: body.birth_month as number,
+					gender_division: body.gender_division,
+					city: body.city,
+					region: body.region
+				};
 			}
 			const year = values.birth_year as number;
 			const month = values.birth_month as number;
@@ -906,6 +933,12 @@ export function createMockStore() {
 				this.refuseSignup();
 				return { ok: false, kind: 'validation', issues: [AGE_REFUSAL] };
 			}
+			if (nameIssues.length > 0) return { ok: false, kind: 'validation', issues: nameIssues };
+			const minor = datable && isMinor(year, month);
+			const privacy = startingPrivacy(minor, isNameFormatLocked(year, month));
+			// `create_player` builds the legal name and the display name from the names.
+			values.display_name = displayNameFor(first, last, privacy.name_format);
+			values.legal_name = `${first} ${last}`;
 			const { issues, clean } = profileIssues(values);
 			if (issues.length > 0) return { ok: false, kind: 'validation', issues };
 			state.signupHold = null;
@@ -913,13 +946,15 @@ export function createMockStore() {
 				code: buildCode('player', counterCode(nextCounter(), 7, 'NEW')),
 				displayName: clean.display_name as string,
 				accountEmail: email,
+				firstName: first,
+				lastName: last,
 				legalName: clean.legal_name ?? '',
 				birthYear: year,
 				birthMonth: month,
 				genderDivision: clean.gender_division as string,
 				city: clean.city ?? '',
 				region: clean.region ?? '',
-				privacy: startingPrivacy(isMinor(year, month) ? 'private' : 'signed_in')
+				privacy
 			};
 			state.players.push(player);
 			return { ok: true, player };
@@ -939,13 +974,25 @@ export function createMockStore() {
 				privacy
 			);
 			if (ratingIssues.length > 0) return ratingIssues;
+			const formatIssues = nameFormatIssues(
+				player.privacy.name_format,
+				isNameFormatLocked(player.birthYear, player.birthMonth),
+				privacy
+			);
+			if (formatIssues.length > 0) return formatIssues;
 			const privacyIssues = privacyNullIssues(privacy);
 			if (privacyIssues.length > 0) return privacyIssues;
-			if (clean.display_name != null) player.displayName = clean.display_name;
-			if (clean.legal_name != null) player.legalName = clean.legal_name;
 			if (clean.city != null) player.city = clean.city;
 			if (clean.region != null) player.region = clean.region;
 			if (privacy) Object.assign(player.privacy, privacy);
+			// `_rebuild_display_name`: a player with no stored names keeps the display name.
+			if (privacy?.name_format && player.firstName && player.lastName) {
+				player.displayName = displayNameFor(
+					player.firstName,
+					player.lastName,
+					player.privacy.name_format as NameFormat
+				);
+			}
 			return [];
 		},
 

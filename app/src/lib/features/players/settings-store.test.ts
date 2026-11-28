@@ -9,10 +9,11 @@ const OPEN: Privacy = {
 	rating_history: 'signed_in',
 	home_club: 'signed_in',
 	city_region: 'signed_in',
-	rating: 'signed_in'
+	rating: 'signed_in',
+	name: 'full'
 };
 
-const SAVED: MySettings = { displayName: 'Fern Mock', privacy: OPEN };
+const SAVED: MySettings = { displayName: 'Fern Mock', nameLocked: false, privacy: OPEN };
 
 function appError(
 	kind: AppError['kind'],
@@ -27,10 +28,10 @@ function appError(
 function backend(start: MySettings = SAVED) {
 	let held = structuredClone(start);
 	const update = vi.fn(async (change: MySettingsChange): Promise<MySettings> => {
-		held = {
-			displayName: change.displayName ?? held.displayName,
-			privacy: { ...held.privacy, ...change.privacy }
-		};
+		const privacy = { ...held.privacy, ...change.privacy };
+		// The backend builds the name from the names given at signup.
+		const displayName = privacy.name === 'full' ? 'Fern Mock' : 'Fern M.';
+		held = { ...held, displayName, privacy };
 		return structuredClone(held);
 	});
 	return { update, held: () => held };
@@ -55,7 +56,21 @@ describe('SettingsStore.load', () => {
 		await loading;
 		expect(store.status).toBe('ready');
 		expect(store.displayName).toBe('Fern Mock');
+		expect(store.nameLocked).toBe(false);
 		expect(store.privacy).toEqual(OPEN);
+	});
+
+	it('keeps the lock the backend sends', async () => {
+		const store = new SettingsStore({
+			fetchMySettings: async () => ({
+				displayName: 'Fern M.',
+				nameLocked: true,
+				privacy: { ...OPEN, name: 'first_last_initial' }
+			})
+		});
+		await store.load();
+		expect(store.nameLocked).toBe(true);
+		expect(store.privacy?.name).toBe('first_last_initial');
 	});
 
 	it('is unavailable when the backend has no me/player', async () => {
@@ -92,63 +107,7 @@ describe('SettingsStore.load', () => {
 	});
 });
 
-describe('SettingsStore.saveName', () => {
-	async function ready(update: (change: MySettingsChange) => Promise<MySettings>) {
-		const store = new SettingsStore({
-			fetchMySettings: async () => SAVED,
-			updateMySettings: update
-		});
-		await store.load();
-		return store;
-	}
-
-	it('sends the trimmed name and keeps what the backend saved', async () => {
-		const { update } = backend();
-		const store = await ready(update);
-		expect(await store.saveName('  Fern Quill ')).toEqual({ ok: true, value: 'Fern Quill' });
-		expect(update).toHaveBeenCalledWith({ displayName: 'Fern Quill' });
-		expect(store.displayName).toBe('Fern Quill');
-	});
-
-	it('does not send an empty name', async () => {
-		const { update } = backend();
-		const store = await ready(update);
-		expect(await store.saveName('  ')).toEqual({ ok: false, message: 'Enter a display name.' });
-		expect(update).not.toHaveBeenCalled();
-	});
-
-	it('does not send a name that has not changed', async () => {
-		const { update } = backend();
-		const store = await ready(update);
-		expect(await store.saveName('Fern Mock ')).toEqual({ ok: true, value: 'Fern Mock' });
-		expect(update).not.toHaveBeenCalled();
-	});
-
-	it("shows the backend's message for the name field", async () => {
-		const store = await ready(async () => {
-			throw appError('validation', 422, 'Please check the highlighted fields.', {
-				display_name: ['Remove control or invalid characters.']
-			});
-		});
-		expect(await store.saveName('Fern')).toEqual({
-			ok: false,
-			message: 'Remove control or invalid characters.'
-		});
-		expect(store.displayName).toBe('Fern Mock');
-	});
-
-	it("shows the error's own message for anything else", async () => {
-		const store = await ready(async () => {
-			throw appError('network', null, "We can't reach the server.");
-		});
-		expect(await store.saveName('Fern')).toEqual({
-			ok: false,
-			message: "We can't reach the server."
-		});
-	});
-});
-
-describe('SettingsStore.setVisibility', () => {
+describe('SettingsStore.setPrivacy', () => {
 	async function ready(update: (change: MySettingsChange) => Promise<MySettings>) {
 		const store = new SettingsStore({
 			fetchMySettings: async () => SAVED,
@@ -161,7 +120,7 @@ describe('SettingsStore.setVisibility', () => {
 	it('sends only the setting that changed', async () => {
 		const { update, held } = backend();
 		const store = await ready(update);
-		expect(await store.setVisibility('match_history', 'private')).toBe(true);
+		expect(await store.setPrivacy('match_history', 'private')).toBe(true);
 		expect(update).toHaveBeenCalledWith({ privacy: { match_history: 'private' } });
 		expect(store.privacy?.match_history).toBe('private');
 		expect(held().privacy.match_history).toBe('private');
@@ -171,7 +130,7 @@ describe('SettingsStore.setVisibility', () => {
 	it('moves the switch at once, before the backend answers', async () => {
 		const answer = deferred<MySettings>();
 		const store = await ready(() => answer.promise);
-		const saving = store.setVisibility('stats', 'private');
+		const saving = store.setPrivacy('stats', 'private');
 		expect(store.privacy?.stats).toBe('private');
 		answer.resolve({ ...SAVED, privacy: { ...OPEN, stats: 'private' } });
 		await saving;
@@ -182,7 +141,7 @@ describe('SettingsStore.setVisibility', () => {
 		const store = await ready(async () => {
 			throw appError('network', null, "We can't reach the server.");
 		});
-		expect(await store.setVisibility('home_club', 'private')).toBe(false);
+		expect(await store.setPrivacy('home_club', 'private')).toBe(false);
 		expect(store.privacy?.home_club).toBe('signed_in');
 		expect(store.privacyError).toBe("We can't reach the server.");
 	});
@@ -191,8 +150,8 @@ describe('SettingsStore.setVisibility', () => {
 		const answers = [deferred<MySettings>(), deferred<MySettings>()];
 		let call = 0;
 		const store = await ready(() => answers[call++].promise);
-		const first = store.setVisibility('stats', 'private');
-		const second = store.setVisibility('home_club', 'private');
+		const first = store.setPrivacy('stats', 'private');
+		const second = store.setPrivacy('home_club', 'private');
 		// The first answer does not know about home_club yet.
 		answers[0].resolve({ ...SAVED, privacy: { ...OPEN, stats: 'private' } });
 		await first;
@@ -205,8 +164,92 @@ describe('SettingsStore.setVisibility', () => {
 	it('shows what the backend holds once nothing is in flight', async () => {
 		// The backend refused part of the change and kept the setting as it was.
 		const store = await ready(async () => SAVED);
-		await store.setVisibility('rating_history', 'private');
+		await store.setPrivacy('rating_history', 'private');
 		expect(store.privacy?.rating_history).toBe('signed_in');
+	});
+
+	it('sends only the name format, and shows the name the backend built once it answers', async () => {
+		const answer = deferred<MySettings>();
+		const update = vi.fn(() => answer.promise);
+		const store = await ready(update);
+		const saving = store.setPrivacy('name', 'first_last_initial');
+		expect(update).toHaveBeenCalledWith({ privacy: { name: 'first_last_initial' } });
+		expect(store.privacy?.name).toBe('first_last_initial');
+		// Never a guess: the old name stays until the backend answers.
+		expect(store.displayName).toBe('Fern Mock');
+		answer.resolve({
+			...SAVED,
+			displayName: 'Fern M.',
+			privacy: { ...OPEN, name: 'first_last_initial' }
+		});
+		expect(await saving).toBe(true);
+		expect(store.displayName).toBe('Fern M.');
+	});
+
+	it('turns the full name back on, with the name the backend built', async () => {
+		const { update } = backend({
+			...SAVED,
+			displayName: 'Fern M.',
+			privacy: { ...OPEN, name: 'first_last_initial' }
+		});
+		const store = await ready(update);
+		expect(await store.setPrivacy('name', 'full')).toBe(true);
+		expect(store.displayName).toBe('Fern Mock');
+		expect(store.privacy?.name).toBe('full');
+	});
+
+	it("goes back and shows the backend's message when the full name is refused", async () => {
+		const message = 'Your full last name can be shown only from age 18.';
+		const store = new SettingsStore({
+			fetchMySettings: async () => ({
+				displayName: 'Fern M.',
+				nameLocked: true,
+				privacy: { ...OPEN, name: 'first_last_initial' }
+			}),
+			updateMySettings: async () => {
+				throw appError('validation', 422, 'Please check the highlighted fields.', {
+					'privacy.name_format': [message]
+				});
+			}
+		});
+		await store.load();
+		expect(await store.setPrivacy('name', 'full')).toBe(false);
+		expect(store.privacy?.name).toBe('first_last_initial');
+		expect(store.displayName).toBe('Fern M.');
+		expect(store.privacyError).toBe(message);
+	});
+
+	it('keeps the newer answer for the same setting when an older one arrives after it', async () => {
+		const answers = [deferred<MySettings>(), deferred<MySettings>()];
+		let call = 0;
+		const store = await ready(() => answers[call++].promise);
+		const on = store.setPrivacy('name', 'first_last_initial');
+		const off = store.setPrivacy('name', 'full');
+		answers[1].resolve({ ...SAVED, displayName: 'Fern Mock', privacy: { ...OPEN, name: 'full' } });
+		expect(await off).toBe(true);
+		answers[0].resolve({
+			...SAVED,
+			displayName: 'Fern M.',
+			privacy: { ...OPEN, name: 'first_last_initial' }
+		});
+		// The older answer is stale: it is not applied, so the caller shows no name from it.
+		expect(await on).toBe(false);
+		expect(store.privacy?.name).toBe('full');
+		expect(store.displayName).toBe('Fern Mock');
+	});
+
+	it('keeps the newer answer for another setting when an older one arrives after it', async () => {
+		const answers = [deferred<MySettings>(), deferred<MySettings>()];
+		let call = 0;
+		const store = await ready(() => answers[call++].promise);
+		const first = store.setPrivacy('stats', 'private');
+		const second = store.setPrivacy('home_club', 'private');
+		answers[1].resolve({ ...SAVED, privacy: { ...OPEN, stats: 'private', home_club: 'private' } });
+		expect(await second).toBe(true);
+		// The older answer does not know about home_club yet.
+		answers[0].resolve({ ...SAVED, privacy: { ...OPEN, stats: 'private' } });
+		expect(await first).toBe(true);
+		expect(store.privacy).toMatchObject({ stats: 'private', home_club: 'private' });
 	});
 
 	it('does nothing before the settings have loaded', async () => {
@@ -215,7 +258,7 @@ describe('SettingsStore.setVisibility', () => {
 			fetchMySettings: async () => null,
 			updateMySettings: update
 		});
-		expect(await store.setVisibility('stats', 'private')).toBe(false);
+		expect(await store.setPrivacy('stats', 'private')).toBe(false);
 		expect(update).not.toHaveBeenCalled();
 	});
 });

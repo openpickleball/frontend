@@ -8,20 +8,27 @@ async function fill() {
 	await page.getByLabelText('Month').selectOptions('June');
 	await page.getByLabelText('Year').fill('1990');
 	await page.getByRole('radio', { name: 'Woman' }).click();
-	await page.getByLabelText('Display name').fill('Fern Mock');
+	await page.getByLabelText('First name').fill('Fern');
+	await page.getByLabelText('Last name').fill('Mock');
 }
 
 describe('PlayerDetailsForm', () => {
-	it('asks only for the birth month and year, the gender and a display name', async () => {
+	it('asks only for the birth month and year, the gender and the first and last name', async () => {
 		await render(PlayerDetailsForm, { onsubmit: vi.fn() });
 		await expect.element(page.getByRole('group', { name: 'Birth month and year' })).toBeVisible();
 		await expect.element(page.getByLabelText('Month')).toBeVisible();
 		await expect.element(page.getByLabelText('Year')).toHaveAttribute('inputmode', 'numeric');
 		await expect.element(page.getByRole('radio', { name: 'Man' })).toBeVisible();
 		await expect.element(page.getByRole('radio', { name: 'Woman' })).toBeVisible();
-		await expect.element(page.getByLabelText('Display name')).toBeVisible();
-		// Month, year and display name, plus the two radios. Nothing else.
-		expect(page.getByRole('textbox').elements()).toHaveLength(2);
+		const first = page.getByLabelText('First name');
+		await expect.element(first).toHaveAttribute('name', 'first_name');
+		await expect.element(first).toHaveAttribute('autocomplete', 'given-name');
+		const last = page.getByLabelText('Last name');
+		await expect.element(last).toHaveAttribute('name', 'last_name');
+		await expect.element(last).toHaveAttribute('autocomplete', 'family-name');
+		await expect.element(page.getByLabelText('Display name')).not.toBeInTheDocument();
+		// Month, year, first and last name, plus the two radios. Nothing else.
+		expect(page.getByRole('textbox').elements()).toHaveLength(3);
 		expect(page.getByRole('combobox').elements()).toHaveLength(1);
 		expect(page.getByRole('radio').elements()).toHaveLength(2);
 		expect(page.getByRole('checkbox').elements()).toHaveLength(0);
@@ -34,12 +41,13 @@ describe('PlayerDetailsForm', () => {
 		await expect.element(page.getByText('Enter your birth month.')).toBeVisible();
 		await expect.element(page.getByText('Enter your birth year.')).toBeVisible();
 		await expect.element(page.getByText('Choose a gender division.')).toBeVisible();
-		await expect.element(page.getByText('Enter a display name.')).toBeVisible();
+		await expect.element(page.getByText('Enter your first name.')).toBeVisible();
+		await expect.element(page.getByText('Enter your last name.')).toBeVisible();
 		await expect.element(page.getByLabelText('Year')).toHaveAttribute('aria-invalid', 'true');
 		expect(onsubmit).not.toHaveBeenCalled();
 	});
 
-	it('sends only the four values the backend needs', async () => {
+	it('sends only the five values the backend needs, never a display name', async () => {
 		const onsubmit = vi.fn(async () => {});
 		await render(PlayerDetailsForm, { onsubmit });
 		await fill();
@@ -48,7 +56,8 @@ describe('PlayerDetailsForm', () => {
 			birth_month: 6,
 			birth_year: 1990,
 			gender_division: 'womens',
-			display_name: 'Fern Mock'
+			first_name: 'Fern',
+			last_name: 'Mock'
 		});
 	});
 
@@ -57,7 +66,7 @@ describe('PlayerDetailsForm', () => {
 			onsubmit: vi.fn(),
 			errors: {
 				birth_month: "This birth year and month can't be used.",
-				display_name: 'Ensure this value has at most 64 characters (it has 70).'
+				last_name: 'Your first and last name together can be at most 63 characters.'
 			},
 			problem: 'Something went wrong on our side.'
 		});
@@ -65,8 +74,8 @@ describe('PlayerDetailsForm', () => {
 			.element(page.getByLabelText('Month'))
 			.toHaveAccessibleDescription("This birth year and month can't be used.");
 		await expect
-			.element(page.getByLabelText('Display name'))
-			.toHaveAccessibleDescription(/at most 64 characters/);
+			.element(page.getByLabelText('Last name'))
+			.toHaveAccessibleDescription(/at most 63 characters/);
 		await expect
 			.element(page.getByRole('alert').getByText('Something went wrong on our side.'))
 			.toBeVisible();
@@ -101,13 +110,13 @@ describe('PlayerDetailsForm', () => {
 		const onsubmit = vi.fn();
 		await render(PlayerDetailsForm, {
 			onsubmit,
-			errors: { display_name: 'Ensure this value has at most 64 characters (it has 70).' }
+			errors: { first_name: 'Your first name can be at most 61 characters.' }
 		});
 		await fill();
 		await page.getByLabelText('Year').fill('');
 		await page.getByRole('button', { name: 'Save and show my code' }).click();
 		await expect.element(page.getByText('Enter your birth year.')).toBeVisible();
-		await expect.element(page.getByText(/at most 64 characters/)).not.toBeInTheDocument();
+		await expect.element(page.getByText(/at most 61 characters/)).not.toBeInTheDocument();
 		expect(onsubmit).not.toHaveBeenCalled();
 	});
 });

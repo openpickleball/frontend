@@ -740,7 +740,8 @@ describe('player profile endpoints', () => {
 	const tamsinFixture = PLAYERS.find((p) => p.key === 'tamsin') as (typeof PLAYERS)[number];
 	const FRESH = 'fresh@example.com';
 	const adult = {
-		display_name: 'Fern Mock',
+		first_name: 'Fern',
+		last_name: 'Mock',
 		birth_year: 1990,
 		birth_month: 6,
 		gender_division: 'womens'
@@ -810,6 +811,9 @@ describe('player profile endpoints', () => {
 			code: tamsin,
 			display_name: tamsinFixture.displayName,
 			legal_name: tamsinFixture.legalName,
+			first_name: 'Tamsin',
+			last_name: 'Vale',
+			name_format_locked: false,
 			birth_year: tamsinFixture.birthYear,
 			birth_month: tamsinFixture.birthMonth,
 			gender_division: tamsinFixture.genderDivision,
@@ -835,7 +839,10 @@ describe('player profile endpoints', () => {
 		expect(made.response.status).toBe(201);
 		expect(made.data).toMatchObject({
 			display_name: 'Fern Mock',
-			legal_name: '',
+			legal_name: 'Fern Mock',
+			first_name: 'Fern',
+			last_name: 'Mock',
+			name_format_locked: false,
 			birth_year: 1990,
 			birth_month: 6,
 			gender_division: 'womens',
@@ -847,14 +854,15 @@ describe('player profile endpoints', () => {
 				rating_history_visibility: 'signed_in',
 				stats_visibility: 'signed_in',
 				home_club_visibility: 'signed_in',
-				rating_visibility: 'signed_in'
+				rating_visibility: 'signed_in',
+				name_format: 'full'
 			}
 		});
 		expect(made.data?.code).toMatch(/^P-/);
 		expect(await unwrap(api.open.GET('/api/v1/me/player'))).toEqual(made.data);
 	});
 
-	it.each(['display_name', 'birth_year', 'birth_month', 'gender_division'] as const)(
+	it.each(['first_name', 'last_name', 'birth_year', 'birth_month', 'gender_division'] as const)(
 		'needs %s to create the player (422)',
 		async (name) => {
 			const api = await freshAccount();
@@ -866,6 +874,48 @@ describe('player profile endpoints', () => {
 			expect(mockStore.playerOfAccount(FRESH)).toBeUndefined();
 		}
 	);
+
+	it.each(['display_name', 'legal_name'])(
+		'refuses %s on the create as an unknown key (422)',
+		async (key) => {
+			const api = await freshAccount();
+			const result = await api.open.POST('/api/v1/me/player', {
+				body: { ...adult, [key]: 'Fern Mock' } as never
+			});
+			expect(result.response.status).toBe(422);
+			expect(fields(result.error)).toEqual([[`body.${key}`, 'extra_forbidden']]);
+			expect(mockStore.playerOfAccount(FRESH)).toBeUndefined();
+		}
+	);
+
+	it.each([
+		[{ first_name: '   ' }, 'body.first_name', 'required', 'Enter your first name.'],
+		[{ last_name: '\u3164' }, 'body.last_name', 'required', 'Enter your last name.'],
+		[
+			{ first_name: 'F'.repeat(62) },
+			'body.first_name',
+			'max_length',
+			'Your first name can be at most 61 characters.'
+		],
+		[
+			{ first_name: 'F'.repeat(40), last_name: 'M'.repeat(24) },
+			'body.last_name',
+			'max_length',
+			'Your first and last name together can be at most 63 characters.'
+		],
+		[
+			{ first_name: 'Fe\u0007rn' },
+			'body.first_name',
+			'invalid',
+			'Remove control or invalid characters.'
+		]
+	])("checks the body's names with signup's rules: %j", async (names, field, code, message) => {
+		const api = await freshAccount();
+		const result = await api.open.POST('/api/v1/me/player', { body: { ...adult, ...names } });
+		expect(result.response.status).toBe(422);
+		expect(result.error?.errors).toEqual([{ field, code, message }]);
+		expect(mockStore.playerOfAccount(FRESH)).toBeUndefined();
+	});
 
 	it('refuses an unknown key and a made-up gender division (422)', async () => {
 		const api = await freshAccount();
@@ -917,9 +967,9 @@ describe('player profile endpoints', () => {
 	// Django's full_clean runs the age rule even when a field failed, and create_my_player
 	// checks the age refusal before it reports field errors.
 	it.each([
-		['a blank display name', { display_name: '   ' }],
+		['a blank first name', { first_name: '   ' }],
 		['a made-up gender division', { gender_division: 'other' }],
-		['a legal name that is too long', { legal_name: 'Q'.repeat(201) }]
+		['a first name that is too long', { first_name: 'Q'.repeat(62) }]
 	])('refuses a child with %s by age alone, for the rest of the session', async (_, extra) => {
 		const api = await freshAccount();
 		const child = await api.open.POST('/api/v1/me/player', {
@@ -953,8 +1003,11 @@ describe('player profile endpoints', () => {
 			rating_history_visibility: 'private',
 			stats_visibility: 'private',
 			home_club_visibility: 'private',
-			rating_visibility: 'private'
+			rating_visibility: 'private',
+			name_format: 'first_last_initial'
 		});
+		expect(made.display_name).toBe('Fern M.');
+		expect(made.name_format_locked).toBe(true);
 
 		mockStore.logout();
 		const other = await signedIn('oren@example.com');
@@ -980,14 +1033,108 @@ describe('player profile endpoints', () => {
 		const before = await unwrap(api.open.GET('/api/v1/me/player'));
 		const patched = await unwrap(
 			api.open.PATCH('/api/v1/me/player', {
-				body: { display_name: '  Tam V. ', privacy: { stats_visibility: 'private' } }
+				body: { city: ' Vexmoor ', privacy: { stats_visibility: 'private' } }
 			})
 		);
 		expect(patched).toEqual({
 			...before,
-			display_name: 'Tam V.',
+			city: 'Vexmoor',
 			privacy: { ...before.privacy, stats_visibility: 'private' }
 		});
+	});
+
+	it('rebuilds the display name when an adult changes the name format, and back', async () => {
+		const api = await signedIn();
+		const initial = await unwrap(
+			api.open.PATCH('/api/v1/me/player', {
+				body: { privacy: { name_format: 'first_last_initial' } }
+			})
+		);
+		expect(initial.display_name).toBe('Tamsin V.');
+		expect(initial.privacy.name_format).toBe('first_last_initial');
+		expect(initial.name_format_locked).toBe(false);
+		const full = await unwrap(
+			api.open.PATCH('/api/v1/me/player', { body: { privacy: { name_format: 'full' } } })
+		);
+		expect(full.display_name).toBe('Tamsin Vale');
+		expect(full.privacy.name_format).toBe('full');
+	});
+
+	describe('an initial that would not fit, as backend display_name_for trims it', () => {
+		// 61 characters is the longest first name, and the last name's initial has a mark.
+		const longFirst = 'F'.repeat(61);
+		const names = { first_name: longFirst, last_name: 'e\u0301' };
+		const trimmed = `${longFirst} e.`;
+
+		it('drops the marks that do not fit when an adult turns the initial on', async () => {
+			const api = await freshAccount();
+			await unwrap(api.open.POST('/api/v1/me/player', { body: { ...adult, ...names } }));
+			const patched = await unwrap(
+				api.open.PATCH('/api/v1/me/player', {
+					body: { privacy: { name_format: 'first_last_initial' } }
+				})
+			);
+			expect(patched.display_name).toBe(trimmed);
+			expect([...patched.display_name]).toHaveLength(64);
+		});
+
+		it('creates a player aged 13 to 17 from the body with the trimmed initial', async () => {
+			const api = await freshAccount();
+			const made = await api.open.POST('/api/v1/me/player', {
+				body: { ...adult, ...names, birth_year: new Date().getFullYear() - 15, birth_month: 1 }
+			});
+			expect(made.response.status).toBe(201);
+			expect(made.data?.display_name).toBe(trimmed);
+		});
+
+		it('creates a player aged 13 to 17 from the hold with the trimmed initial', async () => {
+			mockStore.state.accounts.push({
+				email: FRESH,
+				password: MOCK_PASSWORD,
+				verified: true,
+				active: true
+			});
+			mockStore.holdSignup(FRESH, {
+				birthYear: new Date().getFullYear() - 15,
+				birthMonth: 1,
+				genderDivision: 'womens',
+				firstName: longFirst,
+				lastName: 'e\u0301',
+				city: '',
+				region: ''
+			});
+			const api = await signedIn(FRESH);
+			const made = await api.open.POST('/api/v1/me/player', { body: {} });
+			expect(made.response.status).toBe(201);
+			expect(made.data?.display_name).toBe(trimmed);
+		});
+	});
+
+	it('refuses the full name for a player aged 13 to 17, and accepts the stored value', async () => {
+		const api = await freshAccount();
+		const made = await unwrap(
+			api.open.POST('/api/v1/me/player', {
+				body: { ...adult, birth_year: new Date().getFullYear() - 15, birth_month: 1 }
+			})
+		);
+		const refused = await api.open.PATCH('/api/v1/me/player', {
+			body: { privacy: { name_format: 'full', stats_visibility: 'signed_in' } }
+		});
+		expect(refused.response.status).toBe(422);
+		expect(refused.error?.errors).toEqual([
+			{
+				field: 'body.privacy.name_format',
+				code: 'invalid',
+				message: 'Your full last name can be shown only from age 18.'
+			}
+		]);
+		expect(await unwrap(api.open.GET('/api/v1/me/player'))).toEqual(made);
+		const stored = await unwrap(
+			api.open.PATCH('/api/v1/me/player', {
+				body: { privacy: { name_format: 'first_last_initial' } }
+			})
+		);
+		expect(stored).toEqual(made);
 	});
 
 	it("accepts the player's stored rating_visibility", async () => {
@@ -1021,14 +1168,14 @@ describe('player profile endpoints', () => {
 		]);
 	});
 
-	it('clears the city, region and legal name with null', async () => {
+	it('clears the city and region with null', async () => {
 		const api = await signedIn();
 		const patched = await unwrap(
 			api.open.PATCH('/api/v1/me/player', {
-				body: { city: null, region: null, legal_name: null }
+				body: { city: null, region: null }
 			})
 		);
-		expect(patched).toMatchObject({ city: '', region: '', legal_name: '' });
+		expect(patched).toMatchObject({ city: '', region: '' });
 	});
 
 	it.each([
@@ -1037,24 +1184,12 @@ describe('player profile endpoints', () => {
 		[{ gender_division: null }, [['body.gender_division', 'set_once']]],
 		[{ made_up: 'x' }, [['body.made_up', 'extra_forbidden']]],
 		[{ privacy: { made_up: 'private' } }, [['body.privacy.made_up', 'extra_forbidden']]],
-		[
-			{ display_name: null },
-			[
-				['body.display_name', 'null'],
-				['body.display_name', 'invalid']
-			]
-		],
-		[
-			{ display_name: '   ' },
-			[
-				['body.display_name', 'blank'],
-				['body.display_name', 'invalid']
-			]
-		],
-		[
-			{ display_name: 'Fine Name', privacy: { stats_visibility: 'everyone' } },
-			[['body.privacy.stats_visibility', 'enum']]
-		],
+		[{ display_name: null }, [['body.display_name', 'set_once']]],
+		[{ display_name: 'Fine Name' }, [['body.display_name', 'set_once']]],
+		[{ legal_name: 'Fine Name' }, [['body.legal_name', 'set_once']]],
+		[{ privacy: { stats_visibility: 'everyone' } }, [['body.privacy.stats_visibility', 'enum']]],
+		[{ privacy: { name_format: 'initials' } }, [['body.privacy.name_format', 'enum']]],
+		[{ privacy: { name_format: null } }, [['body.privacy.name_format', 'null']]],
 		[
 			{ privacy: { rating_visibility: 'private', stats_visibility: 'private' } },
 			[['body.privacy.rating_visibility', 'invalid']]
@@ -1088,6 +1223,19 @@ describe('player profile endpoints', () => {
 			expect(await unwrap(api.open.GET('/api/v1/me/player'))).toEqual(before);
 		}
 	);
+
+	it.each([
+		['display_name', "Your display name can't be changed."],
+		['legal_name', "Your legal name can't be changed."]
+	])('refuses %s on PATCH whatever the value, with its message', async (key, message) => {
+		const api = await signedIn();
+		const own = await unwrap(api.open.GET('/api/v1/me/player'));
+		const result = await api.open.PATCH('/api/v1/me/player', {
+			body: { [key]: own[key as 'display_name' | 'legal_name'] } as never
+		});
+		expect(result.response.status).toBe(422);
+		expect(result.error?.errors).toEqual([{ field: `body.${key}`, code: 'set_once', message }]);
+	});
 
 	it('is a 404 to change an account with no player', async () => {
 		const api = await freshAccount();
@@ -1323,9 +1471,13 @@ describe('signup details held for the create (backend#124)', () => {
 		rating_history_visibility: 'signed_in',
 		stats_visibility: 'signed_in',
 		home_club_visibility: 'signed_in',
-		rating_visibility: 'signed_in'
+		rating_visibility: 'signed_in',
+		name_format: 'full'
 	};
-	const PRIVATE = Object.fromEntries(Object.keys(SIGNED_IN).map((key) => [key, 'private']));
+	const PRIVATE = {
+		...Object.fromEntries(Object.keys(SIGNED_IN).map((key) => [key, 'private'])),
+		name_format: 'first_last_initial'
+	};
 
 	async function signup(api: Api, email: string, extra: Record<string, unknown> = {}) {
 		const result = await api.allauth.POST('/_allauth/{client}/v1/auth/signup', {
@@ -1396,7 +1548,8 @@ describe('signup details held for the create (backend#124)', () => {
 		const made = await unwrap(
 			api.open.POST('/api/v1/me/player', {
 				body: {
-					display_name: 'Other Name',
+					first_name: 'Other',
+					last_name: 'Name',
 					birth_year: 1980,
 					birth_month: 2,
 					gender_division: 'womens'
@@ -1423,11 +1576,12 @@ describe('signup details held for the create (backend#124)', () => {
 		expect((await login(api, UNVERIFIED_EMAIL)).response.status).toBe(200);
 		const result = await api.open.POST('/api/v1/me/player', { body: {} });
 		expect(result.response.status).toBe(422);
-		expect(result.error?.errors.map((e) => e.code)).toEqual([
-			'missing',
-			'missing',
-			'missing',
-			'missing'
+		expect(result.error?.errors.map((e) => [e.field, e.code])).toEqual([
+			['body.first_name', 'missing'],
+			['body.last_name', 'missing'],
+			['body.birth_year', 'missing'],
+			['body.birth_month', 'missing'],
+			['body.gender_division', 'missing']
 		]);
 	});
 
@@ -1488,7 +1642,8 @@ describe('signup details held for the create (backend#124)', () => {
 		await login(api, email, PASSWORD);
 		const result = await api.open.POST('/api/v1/me/player', {
 			body: {
-				display_name: 'Kid',
+				first_name: 'Kid',
+				last_name: 'Ashby',
 				birth_year: new Date().getFullYear() - 5,
 				birth_month: 6,
 				gender_division: 'mens'

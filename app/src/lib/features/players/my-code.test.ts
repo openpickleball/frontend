@@ -14,17 +14,24 @@ function appError(kind: AppError['kind'], status: number | null): AppError {
 
 const SERVER_PLAYER: MyPlayer = { code: CODE_A, displayName: 'Sample Player' };
 
-describe('myCode.rename', () => {
-	it('shows a saved display name for a code from the server', async () => {
+describe('myCode.showName', () => {
+	it("shows the name the backend returned for this player's code", async () => {
 		const mine = createMyCode({ fetchMyPlayer: async () => SERVER_PLAYER });
 		await mine.load();
-		mine.rename('Fern Quill');
-		expect(mine.displayName).toBe('Fern Quill');
+		mine.showName(CODE_A, 'Sample P.');
+		expect(mine.displayName).toBe('Sample P.');
+	});
+
+	it("ignores a late name for another player, such as the previous account's", async () => {
+		const mine = createMyCode({ fetchMyPlayer: async () => SERVER_PLAYER });
+		await mine.load();
+		mine.showName(CODE_B, 'Other P.');
+		expect(mine.displayName).toBe('Sample Player');
 	});
 
 	it('does nothing before the code is known', () => {
 		const mine = createMyCode({ fetchMyPlayer: async () => SERVER_PLAYER });
-		mine.rename('Fern Quill');
+		mine.showName(CODE_A, 'Sample P.');
 		expect(mine.displayName).toBeNull();
 	});
 });
@@ -215,7 +222,8 @@ describe('codes in these tests', () => {
 
 describe('myCode creates the player when there is none (backend#124)', () => {
 	const DETAILS: PlayerCreateIn = {
-		display_name: 'Fern Mock',
+		first_name: 'Fern',
+		last_name: 'Mock',
 		birth_year: 1990,
 		birth_month: 6,
 		gender_division: 'womens'
@@ -283,7 +291,7 @@ describe('myCode creates the player when there is none (backend#124)', () => {
 	it('asks for the details on a 422, without showing errors yet', async () => {
 		const mine = make(['none'], async () => ({
 			kind: 'needs-details',
-			fields: { display_name: 'Enter a display name.' }
+			fields: { first_name: 'Enter your first name.' }
 		}));
 		await mine.load();
 		expect(mine.status).toBe('needs-details');
@@ -307,11 +315,20 @@ describe('myCode creates the player when there is none (backend#124)', () => {
 		await mine.load();
 		answer = {
 			kind: 'needs-details',
-			fields: { display_name: 'Too long.', birth_year: 'Too early.', city: 'Bad city.' }
+			fields: {
+				first_name: 'Too long.',
+				last_name: 'Both too long.',
+				birth_year: 'Too early.',
+				city: 'Bad city.'
+			}
 		};
 		await mine.submitDetails(DETAILS);
 		expect(mine.status).toBe('needs-details');
-		expect(mine.detailErrors).toEqual({ display_name: 'Too long.', birth_year: 'Too early.' });
+		expect(mine.detailErrors).toEqual({
+			first_name: 'Too long.',
+			last_name: 'Both too long.',
+			birth_year: 'Too early.'
+		});
 		expect(mine.detailProblem).toBe('Bad city.');
 	});
 
@@ -496,7 +513,8 @@ describe('myCode creates the player when there is none (backend#124)', () => {
 
 describe('myCode when the create is refused for its values (a 422 with nothing missing)', () => {
 	const DETAILS: PlayerCreateIn = {
-		display_name: 'Fern Mock',
+		first_name: 'Fern',
+		last_name: 'Mock',
 		birth_year: 1990,
 		birth_month: 6,
 		gender_division: 'womens'

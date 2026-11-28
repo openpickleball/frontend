@@ -1,12 +1,11 @@
 import { isAppError } from '#lib/api/index.js';
-import { fetchMySettings, updateMySettings } from './services.js';
-import { checkDisplayName } from './settings.js';
-import type { MySettings, MySettingsChange, Privacy, PrivacyKey, Visibility } from './types.js';
+import { fetchMySettings, privacyField, updateMySettings } from './services.js';
+import type { MySettings, MySettingsChange, Privacy, PrivacyKey } from './types.js';
 
 /**
  * - `idle`: `load()` has not run.
  * - `loading`: asking the backend.
- * - `ready`: `displayName` and `privacy` are set.
+ * - `ready`: `displayName`, `nameLocked` and `privacy` are set.
  * - `unavailable`: `me/player` answered a 404 or 405, so there is no player to read.
  * - `error`: the backend could not be reached.
  */
@@ -18,8 +17,6 @@ export type SettingsDeps = {
 	updateMySettings: (change: MySettingsChange) => Promise<MySettings>;
 };
 
-export type SaveNameResult = { ok: true; value: string } | { ok: false; message: string };
-
 const FALLBACK = "We couldn't save that. Check your connection and try again.";
 
 function messageOf(error: unknown, field?: string): string {
@@ -29,13 +26,17 @@ function messageOf(error: unknown, field?: string): string {
 }
 
 /**
- * The signed-in player's display name and privacy settings, read with `GET me/player` and
- * saved with `PATCH me/player`. The backend decides what the player may change and checks every
- * value. This only shows what it answers.
+ * The signed-in player's name and privacy settings, read with `GET me/player` and saved with
+ * `PATCH me/player`. The name comes from sign-up and can't be changed: only how it is shown
+ * (`privacy.name`). The backend builds the name, decides what the player may change and checks
+ * every value. This only shows what it answers.
  */
 export class SettingsStore {
 	status = $state<SettingsStatus>('idle');
+	/** The name other players see, as the backend last sent it. */
 	displayName = $state('');
+	/** True while the name must stay "First L." (13 to 17). The backend decides. */
+	nameLocked = $state(false);
 	privacy = $state<Privacy | null>(null);
 	/** Set when a privacy change could not be saved. */
 	privacyError = $state<string | null>(null);
@@ -47,6 +48,11 @@ export class SettingsStore {
 	/** The newest change in flight for each setting. */
 	#latest: Partial<Record<PrivacyKey, number>> = {};
 	#calls = 0;
+	/**
+	 * For each setting, the newest call whose answer was applied. An older answer for the same
+	 * setting arriving later is stale.
+	 */
+	#applied: Partial<Record<PrivacyKey, number>> = {};
 
 	constructor(deps: Partial<SettingsDeps> = {}) {
 		this.#deps = {
@@ -73,28 +79,18 @@ export class SettingsStore {
 		}
 	}
 
-	/** Check and save a new display name. The backend's message wins over ours. */
-	async saveName(raw: string): Promise<SaveNameResult> {
-		const checked = checkDisplayName(raw);
-		if (!checked.ok) return checked;
-		if (checked.value === this.displayName) return { ok: true, value: checked.value };
-		try {
-			const settings = await this.#deps.updateMySettings({ displayName: checked.value });
-			this.displayName = settings.displayName;
-			this.#confirmed = { ...settings.privacy };
-			this.#settle();
-			return { ok: true, value: settings.displayName };
-		} catch (error) {
-			return { ok: false, message: messageOf(error, 'display_name') };
-		}
-	}
-
 	/**
-	 * Change who may see one detail. Only that setting is sent. The switch moves at once. When
-	 * the backend answers, every switch shows what it holds, except one the player has changed
-	 * again since. If the save fails, the switch goes back to what the backend last said.
+	 * Change one privacy setting: who may see a detail, or how the name is shown. Only that
+	 * setting is sent. The switch moves at once. If the save fails, the switch goes back to what
+	 * the backend last said.
+	 *
+	 * The backend may handle overlapping saves of different settings in either order, so an
+	 * answer is the authority only for the setting it saved. Only that setting is taken from it,
+	 * and for `name` also the name the backend built and its lock. An answer older than one
+	 * already applied for the same setting is stale: it changes nothing, and the result is false,
+	 * so the caller shows no name from it. Other settings come from their own answers or the load.
 	 */
-	async setVisibility(key: PrivacyKey, visibility: Visibility): Promise<boolean> {
+	async setPrivacy<K extends PrivacyKey>(key: K, value: Privacy[K]): Promise<boolean> {
 		const privacy = this.privacy;
 		const confirmed = this.#confirmed;
 		if (!privacy || !confirmed) return false;
@@ -102,17 +98,21 @@ export class SettingsStore {
 		const call = ++this.#calls;
 		this.#latest[key] = call;
 		this.privacyError = null;
-		this.privacy = { ...privacy, [key]: visibility };
+		this.privacy = { ...privacy, [key]: value };
 		try {
-			const settings = await this.#deps.updateMySettings({ privacy: { [key]: visibility } });
-			if (run !== this.#run) return false;
-			this.#confirmed = { ...settings.privacy };
-			this.displayName = settings.displayName;
+			const settings = await this.#deps.updateMySettings({ privacy: { [key]: value } });
+			if (run !== this.#run || call < (this.#applied[key] ?? 0)) return false;
+			this.#applied[key] = call;
+			if (this.#confirmed) this.#confirmed = { ...this.#confirmed, [key]: settings.privacy[key] };
+			if (key === 'name') {
+				this.displayName = settings.displayName;
+				this.nameLocked = settings.nameLocked;
+			}
 			return true;
 		} catch (error) {
 			if (run !== this.#run) return false;
 			if (this.#latest[key] === call) {
-				this.privacyError = messageOf(error, `privacy.${key}_visibility`);
+				this.privacyError = messageOf(error, `privacy.${privacyField(key)}`);
 			}
 			return false;
 		} finally {
@@ -127,14 +127,18 @@ export class SettingsStore {
 		const shown = this.privacy;
 		if (!confirmed || !shown) return;
 		const next = { ...confirmed };
-		for (const key of Object.keys(this.#latest) as PrivacyKey[]) next[key] = shown[key];
+		for (const key of Object.keys(this.#latest) as PrivacyKey[]) {
+			Object.assign(next, { [key]: shown[key] });
+		}
 		this.privacy = next;
 	}
 
 	#apply(settings: MySettings): void {
 		this.displayName = settings.displayName;
+		this.nameLocked = settings.nameLocked;
 		this.#confirmed = { ...settings.privacy };
 		this.#latest = {};
+		this.#applied = {};
 		this.privacy = { ...settings.privacy };
 	}
 }

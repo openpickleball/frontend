@@ -69,7 +69,6 @@ test.describe('an account that has a player (me/player exists)', () => {
 		]);
 		const main = page.getByRole('main');
 		for (const [name, href] of [
-			['Display name', '/profile/name'],
 			['Two-factor authentication', '/profile/two-factor'],
 			['Profile visibility', '/profile/privacy'],
 			['Copy of your data', '/profile/data']
@@ -91,10 +90,16 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(main.getByTestId('app-version')).toHaveText(/^\d+\.\d+\.\d+( \([0-9a-f]{7}\))?$/);
 		await expect(main.getByRole('button', { name: 'Sign out' })).toBeVisible();
 
-		// The settings themselves are on their own pages, and the name only in its field there.
+		// The name comes from sign-up: plain text with a line saying so, never a link or a field.
+		const name = main.getByTestId('profile-name');
+		await expect(name).toContainText('Name');
+		await expect(name).toContainText(tamsin.displayName);
+		await expect(name).toContainText("From your sign-up. It can't be changed.");
+		await expect(name.getByRole('link')).toHaveCount(0);
+		await expect(main.getByRole('link', { name: /Display name/ })).toHaveCount(0);
+		// The settings themselves are on their own pages.
 		await expect(page.getByRole('switch')).toHaveCount(0);
-		await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveCount(0);
-		await expect(main.getByText(tamsin.displayName, { exact: true })).toHaveCount(0);
+		await expect(page.getByRole('textbox')).toHaveCount(0);
 		// The match count and the ratings are on Home and the Ratings tab.
 		await expect(page.getByTestId('match-count')).toHaveCount(0);
 		await expect(page.getByTestId('ratings')).toHaveCount(0);
@@ -136,32 +141,41 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(0);
 	});
 
-	test('opens Display name and goes back to Profile', async ({ page }) => {
-		await page.getByRole('link', { name: /^Display name/ }).click();
-		await expect(page).toHaveURL(/\/profile\/name$/);
-		await expect(page).toHaveTitle('Display name · OPEN Pickleball');
-		await expect(page.getByRole('heading', { level: 1, name: 'Display name' })).toBeVisible();
-		await page.getByRole('main').getByRole('link', { name: 'Profile' }).click();
-		await expect(page).toHaveURL(/\/profile$/);
-		await expect(page.getByRole('heading', { level: 1, name: 'Profile' })).toBeVisible();
+	test('has no Display name page any more', async ({ page }) => {
+		await page.goto('/profile/name');
+		await expect(
+			page.getByRole('heading', { level: 1, name: "We couldn't find this page" })
+		).toBeVisible();
+		await expect(page.getByRole('textbox')).toHaveCount(0);
 	});
 
-	test('changes the display name, and keeps it after a reload', async ({ page }) => {
-		await page.goto('/profile/name');
-		const field = page.getByRole('textbox', { name: 'Display name' });
-		await expect(field).toHaveValue(tamsin.displayName);
+	test('shows the last name as an initial and back, everywhere the name shows', async ({
+		page
+	}) => {
+		const [first, last] = tamsin.displayName.split(' ');
+		const initial = `${first} ${last[0]}.`;
+		await page.getByRole('link', { name: /^Profile visibility/ }).click();
+		const name = page.getByRole('switch', { name: 'Show my last name as an initial' });
+		await expect(name).not.toBeChecked();
+		await expect(name).toBeEnabled();
+		await expect(name).toHaveAccessibleDescription(`Shown as ${tamsin.displayName}`);
 
-		await field.fill('   ');
-		await page.getByRole('button', { name: 'Save name' }).click();
-		await expect(page.getByText('Enter a display name.')).toBeVisible();
+		await name.click();
+		await expect(name).toBeChecked();
+		await expect(name).toHaveAccessibleDescription(`Shown as ${initial}`);
+		await page.getByRole('main').getByRole('link', { name: 'Profile' }).click();
+		await expect(page.getByTestId('profile-name')).toContainText(initial);
 
-		await field.fill('  Tamsin Q  ');
-		await page.getByRole('button', { name: 'Save name' }).click();
-		await expect(page.getByText('Name saved.')).toBeVisible();
-		await expect(field).toHaveValue('Tamsin Q');
+		// Kept after a reload, since the backend holds it.
+		await page.goto('/profile/privacy');
+		await expect(name).toBeChecked();
+		await expect(name).toHaveAccessibleDescription(`Shown as ${initial}`);
 
-		await page.reload();
-		await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveValue('Tamsin Q');
+		await name.click();
+		await expect(name).not.toBeChecked();
+		await expect(name).toHaveAccessibleDescription(`Shown as ${tamsin.displayName}`);
+		await page.getByRole('main').getByRole('link', { name: 'Profile' }).click();
+		await expect(page.getByTestId('profile-name')).toContainText(tamsin.displayName);
 	});
 
 	test('changes who can see a detail, and keeps it after a reload', async ({ page }) => {
@@ -170,7 +184,7 @@ test.describe('an account that has a player (me/player exists)', () => {
 		await expect(page).toHaveTitle('Profile visibility · OPEN Pickleball');
 		const matches = page.getByRole('switch', { name: 'Match history' });
 		await expect(matches).toBeChecked();
-		await expect(page.getByRole('switch')).toHaveCount(5);
+		await expect(page.getByRole('switch')).toHaveCount(6);
 		// An adult's current ratings are always shown, so there is no switch for them.
 		await expect(page.getByTestId('privacy-rating-fixed')).toBeVisible();
 		await expect(page.getByRole('switch', { name: 'Current ratings' })).toHaveCount(0);
@@ -361,27 +375,29 @@ test.describe('an account with no player and no signup details held', () => {
 	test('asks for the details, names each missing one, then shows the code', async ({ page }) => {
 		await expect(page.getByRole('heading', { name: 'Finish your player profile' })).toBeVisible();
 		await expect(page.getByTestId('my-code')).toHaveCount(0);
-		await expect(page.getByText(/can't change your display name/)).toHaveCount(0);
+		await expect(page.getByText(/can't change your privacy settings/)).toHaveCount(0);
 
 		await page.getByRole('button', { name: 'Save and show my code' }).click();
 		await expect(page.getByText('Enter your birth month.')).toBeVisible();
 		await expect(page.getByText('Enter your birth year.')).toBeVisible();
 		await expect(page.getByText('Choose a gender division.')).toBeVisible();
-		await expect(page.getByText('Enter a display name.')).toBeVisible();
+		await expect(page.getByText('Enter your first name.')).toBeVisible();
+		await expect(page.getByText('Enter your last name.')).toBeVisible();
 		await expectNoAxeViolations(page);
 
 		await page.getByLabel('Month').selectOption('6');
 		await page.getByLabel('Year').fill('1990');
 		await page.getByRole('radio', { name: 'Woman' }).click();
-		await page.getByLabel('Display name').fill('Wren Mock');
+		await page.getByLabel('First name').fill('Wren');
+		await page.getByLabel('Last name').fill('Mock');
 		await page.getByRole('button', { name: 'Save and show my code' }).click();
 
 		await expect(page.getByTestId('my-code')).toHaveText(/^P-/);
 		await expect(page.getByRole('heading', { name: 'Finish your player profile' })).toHaveCount(0);
 		await page.reload();
 		await expect(page.getByTestId('my-code')).toHaveText(/^P-/);
-		await page.goto('/profile/name');
-		await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveValue('Wren Mock');
+		// The backend built the name from the first and last name.
+		await expect(page.getByTestId('profile-name')).toContainText('Wren Mock');
 	});
 
 	for (const scheme of ['dark', 'light'] as const) {
@@ -392,15 +408,25 @@ test.describe('an account with no player and no signup details held', () => {
 		});
 	}
 
-	test('a player aged 13 to 17 keeps current ratings private until 18', async ({ page }) => {
+	test('a player aged 13 to 17 shows "First L." and keeps current ratings private until 18', async ({
+		page
+	}) => {
 		await page.getByLabel('Month').selectOption('1');
 		await page.getByLabel('Year').fill(String(new Date().getFullYear() - 15));
 		await page.getByRole('radio', { name: 'Woman' }).click();
-		await page.getByLabel('Display name').fill('Wren Mock');
+		await page.getByLabel('First name').fill('Wren');
+		await page.getByLabel('Last name').fill('Mock');
 		await page.getByRole('button', { name: 'Save and show my code' }).click();
 		await expect(page.getByTestId('my-code')).toHaveText(/^P-/);
+		await expect(page.getByTestId('profile-name')).toContainText('Wren M.');
 
 		await page.getByRole('link', { name: /^Profile visibility/ }).click();
+		const name = page.getByRole('switch', { name: 'Show my last name as an initial' });
+		await expect(name).toBeChecked();
+		await expect(name).toBeDisabled();
+		await expect(name).toHaveAccessibleDescription(
+			'Shown as Wren M. This stays on until you turn 18.'
+		);
 		const ratings = page.getByRole('switch', { name: 'Current ratings' });
 		await expect(ratings).not.toBeChecked();
 		await ratings.click();
@@ -416,7 +442,8 @@ test.describe('an account with no player and no signup details held', () => {
 		await page.getByLabel('Month').selectOption('6');
 		await page.getByLabel('Year').fill(String(new Date().getFullYear() - 5));
 		await page.getByRole('radio', { name: 'Man', exact: true }).click();
-		await page.getByLabel('Display name').fill('Kid Mock');
+		await page.getByLabel('First name').fill('Kid');
+		await page.getByLabel('Last name').fill('Mock');
 		await page.getByRole('button', { name: 'Save and show my code' }).click();
 
 		const refusal = page.getByText("We can't create a player profile with these details.");
@@ -434,7 +461,7 @@ test('signed out, the profile sends the player to sign in and back', async ({ pa
 	await expect(page.getByTestId('my-code')).toHaveCount(0);
 });
 
-for (const path of ['/profile/name', '/profile/privacy', '/profile/data']) {
+for (const path of ['/profile/privacy', '/profile/data']) {
 	test(`signed out, ${path} sends the player to sign in and back`, async ({ page }) => {
 		await page.goto(path);
 		await expect(page).toHaveURL(`/account/login?next=${encodeURIComponent(path)}`);

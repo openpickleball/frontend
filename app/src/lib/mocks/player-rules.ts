@@ -4,15 +4,19 @@
  *
  * `me/player` checks a body in two steps, as the backend does: the schema first (pydantic:
  * unknown keys, types, set-once fields, privacy values), then the model (`Player.clean_fields`
- * and its rules: stripped text, lengths, the display name, the gender division, the age).
+ * and its rules: stripped text, lengths, the gender division, the age). The create's body path
+ * checks the first and last name with signup's rules first, and the display name and legal name
+ * are built from them, never sent (ADR 0062).
  */
 import type { components } from '../api/generated/open';
+import { SIGNUP_FIRST_NAME_MAX_LENGTH, SIGNUP_NAME_MAX_LENGTH } from '../domain/schemas';
 import type { FieldIssue } from './store';
 
 type Schemas = components['schemas'];
 export type PlayerCreateIn = Schemas['PlayerCreateIn'];
 export type PlayerUpdateIn = Schemas['PlayerUpdateIn'];
 export type PrivacyOut = Schemas['PrivacyOut'];
+export type NameFormat = Schemas['NameFormat'];
 
 export const NOT_TEXT = 'Enter text.';
 export const CONTROL_CHARACTER = 'Remove control or invalid characters.';
@@ -42,17 +46,97 @@ const FILLERS = new Set(['ᅟ', 'ᅠ', 'ㅤ', 'ﾠ', '⠀', '\u{1d159}']);
 export const hasVisibleCharacter = (value: string): boolean =>
 	[...value].some((char) => /[\p{L}\p{N}\p{P}\p{S}\p{Cn}]/u.test(char) && !FILLERS.has(char));
 
+/** The backend's `DISPLAY_NAME_MAX_LENGTH`, in code points. */
+const DISPLAY_NAME_MAX = 64;
+
 /**
- * The backend's `starting_display_name` for a player aged 13 to 17: "First L.", with the last
- * name's first character that renders and the combining marks after it.
+ * The backend's `last_initial` (`apps/players/names.py`): the last name's first character that
+ * renders, with the combining marks after it.
  */
-export function minorDisplayName(first: string, last: string): string {
+function lastInitial(last: string): string[] {
 	const chars = [...last];
 	const found = chars.findIndex((char) => hasVisibleCharacter(char));
 	const start = found === -1 ? 0 : found;
 	let end = start + 1;
 	while (end < chars.length && /\p{M}/u.test(chars[end])) end += 1;
-	return `${first} ${chars.slice(start, end).join('')}.`;
+	return chars.slice(start, end);
+}
+
+/**
+ * The backend's `display_name_for` (`apps/players/names.py`): "First Last" for `full`, and
+ * "First L." otherwise, so an unknown format fails closed. The initial's marks are dropped from
+ * the end while the name would pass 64 characters, keeping at least its first character.
+ */
+export function displayNameFor(first: string, last: string, format: NameFormat): string {
+	if (format === 'full') return `${first} ${last}`;
+	const room = DISPLAY_NAME_MAX - codePoints(first) - 2;
+	return `${first} ${lastInitial(last).slice(0, Math.max(room, 1)).join('')}.`;
+}
+
+/** The backend's `FULL_NAME_FROM_18_MESSAGE`. */
+export const FULL_NAME_FROM_18 = 'Your full last name can be shown only from age 18.';
+
+/** A name refused by signup's checks, on the field that holds it. */
+export type NameIssue = { code: string; message: string; param: 'first_name' | 'last_name' };
+
+/** A required name: stripped, then required, control characters, and its own length. */
+function nameCheck(
+	value: unknown,
+	param: 'first_name' | 'last_name',
+	requiredMessage: string
+): { issue: NameIssue | null; value: string } {
+	if (value === undefined || value === null) {
+		return { issue: { code: 'required', message: requiredMessage, param }, value: '' };
+	}
+	if (typeof value !== 'string') {
+		return { issue: { code: 'invalid', message: NOT_TEXT, param }, value: '' };
+	}
+	const stripped = strip(value);
+	// The control-character check comes first, as in the backend.
+	if (hasControlCharacter(stripped)) {
+		return { issue: { code: 'invalid', message: CONTROL_CHARACTER, param }, value: stripped };
+	}
+	if (!hasVisibleCharacter(stripped)) {
+		return { issue: { code: 'required', message: requiredMessage, param }, value: '' };
+	}
+	return { issue: null, value: stripped };
+}
+
+/**
+ * Signup's checks on a first and last name (`PlayerNamesForm` and the signup form, in
+ * `apps/accounts/forms.py`): each name, then the first name's limit, then the two together.
+ * Returns the stripped names with the issues.
+ */
+export function signupNameIssues(body: Record<string, unknown>): {
+	issues: NameIssue[];
+	first: string;
+	last: string;
+} {
+	const issues: NameIssue[] = [];
+	const first = nameCheck(body.first_name, 'first_name', 'Enter your first name.');
+	const last = nameCheck(body.last_name, 'last_name', 'Enter your last name.');
+	const firstTooLong = !first.issue && codePoints(first.value) > SIGNUP_FIRST_NAME_MAX_LENGTH;
+	if (first.issue) issues.push(first.issue);
+	else if (firstTooLong) {
+		issues.push({
+			code: 'max_length',
+			message: `Your first name can be at most ${SIGNUP_FIRST_NAME_MAX_LENGTH} characters.`,
+			param: 'first_name'
+		});
+	}
+	if (last.issue) issues.push(last.issue);
+	else if (
+		!first.issue &&
+		!firstTooLong &&
+		codePoints(`${first.value} ${last.value}`) > SIGNUP_NAME_MAX_LENGTH
+	) {
+		issues.push({
+			code: 'max_length',
+			message: `Your first and last name together can be at most ${SIGNUP_NAME_MAX_LENGTH - 1} characters.`,
+			param: 'last_name'
+		});
+	}
+	return { issues, first: first.value, last: last.value };
 }
 
 /**
@@ -61,6 +145,19 @@ export function minorDisplayName(first: string, last: string): string {
  */
 export function isOldEnough(year: number, month: number, now = new Date()): boolean {
 	return ageOn(year, month, now) >= 13;
+}
+
+/**
+ * The backend's `is_name_format_locked` (`apps/players/services.py`): true while the player is
+ * 13 to 17, and also when the birth year or month is missing, not a whole number or the month
+ * is outside 1 to 12, so it fails closed. A new player whose format is locked starts with
+ * `first_last_initial` (`_starting_name_format`).
+ */
+export function isNameFormatLocked(year: unknown, month: unknown, now = new Date()): boolean {
+	if (!Number.isInteger(year) || !Number.isInteger(month)) return true;
+	const [y, m] = [year as number, month as number];
+	if (m < 1 || m > 12) return true;
+	return isMinor(y, m, now);
 }
 
 /** `is_minor`: 13 to 17, counted the same way as `isOldEnough`. */
@@ -95,17 +192,19 @@ export const AGE_REFUSAL: FieldIssue = {
 const TEXT_LIMITS = { display_name: 64, legal_name: 200, city: 100, region: 100 } as const;
 type TextField = keyof typeof TEXT_LIMITS;
 const OPTIONAL_TEXT: readonly TextField[] = ['legal_name', 'city', 'region'];
-const STRING_FIELDS = [...Object.keys(TEXT_LIMITS), 'gender_division'];
+const STRING_FIELDS = ['first_name', 'last_name', 'city', 'region', 'gender_division'];
 const BIRTH_FIELDS = ['birth_year', 'birth_month'];
 export const GENDER_DIVISIONS = ['mens', 'womens'] as const;
 export const VISIBILITIES = ['signed_in', 'private'] as const;
+export const NAME_FORMATS = ['full', 'first_last_initial'] as const;
 export const PRIVACY_SETTINGS: readonly (keyof PrivacyOut)[] = [
 	'city_region_visibility',
 	'match_history_visibility',
 	'rating_history_visibility',
 	'stats_visibility',
 	'home_club_visibility',
-	'rating_visibility'
+	'rating_visibility',
+	'name_format'
 ];
 
 export const RATINGS_ALWAYS_SHOWN =
@@ -114,8 +213,14 @@ export const RATINGS_SHOWN_FROM_18 =
 	'Current ratings can be shown to other players only from age 18.';
 
 const CREATE_KEYS = new Set([...STRING_FIELDS, ...BIRTH_FIELDS]);
-const UPDATE_KEYS = new Set([...Object.keys(TEXT_LIMITS), 'privacy']);
+const UPDATE_KEYS = new Set(['city', 'region', 'privacy']);
+/**
+ * The backend's `SET_ONCE_MESSAGES`. The display name and legal name are built from the names
+ * given at signup (ADR 0062), so they are refused like the others.
+ */
 const SET_ONCE: Record<string, string> = {
+	display_name: "Your display name can't be changed.",
+	legal_name: "Your legal name can't be changed.",
 	birth_year: "Your birth year and month can't be changed.",
 	birth_month: "Your birth year and month can't be changed.",
 	gender_division: "Your gender division can't be changed."
@@ -123,7 +228,8 @@ const SET_ONCE: Record<string, string> = {
 
 /** `_MISSING_DETAIL_MESSAGES`: what the create needs when no sign-up details are held. */
 export const REQUIRED_TO_CREATE = {
-	display_name: 'Enter a display name.',
+	first_name: 'Enter your first name.',
+	last_name: 'Enter your last name.',
 	birth_year: 'Enter your birth year.',
 	birth_month: 'Enter your birth month.',
 	gender_division: 'Choose a gender division.'
@@ -191,7 +297,11 @@ export function updateSchemaIssues(body: unknown): FieldIssue[] {
 			for (const [key, value] of Object.entries(privacy)) {
 				const field = `body.privacy.${key}`;
 				if (!PRIVACY_SETTINGS.includes(key as keyof PrivacyOut)) issues.push(extra(field));
-				else if (value !== null && !VISIBILITIES.includes(value as never)) {
+				else if (key === 'name_format') {
+					if (value !== null && !NAME_FORMATS.includes(value as never)) {
+						issues.push(issue(field, 'enum', "Input should be 'full' or 'first_last_initial'"));
+					}
+				} else if (value !== null && !VISIBILITIES.includes(value as never)) {
 					issues.push(issue(field, 'enum', "Input should be 'signed_in' or 'private'"));
 				}
 			}
@@ -218,6 +328,21 @@ export function ratingVisibilityIssues(
 	if (value === 'private') return [issue(field, 'invalid', RATINGS_ALWAYS_SHOWN)];
 	if (value === 'signed_in' && minor) return [issue(field, 'invalid', RATINGS_SHOWN_FROM_18)];
 	return [];
+}
+
+/**
+ * The backend's rule for `name_format` (`_refuse_name_format`): the stored value is always
+ * accepted, and `full` is refused while the name format is locked (13 to 17).
+ */
+export function nameFormatIssues(
+	stored: NameFormat,
+	locked: boolean,
+	privacy: unknown
+): FieldIssue[] {
+	if (!isObject(privacy) || !Object.hasOwn(privacy, 'name_format')) return [];
+	const value = privacy.name_format;
+	if (value === stored || value !== 'full' || !locked) return [];
+	return [issue('body.privacy.name_format', 'invalid', FULL_NAME_FROM_18)];
 }
 
 /** The privacy model's check: a setting sent as null is refused, like any non-null column. */
@@ -263,10 +388,7 @@ export function profileIssues(values: ProfileValues): {
 		const field = `body.${name}`;
 		if (value === null || value === undefined) {
 			if (OPTIONAL_TEXT.includes(name)) clean[name] = '';
-			else {
-				issues.push(issue(field, 'null', 'This field cannot be null.'));
-				issues.push(issue(field, 'invalid', REQUIRED_TO_CREATE.display_name));
-			}
+			else issues.push(issue(field, 'null', 'This field cannot be null.'));
 			continue;
 		}
 		const stripped = strip(value);
@@ -287,9 +409,6 @@ export function profileIssues(values: ProfileValues): {
 					`Ensure this value has at most ${limit} characters (it has ${codePoints(stripped)}).`
 				)
 			);
-		}
-		if (name === 'display_name' && !hasVisibleCharacter(stripped)) {
-			issues.push(issue(field, 'invalid', REQUIRED_TO_CREATE.display_name));
 		}
 	}
 	if (Object.hasOwn(values, 'gender_division')) {

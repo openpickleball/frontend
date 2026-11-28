@@ -1,32 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DISPLAY_NAME_MAX, PRIVACY_ROWS, checkDetails, checkDisplayName } from './settings.js';
-
-describe('checkDisplayName', () => {
-	it('trims the name', () => {
-		expect(checkDisplayName('  Fern Mock  ')).toEqual({ ok: true, value: 'Fern Mock' });
-	});
-
-	it('refuses an empty or blank name', () => {
-		expect(checkDisplayName('')).toEqual({ ok: false, message: 'Enter a display name.' });
-		expect(checkDisplayName('   ')).toEqual({ ok: false, message: 'Enter a display name.' });
-	});
-
-	it('allows the longest name and refuses one more character', () => {
-		const longest = 'a'.repeat(DISPLAY_NAME_MAX);
-		expect(checkDisplayName(longest)).toEqual({ ok: true, value: longest });
-		expect(checkDisplayName(`${longest}a`)).toEqual({
-			ok: false,
-			message: 'Use 64 characters or fewer.'
-		});
-	});
-
-	it('counts characters, not UTF-16 units, as the backend does', () => {
-		// Each of these is one character and two UTF-16 units.
-		const name = '\u{1F3D3}'.repeat(DISPLAY_NAME_MAX);
-		expect(name.length).toBe(DISPLAY_NAME_MAX * 2);
-		expect(checkDisplayName(name).ok).toBe(true);
-	});
-});
+import { PRIVACY_ROWS, checkDetails } from './settings.js';
 
 describe('PRIVACY_ROWS', () => {
 	it('lists each privacy setting once', () => {
@@ -49,7 +22,8 @@ describe('checkDetails', () => {
 		birth_month: '6',
 		birth_year: ' 1990 ',
 		gender_division: 'womens',
-		display_name: '  Fern Mock '
+		first_name: '  Fern ',
+		last_name: ' Mock  '
 	};
 
 	it('gives the backend body for filled details', () => {
@@ -59,21 +33,29 @@ describe('checkDetails', () => {
 				birth_month: 6,
 				birth_year: 1990,
 				gender_division: 'womens',
-				display_name: 'Fern Mock'
+				first_name: 'Fern',
+				last_name: 'Mock'
 			}
 		});
 	});
 
 	it("asks for every field with the backend's messages", () => {
 		expect(
-			checkDetails({ birth_month: '', birth_year: '', gender_division: '', display_name: ' ' })
+			checkDetails({
+				birth_month: '',
+				birth_year: '',
+				gender_division: '',
+				first_name: ' ',
+				last_name: ''
+			})
 		).toEqual({
 			ok: false,
 			errors: {
 				birth_month: 'Enter your birth month.',
 				birth_year: 'Enter your birth year.',
 				gender_division: 'Choose a gender division.',
-				display_name: 'Enter a display name.'
+				first_name: 'Enter your first name.',
+				last_name: 'Enter your last name.'
 			}
 		});
 	});
@@ -91,10 +73,21 @@ describe('checkDetails', () => {
 		expect(year('1990')).toBeNull();
 	});
 
-	it('wants a short display name', () => {
-		expect(checkDetails({ ...filled, display_name: 'Q'.repeat(65) })).toEqual({
+	it("checks the names with signup's limits and messages", () => {
+		expect(checkDetails({ ...filled, first_name: 'Q'.repeat(61), last_name: 'M' }).ok).toBe(true);
+		expect(checkDetails({ ...filled, first_name: 'Q'.repeat(62) })).toEqual({
 			ok: false,
-			errors: { display_name: 'Use 64 characters or fewer.' }
+			errors: { first_name: 'Your first name can be at most 61 characters.' }
+		});
+		// "First Last" fits in 64 characters, the space included.
+		expect(
+			checkDetails({ ...filled, first_name: 'Q'.repeat(40), last_name: 'M'.repeat(23) }).ok
+		).toBe(true);
+		expect(
+			checkDetails({ ...filled, first_name: 'Q'.repeat(40), last_name: 'M'.repeat(24) })
+		).toEqual({
+			ok: false,
+			errors: { last_name: 'Your first and last name together can be at most 63 characters.' }
 		});
 	});
 });

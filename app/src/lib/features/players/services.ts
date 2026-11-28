@@ -60,7 +60,7 @@ export type CreateMyPlayerResult =
 	| { kind: 'conflict' }
 	/**
 	 * A 422 naming a missing detail: the backend holds none from sign-up and needs the body.
-	 * A message per field (`display_name`, `birth_year` and so on).
+	 * A message per field (`first_name`, `birth_year` and so on).
 	 */
 	| { kind: 'needs-details'; fields: Record<string, string> }
 	/**
@@ -83,7 +83,7 @@ function isAgeRefusal(items: FieldError[]): boolean {
 /**
  * Create the signed-in account's player with `POST me/player` (backend#124). The backend uses
  * the details held from sign-up when it has them and ignores the body; otherwise the body must
- * carry the display name, birth year and month and gender division. Throws an `AppError` for
+ * carry the first and last name, birth year and month and gender division. Throws an `AppError` for
  * anything not in the result: a 401, a 403 (email not verified), a 404 or 405, a 5xx or no
  * answer.
  */
@@ -118,36 +118,42 @@ export async function createMyPlayer(
 	throw toAppError(error, response);
 }
 
+/** The backend's name for a privacy setting, as `PrivacyIn` and its 422s name it. */
+export function privacyField(key: PrivacyKey): keyof PrivacyIn {
+	return key === 'name' ? 'name_format' : `${key}_visibility`;
+}
+
 function toMySettings(dto: MyPlayerOut): MySettings {
 	const p = dto.privacy;
 	return {
 		displayName: dto.display_name,
+		nameLocked: dto.name_format_locked,
 		privacy: {
 			match_history: p.match_history_visibility,
 			stats: p.stats_visibility,
 			rating_history: p.rating_history_visibility,
 			home_club: p.home_club_visibility,
 			city_region: p.city_region_visibility,
-			rating: p.rating_visibility
+			rating: p.rating_visibility,
+			name: p.name_format
 		}
 	};
 }
 
 function toUpdateIn(change: MySettingsChange): PlayerUpdateIn {
 	const body: PlayerUpdateIn = {};
-	if (change.displayName !== undefined) body.display_name = change.displayName;
 	if (change.privacy) {
-		const privacy: PrivacyIn = {};
+		const privacy: Record<string, string> = {};
 		for (const [key, value] of Object.entries(change.privacy)) {
-			privacy[`${key as PrivacyKey}_visibility`] = value;
+			privacy[privacyField(key as PrivacyKey)] = value;
 		}
-		body.privacy = privacy;
+		body.privacy = privacy as PrivacyIn;
 	}
 	return body;
 }
 
 /**
- * The player's display name and privacy settings, or `null` when `me/player` answers a 404 or
+ * The player's name, its lock and the privacy settings, or `null` when `me/player` answers a 404 or
  * 405 (no player to read). Throws an `AppError` for anything else.
  */
 export async function fetchMySettings({

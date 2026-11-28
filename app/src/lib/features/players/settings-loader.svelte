@@ -7,9 +7,9 @@
 	import { SettingsStore, type SettingsDeps } from './settings-store.svelte.js';
 
 	/**
-	 * Loads the player's settings (`GET me/player`) for the display name and Profile visibility
-	 * pages, and shows the loading, error and not-available states. Renders `children` with the
-	 * store once the settings are there.
+	 * Loads the player's settings (`GET me/player`) for the Privacy page, and shows the loading,
+	 * error and not-available states. Renders `children` with the store once the settings are
+	 * there.
 	 */
 	let {
 		deps = {},
@@ -53,7 +53,7 @@
 			{@render children(settings)}
 		{:else if settings.status === 'unavailable'}
 			<p class="max-w-md text-base text-muted">
-				You can't change your display name or privacy settings in the app yet.
+				You can't change your privacy settings in the app yet.
 			</p>
 		{:else if settings.status === 'error'}
 			<p class="max-w-md text-base text-muted">

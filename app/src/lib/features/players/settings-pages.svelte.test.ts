@@ -3,40 +3,40 @@ import { render } from 'vitest-browser-svelte';
 import { AppError } from '#lib/api/index.js';
 import { buildCode, type PlayerCode } from '#lib/domain/index.js';
 import { myCode } from './my-code.svelte.js';
-import NameSettings from './name-settings.svelte';
 import VisibilitySettings from './visibility-settings.svelte';
 import YourData from './your-data.svelte';
 import type { MySettings, MySettingsChange } from './types.js';
 
 const SAVED: MySettings = {
 	displayName: 'Fern Mock',
+	nameLocked: false,
 	privacy: {
 		match_history: 'signed_in',
 		stats: 'signed_in',
 		rating_history: 'signed_in',
 		home_club: 'private',
 		city_region: 'signed_in',
-		rating: 'signed_in'
+		rating: 'signed_in',
+		name: 'full'
 	}
 };
+
+const NAME_SWITCH = 'Show my last name as an initial';
 
 /** A fake backend for `PATCH me/player`. */
 function backend() {
 	let held = structuredClone(SAVED);
 	return vi.fn(async (change: MySettingsChange): Promise<MySettings> => {
-		held = {
-			displayName: change.displayName ?? held.displayName,
-			privacy: { ...held.privacy, ...change.privacy }
-		};
+		const privacy = { ...held.privacy, ...change.privacy };
+		// The backend builds the name from the names given at signup.
+		const displayName = privacy.name === 'full' ? 'Fern Mock' : 'Fern M.';
+		held = { ...held, displayName, privacy };
 		return structuredClone(held);
 	});
 }
 
-/** The display name page's form, or the Profile visibility switches. */
-type Part = typeof NameSettings | typeof VisibilitySettings;
-
-async function renderReady(updateMySettings = backend(), part: Part = VisibilitySettings) {
-	const screen = await render(part, {
+async function renderReady(updateMySettings = backend()) {
+	const screen = await render(VisibilitySettings, {
 		deps: { fetchMySettings: async () => SAVED, updateMySettings }
 	});
 	return { screen, updateMySettings };
@@ -56,17 +56,13 @@ beforeEach(() => {
 	readyCode();
 });
 
-describe('NameSettings and VisibilitySettings', () => {
-	it('shows the saved name in the display name form, and no switches', async () => {
-		const { screen } = await renderReady(backend(), NameSettings);
-		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
-		expect(screen.getByRole('switch').elements()).toHaveLength(0);
-	});
-
-	it('shows one switch per privacy setting, and no name field', async () => {
+describe('VisibilitySettings', () => {
+	it('shows one switch per privacy setting, the name first, and no name field', async () => {
 		const { screen } = await renderReady();
 		await expect.element(screen.getByRole('switch', { name: 'Stats' })).toBeVisible();
-		await expect.element(screen.getByLabelText('Display name')).not.toBeInTheDocument();
+		await expect.element(screen.getByRole('textbox')).not.toBeInTheDocument();
+		const switches = screen.getByRole('switch').elements();
+		expect(switches[0]).toBe(screen.getByRole('switch', { name: NAME_SWITCH }).element());
 		const matches = screen.getByRole('switch', { name: 'Match history' });
 		await expect.element(matches).toBeChecked();
 		// Match history says which matches are shown, which the Matches page used to say.
@@ -78,56 +74,110 @@ describe('NameSettings and VisibilitySettings', () => {
 		const club = screen.getByRole('switch', { name: 'Home club' });
 		await expect.element(club).not.toBeChecked();
 		await expect.element(club).toHaveAccessibleDescription('Only me');
-		expect(screen.getByRole('switch').elements()).toHaveLength(5);
+		expect(switches).toHaveLength(6);
 	});
 
-	it('saves a new display name', async () => {
-		const { screen, updateMySettings } = await renderReady(backend(), NameSettings);
-		const field = screen.getByLabelText('Display name');
-		await field.fill('  Fern Quill  ');
-		await screen.getByRole('button', { name: 'Save name' }).click();
-		await expect.element(screen.getByText('Name saved.')).toBeVisible();
-		await expect.element(field).toHaveValue('Fern Quill');
-		expect(updateMySettings).toHaveBeenCalledWith({ displayName: 'Fern Quill' });
+	it('shows the full name with the switch off, and the name other players see', async () => {
+		const { screen } = await renderReady();
+		const name = screen.getByRole('switch', { name: NAME_SWITCH });
+		await expect.element(name).not.toBeChecked();
+		await expect.element(name).toBeEnabled();
+		await expect.element(name).toHaveAccessibleDescription('Shown as Fern Mock');
 	});
 
-	it('updates the name the app shows once a new name is saved', async () => {
-		const { screen } = await renderReady(backend(), NameSettings);
-		await screen.getByLabelText('Display name').fill('Fern Quill');
-		await screen.getByRole('button', { name: 'Save name' }).click();
-		await expect.element(screen.getByText('Name saved.')).toBeVisible();
-		expect(myCode.displayName).toBe('Fern Quill');
+	it('shows the last name as an initial, then in full again, with the name the backend built', async () => {
+		const { screen, updateMySettings } = await renderReady();
+		const name = screen.getByRole('switch', { name: NAME_SWITCH });
+		await name.click();
+		await expect.element(name).toBeChecked();
+		expect(updateMySettings).toHaveBeenCalledWith({ privacy: { name: 'first_last_initial' } });
+		await expect.element(name).toHaveAccessibleDescription('Shown as Fern M.');
+		expect(myCode.displayName).toBe('Fern M.');
+
+		await name.click();
+		await expect.element(name).not.toBeChecked();
+		expect(updateMySettings).toHaveBeenLastCalledWith({ privacy: { name: 'full' } });
+		await expect.element(name).toHaveAccessibleDescription('Shown as Fern Mock');
+		expect(myCode.displayName).toBe('Fern Mock');
 	});
 
-	it('ignores a second click on Save name while saving and keeps focus on it', async () => {
+	it('keeps the old name until the backend answers, never a guess', async () => {
 		let finish: (value: MySettings) => void = () => {};
 		const updateMySettings = vi.fn(() => new Promise<MySettings>((resolve) => (finish = resolve)));
-		const { screen } = await renderReady(updateMySettings, NameSettings);
-		await screen.getByLabelText('Display name').fill('Fern Quill');
-		const button = screen.getByRole('button', { name: 'Save name' }).element() as HTMLButtonElement;
-		button.focus();
-		button.click();
-		const busy = screen.getByRole('button', { name: 'Save name' });
-		await expect.element(busy).toHaveAttribute('aria-busy', 'true');
-		await expect.element(busy).toHaveAttribute('aria-disabled', 'true');
-		button.click();
-		expect(updateMySettings).toHaveBeenCalledOnce();
-		expect(button.disabled).toBe(false);
-		expect(document.activeElement).toBe(button);
-		finish({ ...SAVED, displayName: 'Fern Quill' });
-		await expect.element(screen.getByText('Name saved.')).toBeVisible();
-		expect(document.activeElement).toBe(button);
+		const { screen } = await renderReady(updateMySettings);
+		const name = screen.getByRole('switch', { name: NAME_SWITCH });
+		await name.click();
+		await expect.element(name).toBeChecked();
+		await expect.element(name).toHaveAccessibleDescription('Shown as Fern Mock');
+		finish({
+			...SAVED,
+			displayName: 'Fern M.',
+			privacy: { ...SAVED.privacy, name: 'first_last_initial' }
+		});
+		await expect.element(name).toHaveAccessibleDescription('Shown as Fern M.');
 	});
 
-	it('says what is wrong with an empty name and does not send it', async () => {
-		const { screen, updateMySettings } = await renderReady(backend(), NameSettings);
-		const field = screen.getByLabelText('Display name');
-		await field.fill('');
-		await screen.getByRole('button', { name: 'Save name' }).click();
-		await expect.element(screen.getByText('Enter a display name.')).toBeVisible();
-		await expect.element(field).toHaveAttribute('aria-invalid', 'true');
-		await expect.element(field).toHaveFocus();
-		expect(updateMySettings).not.toHaveBeenCalled();
+	it("puts the name switch back and shows the backend's message when the save fails", async () => {
+		const message = 'Your full last name can be shown only from age 18.';
+		const { screen } = await renderReady(
+			vi.fn(async () => {
+				throw new AppError({
+					kind: 'validation',
+					status: 422,
+					code: 'validation_error',
+					message: 'Please check the highlighted fields.',
+					fields: { 'privacy.name_format': [message] }
+				});
+			})
+		);
+		const name = screen.getByRole('switch', { name: NAME_SWITCH });
+		await name.click();
+		await expect.element(screen.getByText(message)).toBeVisible();
+		await expect.element(name).not.toBeChecked();
+		await expect.element(name).toHaveAccessibleDescription('Shown as Fern Mock');
+		expect(myCode.displayName).toBeNull();
+	});
+
+	it("never shows a late answer's name to the next account", async () => {
+		let finish: (value: MySettings) => void = () => {};
+		const updateMySettings = vi.fn(() => new Promise<MySettings>((resolve) => (finish = resolve)));
+		const { screen } = await renderReady(updateMySettings);
+		await screen.getByRole('switch', { name: NAME_SWITCH }).click();
+		expect(updateMySettings).toHaveBeenCalledOnce();
+		// The player leaves the page and signs out, and another account signs in, before the
+		// answer arrives.
+		screen.unmount();
+		myCode.reset();
+		myCode.code = buildCode('player', '9HJD3XK') as PlayerCode;
+		myCode.displayName = 'Oren Quill';
+		myCode.status = 'ready';
+		finish({
+			...SAVED,
+			displayName: 'Fern M.',
+			privacy: { ...SAVED.privacy, name: 'first_last_initial' }
+		});
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		expect(myCode.displayName).toBe('Oren Quill');
+	});
+
+	it('shows the name switch on and locked for a player aged 13 to 17, with why', async () => {
+		const screen = await render(VisibilitySettings, {
+			deps: {
+				fetchMySettings: async () => ({
+					...SAVED,
+					displayName: 'Fern M.',
+					nameLocked: true,
+					privacy: { ...SAVED.privacy, name: 'first_last_initial' }
+				}),
+				updateMySettings: backend()
+			}
+		});
+		const name = screen.getByRole('switch', { name: NAME_SWITCH });
+		await expect.element(name).toBeChecked();
+		await expect.element(name).toBeDisabled();
+		await expect
+			.element(name)
+			.toHaveAccessibleDescription('Shown as Fern M. This stays on until you turn 18.');
 	});
 
 	it('changes who can see a detail', async () => {
@@ -223,9 +273,7 @@ describe('NameSettings and VisibilitySettings', () => {
 			deps: { fetchMySettings: async () => null }
 		});
 		await expect
-			.element(
-				screen.getByText(/can't change your display name or privacy settings in the app yet/)
-			)
+			.element(screen.getByText(/can't change your privacy settings in the app yet/))
 			.toBeVisible();
 		expect(screen.getByRole('switch').elements()).toHaveLength(0);
 	});
@@ -235,9 +283,9 @@ describe('NameSettings and VisibilitySettings', () => {
 			.fn<() => Promise<MySettings | null>>()
 			.mockRejectedValueOnce(new Error('offline'))
 			.mockResolvedValueOnce(SAVED);
-		const screen = await render(NameSettings, { deps: { fetchMySettings } });
+		const screen = await render(VisibilitySettings, { deps: { fetchMySettings } });
 		await screen.getByRole('button', { name: 'Try again' }).click();
-		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
+		await expect.element(screen.getByRole('switch', { name: 'Stats' })).toBeVisible();
 	});
 
 	it('always says how to get a copy of your data', async () => {
@@ -251,20 +299,20 @@ describe('NameSettings and VisibilitySettings', () => {
 	it('loads the settings once, when the code is ready, not while it is found', async () => {
 		const fetchMySettings = vi.fn<() => Promise<MySettings | null>>().mockResolvedValue(SAVED);
 		myCode.reset();
-		const screen = await render(NameSettings, { deps: { fetchMySettings } });
+		const screen = await render(VisibilitySettings, { deps: { fetchMySettings } });
 		myCode.status = 'loading';
 		await new Promise((resolve) => setTimeout(resolve, 50));
 		expect(fetchMySettings).not.toHaveBeenCalled();
 
 		readyCode();
-		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
+		await expect.element(screen.getByRole('switch', { name: 'Stats' })).toBeVisible();
 		expect(fetchMySettings).toHaveBeenCalledTimes(1);
 	});
 
 	it('does not load again when the gate finds the same code again', async () => {
 		const fetchMySettings = vi.fn<() => Promise<MySettings | null>>().mockResolvedValue(SAVED);
-		const screen = await render(NameSettings, { deps: { fetchMySettings } });
-		await expect.element(screen.getByLabelText('Display name')).toHaveValue('Fern Mock');
+		const screen = await render(VisibilitySettings, { deps: { fetchMySettings } });
+		await expect.element(screen.getByRole('switch', { name: 'Stats' })).toBeVisible();
 		myCode.status = 'loading';
 		await new Promise((resolve) => setTimeout(resolve, 50));
 		readyCode();

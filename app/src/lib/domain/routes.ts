@@ -8,7 +8,6 @@ export const ROUTES = {
 	record: '/record',
 	matches: '/matches',
 	profile: '/profile',
-	profileName: '/profile/name',
 	twoFactor: '/profile/two-factor',
 	profilePrivacy: '/profile/privacy',
 	profileData: '/profile/data',
