@@ -133,78 +133,86 @@
 	}
 </script>
 
-<Dialog
-	open={reauthPrompt.request !== null}
-	onOpenChange={(open) => {
-		if (!open) cancel();
-	}}
->
-	<DialogContent onOpenAutoFocus={focusField}>
-		<form method="post" onsubmit={submit} novalidate class="grid gap-8">
-			<DialogHeader>
-				<DialogTitle>Confirm it's you</DialogTitle>
-				<DialogDescription>
+<!--
+	Mounted only while a request is open. A bits-ui portal adds its place in body when it mounts,
+	and dialogs of the same z-index stack in that order. The layout mounts before any page, so a
+	prompt mounted with the layout would sit under a page's open dialog, such as the delete dialog
+	after a client-side visit to Profile. Mounted on open, its portal comes last and stays on top.
+-->
+{#if reauthPrompt.request}
+	<Dialog
+		open
+		onOpenChange={(open) => {
+			if (!open) cancel();
+		}}
+	>
+		<DialogContent onOpenAutoFocus={focusField}>
+			<form method="post" onsubmit={submit} novalidate class="grid gap-8">
+				<DialogHeader>
+					<DialogTitle>Confirm it's you</DialogTitle>
+					<DialogDescription>
+						{#if method === 'password'}
+							Enter your password to continue.
+						{:else if kind === 'totp'}
+							Enter the 6-digit code from your authenticator app to continue.
+						{:else}
+							Enter one of your recovery codes to continue. Each one works once.
+						{/if}
+					</DialogDescription>
+				</DialogHeader>
+				<div class="grid gap-2">
 					{#if method === 'password'}
-						Enter your password to continue.
-					{:else if kind === 'totp'}
-						Enter the 6-digit code from your authenticator app to continue.
+						<TextField
+							id="reauth-password"
+							name="password"
+							label="Password"
+							type="password"
+							reveal
+							autocomplete="current-password"
+							bind:value={reauthPrompt.password}
+							error={form.errors.password}
+						/>
 					{:else}
-						Enter one of your recovery codes to continue. Each one works once.
+						<MfaCodeField
+							id="reauth-code"
+							{kind}
+							bind:value={reauthPrompt.code}
+							error={form.errors.code}
+						/>
+						{#if offersRecovery}
+							<Button
+								variant="link"
+								onclick={toggleKind}
+								class="min-h-10 justify-self-start px-0 text-sm"
+							>
+								{kind === 'totp' ? 'Use a recovery code' : 'Use your authenticator app'}
+							</Button>
+						{/if}
 					{/if}
-				</DialogDescription>
-			</DialogHeader>
-			<div class="grid gap-2">
-				{#if method === 'password'}
-					<TextField
-						id="reauth-password"
-						name="password"
-						label="Password"
-						type="password"
-						reveal
-						autocomplete="current-password"
-						bind:value={reauthPrompt.password}
-						error={form.errors.password}
-					/>
-				{:else}
-					<MfaCodeField
-						id="reauth-code"
-						{kind}
-						bind:value={reauthPrompt.code}
-						error={form.errors.code}
-					/>
-					{#if offersRecovery}
+					{#if methods.includes('password') && methods.includes('code')}
 						<Button
 							variant="link"
-							onclick={toggleKind}
+							onclick={() => useMethod(method === 'password' ? 'code' : 'password')}
 							class="min-h-10 justify-self-start px-0 text-sm"
 						>
-							{kind === 'totp' ? 'Use a recovery code' : 'Use your authenticator app'}
+							{method === 'password' ? 'Use a code instead' : 'Use your password instead'}
 						</Button>
 					{/if}
+				</div>
+				{#if form.problem}
+					<Alert variant="destructive">
+						<CircleAlertIcon aria-hidden="true" />
+						<AlertTitle>{form.problem.title}</AlertTitle>
+					</Alert>
 				{/if}
-				{#if methods.includes('password') && methods.includes('code')}
-					<Button
-						variant="link"
-						onclick={() => useMethod(method === 'password' ? 'code' : 'password')}
-						class="min-h-10 justify-self-start px-0 text-sm"
-					>
-						{method === 'password' ? 'Use a code instead' : 'Use your password instead'}
+				<DialogFooter>
+					<Button variant="outline" onclick={cancel}>Cancel</Button>
+					<Button type="submit" aria-disabled={busy} aria-busy={busy}>
+						{#if busy}<Spinner />{/if}
+						{busy ? 'Checking…' : 'Confirm'}
 					</Button>
-				{/if}
-			</div>
-			{#if form.problem}
-				<Alert variant="destructive">
-					<CircleAlertIcon aria-hidden="true" />
-					<AlertTitle>{form.problem.title}</AlertTitle>
-				</Alert>
-			{/if}
-			<DialogFooter>
-				<Button variant="outline" onclick={cancel}>Cancel</Button>
-				<Button type="submit" aria-disabled={busy} aria-busy={busy}>
-					{#if busy}<Spinner />{/if}
-					{busy ? 'Checking…' : 'Confirm'}
-				</Button>
-			</DialogFooter>
-		</form>
-	</DialogContent>
-</Dialog>
+				</DialogFooter>
+			</form>
+		</DialogContent>
+	</Dialog>
+{/if}
