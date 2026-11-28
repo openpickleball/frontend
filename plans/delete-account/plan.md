@@ -1,6 +1,6 @@
 # Plan: Let players delete their account from the profile (issue #265)
 
-**Status:** active
+**Status:** done
 
 Risk tier: High. Forced: it sends a destructive, irreversible request that needs reauthentication, and it ends the session and deletes data kept on the device.
 
