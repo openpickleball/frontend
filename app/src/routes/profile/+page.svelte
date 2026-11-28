@@ -117,7 +117,7 @@
 									<button {...props} {...rowProps}>
 										<ItemContent>
 											<ItemTitle>Delete your account</ItemTitle>
-											<ItemDescription>Your data goes, your match results stay</ItemDescription>
+											<ItemDescription>What goes, what stays, and how to confirm</ItemDescription>
 										</ItemContent>
 										<ItemActions><ChevronRightIcon aria-hidden="true" /></ItemActions>
 									</button>

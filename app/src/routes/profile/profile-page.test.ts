@@ -101,7 +101,7 @@ describe('the profile page', () => {
 		const rows = [...section![0].matchAll(/<li[^>]*>(.*?)<\/li>/gs)].map((m) => m[1]);
 		expect(rows.map((row) => textOf(row))).toEqual([
 			'Copy of your data How to get a copy of what OPEN holds',
-			'Delete your account Your data goes, your match results stay'
+			'Delete your account What goes, what stays, and how to confirm'
 		]);
 		const button = rows[1].match(/<button[^>]*>.*<\/button>/s);
 		expect(button).not.toBeNull();
